@@ -1,0 +1,55 @@
+{
+    "name": "laravel/mcp",
+    "description": "The easiest way to add MCP servers to your Laravel app.",
+    "type": "library",
+    "require": {
+        "illuminate/support": "^12.0"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Laravel\\Mcp\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Peter Suhm",
+            "email": "peter@suhm.dk"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require-dev": {
+        "orchestra/testbench": "10.x-dev"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Workbench\\App\\": "workbench/app/",
+            "Workbench\\Database\\Factories\\": "workbench/database/factories/",
+            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Laravel\\Mcp\\McpServiceProvider"
+            ],
+            "aliases": {
+                "Mcp": "Laravel\\Mcp\\Facades\\Mcp"
+            }
+        }
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@clear",
+            "@prepare"
+        ],
+        "clear": "@php vendor/bin/testbench package:purge-skeleton --ansi",
+        "prepare": "@php vendor/bin/testbench package:discover --ansi",
+        "build": "@php vendor/bin/testbench workbench:build --ansi",
+        "serve": [
+            "Composer\\Config::disableProcessTimeout",
+            "@build",
+            "@php vendor/bin/testbench serve --ansi"
+        ]
+    }
+}
