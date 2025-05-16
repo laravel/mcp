@@ -2,6 +2,7 @@
 
 namespace Laravel\Mcp;
 
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Registrar;
 
@@ -26,6 +27,21 @@ class McpServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        $this->publishes([
+            __DIR__ . '/../stubs/routes/ai.php' => base_path('routes/ai.php'),
+        ], 'ai-routes');
+
+        $this->loadAiRoutes();
+    }
+
+    protected function loadAiRoutes(): void
+    {
+        $path = base_path('routes/ai.php');
+
+        if (! file_exists($path) || $this->app->routesAreCached()) {
+            return;
+        }
+
+        Route::prefix('mcp')->group($path);
     }
 }
