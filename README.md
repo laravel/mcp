@@ -36,15 +36,15 @@ The package automatically loads routes defined in this file. Web routes will be 
 
 ## Creating a Server
 
-A server is the central point that handles communication and exposes tools. To create a server, you need to extend the `Laravel\\Mcp\\Server` base class.
+A server is the central point that handles communication and exposes tools. To create a server, you need to extend the `Laravel\Mcp\Server` base class.
 
 ```php
 <?php
 
-namespace App\\Mcp\\Servers;
+namespace App\Mcp\Servers;
 
-use Laravel\\Mcp\\Server;
-use App\\Mcp\\Tools\\MyExampleTool;
+use Laravel\Mcp\Server;
+use App\Mcp\Tools\MyExampleTool;
 
 class ExampleServer extends Server
 {
@@ -83,14 +83,14 @@ class ExampleServer extends Server
 
 ## Creating Tools
 
-Tools are individual units of functionality that your server exposes. Each tool must implement the `Laravel\\Mcp\\Contracts\\Tool` interface.
+Tools are individual units of functionality that your server exposes. Each tool must implement the `Laravel\Mcp\Contracts\Tool` interface.
 
 ```php
 <?php
 
-namespace App\\Mcp\\Tools;
+namespace App\Mcp\Tools;
 
-use Laravel\\Mcp\\Contracts\\Tool;
+use Laravel\Mcp\Contracts\Tool;
 
 class MyExampleTool implements Tool
 {
@@ -173,8 +173,8 @@ Servers are registered in the `routes/ai.php` file using the `Mcp` facade (or in
 To register a server that can be accessed via an HTTP POST request:
 
 ```php
-use App\\Mcp\\Servers\\ExampleServer;
-use Laravel\\Mcp\\Facades\\Mcp;
+use App\Mcp\Servers\ExampleServer;
+use Laravel\Mcp\Facades\Mcp;
 
 Mcp::web('demo', ExampleServer::class);
 ```
@@ -185,8 +185,8 @@ This will make `ExampleServer` available at the `/mcp/demo` endpoint.
 To register a server that can be run as an Artisan command:
 
 ```php
-use App\\Mcp\\Servers\\ExampleServer;
-use Laravel\\Mcp\\Facades\\Mcp;
+use App\Mcp\Servers\ExampleServer;
+use Laravel\Mcp\Facades\Mcp;
 
 Mcp::local('demo', ExampleServer::class);
 ```
