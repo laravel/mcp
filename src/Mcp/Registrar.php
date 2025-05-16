@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Mcp\Transport\HttpStreamTransport;
+use Laravel\Mcp\Mcp\Transport\StdioTransport;
 
 class Registrar
 {
@@ -21,8 +22,11 @@ class Registrar
 
     public function local($handle, Server $server)
     {
-        Artisan::command('mcp:' . $handle, function () {
-            //
+        Artisan::command('mcp:' . $handle, function () use ($server) {
+            $transport = new StdioTransport(STDIN, STDOUT);
+            $server->connect($transport);
+
+            $transport->run();
         });
     }
 }
