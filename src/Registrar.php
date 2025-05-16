@@ -10,23 +10,29 @@ use Laravel\Mcp\Transport\StdioTransport;
 
 class Registrar
 {
-    public function web($handle, Server $server)
+    private function handler(string $serverClass, callable $transportFactory)
     {
-        return Route::post($handle, function (Request $request) use ($server) {
-            $transport = new HttpStreamTransport($request);
+        return function (...$arguments) use ($serverClass, $transportFactory) {
+            $server = new $serverClass();
+            $transport = $transportFactory(...$arguments);
+
             $server->connect($transport);
 
             return $transport->run();
-        })->prefix('mcp');
+        };
     }
 
-    public function local($handle, Server $server)
+    public function web($handle, string $serverClass)
     {
-        Artisan::command('mcp:' . $handle, function () use ($server) {
-            $transport = new StdioTransport(STDIN, STDOUT);
-            $server->connect($transport);
+        return Route::post($handle, $this->handler($serverClass, function (Request $request) {
+            return new HttpStreamTransport($request);
+        }))->prefix('mcp');
+    }
 
-            $transport->run();
-        });
+    public function local($handle, string $serverClass)
+    {
+        return Artisan::command('mcp:' . $handle, $this->handler($serverClass, function () {
+            return new StdioTransport(STDIN, STDOUT);
+        }));
     }
 }
