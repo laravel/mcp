@@ -154,8 +154,10 @@ class MyExampleTool implements Tool
         $result = "Processed {$param1} and {$param2}.";
 
         return [
-            'isError' => 'false',
-            'content' => $result,
+            'content' => [[
+                'type' = 'text',
+                'text' => $result,
+            ]]
         ];
     }
 }
