@@ -2,7 +2,6 @@
 
 namespace Laravel\Mcp;
 
-use Laravel\Mcp\Contracts\Tool;
 use Laravel\Mcp\Transport\Transport;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 
@@ -16,11 +15,11 @@ abstract class Server
         ],
     ];
 
-    protected $serverName = 'My-MCP-Server';
+    protected $serverName = 'My Laravel MCP Server';
 
     protected $serverVersion = '0.1.0';
 
-    protected $instructions = 'Optional instructions for the client';
+    protected $instructions = 'Welcome to my Laravel MCP Server!';
 
     protected $tools = [];
 

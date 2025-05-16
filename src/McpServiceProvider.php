@@ -38,7 +38,11 @@ class McpServiceProvider extends ServiceProvider
     {
         $path = base_path('routes/ai.php');
 
-        if (! file_exists($path) || $this->app->routesAreCached()) {
+        if (! file_exists($path)) {
+            return;
+        }
+
+        if (! $this->app->runningInConsole() && $this->app->routesAreCached()) {
             return;
         }
 
