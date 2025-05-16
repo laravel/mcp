@@ -3,7 +3,7 @@
 namespace Laravel\Mcp;
 
 use Illuminate\Support\ServiceProvider;
-use Laravel\Mcp\Mcp\Registrar;
+use Laravel\Mcp\Registrar;
 
 class McpServiceProvider extends ServiceProvider
 {

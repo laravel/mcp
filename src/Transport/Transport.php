@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\Mcp\Mcp\Transport;
+namespace Laravel\Mcp\Transport;
 
 interface Transport
 {

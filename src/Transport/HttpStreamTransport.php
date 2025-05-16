@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\Mcp\Mcp\Transport;
+namespace Laravel\Mcp\Transport;
 
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;

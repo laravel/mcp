@@ -1,12 +1,12 @@
 <?php
 
-namespace Laravel\Mcp\Mcp;
+namespace Laravel\Mcp;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
-use Laravel\Mcp\Mcp\Transport\HttpStreamTransport;
-use Laravel\Mcp\Mcp\Transport\StdioTransport;
+use Laravel\Mcp\Transport\HttpStreamTransport;
+use Laravel\Mcp\Transport\StdioTransport;
 
 class Registrar
 {

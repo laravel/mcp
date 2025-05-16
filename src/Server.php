@@ -1,9 +1,9 @@
 <?php
 
-namespace Laravel\Mcp\Mcp;
+namespace Laravel\Mcp;
 
-use Laravel\Mcp\Mcp\Transport\Transport;
-use Laravel\Mcp\Mcp\Transport\JsonRpcResponse;
+use Laravel\Mcp\Transport\Transport;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 
 abstract class Server
 {
