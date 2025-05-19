@@ -91,6 +91,8 @@ Tools are individual units of functionality that your server exposes. Each tool 
 namespace App\Mcp\Tools;
 
 use Laravel\Mcp\Contracts\Tool;
+use Laravel\Mcp\Tools\ToolInputSchema;
+use Laravel\Mcp\Tools\ToolResponse;
 
 class MyExampleTool implements Tool
 {
@@ -102,7 +104,7 @@ class MyExampleTool implements Tool
      */
     public static function getName(): string
     {
-        return 'my_example_tool'; // Should match the key in Server\'s $tools array
+        return 'my_example_tool'; // Should match the key in Server's $tools array
     }
 
     /**
@@ -116,35 +118,24 @@ class MyExampleTool implements Tool
     }
 
     /**
-     * Get the JSON schema for the tool\'s input arguments.
+     * Get the JSON schema for the tool's input arguments.
      *
-     * @return array
+     * @return \Laravel\Mcp\Tools\ToolInputSchema
      */
-    public function getInputSchema(): array
+    public function getInputSchema(): ToolInputSchema
     {
-        return [
-            'type' => 'object',
-            'properties' => [
-                'param1' => [
-                    'type' => 'string',
-                    'description' => 'The first parameter for this tool.',
-                ],
-                'param2' => [
-                    'type' => 'integer',
-                    'description' => 'The second parameter, an integer.',
-                ],
-            ],
-            'required' => ['param1'],
-        ];
+        return (new ToolInputSchema())
+            ->addProperty('param1', 'string', 'The first parameter for this tool.', true)
+            ->addProperty('param2', 'integer', 'The second parameter, an integer.');
     }
 
     /**
-     * Execute the tool\'s logic with the provided arguments.
+     * Execute the tool's logic with the provided arguments.
      *
      * @param array $arguments The arguments for the tool, matching the input schema.
-     * @return array The result of the tool\'s execution.
+     * @return \Laravel\Mcp\Tools\ToolResponse The result of the tool's execution.
      */
-    public function call(array $arguments): array
+    public function call(array $arguments): ToolResponse
     {
         // Your tool logic here
         $param1 = $arguments['param1'] ?? 'default';
@@ -153,12 +144,7 @@ class MyExampleTool implements Tool
         // Perform some action
         $result = "Processed {$param1} and {$param2}.";
 
-        return [
-            'content' => [[
-                'type' = 'text',
-                'text' => $result,
-            ]]
-        ];
+        return new ToolResponse($result);
     }
 }
 
