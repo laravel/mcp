@@ -2,26 +2,37 @@
 
 namespace Laravel\Mcp;
 
+use Laravel\Mcp\Methods\CallTool;
+use Laravel\Mcp\Methods\Initialize;
+use Laravel\Mcp\Methods\ListTools;
+use Laravel\Mcp\Messages\CallToolMessage;
+use Laravel\Mcp\Messages\InitializeMessage;
+use Laravel\Mcp\Messages\ListToolsMessage;
 use Laravel\Mcp\Transport\Transport;
-use Laravel\Mcp\Transport\JsonRpcResponse;
 
 abstract class Server
 {
-    private Transport $transport;
-
-    protected $capabilities = [
+    public static array $capabilities = [
         'tools' => [
             'listChanged' => false,
         ],
     ];
 
-    protected $serverName = 'My Laravel MCP Server';
+    public static string $serverName = 'My Laravel MCP Server';
 
-    protected $serverVersion = '0.1.0';
+    public static string $serverVersion = '0.1.0';
 
-    protected $instructions = 'Welcome to my Laravel MCP Server!';
+    public static string $instructions = 'Welcome to my Laravel MCP Server!';
 
-    protected $tools = [];
+    public static array $tools = [];
+
+    private Transport $transport;
+
+    private static array $methods = [
+        'initialize' => [Initialize::class, InitializeMessage::class],
+        'tools/list' => [ListTools::class, ListToolsMessage::class],
+        'tools/call' => [CallTool::class, CallToolMessage::class],
+    ];
 
     public function connect(Transport $transport)
     {
@@ -37,52 +48,10 @@ abstract class Server
             return; // Notification
         }
 
-        $response = match ($message['method']) {
-            'initialize' => $this->initialize($message['id']),
-            'tools/list' => $this->listTools($message['id']),
-            'tools/call' => $this->callTool($message['id'], $message['params']),
-            default => null,
-        };
+        list($methodClass, $messageClass) = self::$methods[$message['method']];
 
-        $this->transport->send(json_encode($response));
-    }
+        $response = (new $methodClass())->handle(new $messageClass($message), $this);
 
-    public function initialize($id)
-    {
-        return JsonRpcResponse::create($id, [
-            'protocolVersion' => '2025-03-26',
-            'capabilities' => $this->capabilities,
-            'serverInfo' => [
-                'name' => $this->serverName,
-                'version' => $this->serverVersion,
-            ],
-            'instructions' => $this->instructions,
-        ]);
-    }
-
-    public function listTools($id)
-    {
-        $tools = collect($this->tools)->values()->map(function (string $toolClass) {
-            $tool = new $toolClass();
-
-            return [
-                'name' => $tool->getName(),
-                'description' => $tool->getDescription(),
-                'inputSchema' => $tool->getInputSchema()->toArray(),
-            ];
-        });
-
-        return JsonRpcResponse::create($id, [
-            'tools' => $tools,
-        ]);
-    }
-
-    public function callTool($id, $parameters)
-    {
-        $tool = new $this->tools[$parameters['name']]();
-
-        return JsonRpcResponse::create($id, $tool
-            ->call($parameters['arguments'])
-            ->toArray());
+        $this->transport->send($response->toJson());
     }
 }
