@@ -68,7 +68,7 @@ abstract class Server
             return [
                 'name' => $tool->getName(),
                 'description' => $tool->getDescription(),
-                'inputSchema' => $tool->getInputSchema(),
+                'inputSchema' => $tool->getInputSchema()->toArray(),
             ];
         });
 
@@ -81,6 +81,8 @@ abstract class Server
     {
         $tool = new $this->tools[$parameters['name']]();
 
-        return JsonRpcResponse::create($id, $tool->call($parameters['arguments']));
+        return JsonRpcResponse::create($id, $tool
+            ->call($parameters['arguments'])
+            ->toArray());
     }
 }

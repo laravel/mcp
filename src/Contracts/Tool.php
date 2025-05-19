@@ -2,13 +2,16 @@
 
 namespace Laravel\Mcp\Contracts;
 
+use Laravel\Mcp\Tools\ToolResponse;
+use Laravel\Mcp\Tools\ToolInputSchema;
+
 interface Tool
 {
     public static function getName(): string;
 
     public function getDescription(): string;
 
-    public function getInputSchema(): array;
+    public function getInputSchema(): ToolInputSchema;
 
-    public function call(array $arguments): array;
+    public function call(array $arguments): ToolResponse;
 }
