@@ -3,6 +3,7 @@
 namespace Laravel\Mcp\Transport;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\StreamedEvent;
 use Illuminate\Support\Facades\Redis;
 use Ramsey\Uuid\Uuid;
 
@@ -43,33 +44,30 @@ class HttpSseTransport implements Transport
             return response('', 204);
         }
 
-        $headers = [
-            'Content-Type' => 'text/event-stream',
-            'Cache-Control' => 'no-cache',
-            'Connection' => 'keep-alive',
-            'X-Accel-Buffering' => 'no',
-        ];
-
         $endpoint = $this->request->path().'/messages?session='.$this->channel;
 
         $callback = function () use ($endpoint) {
-            echo "event: endpoint\n";
-            echo 'data: '.$endpoint."\n\n";
-            flush();
+            yield new StreamedEvent(
+                event: 'endpoint',
+                data: $endpoint,
+            );
 
             while (true) {
-                $hit = Redis::blpop(["mcp:sessions:{$this->channel}"], 10);
-                if ($hit) {
-                    echo "data: {$hit[1]}\n\n";
-                    flush();
-                }
-
                 if (connection_aborted()) {
                     break;
+                }
+
+                $hit = Redis::blpop(["mcp:sessions:{$this->channel}"], 10);
+
+                if ($message = $hit[1] ?? null) {
+                    yield new StreamedEvent(
+                        event: 'message',
+                        data: $message,
+                    );
                 }
             }
         };
 
-        return response()->stream($callback, 200, $headers);
+        return response()->eventStream($callback);
     }
 }
