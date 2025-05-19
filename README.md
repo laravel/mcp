@@ -53,28 +53,28 @@ class ExampleServer extends Server
      *
      * @var string
      */
-    protected $serverName = 'My Custom MCP Server';
+    public static string $serverName = 'My Custom MCP Server';
 
     /**
      * The version of your server.
      *
      * @var string
      */
-    protected $serverVersion = '1.0.0';
+    public static string $serverVersion = '1.0.0';
 
     /**
      * Instructions or a welcome message for clients connecting to the server.
      *
      * @var string
      */
-    protected $instructions = 'Welcome! This server provides tools for X, Y, and Z.';
+    public static string $instructions = 'Welcome! This server provides tools for X, Y, and Z.';
 
     /**
      * An array of tool classes that this server provides.
      *
      * @var array
      */
-    protected $tools = [
+    public static array $tools = [
         'example_tool' => MyExampleTool::class,
     ];
 }
