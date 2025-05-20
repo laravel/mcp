@@ -14,6 +14,7 @@ This Laravel package helps you build MCP-compliant servers within your Laravel a
 - [Registering Servers](#registering-servers)
   - [Web Servers](#web-servers)
   - [Local (CLI) Servers](#local-cli-servers)
+- [Authentication (Optional)](#authentication-optional)
 - [Testing Servers with MCP Inspector](#testing-servers-with-mcp-inspector)
 
 ## Setup
@@ -48,32 +49,12 @@ use App\Mcp\Tools\MyExampleTool;
 
 class ExampleServer extends Server
 {
-    /**
-     * The display name of your server.
-     *
-     * @var string
-     */
     public static string $serverName = 'My Custom MCP Server';
 
-    /**
-     * The version of your server.
-     *
-     * @var string
-     */
     public static string $serverVersion = '1.0.0';
 
-    /**
-     * Instructions or a welcome message for clients connecting to the server.
-     *
-     * @var string
-     */
     public static string $instructions = 'Welcome! This server provides tools for X, Y, and Z.';
 
-    /**
-     * An array of tool classes that this server provides.
-     *
-     * @var array
-     */
     public static array $tools = [
         'example_tool' => MyExampleTool::class,
     ];
@@ -96,32 +77,16 @@ use Laravel\Mcp\Tools\ToolResponse;
 
 class MyExampleTool implements Tool
 {
-    /**
-     * Get the unique name of the tool.
-     * This name is used by clients to call the tool.
-     *
-     * @return string
-     */
     public static function getName(): string
     {
         return 'my_example_tool'; // Should match the key in Server's $tools array
     }
 
-    /**
-     * Get a description of what the tool does.
-     *
-     * @return string
-     */
     public function getDescription(): string
     {
         return 'This is an example tool that performs a sample action.';
     }
 
-    /**
-     * Get the JSON schema for the tool's input arguments.
-     *
-     * @return \Laravel\Mcp\Tools\ToolInputSchema
-     */
     public function getInputSchema(): ToolInputSchema
     {
         return (new ToolInputSchema())
@@ -129,12 +94,6 @@ class MyExampleTool implements Tool
             ->addProperty('param2', 'integer', 'The second parameter, an integer.');
     }
 
-    /**
-     * Execute the tool's logic with the provided arguments.
-     *
-     * @param array $arguments The arguments for the tool, matching the input schema.
-     * @return \Laravel\Mcp\Tools\ToolResponse The result of the tool's execution.
-     */
     public function call(array $arguments): ToolResponse
     {
         // Your tool logic here
@@ -177,6 +136,18 @@ use Laravel\Mcp\Facades\Mcp;
 Mcp::local('demo', ExampleServer::class);
 ```
 This will create an Artisan command `php artisan mcp:demo` to connect to the server.
+
+## Authentication (Optional)
+
+For web servers, you can easily add authentication using Laravel Sanctum. Just append the `auth:sanctum` middleware to your server registration in the `routes/ai.php` file:
+
+```php
+use App\Mcp\Servers\ExampleServer;
+use Laravel\Mcp\Facades\Mcp;
+
+Mcp::web('demo', ExampleServer::class)
+    ->middleware('auth:sanctum');
+```
 
 ## Testing Servers with MCP Inspector
 
