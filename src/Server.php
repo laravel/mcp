@@ -60,7 +60,7 @@ abstract class Server
         $methodHandler = new $methodClass();
 
         $response = $methodHandler->handle(
-            new Message($message['id'], $message['params']),
+            new Message($message['id'], $message['params'] ?? []),
             $context
         );
 
