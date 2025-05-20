@@ -137,7 +137,7 @@ Mcp::local('demo', ExampleServer::class);
 ```
 This will create an Artisan command `php artisan mcp:demo` to connect to the server.
 
-## Authentication (Optional)
+## Authentication
 
 For web servers, you can easily add authentication using Laravel Sanctum. Just append the `auth:sanctum` middleware to your server registration in the `routes/ai.php` file:
 
