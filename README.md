@@ -49,13 +49,13 @@ use App\Mcp\Tools\MyExampleTool;
 
 class ExampleServer extends Server
 {
-    public static string $serverName = 'My Custom MCP Server';
+    public string $serverName = 'My Custom MCP Server';
 
-    public static string $serverVersion = '1.0.0';
+    public string $serverVersion = '1.0.0';
 
-    public static string $instructions = 'Welcome! This server provides tools for X, Y, and Z.';
+    public string $instructions = 'Welcome! This server provides tools for X, Y, and Z.';
 
-    public static array $tools = [
+    public array $tools = [
         'example_tool' => MyExampleTool::class,
     ];
 }
@@ -77,7 +77,7 @@ use Laravel\Mcp\Tools\ToolResponse;
 
 class MyExampleTool implements Tool
 {
-    public static function getName(): string
+    public function getName(): string
     {
         return 'my_example_tool'; // Should match the key in Server's $tools array
     }
