@@ -1,0 +1,10 @@
+<?php
+
+namespace Laravel\Mcp\Tests\Fixtures;
+
+use Laravel\Mcp\Server;
+
+class ExampleServer extends Server
+{
+    //
+}

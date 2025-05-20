@@ -8,7 +8,9 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Laravel\\Mcp\\": "src/"
+            "Laravel\\Mcp\\": "src/",
+            "Laravel\\Mcp\\Tests\\": "tests/",
+            "Workbench\\App\\": "workbench/app/"
         }
     },
     "authors": [

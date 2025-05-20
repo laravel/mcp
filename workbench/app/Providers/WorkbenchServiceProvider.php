@@ -3,6 +3,8 @@
 namespace Workbench\App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Laravel\Mcp\Facades\Mcp;
+use Laravel\Mcp\Tests\Fixtures\ExampleServer;
 
 class WorkbenchServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,6 @@ class WorkbenchServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        Mcp::local('test-mcp', ExampleServer::class);
     }
 }
