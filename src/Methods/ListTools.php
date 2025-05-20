@@ -2,15 +2,16 @@
 
 namespace Laravel\Mcp\Methods;
 
-use Laravel\Mcp\Messages\ListToolsMessage;
-use Laravel\Mcp\Server;
+use Laravel\Mcp\Contracts\Method;
+use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
+use Laravel\Mcp\Transport\Message;
 
-class ListTools
+class ListTools implements Method
 {
-    public function handle(ListToolsMessage $message, Server $server): JsonRpcResponse
+    public function handle(Message $message, ServerContext $context): JsonRpcResponse
     {
-        $toolList = collect($server->tools)->values()->map(function (string $toolClass) {
+        $toolList = collect($context->tools)->values()->map(function (string $toolClass) {
             $tool = new $toolClass();
 
             return [

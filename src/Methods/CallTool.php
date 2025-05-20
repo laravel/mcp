@@ -2,20 +2,19 @@
 
 namespace Laravel\Mcp\Methods;
 
-use Laravel\Mcp\Messages\CallToolMessage;
-use Laravel\Mcp\Server;
+use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
+use Laravel\Mcp\Transport\Message;
 
 class CallTool
 {
-    public function handle(CallToolMessage $message, Server $server): JsonRpcResponse
+    public function handle(Message $message, ServerContext $context): JsonRpcResponse
     {
-        $tool = new $server->tools[$message->toolName]();
+        $tool = new $context->tools[$message->params['name']]();
 
         return JsonRpcResponse::create(
             $message->id,
-            $tool->call($message->toolArguments)
-                ->toArray()
+            $tool->call($message->params['arguments'])->toArray()
         );
     }
 }

@@ -5,9 +5,8 @@ namespace Laravel\Mcp;
 use Laravel\Mcp\Methods\CallTool;
 use Laravel\Mcp\Methods\Initialize;
 use Laravel\Mcp\Methods\ListTools;
-use Laravel\Mcp\Messages\CallToolMessage;
-use Laravel\Mcp\Messages\InitializeMessage;
-use Laravel\Mcp\Messages\ListToolsMessage;
+use Laravel\Mcp\ServerContext;
+use Laravel\Mcp\Transport\Message;
 use Laravel\Mcp\Transport\Transport;
 
 abstract class Server
@@ -29,9 +28,9 @@ abstract class Server
     private Transport $transport;
 
     private array $methods = [
-        'initialize' => [Initialize::class, InitializeMessage::class],
-        'tools/list' => [ListTools::class, ListToolsMessage::class],
-        'tools/call' => [CallTool::class, CallToolMessage::class],
+        'initialize' => Initialize::class,
+        'tools/list' => ListTools::class,
+        'tools/call' => CallTool::class,
     ];
 
     public function connect(Transport $transport)
@@ -48,9 +47,22 @@ abstract class Server
             return; // Notification
         }
 
-        list($methodClass, $messageClass) = $this->methods[$message['method']];
+        $methodClass = $this->methods[$message['method']];
 
-        $response = (new $methodClass())->handle(new $messageClass($message), $this);
+        $context = new ServerContext(
+            $this->capabilities,
+            $this->serverName,
+            $this->serverVersion,
+            $this->instructions,
+            $this->tools
+        );
+
+        $methodHandler = new $methodClass();
+
+        $response = $methodHandler->handle(
+            new Message($message['id'], $message['params']),
+            $context
+        );
 
         $this->transport->send($response->toJson());
     }
