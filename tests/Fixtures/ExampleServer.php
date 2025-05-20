@@ -6,5 +6,7 @@ use Laravel\Mcp\Server;
 
 class ExampleServer extends Server
 {
-    //
+    public array $tools = [
+        'hello-tool' => ExampleTool::class,
+    ];
 }
