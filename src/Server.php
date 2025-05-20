@@ -12,23 +12,23 @@ use Laravel\Mcp\Transport\Transport;
 
 abstract class Server
 {
-    public static array $capabilities = [
+    public array $capabilities = [
         'tools' => [
             'listChanged' => false,
         ],
     ];
 
-    public static string $serverName = 'My Laravel MCP Server';
+    public string $serverName = 'My Laravel MCP Server';
 
-    public static string $serverVersion = '0.1.0';
+    public string $serverVersion = '0.1.0';
 
-    public static string $instructions = 'Welcome to my Laravel MCP Server!';
+    public string $instructions = 'Welcome to my Laravel MCP Server!';
 
-    public static array $tools = [];
+    public array $tools = [];
 
     private Transport $transport;
 
-    private static array $methods = [
+    private array $methods = [
         'initialize' => [Initialize::class, InitializeMessage::class],
         'tools/list' => [ListTools::class, ListToolsMessage::class],
         'tools/call' => [CallTool::class, CallToolMessage::class],
@@ -48,7 +48,7 @@ abstract class Server
             return; // Notification
         }
 
-        list($methodClass, $messageClass) = self::$methods[$message['method']];
+        list($methodClass, $messageClass) = $this->methods[$message['method']];
 
         $response = (new $methodClass())->handle(new $messageClass($message), $this);
 

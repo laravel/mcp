@@ -12,12 +12,12 @@ class Initialize
     {
         return JsonRpcResponse::create($message->id, [
             'protocolVersion' => '2025-03-26',
-            'capabilities' => $server::$capabilities,
+            'capabilities' => $server->capabilities,
             'serverInfo' => [
-                'name' => $server::$serverName,
-                'version' => $server::$serverVersion,
+                'name' => $server->serverName,
+                'version' => $server->serverVersion,
             ],
-            'instructions' => $server::$instructions,
+            'instructions' => $server->instructions,
         ]);
     }
 }

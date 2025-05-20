@@ -10,7 +10,7 @@ class ListTools
 {
     public function handle(ListToolsMessage $message, Server $server): JsonRpcResponse
     {
-        $toolList = collect($server::$tools)->values()->map(function (string $toolClass) {
+        $toolList = collect($server->tools)->values()->map(function (string $toolClass) {
             $tool = new $toolClass();
 
             return [

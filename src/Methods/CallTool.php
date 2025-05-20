@@ -10,7 +10,7 @@ class CallTool
 {
     public function handle(CallToolMessage $message, Server $server): JsonRpcResponse
     {
-        $tool = new $server::$tools[$message->toolName]();
+        $tool = new $server->tools[$message->toolName]();
 
         return JsonRpcResponse::create(
             $message->id,

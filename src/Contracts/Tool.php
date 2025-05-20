@@ -7,7 +7,7 @@ use Laravel\Mcp\Tools\ToolInputSchema;
 
 interface Tool
 {
-    public static function getName(): string;
+    public function getName(): string;
 
     public function getDescription(): string;
 
