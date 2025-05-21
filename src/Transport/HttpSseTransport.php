@@ -4,26 +4,36 @@ namespace Laravel\Mcp\Transport;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\StreamedEvent;
-use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Cache;
 use Ramsey\Uuid\Uuid;
 
 class HttpSseTransport implements Transport
 {
     private $handler;
     private Request $request;
-    private string $channel;
+    private string $sessionId;
     private bool $publishing;
 
     public function __construct(Request $request)
     {
         $this->request = $request;
         $this->publishing = $request->isMethod('post');
-        $this->channel = $request->query('session') ?: Uuid::uuid4()->toString();
+        $this->sessionId = $request->query('session') ?: Uuid::uuid4()->toString();
     }
 
-    public function channel(): string
+    public function sessionId(): string
     {
-        return $this->channel;
+        return $this->sessionId;
+    }
+
+    public function messageKey(int $id): string
+    {
+        return "mcp:sessions:{$this->sessionId}:msg:{$id}";
+    }
+
+    public function nextIdKey(): string
+    {
+        return "mcp:sessions:{$this->sessionId}:next_id";
     }
 
     public function onReceive(callable $handler)
@@ -33,7 +43,16 @@ class HttpSseTransport implements Transport
 
     public function send(string $message)
     {
-        Redis::rpush("mcp:sessions:{$this->channel}", $message);
+        $counter = $this->nextIdKey();
+
+        $id = Cache::increment($counter);
+
+        if (! is_int($id) || $id === 0) {
+            Cache::forever($counter, 1);
+            $id = 1;
+        }
+
+        Cache::put($this->messageKey($id), $message, 3600);
     }
 
     public function run()
@@ -44,7 +63,7 @@ class HttpSseTransport implements Transport
             return response('', 204);
         }
 
-        $endpoint = $this->request->path().'/messages?session='.$this->channel;
+        $endpoint = $this->request->path().'/messages?session='.$this->sessionId;
 
         $callback = function () use ($endpoint) {
             yield new StreamedEvent(
@@ -52,19 +71,26 @@ class HttpSseTransport implements Transport
                 data: $endpoint,
             );
 
+            $cursor = 0;
+
             while (true) {
                 if (connection_aborted()) {
                     break;
                 }
 
-                $hit = Redis::blpop(["mcp:sessions:{$this->channel}"], 10);
+                $next = $cursor + 1;
+                $message = Cache::pull($this->messageKey($next));
 
-                if ($message = $hit[1] ?? null) {
+                if ($message !== null) {
                     yield new StreamedEvent(
                         event: 'message',
                         data: $message,
                     );
+
+                    $cursor = $next;
                 }
+
+                usleep(100_000);
             }
         };
 
