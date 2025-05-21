@@ -108,6 +108,24 @@ class McpServerTest extends TestCase
         $this->assertEquals($this->expectedCallToolResponse(), $output);
     }
 
+    #[Test]
+    public function it_can_initialize_a_connection_over_sse()
+    {
+        $this->markTestSkipped();
+    }
+
+    #[Test]
+    public function it_can_list_tools_over_sse()
+    {
+        $this->markTestSkipped();
+    }
+
+    #[Test]
+    public function it_can_call_a_tool_over_sse()
+    {
+        $this->markTestSkipped();
+    }
+
     private function initializeMessage(): array
     {
         return [
