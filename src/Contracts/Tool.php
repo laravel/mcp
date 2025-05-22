@@ -11,7 +11,7 @@ interface Tool
 
     public function getDescription(): string;
 
-    public function getInputSchema(): ToolInputSchema;
+    public function getInputSchema(ToolInputSchema $schema): ToolInputSchema;
 
     public function call(array $arguments): ToolResponse;
 }

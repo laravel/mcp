@@ -4,6 +4,7 @@ namespace Laravel\Mcp\Methods;
 
 use Laravel\Mcp\Contracts\Method;
 use Laravel\Mcp\ServerContext;
+use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\Message;
 
@@ -17,7 +18,7 @@ class ListTools implements Method
             return [
                 'name' => $tool->getName(),
                 'description' => $tool->getDescription(),
-                'inputSchema' => $tool->getInputSchema()->toArray(),
+                'inputSchema' => $tool->getInputSchema(new ToolInputSchema())->toArray(),
             ];
         });
 

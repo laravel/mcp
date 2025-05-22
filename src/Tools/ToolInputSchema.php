@@ -11,19 +11,54 @@ class ToolInputSchema
 
     private array $properties = [];
     private array $requiredProperties = [];
+    private ?string $currentProperty = null;
 
-    public function addProperty(string $name, string $type, string $description, bool $isRequired = false): self
+    private function addProperty(string $name, string $type): self
     {
         $this->properties[$name] = [
             'type' => $type,
-            'description' => $description,
         ];
 
-        if ($isRequired) {
-            if (!in_array($name, $this->requiredProperties)) {
-                $this->requiredProperties[] = $name;
-            }
+        $this->currentProperty = $name;
+
+        return $this;
+    }
+
+    public function string(string $name): self
+    {
+        return $this->addProperty($name, self::TYPE_STRING);
+    }
+
+    public function integer(string $name): self
+    {
+        return $this->addProperty($name, self::TYPE_INTEGER);
+    }
+
+    public function number(string $name): self
+    {
+        return $this->addProperty($name, self::TYPE_NUMBER);
+    }
+
+    public function boolean(string $name): self
+    {
+        return $this->addProperty($name, self::TYPE_BOOLEAN);
+    }
+
+    public function description(string $description): self
+    {
+        if ($this->currentProperty) {
+            $this->properties[$this->currentProperty]['description'] = $description;
         }
+
+        return $this;
+    }
+
+    public function required(): self
+    {
+        if ($this->currentProperty && ! in_array($this->currentProperty, $this->requiredProperties)) {
+            $this->requiredProperties[] = $this->currentProperty;
+        }
+
         return $this;
     }
 

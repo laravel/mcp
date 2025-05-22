@@ -87,11 +87,16 @@ class MyExampleTool implements Tool
         return 'This is an example tool that performs a sample action.';
     }
 
-    public function getInputSchema(): ToolInputSchema
+    public function getInputSchema(ToolInputSchema $schema): ToolInputSchema
     {
-        return (new ToolInputSchema())
-            ->addProperty('param1', 'string', 'The first parameter for this tool.', true)
-            ->addProperty('param2', 'integer', 'The second parameter, an integer.');
+        $schema->string('param1')
+            ->description('The first parameter for this tool.')
+            ->required();
+
+        $schema->integer('param2')
+            ->description('The second parameter, an integer.');
+
+        return $schema;
     }
 
     public function call(array $arguments): ToolResponse
