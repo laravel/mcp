@@ -22,7 +22,7 @@ class Registrar
         });
     }
 
-    public function local($handle, string $serverClass)
+    public function cli($handle, string $serverClass)
     {
         $server = new $serverClass();
 

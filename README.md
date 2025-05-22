@@ -138,7 +138,7 @@ To register a server that can be run as an Artisan command:
 use App\Mcp\Servers\ExampleServer;
 use Laravel\Mcp\Facades\Mcp;
 
-Mcp::local('demo', ExampleServer::class);
+Mcp::cli('demo', ExampleServer::class);
 ```
 This will create an Artisan command `php artisan mcp:demo` to connect to the server.
 
