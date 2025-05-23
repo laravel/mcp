@@ -4,6 +4,7 @@ namespace Laravel\Mcp;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Mcp\Commands\McpInspectorCommand;
 use Laravel\Mcp\Registrar;
 
 class McpServiceProvider extends ServiceProvider
@@ -18,6 +19,12 @@ class McpServiceProvider extends ServiceProvider
         $this->app->bind('mcp', function ($app) {
             return new Registrar();
         });
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                McpInspectorCommand::class,
+            ]);
+        }
     }
 
     /**

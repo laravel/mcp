@@ -21,6 +21,6 @@ class WorkbenchServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Mcp::local('test-mcp', ExampleServer::class);
+        Mcp::cli('test-mcp', ExampleServer::class);
     }
 }
