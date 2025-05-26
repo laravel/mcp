@@ -5,7 +5,7 @@ namespace Laravel\Mcp;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
-use Laravel\Mcp\Support\Stdio;
+use Laravel\Mcp\Contracts\Stdio;
 use Laravel\Mcp\Transport\HttpStreamTransport;
 use Laravel\Mcp\Transport\StdioTransport;
 

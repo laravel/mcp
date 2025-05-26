@@ -2,7 +2,7 @@
 
 namespace Laravel\Mcp\Transport;
 
-use Laravel\Mcp\Support\Stdio;
+use Laravel\Mcp\Contracts\Stdio;
 
 class StdioTransport implements Transport
 {

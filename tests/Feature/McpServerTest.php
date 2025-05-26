@@ -7,12 +7,11 @@ use Laravel\Mcp\McpServiceProvider;
 use Orchestra\Testbench\TestCase;
 use Laravel\Mcp\Tests\Fixtures\ExampleServer;
 use PHPUnit\Framework\Attributes\Test;
-use Laravel\Mcp\Tests\CapturesStandardOutput;
+use Laravel\Mcp\Support\FakeStdio;
+use Laravel\Mcp\Support\Stdio;
 
 class McpServerTest extends TestCase
 {
-    use CapturesStandardOutput;
-
     protected function getPackageProviders($app)
     {
         return [
@@ -62,43 +61,55 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_initialize_a_connection_over_stdio()
     {
-        $input = json_encode($this->initializeMessage()) . PHP_EOL;
+        $stdio = new FakeStdio();
+        $stdio->withInput(json_encode($this->initializeMessage()));
 
-        $output = $this->captureStandardOutput($input, function () {
-            Mcp::cli('test-mcp-init', ExampleServer::class);
+        $this->app->instance(Stdio::class, $stdio);
 
-            $this->artisan('mcp:test-mcp-init');
-        });
+        Mcp::cli('test-mcp-init', ExampleServer::class);
 
-        $this->assertEquals($this->expectedInitializeResponse(), $output);
+        $this->artisan('mcp:test-mcp-init');
+
+        $this->assertEquals(
+            $this->expectedInitializeResponse(),
+            json_decode($stdio->getOutput(), true),
+        );
     }
 
     #[Test]
     public function it_can_list_tools_over_stdio()
     {
-        $input = json_encode($this->listToolsMessage()) . PHP_EOL;
+        $stdio = new FakeStdio();
+        $stdio->withInput(json_encode($this->listToolsMessage()));
 
-        $output = $this->captureStandardOutput($input, function () {
-            Mcp::cli('test-mcp-list', ExampleServer::class);
+        $this->app->instance(Stdio::class, $stdio);
 
-            $this->artisan('mcp:test-mcp-list');
-        });
+        Mcp::cli('test-mcp-list', ExampleServer::class);
 
-        $this->assertEquals($this->expectedListToolsResponse(), $output);
+        $this->artisan('mcp:test-mcp-list');
+
+        $this->assertEquals(
+            $this->expectedListToolsResponse(),
+            json_decode($stdio->getOutput(), true),
+        );
     }
 
     #[Test]
     public function it_can_call_a_tool_over_stdio()
     {
-        $input = json_encode($this->callToolMessage()) . PHP_EOL;
+        $stdio = new FakeStdio();
+        $stdio->withInput(json_encode($this->callToolMessage()));
 
-        $output = $this->captureStandardOutput($input, function () {
-            Mcp::cli('test-mcp-list', ExampleServer::class);
+        $this->app->instance(Stdio::class, $stdio);
 
-            $this->artisan('mcp:test-mcp-list');
-        });
+        Mcp::cli('test-mcp-call', ExampleServer::class);
 
-        $this->assertEquals($this->expectedCallToolResponse(), $output);
+        $this->artisan('mcp:test-mcp-call');
+
+        $this->assertEquals(
+            $this->expectedCallToolResponse(),
+            json_decode($stdio->getOutput(), true),
+        );
     }
 
     private function initializeMessage(): array

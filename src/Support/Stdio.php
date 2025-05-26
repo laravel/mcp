@@ -2,7 +2,9 @@
 
 namespace Laravel\Mcp\Support;
 
-class Stdio
+use Laravel\Mcp\Contracts\Stdio as StdioContract;
+
+class Stdio implements StdioContract
 {
     private $inputStream;
     private $outputStream;
@@ -19,9 +21,9 @@ class Stdio
         $this->outputStream = $outputStream ?? STDOUT;
     }
 
-    public function write(string $message)
+    public function write(string $output)
     {
-        fwrite($this->outputStream, $message . PHP_EOL);
+        fwrite($this->outputStream, $output . PHP_EOL);
     }
 
     public function read()
