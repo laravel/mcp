@@ -23,7 +23,7 @@ class ListTools implements Method
         });
 
         return JsonRpcResponse::create($message->id, [
-            'tools' => $toolList,
+            'tools' => $toolList->toArray(),
         ]);
     }
 }
