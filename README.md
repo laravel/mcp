@@ -64,14 +64,14 @@ class ExampleServer extends Server
 
 ## Creating Tools
 
-Tools are individual units of functionality that your server exposes. Each tool must implement the `Laravel\Mcp\Contracts\Tool` interface.
+Tools are individual units of functionality that your server exposes. Each tool must implement the `Laravel\Mcp\Contracts\Tools\Tool` interface.
 
 ```php
 <?php
 
 namespace App\Mcp\Tools;
 
-use Laravel\Mcp\Contracts\Tool;
+use Laravel\Mcp\Contracts\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolResponse;
 
