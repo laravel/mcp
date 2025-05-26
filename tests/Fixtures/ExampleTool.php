@@ -18,9 +18,9 @@ class ExampleTool implements Tool
         return 'This tool says hello to a person';
     }
 
-    public function getInputSchema(): ToolInputSchema
+    public function getInputSchema(ToolInputSchema $schema): ToolInputSchema
     {
-        return (new ToolInputSchema())->addProperty('name', 'string', 'The name of the person to greet', true);
+        return $schema->string('name')->description('The name of the person to greet')->required();
     }
 
     public function call(array $arguments): ToolResponse
