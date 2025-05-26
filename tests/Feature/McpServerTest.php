@@ -22,9 +22,9 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_initialize_a_connection_over_http()
     {
-        Mcp::web('test-mcp', ExampleServer::class);
+        Mcp::web('test-mcp-init', ExampleServer::class);
 
-        $response = $this->postJson('test-mcp', $this->initializeMessage());
+        $response = $this->postJson('test-mcp-init', $this->initializeMessage());
 
         $response->assertStatus(200);
         $responseData = $response->json();
@@ -35,9 +35,9 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_list_tools_over_http()
     {
-        Mcp::web('test-mcp', ExampleServer::class);
+        Mcp::web('test-mcp-list', ExampleServer::class);
 
-        $response = $this->postJson('test-mcp', $this->listToolsMessage());
+        $response = $this->postJson('test-mcp-list', $this->listToolsMessage());
 
         $response->assertStatus(200);
         $responseData = $response->json();
@@ -48,9 +48,9 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_call_a_tool_over_http()
     {
-        Mcp::web('test-mcp', ExampleServer::class);
+        Mcp::web('test-mcp-call', ExampleServer::class);
 
-        $response = $this->postJson('test-mcp', $this->callToolMessage());
+        $response = $this->postJson('test-mcp-call', $this->callToolMessage());
 
         $response->assertStatus(200);
         $responseData = $response->json();
