@@ -3,6 +3,7 @@
 namespace Laravel\Mcp\Tests\Unit;
 
 use Laravel\Mcp\Support\Stdio;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 class StdioTest extends TestCase
@@ -25,14 +26,16 @@ class StdioTest extends TestCase
         }
     }
 
-    public function test_it_defaults_to_global_stdin_and_stdout()
+    #[Test]
+    public function it_defaults_to_global_stdin_and_stdout()
     {
         $stdio = new Stdio();
         $this->assertSame(STDIN, $stdio->getInputStream());
         $this->assertSame(STDOUT, $stdio->getOutputStream());
     }
 
-    public function test_it_uses_provided_streams()
+    #[Test]
+    public function it_uses_provided_streams()
     {
         $this->inputStream = fopen('php://memory', 'r+');
         $this->outputStream = fopen('php://memory', 'r+');
@@ -43,7 +46,8 @@ class StdioTest extends TestCase
         $this->assertSame($this->outputStream, $stdio->getOutputStream());
     }
 
-    public function test_it_can_use_provided_input_stream_and_default_output_stream()
+    #[Test]
+    public function it_can_use_provided_input_stream_and_default_output_stream()
     {
         $this->inputStream = fopen('php://memory', 'r+');
 
@@ -53,7 +57,8 @@ class StdioTest extends TestCase
         $this->assertSame(STDOUT, $stdio->getOutputStream());
     }
 
-    public function test_it_can_use_default_input_stream_and_provided_output_stream()
+    #[Test]
+    public function it_can_use_default_input_stream_and_provided_output_stream()
     {
         $this->outputStream = fopen('php://memory', 'r+');
 
@@ -63,7 +68,8 @@ class StdioTest extends TestCase
         $this->assertSame($this->outputStream, $stdio->getOutputStream());
     }
 
-    public function test_it_writes_to_output_stream()
+    #[Test]
+    public function it_writes_to_output_stream()
     {
         $this->outputStream = fopen('php://memory', 'r+');
         $stdio = new Stdio(null, $this->outputStream);
@@ -75,7 +81,8 @@ class StdioTest extends TestCase
         $this->assertSame($message . PHP_EOL, fgets($this->outputStream));
     }
 
-    public function test_it_reads_from_input_stream()
+    #[Test]
+    public function it_reads_from_input_stream()
     {
         $this->inputStream = fopen('php://memory', 'r+');
         $stdio = new Stdio($this->inputStream);

@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\Mcp\Support;
+namespace Laravel\Mcp\Tests\Fixtures;
 
 use Laravel\Mcp\Contracts\Stdio as StdioContract;
 
