@@ -2,7 +2,7 @@
 
 namespace Laravel\Mcp\Support;
 
-use Laravel\Mcp\Contracts\Stdio as StdioContract;
+use Laravel\Mcp\Contracts\Transport\Stdio as StdioContract;
 
 class Stdio implements StdioContract
 {

@@ -2,7 +2,7 @@
 
 namespace Laravel\Mcp\Methods;
 
-use Laravel\Mcp\Contracts\Method;
+use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Transport\JsonRpcResponse;

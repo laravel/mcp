@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\Mcp\Contracts;
+namespace Laravel\Mcp\Contracts\Methods;
 
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;

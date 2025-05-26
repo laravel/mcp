@@ -2,7 +2,7 @@
 
 namespace Laravel\Mcp\Tests\Fixtures;
 
-use Laravel\Mcp\Transport\Transport;
+use Laravel\Mcp\Contracts\Transport\Transport;
 
 class ArrayTransport implements Transport
 {

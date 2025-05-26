@@ -7,7 +7,7 @@ use Laravel\Mcp\Methods\Initialize;
 use Laravel\Mcp\Methods\ListTools;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Transport\Message;
-use Laravel\Mcp\Transport\Transport;
+use Laravel\Mcp\Contracts\Transport\Transport;
 
 abstract class Server
 {

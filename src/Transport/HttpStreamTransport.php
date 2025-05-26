@@ -3,6 +3,7 @@
 namespace Laravel\Mcp\Transport;
 
 use Illuminate\Http\Request;
+use Laravel\Mcp\Contracts\Transport\Transport;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HttpStreamTransport implements Transport

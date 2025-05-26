@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 class ToolResponseTest extends TestCase
 {
     #[Test]
-    public function it_returns_a_valid_tool_response()
+    public function it_returns_a_valid_tool_response(): void
     {
         $responseText = 'This is a test response.';
         $toolResponse = new ToolResponse($responseText);

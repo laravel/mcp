@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\Mcp\Contracts;
+namespace Laravel\Mcp\Contracts\Transport;
 
 interface Stdio
 {

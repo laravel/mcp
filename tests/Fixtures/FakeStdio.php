@@ -2,7 +2,7 @@
 
 namespace Laravel\Mcp\Tests\Fixtures;
 
-use Laravel\Mcp\Contracts\Stdio as StdioContract;
+use Laravel\Mcp\Contracts\Transport\Stdio as StdioContract;
 
 class FakeStdio implements StdioContract
 {

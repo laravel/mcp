@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\Mcp\Contracts;
+namespace Laravel\Mcp\Contracts\Tools;
 
 use Laravel\Mcp\Tools\ToolResponse;
 use Laravel\Mcp\Tools\ToolInputSchema;
