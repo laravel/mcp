@@ -5,7 +5,6 @@ namespace Laravel\Mcp\Transport;
 class JsonRpcResponse
 {
     public function __construct(
-        public string $jsonrpc = '2.0',
         public int $id,
         public array $result,
     ) {
@@ -14,7 +13,6 @@ class JsonRpcResponse
     public static function create(int $id, array $result): JsonRpcResponse
     {
         return new static(
-            jsonrpc: '2.0',
             id: $id,
             result: $result,
         );
@@ -23,7 +21,7 @@ class JsonRpcResponse
     public function toArray(): array
     {
         return [
-            'jsonrpc' => $this->jsonrpc,
+            'jsonrpc' => '2.0',
             'id' => $this->id,
             'result' => $this->result,
         ];
