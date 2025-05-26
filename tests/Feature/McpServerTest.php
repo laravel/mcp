@@ -8,7 +8,7 @@ use Orchestra\Testbench\TestCase;
 use Laravel\Mcp\Tests\Fixtures\ExampleServer;
 use PHPUnit\Framework\Attributes\Test;
 use Laravel\Mcp\Tests\Fixtures\FakeStdio;
-use Laravel\Mcp\Support\Stdio;
+use Laravel\Mcp\Contracts\Transport\Stdio;
 
 class McpServerTest extends TestCase
 {
