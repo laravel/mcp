@@ -1,10 +1,8 @@
 <?php
 
-namespace Laravel\Mcp\Support;
+namespace Laravel\Mcp\Transport;
 
-use Laravel\Mcp\Contracts\Transport\Stdio;
-
-class SystemStdio implements Stdio
+class Stdio
 {
     public function write(string $output): void
     {

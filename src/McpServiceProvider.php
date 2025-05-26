@@ -6,8 +6,6 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Commands\McpInspectorCommand;
 use Laravel\Mcp\Registrar;
-use Laravel\Mcp\Contracts\Transport\Stdio;
-use Laravel\Mcp\Support\SystemStdio;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -21,8 +19,6 @@ class McpServiceProvider extends ServiceProvider
         $this->app->bind('mcp', function ($app) {
             return new Registrar();
         });
-
-        $this->app->bind(Stdio::class, SystemStdio::class);
 
         if ($this->app->runningInConsole()) {
             $this->commands([

@@ -2,13 +2,12 @@
 
 namespace Laravel\Mcp\Tests\Feature;
 
-use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\McpServiceProvider;
 use Orchestra\Testbench\TestCase;
 use Laravel\Mcp\Tests\Fixtures\ExampleServer;
 use PHPUnit\Framework\Attributes\Test;
-use Laravel\Mcp\Tests\Fixtures\FakeStdio;
-use Laravel\Mcp\Contracts\Transport\Stdio;
+use Symfony\Component\Process\Process;
+use Workbench\App\Providers\WorkbenchServiceProvider;
 
 class McpServerTest extends TestCase
 {
@@ -16,15 +15,16 @@ class McpServerTest extends TestCase
     {
         return [
             McpServiceProvider::class,
+
+            // MCP servers used in this test are defined in the service provider
+            WorkbenchServiceProvider::class,
         ];
     }
 
     #[Test]
     public function it_can_initialize_a_connection_over_http()
     {
-        Mcp::web('test-mcp-init', ExampleServer::class);
-
-        $response = $this->postJson('test-mcp-init', $this->initializeMessage());
+        $response = $this->postJson('test-mcp', $this->initializeMessage());
 
         $response->assertStatus(200);
         $responseData = $response->json();
@@ -35,9 +35,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_list_tools_over_http()
     {
-        Mcp::web('test-mcp-list', ExampleServer::class);
-
-        $response = $this->postJson('test-mcp-list', $this->listToolsMessage());
+        $response = $this->postJson('test-mcp', $this->listToolsMessage());
 
         $response->assertStatus(200);
         $responseData = $response->json();
@@ -48,9 +46,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_call_a_tool_over_http()
     {
-        Mcp::web('test-mcp-call', ExampleServer::class);
-
-        $response = $this->postJson('test-mcp-call', $this->callToolMessage());
+        $response = $this->postJson('test-mcp', $this->callToolMessage());
 
         $response->assertStatus(200);
         $responseData = $response->json();
@@ -61,55 +57,40 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_initialize_a_connection_over_stdio()
     {
-        $stdio = new FakeStdio();
-        $stdio->withInput(json_encode($this->initializeMessage()));
+        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp']);
+        $process->setInput(json_encode($this->initializeMessage()));
 
-        $this->app->instance(Stdio::class, $stdio);
+        $process->run();
 
-        Mcp::cli('test-mcp-init', ExampleServer::class);
+        $output = json_decode($process->getOutput(), true);
 
-        $this->artisan('mcp:test-mcp-init');
-
-        $this->assertEquals(
-            $this->expectedInitializeResponse(),
-            json_decode($stdio->getOutput(), true),
-        );
+        $this->assertEquals($this->expectedInitializeResponse(), $output);
     }
 
     #[Test]
     public function it_can_list_tools_over_stdio()
     {
-        $stdio = new FakeStdio();
-        $stdio->withInput(json_encode($this->listToolsMessage()));
+        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp']);
+        $process->setInput(json_encode($this->listToolsMessage()));
 
-        $this->app->instance(Stdio::class, $stdio);
+        $process->run();
 
-        Mcp::cli('test-mcp-list', ExampleServer::class);
+        $output = json_decode($process->getOutput(), true);
 
-        $this->artisan('mcp:test-mcp-list');
-
-        $this->assertEquals(
-            $this->expectedListToolsResponse(),
-            json_decode($stdio->getOutput(), true),
-        );
+        $this->assertEquals($this->expectedListToolsResponse(), $output);
     }
 
     #[Test]
     public function it_can_call_a_tool_over_stdio()
     {
-        $stdio = new FakeStdio();
-        $stdio->withInput(json_encode($this->callToolMessage()));
+        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp']);
+        $process->setInput(json_encode($this->callToolMessage()));
 
-        $this->app->instance(Stdio::class, $stdio);
+        $process->run();
 
-        Mcp::cli('test-mcp-call', ExampleServer::class);
+        $output = json_decode($process->getOutput(), true);
 
-        $this->artisan('mcp:test-mcp-call');
-
-        $this->assertEquals(
-            $this->expectedCallToolResponse(),
-            json_decode($stdio->getOutput(), true),
-        );
+        $this->assertEquals($this->expectedCallToolResponse(), $output);
     }
 
     private function initializeMessage(): array
