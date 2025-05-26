@@ -27,9 +27,8 @@ class McpServerTest extends TestCase
         $response = $this->postJson('test-mcp', $this->initializeMessage());
 
         $response->assertStatus(200);
-        $responseData = $response->json();
 
-        $this->assertEquals($this->expectedInitializeResponse(), $responseData);
+        $this->assertEquals($this->expectedInitializeResponse(), $response->json());
     }
 
     #[Test]
@@ -38,9 +37,8 @@ class McpServerTest extends TestCase
         $response = $this->postJson('test-mcp', $this->listToolsMessage());
 
         $response->assertStatus(200);
-        $responseData = $response->json();
 
-        $this->assertEquals($this->expectedListToolsResponse(), $responseData);
+        $this->assertEquals($this->expectedListToolsResponse(), $response->json());
     }
 
     #[Test]
@@ -49,9 +47,8 @@ class McpServerTest extends TestCase
         $response = $this->postJson('test-mcp', $this->callToolMessage());
 
         $response->assertStatus(200);
-        $responseData = $response->json();
 
-        $this->assertEquals($this->expectedCallToolResponse(), $responseData);
+        $this->assertEquals($this->expectedCallToolResponse(), $response->json());
     }
 
     #[Test]

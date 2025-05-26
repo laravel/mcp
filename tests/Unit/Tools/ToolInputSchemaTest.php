@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\Mcp\Tests\Unit;
+namespace Laravel\Mcp\Tests\Unit\Tools;
 
 use Laravel\Mcp\Tools\ToolInputSchema;
 use PHPUnit\Framework\TestCase;
