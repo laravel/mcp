@@ -21,6 +21,11 @@ class WorkbenchServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->loadAiRoutes();
+    }
+
+    public function loadAiRoutes()
+    {
         // Used in tests
         Mcp::cli('test-mcp', ExampleServer::class);
         Mcp::web('test-mcp', ExampleServer::class);
