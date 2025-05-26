@@ -29,10 +29,7 @@ class Registrar
         $stdio = app(Stdio::class);
 
         Artisan::command('mcp:' . $handle, function () use ($server, $stdio) {
-            $transport = new StdioTransport(
-                $stdio->getInputStream(),
-                $stdio->getOutputStream()
-            );
+            $transport = new StdioTransport($stdio);
             $server->connect($transport);
 
             $transport->run();

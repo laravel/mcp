@@ -19,6 +19,16 @@ class Stdio
         $this->outputStream = $outputStream ?? STDOUT;
     }
 
+    public function write(string $message)
+    {
+        fwrite($this->outputStream, $message . PHP_EOL);
+    }
+
+    public function read()
+    {
+        return fgets($this->inputStream);
+    }
+
     /**
      * @return resource
      */

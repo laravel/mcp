@@ -7,6 +7,24 @@ use PHPUnit\Framework\TestCase;
 
 class StdioTest extends TestCase
 {
+    protected $inputStream;
+    protected $outputStream;
+
+    protected function tearDown(): void
+    {
+        parent::tearDown();
+
+        if ($this->inputStream) {
+            fclose($this->inputStream);
+            $this->inputStream = null;
+        }
+
+        if ($this->outputStream) {
+            fclose($this->outputStream);
+            $this->outputStream = null;
+        }
+    }
+
     public function test_it_defaults_to_global_stdin_and_stdout()
     {
         $stdio = new Stdio();
@@ -16,40 +34,56 @@ class StdioTest extends TestCase
 
     public function test_it_uses_provided_streams()
     {
-        $inputStream = fopen('php://memory', 'r+');
-        $outputStream = fopen('php://memory', 'r+');
+        $this->inputStream = fopen('php://memory', 'r+');
+        $this->outputStream = fopen('php://memory', 'r+');
 
-        $stdio = new Stdio($inputStream, $outputStream);
+        $stdio = new Stdio($this->inputStream, $this->outputStream);
 
-        $this->assertSame($inputStream, $stdio->getInputStream());
-        $this->assertSame($outputStream, $stdio->getOutputStream());
-
-        // Important to close streams opened in tests
-        fclose($inputStream);
-        fclose($outputStream);
+        $this->assertSame($this->inputStream, $stdio->getInputStream());
+        $this->assertSame($this->outputStream, $stdio->getOutputStream());
     }
 
     public function test_it_can_use_provided_input_stream_and_default_output_stream()
     {
-        $inputStream = fopen('php://memory', 'r+');
+        $this->inputStream = fopen('php://memory', 'r+');
 
-        $stdio = new Stdio($inputStream, null);
+        $stdio = new Stdio($this->inputStream, null);
 
-        $this->assertSame($inputStream, $stdio->getInputStream());
+        $this->assertSame($this->inputStream, $stdio->getInputStream());
         $this->assertSame(STDOUT, $stdio->getOutputStream());
-
-        fclose($inputStream);
     }
 
     public function test_it_can_use_default_input_stream_and_provided_output_stream()
     {
-        $outputStream = fopen('php://memory', 'r+');
+        $this->outputStream = fopen('php://memory', 'r+');
 
-        $stdio = new Stdio(null, $outputStream);
+        $stdio = new Stdio(null, $this->outputStream);
 
         $this->assertSame(STDIN, $stdio->getInputStream());
-        $this->assertSame($outputStream, $stdio->getOutputStream());
+        $this->assertSame($this->outputStream, $stdio->getOutputStream());
+    }
 
-        fclose($outputStream);
+    public function test_it_writes_to_output_stream()
+    {
+        $this->outputStream = fopen('php://memory', 'r+');
+        $stdio = new Stdio(null, $this->outputStream);
+        $message = 'Hello, world!';
+
+        $stdio->write($message);
+
+        rewind($this->outputStream);
+        $this->assertSame($message . PHP_EOL, fgets($this->outputStream));
+    }
+
+    public function test_it_reads_from_input_stream()
+    {
+        $this->inputStream = fopen('php://memory', 'r+');
+        $stdio = new Stdio($this->inputStream);
+        $message = 'Hello, world!' . PHP_EOL;
+
+        fwrite($this->inputStream, $message);
+        rewind($this->inputStream);
+
+        $this->assertSame($message, $stdio->read());
     }
 }

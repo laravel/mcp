@@ -2,16 +2,16 @@
 
 namespace Laravel\Mcp\Transport;
 
+use Laravel\Mcp\Support\Stdio;
+
 class StdioTransport implements Transport
 {
     private $handler;
-    private $stdin;
-    private $stdout;
+    private $stdio;
 
-    public function __construct($stdin, $stdout)
+    public function __construct(Stdio $stdio)
     {
-        $this->stdin = $stdin;
-        $this->stdout = $stdout;
+        $this->stdio = $stdio;
     }
 
     public function onReceive(callable $handler)
@@ -21,12 +21,12 @@ class StdioTransport implements Transport
 
     public function send(string $message)
     {
-        fwrite($this->stdout, $message . PHP_EOL);
+        $this->stdio->write($message);
     }
 
     public function run()
     {
-        while ($line = fgets($this->stdin)) {
+        while ($line = $this->stdio->read()) {
             ($this->handler)($line);
         }
     }
