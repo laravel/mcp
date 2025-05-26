@@ -7,10 +7,12 @@ use Laravel\Mcp\McpServiceProvider;
 use Orchestra\Testbench\TestCase;
 use Laravel\Mcp\Tests\Fixtures\ExampleServer;
 use PHPUnit\Framework\Attributes\Test;
-use Symfony\Component\Process\Process;
+use Laravel\Mcp\Tests\CapturesStandardOutput;
 
 class McpServerTest extends TestCase
 {
+    use CapturesStandardOutput;
+
     protected function getPackageProviders($app)
     {
         return [
@@ -60,16 +62,13 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_initialize_a_connection_over_stdio()
     {
-        // This MCP server is registered in the WorkbenchServiceProvider
-        // because Process needs it to be registered outside of the test:
-        //
-        // Mcp::local('test-mcp', ExampleServer::class);
+        $input = json_encode($this->initializeMessage()) . PHP_EOL;
 
-        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp']);
-        $process->setInput(json_encode($this->initializeMessage()).PHP_EOL);
-        $process->run();
+        $output = $this->captureStandardOutput($input, function () {
+            Mcp::cli('test-mcp-init', ExampleServer::class);
 
-        $output = json_decode($process->getOutput(), true);
+            $this->artisan('mcp:test-mcp-init');
+        });
 
         $this->assertEquals($this->expectedInitializeResponse(), $output);
     }
@@ -77,16 +76,13 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_list_tools_over_stdio()
     {
-        // This MCP server is registered in the WorkbenchServiceProvider
-        // because Process needs it to be registered outside of the test:
-        //
-        // Mcp::local('test-mcp', ExampleServer::class);
+        $input = json_encode($this->listToolsMessage()) . PHP_EOL;
 
-        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp']);
-        $process->setInput(json_encode($this->listToolsMessage()).PHP_EOL);
-        $process->run();
+        $output = $this->captureStandardOutput($input, function () {
+            Mcp::cli('test-mcp-list', ExampleServer::class);
 
-        $output = json_decode($process->getOutput(), true);
+            $this->artisan('mcp:test-mcp-list');
+        });
 
         $this->assertEquals($this->expectedListToolsResponse(), $output);
     }
@@ -94,16 +90,13 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_call_a_tool_over_stdio()
     {
-        // This MCP server is registered in the WorkbenchServiceProvider
-        // because Process needs it to be registered outside of the test:
-        //
-        // Mcp::local('test-mcp', ExampleServer::class);
+        $input = json_encode($this->callToolMessage()) . PHP_EOL;
 
-        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp']);
-        $process->setInput(json_encode($this->callToolMessage()).PHP_EOL);
-        $process->run();
+        $output = $this->captureStandardOutput($input, function () {
+            Mcp::cli('test-mcp-list', ExampleServer::class);
 
-        $output = json_decode($process->getOutput(), true);
+            $this->artisan('mcp:test-mcp-list');
+        });
 
         $this->assertEquals($this->expectedCallToolResponse(), $output);
     }
