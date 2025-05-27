@@ -26,4 +26,23 @@ class ToolResponseTest extends TestCase
 
         $this->assertSame($expectedArray, $toolResponse->toArray());
     }
+
+    #[Test]
+    public function it_returns_a_valid_error_tool_response(): void
+    {
+        $responseText = 'This is a test error response.';
+        $toolResponse = new ToolResponse($responseText, true);
+
+        $expectedArray = [
+            'content' => [
+                [
+                    'type' => 'text',
+                    'text' => $responseText,
+                ],
+            ],
+            'isError' => true,
+        ];
+
+        $this->assertSame($expectedArray, $toolResponse->toArray());
+    }
 }
