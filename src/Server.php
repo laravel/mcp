@@ -6,7 +6,7 @@ use Laravel\Mcp\Methods\CallTool;
 use Laravel\Mcp\Methods\Initialize;
 use Laravel\Mcp\Methods\ListTools;
 use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\Transport\Message;
+use Laravel\Mcp\Transport\JsonRpcMessage;
 use Laravel\Mcp\Contracts\Transport\Transport;
 
 abstract class Server
@@ -41,13 +41,13 @@ abstract class Server
 
     public function handle(string $message)
     {
-        $message = json_decode($message, true);
+        $message = JsonRpcMessage::fromJson($message);
 
-        if (! isset($message['id']) || $message['id'] === null) {
+        if (! isset($message->id) || $message->id === null) {
             return; // Notification
         }
 
-        $methodClass = $this->methods[$message['method']];
+        $methodClass = $this->methods[$message->method];
 
         $context = new ServerContext(
             $this->capabilities,
@@ -59,10 +59,7 @@ abstract class Server
 
         $methodHandler = new $methodClass();
 
-        $response = $methodHandler->handle(
-            new Message($message['id'], $message['params'] ?? []),
-            $context
-        );
+        $response = $methodHandler->handle($message, $context);
 
         $this->transport->send($response->toJson());
     }

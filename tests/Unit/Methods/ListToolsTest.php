@@ -5,7 +5,7 @@ namespace Tests\Unit\Methods;
 use Laravel\Mcp\Methods\ListTools;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
-use Laravel\Mcp\Transport\Message;
+use Laravel\Mcp\Transport\JsonRpcMessage;
 use Laravel\Mcp\Tests\Fixtures\ExampleTool;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -15,7 +15,13 @@ class ListToolsTest extends TestCase
     #[Test]
     public function it_returns_a_valid_list_tools_response()
     {
-        $message = new Message(id: 1, params: []);
+        $message = JsonRpcMessage::fromJson(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'list-tools',
+            'params' => [],
+        ]));
+
         $serverContext = new ServerContext(
             capabilities: [],
             serverName: 'Test Server',
@@ -23,9 +29,10 @@ class ListToolsTest extends TestCase
             instructions: 'Test instructions',
             tools: [ExampleTool::class]
         );
-        $method = new ListTools();
 
-        $response = $method->handle($message, $serverContext);
+        $listTools = new ListTools();
+
+        $response = $listTools->handle($message, $serverContext);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);

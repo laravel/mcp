@@ -5,7 +5,7 @@ namespace Tests\Unit\Methods;
 use Laravel\Mcp\Methods\CallTool;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
-use Laravel\Mcp\Transport\Message;
+use Laravel\Mcp\Transport\JsonRpcMessage;
 use Laravel\Mcp\Tests\Fixtures\ExampleTool;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -15,10 +15,16 @@ class CallToolTest extends TestCase
     #[Test]
     public function it_returns_a_valid_call_tool_response()
     {
-        $message = new Message(id: 1, params: [
-            'name' => 'hello-tool',
-            'arguments' => ['name' => 'John Doe'],
-        ]);
+        $message = JsonRpcMessage::fromJson(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => 'hello-tool',
+                'arguments' => ['name' => 'John Doe'],
+            ],
+        ]));
+
         $serverContext = new ServerContext(
             capabilities: [],
             serverName: 'Test Server',
@@ -26,6 +32,7 @@ class CallToolTest extends TestCase
             instructions: 'Test instructions',
             tools: ['hello-tool' => ExampleTool::class]
         );
+
         $method = new CallTool();
 
         $response = $method->handle($message, $serverContext);

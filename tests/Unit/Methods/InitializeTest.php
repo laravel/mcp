@@ -5,7 +5,7 @@ namespace Tests\Unit\Methods;
 use Laravel\Mcp\Methods\Initialize;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
-use Laravel\Mcp\Transport\Message;
+use Laravel\Mcp\Transport\JsonRpcMessage;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -14,7 +14,13 @@ class InitializeTest extends TestCase
     #[Test]
     public function it_returns_a_valid_initialize_response()
     {
-        $message = new Message(id: 1, params: []);
+        $message = JsonRpcMessage::fromJson(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'initialize',
+            'params' => [],
+        ]));
+
         $serverContext = new ServerContext(
             capabilities: ['listChanged' => false],
             serverName: 'Test Server',
@@ -22,6 +28,7 @@ class InitializeTest extends TestCase
             instructions: 'Test instructions',
             tools: []
         );
+
         $method = new Initialize();
 
         $response = $method->handle($message, $serverContext);
