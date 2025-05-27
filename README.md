@@ -59,6 +59,7 @@ class ExampleServer extends Server
         'example_tool' => MyExampleTool::class,
     ];
 }
+```
 
 ### Customizing Server Behavior with `boot()`
 
