@@ -39,6 +39,9 @@ abstract class Server
     public function connect(Transport $transport)
     {
         $this->transport = $transport;
+
+        $this->boot();
+
         $this->transport->onReceive(fn ($message) => $this->handle($message));
     }
 
@@ -73,6 +76,11 @@ abstract class Server
         } catch (JsonRpcException $e) {
             $this->transport->send(json_encode($e->toJsonRpcError()));
         }
+    }
+
+    public function boot()
+    {
+        // Override this method to add custom methods, etc., when the server boots.
     }
 
     public function addMethod(string $name, string $handlerClass)

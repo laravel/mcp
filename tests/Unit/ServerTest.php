@@ -176,6 +176,26 @@ class ServerTest extends TestCase
         $this->assertEquals($this->expectedPingResponse(), $response);
     }
 
+    #[Test]
+    public function it_calls_boot_method_on_connect()
+    {
+        $transport = new ArrayTransport();
+
+        $server = new class extends \Laravel\Mcp\Server {
+            public bool $bootCalled = false;
+
+            public function boot()
+            {
+                parent::boot();
+                $this->bootCalled = true;
+            }
+        };
+
+        $server->connect($transport);
+
+        $this->assertTrue($server->bootCalled, 'The boot() method was not called on connect.');
+    }
+
     private function initializeMessage(): array
     {
         return [
