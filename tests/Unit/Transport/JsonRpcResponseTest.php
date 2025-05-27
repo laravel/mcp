@@ -35,4 +35,18 @@ class JsonRpcResponseTest extends TestCase
 
         $this->assertEquals($expectedJson, $response->toJson());
     }
+
+    #[Test]
+    public function it_converts_empty_array_result_to_object()
+    {
+        $response = JsonRpcResponse::create(1, []);
+
+        $expectedJson = json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'result' => (object) [],
+        ]);
+
+        $this->assertEquals($expectedJson, $response->toJson());
+    }
 }

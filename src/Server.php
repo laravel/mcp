@@ -5,11 +5,11 @@ namespace Laravel\Mcp;
 use Laravel\Mcp\Methods\CallTool;
 use Laravel\Mcp\Methods\Initialize;
 use Laravel\Mcp\Methods\ListTools;
+use Laravel\Mcp\Methods\Ping;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcMessage;
 use Laravel\Mcp\Contracts\Transport\Transport;
 use Laravel\Mcp\Exceptions\JsonRpcException;
-use Throwable;
 
 abstract class Server
 {
@@ -33,6 +33,7 @@ abstract class Server
         'initialize' => Initialize::class,
         'tools/list' => ListTools::class,
         'tools/call' => CallTool::class,
+        'ping' => Ping::class,
     ];
 
     public function connect(Transport $transport)
@@ -72,5 +73,10 @@ abstract class Server
         } catch (JsonRpcException $e) {
             $this->transport->send(json_encode($e->toJsonRpcError()));
         }
+    }
+
+    public function addMethod(string $name, string $handlerClass)
+    {
+        $this->methods[$name] = $handlerClass;
     }
 }

@@ -128,6 +128,54 @@ class ServerTest extends TestCase
         $this->assertEquals('Parse error', $response['error']['message']);
     }
 
+    #[Test]
+    public function it_can_handle_a_custom_method_message()
+    {
+        $transport = new ArrayTransport();
+        $server = new ExampleServer();
+
+        $server->addMethod('custom/method', \Laravel\Mcp\Tests\Fixtures\CustomMethodHandler::class);
+
+        $server->connect($transport);
+
+        $payload = json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 12345,
+            'method' => 'custom/method',
+            'params' => [],
+        ]);
+
+        ($transport->handler)($payload);
+
+        $this->assertCount(1, $transport->sent);
+        $response = json_decode($transport->sent[0], true);
+
+        $this->assertEquals([
+            'jsonrpc' => '2.0',
+            'id' => 12345,
+            'result' => [
+                'message' => 'Custom method executed successfully!',
+            ],
+        ], $response);
+    }
+
+    #[Test]
+    public function it_can_handle_a_ping_message()
+    {
+        $transport = new ArrayTransport();
+        $server = new ExampleServer();
+
+        $server->connect($transport);
+
+        $payload = json_encode($this->pingMessage());
+
+        ($transport->handler)($payload);
+
+        $response = json_decode($transport->sent[0], true);
+
+        $this->assertEquals($this->expectedPingResponse(), $response);
+    }
+
     private function initializeMessage(): array
     {
         return [
@@ -219,6 +267,24 @@ class ServerTest extends TestCase
                 ]],
                 'isError' => false,
             ],
+        ];
+    }
+
+    private function pingMessage(): array
+    {
+        return [
+            'jsonrpc' => '2.0',
+            'id' => 789,
+            'method' => 'ping',
+        ];
+    }
+
+    private function expectedPingResponse(): array
+    {
+        return [
+            'jsonrpc' => '2.0',
+            'id' => 789,
+            'result' => [],
         ];
     }
 }

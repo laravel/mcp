@@ -23,7 +23,7 @@ class JsonRpcResponse
         return [
             'jsonrpc' => '2.0',
             'id' => $this->id,
-            'result' => $this->result,
+            'result' => empty($this->result) ? (object) [] : $this->result,
         ];
     }
 

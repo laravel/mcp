@@ -52,6 +52,16 @@ class McpServerTest extends TestCase
     }
 
     #[Test]
+    public function it_can_handle_a_ping_over_http()
+    {
+        $response = $this->postJson('test-mcp', $this->pingMessage());
+
+        $response->assertStatus(200);
+
+        $this->assertEquals($this->expectedPingResponse(), $response->json());
+    }
+
+    #[Test]
     public function it_can_initialize_a_connection_over_stdio()
     {
         $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp']);
@@ -88,6 +98,19 @@ class McpServerTest extends TestCase
         $output = json_decode($process->getOutput(), true);
 
         $this->assertEquals($this->expectedCallToolResponse(), $output);
+    }
+
+    #[Test]
+    public function it_can_handle_a_ping_over_stdio()
+    {
+        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp']);
+        $process->setInput(json_encode($this->pingMessage()));
+
+        $process->run();
+
+        $output = json_decode($process->getOutput(), true);
+
+        $this->assertEquals($this->expectedPingResponse(), $output);
     }
 
     private function initializeMessage(): array
@@ -181,6 +204,24 @@ class McpServerTest extends TestCase
                 ]],
                 'isError' => false,
             ],
+        ];
+    }
+
+    private function pingMessage(): array
+    {
+        return [
+            'jsonrpc' => '2.0',
+            'id' => 789,
+            'method' => 'ping',
+        ];
+    }
+
+    private function expectedPingResponse(): array
+    {
+        return [
+            'jsonrpc' => '2.0',
+            'id' => 789,
+            'result' => [],
         ];
     }
 }
