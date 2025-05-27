@@ -81,7 +81,51 @@ class ServerTest extends TestCase
     #[Test]
     public function it_can_handle_an_unknown_method()
     {
-        $this->markTestSkipped('Not implemented');
+        $transport = new ArrayTransport();
+        $server = new ExampleServer();
+
+        $server->connect($transport);
+
+        $payload = json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 789,
+            'method' => 'unknown/method',
+            'params' => [],
+        ]);
+
+        ($transport->handler)($payload);
+
+        $response = json_decode($transport->sent[0], true);
+
+        $this->assertEquals([
+            'jsonrpc' => '2.0',
+            'id' => 789,
+            'error' => [
+                'code' => -32601,
+                'message' => 'Method not found: unknown/method',
+            ],
+        ], $response);
+    }
+
+    #[Test]
+    public function it_handles_json_decode_errors()
+    {
+        $transport = new ArrayTransport();
+        $server = new ExampleServer();
+
+        $server->connect($transport);
+
+        $invalidJsonPayload = '{"jsonrpc": "2.0", "id": 123, "method": "initialize", "params": {}'; // Malformed JSON
+
+        ($transport->handler)($invalidJsonPayload);
+
+        $this->assertCount(1, $transport->sent);
+        $response = json_decode($transport->sent[0], true);
+
+        $this->assertEquals('2.0', $response['jsonrpc']);
+        $this->assertNull($response['id']);
+        $this->assertEquals(-32700, $response['error']['code']);
+        $this->assertEquals('Parse error', $response['error']['message']);
     }
 
     private function initializeMessage(): array
