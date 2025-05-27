@@ -32,6 +32,6 @@ class Registrar
             $server->connect($transport);
 
             $transport->run();
-        })->setDescription('MCP server command for ' . $handle);
+        })->setDescription('Start the ' . $handle . ' MCP server.');
     }
 }
