@@ -16,6 +16,8 @@ This Laravel package helps you build MCP-compliant servers within your Laravel a
   - [Local (CLI) Servers](#local-cli-servers)
 - [Authentication (Optional)](#authentication-optional)
 - [Testing Servers with MCP Inspector](#testing-servers-with-mcp-inspector)
+- [Advanced](#advanced)
+  - [Customizing Server Behavior with `boot()`](#customizing-server-behavior-with-boot)
 
 ## Setup
 
@@ -60,58 +62,6 @@ class ExampleServer extends Server
     ];
 }
 ```
-
-### Customizing Server Behavior with `boot()`
-
-The `Server` class provides a `boot()` method that you can override to customize its behavior when it connects to a transport. This is useful for tasks like registering custom JSON-RPC methods.
-
-For example, to add a custom `ping` method:
-
-First, define your method handler. This class must implement the `Laravel\Mcp\Contracts\Methods\Method` interface:
-
-```php
-<?php
-
-namespace App\Mcp\Methods;
-
-use Laravel\Mcp\Contracts\Methods\Method;
-use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\Transport\JsonRpcResponse;
-use Laravel\Mcp\Transport\JsonRpcMessage;
-
-class PingMethod implements Method
-{
-    public function handle(JsonRpcMessage $request, ServerContext $context): JsonRpcResponse
-    {
-        // For a ping, we just return an empty result
-        return new JsonRpcResponse(
-            id: $request->id,
-            result: []
-        );
-    }
-}
-```
-
-Then, in your server class, override the `boot()` method and use `addMethod()` to register your custom method:
-
-```php
-<?php
-
-namespace App\Mcp\Servers;
-
-use Laravel\Mcp\Server;
-use App\Mcp\Methods\PingMethod;
-
-class ExampleServer extends Server
-{
-    public function boot(): void
-    {
-        $this->addMethod('ping', PingMethod::class);
-    }
-}
-```
-
-Now, your server will be able to handle `ping` requests.
 
 ## Creating Tools
 
@@ -208,3 +158,57 @@ Mcp::web('demo', ExampleServer::class)
 ## Testing Servers with MCP Inspector
 
 The [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an interactive tool for testing and debugging MCP servers. It allows you to connect to your server, inspect tools, and test them with custom inputs.
+
+## Advanced
+
+### Customizing Server Behavior with `boot()`
+
+The `Server` class provides a `boot()` method that you can override to customize its behavior when it connects to a transport. This is useful for tasks like registering custom JSON-RPC methods.
+
+For example, to add a custom `ping` method:
+
+First, define your method handler. This class must implement the `Laravel\Mcp\Contracts\Methods\Method` interface:
+
+```php
+<?php
+
+namespace App\Mcp\Methods;
+
+use Laravel\Mcp\Contracts\Methods\Method;
+use Laravel\Mcp\ServerContext;
+use Laravel\Mcp\Transport\JsonRpcResponse;
+use Laravel\Mcp\Transport\JsonRpcMessage;
+
+class PingMethod implements Method
+{
+    public function handle(JsonRpcMessage $request, ServerContext $context): JsonRpcResponse
+    {
+        // For a ping, we just return an empty result
+        return new JsonRpcResponse(
+            id: $request->id,
+            result: []
+        );
+    }
+}
+```
+
+Then, in your server class, override the `boot()` method and use `addMethod()` to register your custom method:
+
+```php
+<?php
+
+namespace App\Mcp\Servers;
+
+use Laravel\Mcp\Server;
+use App\Mcp\Methods\PingMethod;
+
+class ExampleServer extends Server
+{
+    public function boot(): void
+    {
+        $this->addMethod('ping', PingMethod::class);
+    }
+}
+```
+
+Now, your server will be able to handle `ping` requests.
