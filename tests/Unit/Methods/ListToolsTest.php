@@ -23,6 +23,7 @@ class ListToolsTest extends TestCase
         ]));
 
         $serverContext = new ServerContext(
+            supportedProtocolVersions: ['2025-03-26'],
             capabilities: [],
             serverName: 'Test Server',
             serverVersion: '1.0.0',

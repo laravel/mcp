@@ -26,8 +26,10 @@ class Initialize implements Method
             );
         }
 
+        $protocol = $requestedVersion ?? $context->supportedProtocolVersions[0];
+
         return JsonRpcResponse::create($message->id, [
-            'protocolVersion' => $context->supportedProtocolVersions[0],
+            'protocolVersion' => $protocol,
             'capabilities' => $context->capabilities,
             'serverInfo' => [
                 'name' => $context->serverName,

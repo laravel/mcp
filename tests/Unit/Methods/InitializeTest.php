@@ -23,6 +23,7 @@ class InitializeTest extends TestCase
         ]));
 
         $serverContext = new ServerContext(
+            supportedProtocolVersions: ['2025-03-26'],
             capabilities: ['listChanged' => false],
             serverName: 'Test Server',
             serverVersion: '1.0.0',
@@ -60,16 +61,6 @@ class InitializeTest extends TestCase
             'method' => 'initialize',
             'params' => [
                 'protocolVersion' => '2024-11-05',
-                'capabilities' => [
-                    'roots' => [
-                        'listChanged' => true,
-                    ],
-                    'sampling' => new \stdClass(),
-                ],
-                'clientInfo' => [
-                    'name' => 'ExampleClient',
-                    'version' => '1.0.0',
-                ],
             ],
         ]));
 
@@ -94,5 +85,35 @@ class InitializeTest extends TestCase
             ], $e->getData());
             throw $e;
         }
+    }
+
+    #[Test]
+    public function it_uses_requested_protocol_version_if_supported()
+    {
+        $requestedVersion = '2024-11-05';
+        $message = JsonRpcMessage::fromJson(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'initialize',
+            'params' => [
+                'protocolVersion' => $requestedVersion,
+            ],
+        ]));
+
+        $serverContext = new ServerContext(
+            supportedProtocolVersions: ['2025-03-26', '2024-11-05'],
+            capabilities: ['listChanged' => false],
+            serverName: 'Test Server',
+            serverVersion: '1.0.0',
+            instructions: 'Test instructions',
+            tools: []
+        );
+
+        $method = new Initialize();
+        $response = $method->handle($message, $serverContext);
+
+        $this->assertInstanceOf(JsonRpcResponse::class, $response);
+        $this->assertEquals(1, $response->id);
+        $this->assertEquals($requestedVersion, $response->result['protocolVersion']);
     }
 }
