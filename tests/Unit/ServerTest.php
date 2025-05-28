@@ -6,6 +6,7 @@ use Laravel\Mcp\Tests\Fixtures\ExampleServer;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Laravel\Mcp\Tests\Fixtures\ArrayTransport;
+use Laravel\Mcp\Tests\Fixtures\InitializedServer;
 
 class ServerTest extends TestCase
 {
@@ -30,7 +31,7 @@ class ServerTest extends TestCase
     public function it_can_handle_a_list_tools_message()
     {
         $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $server = new InitializedServer();
 
         $server->connect($transport);
 
@@ -47,7 +48,7 @@ class ServerTest extends TestCase
     public function it_can_handle_a_call_tool_message()
     {
         $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $server = new InitializedServer();
 
         $server->connect($transport);
 
@@ -82,7 +83,7 @@ class ServerTest extends TestCase
     public function it_can_handle_an_unknown_method()
     {
         $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $server = new InitializedServer();
 
         $server->connect($transport);
 
@@ -132,7 +133,7 @@ class ServerTest extends TestCase
     public function it_can_handle_a_custom_method_message()
     {
         $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $server = new InitializedServer();
 
         $server->addMethod('custom/method', \Laravel\Mcp\Tests\Fixtures\CustomMethodHandler::class);
 

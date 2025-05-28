@@ -34,7 +34,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_list_tools_over_http()
     {
-        $response = $this->postJson('test-mcp', $this->listToolsMessage());
+        $response = $this->postJson('test-mcp-initialized', $this->listToolsMessage());
 
         $response->assertStatus(200);
 
@@ -44,7 +44,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_call_a_tool_over_http()
     {
-        $response = $this->postJson('test-mcp', $this->callToolMessage());
+        $response = $this->postJson('test-mcp-initialized', $this->callToolMessage());
 
         $response->assertStatus(200);
 
@@ -54,7 +54,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_handle_a_ping_over_http()
     {
-        $response = $this->postJson('test-mcp', $this->pingMessage());
+        $response = $this->postJson('test-mcp-initialized', $this->pingMessage());
 
         $response->assertStatus(200);
 
@@ -77,7 +77,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_list_tools_over_stdio()
     {
-        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp']);
+        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp-initialized']);
         $process->setInput(json_encode($this->listToolsMessage()));
 
         $process->run();
@@ -90,7 +90,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_call_a_tool_over_stdio()
     {
-        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp']);
+        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp-initialized']);
         $process->setInput(json_encode($this->callToolMessage()));
 
         $process->run();
@@ -103,7 +103,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_handle_a_ping_over_stdio()
     {
-        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp']);
+        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp-initialized']);
         $process->setInput(json_encode($this->pingMessage()));
 
         $process->run();

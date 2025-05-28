@@ -4,13 +4,13 @@ namespace Laravel\Mcp\Methods;
 
 use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\ServerContext;
+use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcMessage;
 
 class Initialize implements Method
 {
-    public function handle(JsonRpcMessage $message, ServerContext $context): JsonRpcResponse
+    public function handle(JsonRpcMessage $message, SessionContext $context): JsonRpcResponse
     {
         $requestedVersion = $message->params['protocolVersion'] ?? null;
 
@@ -30,7 +30,7 @@ class Initialize implements Method
 
         return JsonRpcResponse::create($message->id, [
             'protocolVersion' => $protocol,
-            'capabilities' => $context->capabilities,
+            'capabilities' => $context->serverCapabilities,
             'serverInfo' => [
                 'name' => $context->serverName,
                 'version' => $context->serverVersion,

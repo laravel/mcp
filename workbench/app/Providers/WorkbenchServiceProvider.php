@@ -5,6 +5,7 @@ namespace Workbench\App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\Tests\Fixtures\ExampleServer;
+use Laravel\Mcp\Tests\Fixtures\InitializedServer;
 
 class WorkbenchServiceProvider extends ServiceProvider
 {
@@ -29,5 +30,7 @@ class WorkbenchServiceProvider extends ServiceProvider
         // Used in tests
         Mcp::cli('test-mcp', ExampleServer::class);
         Mcp::web('test-mcp', ExampleServer::class);
+        Mcp::cli('test-mcp-initialized', InitializedServer::class);
+        Mcp::web('test-mcp-initialized', InitializedServer::class);
     }
 }
