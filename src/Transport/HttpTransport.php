@@ -3,10 +3,10 @@
 namespace Laravel\Mcp\Transport;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Laravel\Mcp\Contracts\Transport\Transport;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class HttpStreamTransport implements Transport
+class HttpTransport implements Transport
 {
     private $handler;
     private ?string $reply = null;
@@ -27,22 +27,10 @@ class HttpStreamTransport implements Transport
         $this->reply = $message;
     }
 
-    public function run(): StreamedResponse
+    public function run(): Response
     {
         ($this->handler)($this->request->getContent());
 
-        $callback = function () {
-            echo $this->reply ?? '';
-
-            flush();
-        };
-
-        $headers = [
-            'Content-Type' => 'application/json',
-            'Cache-Control' => 'no-cache',
-            'X-Accel-Buffering' => 'no',
-        ];
-
-        return response()->stream($callback, 200, $headers);
+        return response($this->reply, 200)->header('Content-Type', 'application/json');
     }
 }

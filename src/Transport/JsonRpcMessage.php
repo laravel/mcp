@@ -2,7 +2,6 @@
 
 namespace Laravel\Mcp\Transport;
 
-use InvalidArgumentException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 
 class JsonRpcMessage

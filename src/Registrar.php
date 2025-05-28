@@ -6,7 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Transport\Stdio;
-use Laravel\Mcp\Transport\HttpStreamTransport;
+use Laravel\Mcp\Transport\HttpTransport;
 use Laravel\Mcp\Transport\StdioTransport;
 
 class Registrar
@@ -16,7 +16,7 @@ class Registrar
         $server = new $serverClass();
 
         return Route::post($handle, function (Request $request) use ($server) {
-            $transport = new HttpStreamTransport($request);
+            $transport = new HttpTransport($request);
             $server->connect($transport);
 
             return $transport->run();
