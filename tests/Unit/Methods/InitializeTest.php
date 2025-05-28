@@ -8,6 +8,7 @@ use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcMessage;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 
 class InitializeTest extends TestCase
 {
@@ -44,5 +45,54 @@ class InitializeTest extends TestCase
             ],
             'instructions' => 'Test instructions',
         ], $response->result);
+    }
+
+    #[Test]
+    public function it_throws_exception_for_unsupported_protocol_version()
+    {
+        $this->expectException(JsonRpcException::class);
+        $this->expectExceptionMessage('Unsupported protocol version');
+        $this->expectExceptionCode(-32602);
+
+        $message = JsonRpcMessage::fromJson(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'initialize',
+            'params' => [
+                'protocolVersion' => '2024-11-05',
+                'capabilities' => [
+                    'roots' => [
+                        'listChanged' => true,
+                    ],
+                    'sampling' => new \stdClass(),
+                ],
+                'clientInfo' => [
+                    'name' => 'ExampleClient',
+                    'version' => '1.0.0',
+                ],
+            ],
+        ]));
+
+        $serverContext = new ServerContext(
+            supportedProtocolVersions: ['2025-03-26'],
+            capabilities: ['listChanged' => false],
+            serverName: 'Test Server',
+            serverVersion: '1.0.0',
+            instructions: 'Test instructions',
+            tools: []
+        );
+
+        $method = new Initialize();
+
+        try {
+            $method->handle($message, $serverContext);
+        } catch (JsonRpcException $e) {
+            $this->assertEquals(1, $e->getRequestId());
+            $this->assertEquals([
+                'supported' => ['2025-03-26'],
+                'requested' => '2024-11-05',
+            ], $e->getData());
+            throw $e;
+        }
     }
 }

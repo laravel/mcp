@@ -13,6 +13,10 @@ use Laravel\Mcp\Exceptions\JsonRpcException;
 
 abstract class Server
 {
+    public array $supportedProtocolVersion = [
+        '2025-03-26',
+    ];
+
     public array $capabilities = [
         'tools' => [
             'listChanged' => false,
@@ -61,6 +65,7 @@ abstract class Server
             $methodClass = $this->methods[$message->method];
 
             $context = new ServerContext(
+                $this->supportedProtocolVersion,
                 $this->capabilities,
                 $this->serverName,
                 $this->serverVersion,

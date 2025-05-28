@@ -3,6 +3,7 @@
 namespace Laravel\Mcp\Methods;
 
 use Laravel\Mcp\Contracts\Methods\Method;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcMessage;
@@ -11,8 +12,22 @@ class Initialize implements Method
 {
     public function handle(JsonRpcMessage $message, ServerContext $context): JsonRpcResponse
     {
+        $requestedVersion = $message->params['protocolVersion'] ?? null;
+
+        if (! is_null($requestedVersion) && ! in_array($requestedVersion, $context->supportedProtocolVersions)) {
+            throw new JsonRpcException(
+                message: 'Unsupported protocol version',
+                code: -32602,
+                requestId: $message->id,
+                data: [
+                    'supported' => $context->supportedProtocolVersions,
+                    'requested' => $requestedVersion,
+                ]
+            );
+        }
+
         return JsonRpcResponse::create($message->id, [
-            'protocolVersion' => '2025-03-26',
+            'protocolVersion' => $context->supportedProtocolVersions[0],
             'capabilities' => $context->capabilities,
             'serverInfo' => [
                 'name' => $context->serverName,

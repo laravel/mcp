@@ -5,6 +5,7 @@ namespace Laravel\Mcp;
 class ServerContext
 {
     public function __construct(
+        public readonly array $supportedProtocolVersions,
         public readonly array $capabilities,
         public readonly string $serverName,
         public readonly string $serverVersion,
@@ -12,4 +13,4 @@ class ServerContext
         public readonly array $tools
     ) {
     }
-} 
+}
