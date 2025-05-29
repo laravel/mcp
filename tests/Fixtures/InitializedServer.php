@@ -3,6 +3,7 @@
 namespace Laravel\Mcp\Tests\Fixtures;
 
 use Laravel\Mcp\Server;
+use Laravel\Mcp\SessionContext;
 
 class InitializedServer extends Server
 {
@@ -10,8 +11,20 @@ class InitializedServer extends Server
         'hello-tool' => ExampleTool::class,
     ];
 
-    public function boot()
+    public function boot($clientCapabilities = [])
     {
-        $this->session->initialized = true;
+        $context = new SessionContext(
+            supportedProtocolVersions: $this->supportedProtocolVersion,
+            clientCapabilities: $clientCapabilities,
+            serverCapabilities: $this->capabilities,
+            serverName: $this->serverName,
+            serverVersion: $this->serverVersion,
+            instructions: $this->instructions,
+            tools: $this->tools
+        );
+
+        $context->initialized = true;
+
+        $this->sessionStore->put($this->transport->sessionId(), $context);
     }
 }

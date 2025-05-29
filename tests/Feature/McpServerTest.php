@@ -3,8 +3,10 @@
 namespace Laravel\Mcp\Tests\Feature;
 
 use Laravel\Mcp\McpServiceProvider;
+use Laravel\Mcp\Session\ArraySessionStore;
 use Orchestra\Testbench\TestCase;
 use Laravel\Mcp\Tests\Fixtures\ExampleServer;
+use Orchestra\Testbench\Attributes\DefineEnvironment;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Process\Process;
 use Workbench\App\Providers\WorkbenchServiceProvider;
@@ -21,7 +23,13 @@ class McpServerTest extends TestCase
         ];
     }
 
+    protected function usesArrayCacheStore($app)
+    {
+        $app['config']->set('cache.default', 'array');
+    }
+
     #[Test]
+    #[DefineEnvironment('usesArrayCacheStore')]
     public function it_can_initialize_a_connection_over_http()
     {
         $response = $this->postJson('test-mcp', $this->initializeMessage());
@@ -32,9 +40,16 @@ class McpServerTest extends TestCase
     }
 
     #[Test]
+    #[DefineEnvironment('usesArrayCacheStore')]
     public function it_can_list_tools_over_http()
     {
-        $response = $this->postJson('test-mcp-initialized', $this->listToolsMessage());
+        $sessionId = $this->initializeHttpConnection();
+
+        $response = $this->postJson(
+            'test-mcp',
+            $this->listToolsMessage(),
+            ['Mcp-Session-Id' => $sessionId],
+        );
 
         $response->assertStatus(200);
 
@@ -42,9 +57,16 @@ class McpServerTest extends TestCase
     }
 
     #[Test]
+    #[DefineEnvironment('usesArrayCacheStore')]
     public function it_can_call_a_tool_over_http()
     {
-        $response = $this->postJson('test-mcp-initialized', $this->callToolMessage());
+        $sessionId = $this->initializeHttpConnection();
+
+        $response = $this->postJson(
+            'test-mcp',
+            $this->callToolMessage(),
+            ['Mcp-Session-Id' => $sessionId],
+        );
 
         $response->assertStatus(200);
 
@@ -52,9 +74,16 @@ class McpServerTest extends TestCase
     }
 
     #[Test]
+    #[DefineEnvironment('usesArrayCacheStore')]
     public function it_can_handle_a_ping_over_http()
     {
-        $response = $this->postJson('test-mcp-initialized', $this->pingMessage());
+        $sessionId = $this->initializeHttpConnection();
+
+        $response = $this->postJson(
+            'test-mcp',
+            $this->pingMessage(),
+            ['Mcp-Session-Id' => $sessionId],
+        );
 
         $response->assertStatus(200);
 
@@ -113,6 +142,17 @@ class McpServerTest extends TestCase
         $this->assertEquals($this->expectedPingResponse(), $output);
     }
 
+    private function initializeHttpConnection()
+    {
+        $response = $this->postJson('test-mcp', $this->initializeMessage());
+
+        $sessionId = $response->headers->get('Mcp-Session-Id');
+
+        $response = $this->postJson('test-mcp', $this->initializeNotificationMessage(), ['Mcp-Session-Id' => $sessionId]);
+
+        return $sessionId;
+    }
+
     private function initializeMessage(): array
     {
         return [
@@ -125,7 +165,7 @@ class McpServerTest extends TestCase
 
     private function expectedInitializeResponse(): array
     {
-        $server = new ExampleServer();
+        $server = new ExampleServer(new ArraySessionStore());
 
         return [
             'jsonrpc' => '2.0',
@@ -189,6 +229,14 @@ class McpServerTest extends TestCase
                     'name' => 'John Doe',
                 ],
             ],
+        ];
+    }
+
+    private function initializeNotificationMessage(): array
+    {
+        return [
+            'jsonrpc' => '2.0',
+            'method' => 'notifications/initialized',
         ];
     }
 

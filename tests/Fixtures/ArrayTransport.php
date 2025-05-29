@@ -9,6 +9,12 @@ class ArrayTransport implements Transport
 {
     public $handler = null;
     public array $sent = [];
+    public ?string $sessionId = null;
+
+    public function __construct()
+    {
+        $this->sessionId = Str::uuid()->toString();
+    }
 
     public function onReceive(callable $handler)
     {
@@ -27,6 +33,6 @@ class ArrayTransport implements Transport
 
     public function sessionId(): ?string
     {
-        return Str::uuid()->toString();
+        return $this->sessionId;
     }
 }
