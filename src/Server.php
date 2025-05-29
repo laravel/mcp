@@ -12,6 +12,9 @@ use Laravel\Mcp\Contracts\Transport\Transport;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Session\SessionStore;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Laravel\Mcp\Tools\ToolResponse;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 
 abstract class Server
 {
@@ -85,6 +88,13 @@ abstract class Server
             $this->handleMessage($sessionId, $message, $context);
         } catch (JsonRpcException $e) {
             $this->transport->send(json_encode($e->toJsonRpcError()), $sessionId);
+        } catch (ValidationException $e) {
+            $response = JsonRpcResponse::create(
+                $message->id,
+                (new ToolResponse($e->getMessage(), true))->toArray()
+            );
+
+            $this->transport->send($response->toJson(), $sessionId);
         }
     }
 
