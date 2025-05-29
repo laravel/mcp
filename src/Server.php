@@ -63,27 +63,11 @@ abstract class Server
             $message = JsonRpcMessage::fromJson($rawMessage);
 
             if (! $context && $message->method === 'initialize') {
-                $context = new SessionContext(
-                    supportedProtocolVersions: $this->supportedProtocolVersion,
-                    clientCapabilities: $message->params['capabilities'] ?? [],
-                    serverCapabilities: $this->capabilities,
-                    serverName: $this->serverName,
-                    serverVersion: $this->serverVersion,
-                    instructions: $this->instructions,
-                    tools: $this->tools
-                );
-
-                $response = (new Initialize())->handle($message, $context);
-
-                $this->sessionStore->put($sessionId, $context);
-
-                return $this->transport->send($response->toJson(), $sessionId);
+                return $this->handleInitializeMessage($sessionId, $message);
             }
 
             if ($message->method === 'notifications/initialized') {
-                $context->initialized = true;
-                $this->sessionStore->put($sessionId, $context);
-                return;
+                return $this->handleInitializedNotificationMessage($sessionId, $context);
             }
 
             if (! isset($message->id) || $message->id === null) {
@@ -98,15 +82,7 @@ abstract class Server
                 throw new JsonRpcException("Method not found: {$message->method}", -32601, $message->id);
             }
 
-            $methodClass = $this->methods[$message->method];
-
-            $methodHandler = new $methodClass();
-
-            $response = $methodHandler->handle($message, $context);
-
-            $this->sessionStore->put($sessionId, $context);
-
-            $this->transport->send($response->toJson(), $sessionId);
+            $this->handleMessage($sessionId, $message, $context);
         } catch (JsonRpcException $e) {
             $this->transport->send(json_encode($e->toJsonRpcError()), $sessionId);
         }
@@ -120,5 +96,43 @@ abstract class Server
     public function addMethod(string $name, string $handlerClass)
     {
         $this->methods[$name] = $handlerClass;
+    }
+
+    private function handleMessage(string $sessionId, JsonRpcMessage $message, SessionContext $context)
+    {
+        $methodClass = $this->methods[$message->method];
+
+        $methodHandler = new $methodClass();
+
+        $response = $methodHandler->handle($message, $context);
+
+        $this->transport->send($response->toJson(), $sessionId);
+    }
+
+    private function handleInitializeMessage(string $sessionId, JsonRpcMessage $message)
+    {
+        $context = new SessionContext(
+            supportedProtocolVersions: $this->supportedProtocolVersion,
+            clientCapabilities: $message->params['capabilities'] ?? [],
+            serverCapabilities: $this->capabilities,
+            serverName: $this->serverName,
+            serverVersion: $this->serverVersion,
+            instructions: $this->instructions,
+            tools: $this->tools
+        );
+
+        $response = (new Initialize())->handle($message, $context);
+
+        $this->sessionStore->put($sessionId, $context);
+
+        $this->transport->send($response->toJson(), $sessionId);
+    }
+
+    private function handleInitializedNotificationMessage(string $sessionId, SessionContext $context)
+    {
+        $context->initialized = true;
+        $this->sessionStore->put($sessionId, $context);
+
+        return;
     }
 }
