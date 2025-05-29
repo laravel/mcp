@@ -2,11 +2,11 @@
 
 namespace Laravel\Mcp\Contracts\Methods;
 
-use Laravel\Mcp\ServerContext;
+use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcMessage;
 
 interface Method
 {
-    public function handle(JsonRpcMessage $message, ServerContext $context): JsonRpcResponse;
+    public function handle(JsonRpcMessage $message, SessionContext $context): JsonRpcResponse;
 }

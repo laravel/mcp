@@ -6,6 +6,8 @@ use Laravel\Mcp\Tests\Fixtures\ExampleServer;
 use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Laravel\Mcp\Tests\Fixtures\ArrayTransport;
+use Laravel\Mcp\Tests\Fixtures\InitializedServer;
+use Laravel\Mcp\Session\ArraySessionStore;
 
 class ServerTest extends TestCase
 {
@@ -13,7 +15,7 @@ class ServerTest extends TestCase
     public function it_can_handle_an_initialize_message()
     {
         $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $server = new ExampleServer(new ArraySessionStore());
 
         $server->connect($transport);
 
@@ -30,7 +32,7 @@ class ServerTest extends TestCase
     public function it_can_handle_a_list_tools_message()
     {
         $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $server = new InitializedServer(new ArraySessionStore());
 
         $server->connect($transport);
 
@@ -47,7 +49,7 @@ class ServerTest extends TestCase
     public function it_can_handle_a_call_tool_message()
     {
         $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $server = new InitializedServer(new ArraySessionStore());
 
         $server->connect($transport);
 
@@ -64,8 +66,8 @@ class ServerTest extends TestCase
     public function it_can_handle_a_notification_message()
     {
         $transport = new ArrayTransport();
-        $server = new ExampleServer();
-        
+        $server = new InitializedServer(new ArraySessionStore());
+
         $server->connect($transport);
 
         $payload = json_encode([
@@ -82,7 +84,7 @@ class ServerTest extends TestCase
     public function it_can_handle_an_unknown_method()
     {
         $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $server = new InitializedServer(new ArraySessionStore());
 
         $server->connect($transport);
 
@@ -111,7 +113,7 @@ class ServerTest extends TestCase
     public function it_handles_json_decode_errors()
     {
         $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $server = new ExampleServer(new ArraySessionStore());
 
         $server->connect($transport);
 
@@ -132,7 +134,7 @@ class ServerTest extends TestCase
     public function it_can_handle_a_custom_method_message()
     {
         $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $server = new InitializedServer(new ArraySessionStore());
 
         $server->addMethod('custom/method', \Laravel\Mcp\Tests\Fixtures\CustomMethodHandler::class);
 
@@ -163,7 +165,7 @@ class ServerTest extends TestCase
     public function it_can_handle_a_ping_message()
     {
         $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $server = new InitializedServer(new ArraySessionStore());
 
         $server->connect($transport);
 
@@ -181,7 +183,7 @@ class ServerTest extends TestCase
     {
         $transport = new ArrayTransport();
 
-        $server = new class extends \Laravel\Mcp\Server {
+        $server = new class(new ArraySessionStore()) extends \Laravel\Mcp\Server {
             public bool $bootCalled = false;
 
             public function boot()
@@ -208,7 +210,7 @@ class ServerTest extends TestCase
 
     private function expectedInitializeResponse(): array
     {
-        $server = new ExampleServer();
+        $server = new ExampleServer(new ArraySessionStore());
 
         return [
             'jsonrpc' => '2.0',

@@ -3,11 +3,18 @@
 namespace Laravel\Mcp\Tests\Fixtures;
 
 use Laravel\Mcp\Contracts\Transport\Transport;
+use Illuminate\Support\Str;
 
 class ArrayTransport implements Transport
 {
     public $handler = null;
     public array $sent = [];
+    public ?string $sessionId = null;
+
+    public function __construct()
+    {
+        $this->sessionId = Str::uuid()->toString();
+    }
 
     public function onReceive(callable $handler)
     {
@@ -22,5 +29,10 @@ class ArrayTransport implements Transport
     public function send(string $message)
     {
         $this->sent[] = $message;
+    }
+
+    public function sessionId(): ?string
+    {
+        return $this->sessionId;
     }
 }
