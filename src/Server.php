@@ -10,6 +10,8 @@ use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcMessage;
 use Laravel\Mcp\Contracts\Transport\Transport;
 use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\Session\SessionStore;
+use Illuminate\Support\Str;
 
 abstract class Server
 {
@@ -31,8 +33,6 @@ abstract class Server
 
     public array $tools = [];
 
-    protected SessionContext $session;
-
     protected Transport $transport;
 
     protected array $methods = [
@@ -41,19 +41,13 @@ abstract class Server
         'ping' => Ping::class,
     ];
 
+    public function __construct(protected SessionStore $sessionStore)
+    {
+    }
+
     public function connect(Transport $transport)
     {
         $this->transport = $transport;
-
-        $this->session = new SessionContext(
-            supportedProtocolVersions: $this->supportedProtocolVersion,
-            clientCapabilities: [],
-            serverCapabilities: $this->capabilities,
-            serverName: $this->serverName,
-            serverVersion: $this->serverVersion,
-            instructions: $this->instructions,
-            tools: $this->tools
-        );
 
         $this->boot();
 
@@ -62,26 +56,41 @@ abstract class Server
 
     public function handle(string $rawMessage)
     {
+        $sessionId = $this->transport->sessionId() ?? Str::uuid()->toString();
+        $context = $sessionId ? $this->sessionStore->get($sessionId) : null;
+
         try {
             $message = JsonRpcMessage::fromJson($rawMessage);
 
-            if ($message->method === 'initialize') {
-                $this->session->clientCapabilities = $message->params['capabilities'] ?? [];
+            if (! $context && $message->method === 'initialize') {
+                $context = new SessionContext(
+                    supportedProtocolVersions: $this->supportedProtocolVersion,
+                    clientCapabilities: $message->params['capabilities'] ?? [],
+                    serverCapabilities: $this->capabilities,
+                    serverName: $this->serverName,
+                    serverVersion: $this->serverVersion,
+                    instructions: $this->instructions,
+                    tools: $this->tools
+                );
 
-                $response = (new Initialize())->handle($message, $this->session);
+                $response = (new Initialize())->handle($message, $context);
 
-                return $this->transport->send($response->toJson());
+                $this->sessionStore->put($sessionId, $context);
+
+                return $this->transport->send($response->toJson(), $sessionId);
             }
 
             if ($message->method === 'notifications/initialized') {
-                $this->session->initialized = true;
+                $context->initialized = true;
+                $this->sessionStore->put($sessionId, $context);
+                return;
             }
 
             if (! isset($message->id) || $message->id === null) {
                 return; // This is a generic notification, we'll ignore for now
             }
 
-            if (! $this->session->initialized && $message->method !== 'ping') {
+            if (! $context->initialized && $message->method !== 'ping') {
                 throw new JsonRpcException("Not initialized.", -32002, $message->id);
             }
 
@@ -93,11 +102,13 @@ abstract class Server
 
             $methodHandler = new $methodClass();
 
-            $response = $methodHandler->handle($message, $this->session);
+            $response = $methodHandler->handle($message, $context);
 
-            $this->transport->send($response->toJson());
+            $this->sessionStore->put($sessionId, $context);
+
+            $this->transport->send($response->toJson(), $sessionId);
         } catch (JsonRpcException $e) {
-            $this->transport->send(json_encode($e->toJsonRpcError()));
+            $this->transport->send(json_encode($e->toJsonRpcError()), $sessionId);
         }
     }
 

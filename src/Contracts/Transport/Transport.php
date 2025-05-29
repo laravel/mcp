@@ -9,4 +9,6 @@ interface Transport
     public function run();
 
     public function send(string $message);
+
+    public function sessionId(): ?string;
 }

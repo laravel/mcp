@@ -3,15 +3,18 @@
 namespace Laravel\Mcp\Transport;
 
 use Laravel\Mcp\Contracts\Transport\Transport;
+use Illuminate\Support\Str;
 
 class StdioTransport implements Transport
 {
     private $handler;
     private $stdio;
+    private string $sessionId;
 
     public function __construct(Stdio $stdio)
     {
         $this->stdio = $stdio;
+        $this->sessionId = Str::uuid()->toString();
     }
 
     public function onReceive(callable $handler)
@@ -29,5 +32,10 @@ class StdioTransport implements Transport
         while ($line = $this->stdio->read()) {
             ($this->handler)($line);
         }
+    }
+
+    public function sessionId(): string
+    {
+        return $this->sessionId;
     }
 }

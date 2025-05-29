@@ -3,6 +3,7 @@
 namespace Laravel\Mcp\Tests\Fixtures;
 
 use Laravel\Mcp\Contracts\Transport\Transport;
+use Illuminate\Support\Str;
 
 class ArrayTransport implements Transport
 {
@@ -22,5 +23,10 @@ class ArrayTransport implements Transport
     public function send(string $message)
     {
         $this->sent[] = $message;
+    }
+
+    public function sessionId(): ?string
+    {
+        return Str::uuid()->toString();
     }
 }
