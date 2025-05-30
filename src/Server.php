@@ -15,6 +15,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Tools\ToolResponse;
 use Laravel\Mcp\Transport\JsonRpcResponse;
+use Generator;
 
 abstract class Server
 {
@@ -116,7 +117,11 @@ abstract class Server
 
         $response = $methodHandler->handle($message, $context);
 
-        $this->transport->send($response->toJson(), $sessionId);
+        if ($response instanceof Generator) {
+            return $this->transport->stream($response);
+        }
+
+        return $this->transport->send($response->toJson(), $sessionId);
     }
 
     private function handleInitializeMessage(string $sessionId, JsonRpcMessage $message)

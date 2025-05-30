@@ -5,6 +5,8 @@ namespace Laravel\Mcp\Transport;
 use Illuminate\Http\Request;
 use Laravel\Mcp\Contracts\Transport\Transport;
 use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+use Generator;
 
 class HttpTransport implements Transport
 {
@@ -13,6 +15,7 @@ class HttpTransport implements Transport
     private Request $request;
     private ?string $sessionId = null;
     private ?string $replySessionId = null;
+    private ?Generator $stream = null;
 
     public function __construct(Request $request)
     {
@@ -27,20 +30,38 @@ class HttpTransport implements Transport
 
     public function send(string $message, ?string $sessionId = null)
     {
-        $this->reply = $message;
-        $this->replySessionId = $sessionId;
+        if ($this->stream) {
+            echo 'data: ' . $message . "\n\n";
+            flush();
+        } else {
+            $this->reply = $message;
+            $this->replySessionId = $sessionId;
+        }
     }
 
-    public function run(): Response
+    public function run(): Response|StreamedResponse
     {
         ($this->handler)($this->request->getContent());
 
         $headers = [
-            'Content-Type' => 'application/json',
+            'Content-Type' => $this->stream ? 'text/event-stream' : 'application/json',
         ];
 
         if ($this->replySessionId) {
             $headers['Mcp-Session-Id'] = $this->replySessionId;
+        }
+
+        if ($this->stream) {
+            $headers['X-Accel-Buffering'] = 'no';
+        }
+
+        if ($this->stream) {
+            return response()->stream(function () {
+                foreach ($this->stream as $message) {
+                    echo 'data: ' . $message->toJson() . "\n\n";
+                    flush();
+                }
+            }, 200, $headers);
         }
 
         return response($this->reply, 200, $headers);
@@ -49,5 +70,10 @@ class HttpTransport implements Transport
     public function sessionId(): ?string
     {
         return $this->sessionId;
+    }
+
+    public function stream(Generator $stream): void
+    {
+        $this->stream = $stream;
     }
 }

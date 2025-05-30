@@ -4,6 +4,7 @@ namespace Laravel\Mcp\Transport;
 
 use Laravel\Mcp\Contracts\Transport\Transport;
 use Illuminate\Support\Str;
+use Generator;
 
 class StdioTransport implements Transport
 {
@@ -37,5 +38,12 @@ class StdioTransport implements Transport
     public function sessionId(): string
     {
         return $this->sessionId;
+    }
+
+    public function stream(Generator $stream): void
+    {
+        foreach ($stream as $message) {
+            $this->send($message->toJson());
+        }
     }
 }
