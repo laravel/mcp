@@ -118,7 +118,9 @@ abstract class Server
         $response = $methodHandler->handle($message, $context);
 
         if ($response instanceof Generator) {
-            $this->transport->stream($this->getStreamCallback($response, $sessionId, $message));
+            foreach ($response as $message) {
+                $this->transport->send($message->toJson(), $sessionId);
+            }
 
             return;
         }
@@ -151,23 +153,5 @@ abstract class Server
         $this->sessionStore->put($sessionId, $context);
 
         return;
-    }
-
-    private function getStreamCallback(Generator $response, string $sessionId, JsonRpcMessage $message)
-    {
-        return function() use ($response, $sessionId, $message) {
-            try {
-                foreach ($response as $message) {
-                    $this->transport->send($message->toJson(), $sessionId);
-                }
-            } catch (ValidationException $e) {
-                $response = JsonRpcResponse::create(
-                    $message->id,
-                    (new ToolResponse($e->getMessage(), true))->toArray()
-                );
-
-                $this->transport->send($response->toJson(), $sessionId);
-            }
-        };
     }
 }
