@@ -89,13 +89,6 @@ abstract class Server
             $this->handleMessage($sessionId, $message, $context);
         } catch (JsonRpcException $e) {
             $this->transport->send(json_encode($e->toJsonRpcError()), $sessionId);
-        } catch (ValidationException $e) {
-            $response = JsonRpcResponse::create(
-                $message->id,
-                (new ToolResponse($e->getMessage(), true))->toArray()
-            );
-
-            $this->transport->send($response->toJson(), $sessionId);
         }
     }
 
@@ -118,9 +111,11 @@ abstract class Server
         $response = $methodHandler->handle($message, $context);
 
         if ($response instanceof Generator) {
-            foreach ($response as $message) {
-                $this->transport->send($message->toJson(), $sessionId);
-            }
+            $this->transport->stream(function() use ($response, $sessionId) {
+                foreach ($response as $message) {
+                    $this->transport->send($message->toJson(), $sessionId);
+                }
+            });
 
             return;
         }

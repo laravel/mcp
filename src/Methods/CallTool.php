@@ -2,11 +2,13 @@
 
 namespace Laravel\Mcp\Methods;
 
+use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcMessage;
 use Laravel\Mcp\Tools\ToolNotification;
+use Laravel\Mcp\Tools\ToolResponse;
 use Laravel\Mcp\Transport\JsonRpcNotifcation;
 use Traversable;
 
@@ -17,7 +19,14 @@ class CallTool implements Method
     {
         $tool = new $context->tools[$message->params['name']]();
 
-        $result = $tool->call($message->params['arguments']);
+        try {
+            $result = $tool->call($message->params['arguments']);
+        } catch (ValidationException $e) {
+            return JsonRpcResponse::create(
+                $message->id,
+                (new ToolResponse($e->getMessage(), true))->toArray()
+            );
+        }
 
         if (! $result instanceof Traversable) {
             return JsonRpcResponse::create(
@@ -27,18 +36,25 @@ class CallTool implements Method
         }
 
         return (function () use ($result, $message) {
-            foreach ($result as $response) {
-                if ($response instanceof ToolNotification) {
-                    yield JsonRpcNotifcation::create(
-                        $response->getMethod(),
+            try {
+                foreach ($result as $response) {
+                    if ($response instanceof ToolNotification) {
+                        yield JsonRpcNotifcation::create(
+                            $response->getMethod(),
+                            $response->toArray()
+                        );
+                        continue;
+                    }
+
+                    yield JsonRpcResponse::create(
+                        $message->id,
                         $response->toArray()
                     );
-                    continue;
                 }
-
+            } catch (ValidationException $e) {
                 yield JsonRpcResponse::create(
                     $message->id,
-                    $response->toArray()
+                    (new ToolResponse($e->getMessage(), true))->toArray()
                 );
             }
         })();
