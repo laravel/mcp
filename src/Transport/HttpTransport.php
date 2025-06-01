@@ -31,10 +31,7 @@ class HttpTransport implements Transport
     public function send(string $message, ?string $sessionId = null)
     {
         if ($this->stream) {
-            echo 'data: ' . $message . "\n\n";
-            flush();
-
-            return;
+            return $this->sendStreamMessage($message);
         }
 
         $this->reply = $message;
@@ -45,6 +42,31 @@ class HttpTransport implements Transport
     {
         ($this->handler)($this->request->getContent());
 
+        if ($this->stream) {
+            return response()->stream($this->stream, 200, $this->getHeaders());
+        }
+
+        return response($this->reply, 200, $this->getHeaders());
+    }
+
+    public function sessionId(): ?string
+    {
+        return $this->sessionId;
+    }
+
+    public function stream(Closure $stream): void
+    {
+        $this->stream = $stream;
+    }
+
+    private function sendStreamMessage(string $message): void
+    {
+        echo 'data: ' . $message . "\n\n";
+        flush();
+    }
+
+    private function getHeaders(): array
+    {
         $headers = [
             'Content-Type' => $this->stream ? 'text/event-stream' : 'application/json',
         ];
@@ -57,20 +79,6 @@ class HttpTransport implements Transport
             $headers['X-Accel-Buffering'] = 'no';
         }
 
-        if ($this->stream) {
-            return response()->stream($this->stream, 200, $headers);
-        }
-
-        return response($this->reply, 200, $headers);
-    }
-
-    public function sessionId(): ?string
-    {
-        return $this->sessionId;
-    }
-
-    public function stream(Closure $stream): void
-    {
-        $this->stream = $stream;
+        return $headers;
     }
 }
