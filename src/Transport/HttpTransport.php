@@ -2,11 +2,11 @@
 
 namespace Laravel\Mcp\Transport;
 
+use Closure;
 use Illuminate\Http\Request;
 use Laravel\Mcp\Contracts\Transport\Transport;
 use Illuminate\Http\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Generator;
 
 class HttpTransport implements Transport
 {
@@ -15,7 +15,7 @@ class HttpTransport implements Transport
     private Request $request;
     private ?string $sessionId = null;
     private ?string $replySessionId = null;
-    private ?Generator $stream = null;
+    private ?Closure $stream = null;
 
     public function __construct(Request $request)
     {
@@ -33,10 +33,12 @@ class HttpTransport implements Transport
         if ($this->stream) {
             echo 'data: ' . $message . "\n\n";
             flush();
-        } else {
-            $this->reply = $message;
-            $this->replySessionId = $sessionId;
+
+            return;
         }
+
+        $this->reply = $message;
+        $this->replySessionId = $sessionId;
     }
 
     public function run(): Response|StreamedResponse
@@ -56,12 +58,7 @@ class HttpTransport implements Transport
         }
 
         if ($this->stream) {
-            return response()->stream(function () {
-                foreach ($this->stream as $message) {
-                    echo 'data: ' . $message->toJson() . "\n\n";
-                    flush();
-                }
-            }, 200, $headers);
+            return response()->stream($this->stream, 200, $headers);
         }
 
         return response($this->reply, 200, $headers);
@@ -72,7 +69,7 @@ class HttpTransport implements Transport
         return $this->sessionId;
     }
 
-    public function stream(Generator $stream): void
+    public function stream(Closure $stream): void
     {
         $this->stream = $stream;
     }

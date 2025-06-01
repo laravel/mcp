@@ -2,6 +2,7 @@
 
 namespace Laravel\Mcp\Contracts\Transport;
 
+use Closure;
 use Generator;
 
 interface Transport
@@ -14,5 +15,5 @@ interface Transport
 
     public function sessionId(): ?string;
 
-    public function stream(Generator $stream): void;
+    public function stream(Closure $stream);
 }
