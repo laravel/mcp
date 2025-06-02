@@ -4,6 +4,7 @@ namespace Laravel\Mcp\Tests\Fixtures;
 
 use Laravel\Mcp\Contracts\Transport\Transport;
 use Illuminate\Support\Str;
+use Closure;
 
 class ArrayTransport implements Transport
 {
@@ -34,5 +35,10 @@ class ArrayTransport implements Transport
     public function sessionId(): ?string
     {
         return $this->sessionId;
+    }
+
+    public function stream(Closure $stream): void
+    {
+        $stream();
     }
 }

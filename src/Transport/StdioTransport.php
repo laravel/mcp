@@ -4,6 +4,8 @@ namespace Laravel\Mcp\Transport;
 
 use Laravel\Mcp\Contracts\Transport\Transport;
 use Illuminate\Support\Str;
+use Generator;
+use Closure;
 
 class StdioTransport implements Transport
 {
@@ -37,5 +39,10 @@ class StdioTransport implements Transport
     public function sessionId(): string
     {
         return $this->sessionId;
+    }
+
+    public function stream(Closure $stream): void
+    {
+        $stream();
     }
 }

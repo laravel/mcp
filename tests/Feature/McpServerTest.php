@@ -91,6 +91,27 @@ class McpServerTest extends TestCase
     }
 
     #[Test]
+    #[DefineEnvironment('usesArrayCacheStore')]
+    public function it_can_stream_a_tool_response_over_http()
+    {
+        $sessionId = $this->initializeHttpConnection();
+
+        $response = $this->postJson(
+            'test-mcp',
+            $this->callStreamingToolMessage(),
+            ['Mcp-Session-Id' => $sessionId, 'Accept' => 'text/event-stream'],
+        );
+
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'text/event-stream; charset=UTF-8');
+
+        $content = $response->streamedContent();
+        $messages = $this->parseJsonRpcMessagesFromSseStream($content);
+
+        $this->assertEquals($this->expectedStreamingToolResponse(), $messages);
+    }
+
+    #[Test]
     public function it_can_initialize_a_connection_over_stdio()
     {
         $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp']);
@@ -140,6 +161,20 @@ class McpServerTest extends TestCase
         $output = json_decode($process->getOutput(), true);
 
         $this->assertEquals($this->expectedPingResponse(), $output);
+    }
+
+    #[Test]
+    public function it_can_stream_a_tool_response_over_stdio()
+    {
+        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp-initialized']);
+        $process->setInput(json_encode($this->callStreamingToolMessage()));
+
+        $process->run();
+
+        $output = $process->getOutput();
+        $messages = $this->parseJsonRpcMessagesFromStdout($output);
+
+        $this->assertEquals($this->expectedStreamingToolResponse(), $messages);
     }
 
     private function initializeHttpConnection()
@@ -212,6 +247,20 @@ class McpServerTest extends TestCase
                             "required" => ["name"]
                         ]
                     ],
+                    [
+                        "name" => "streaming-tool",
+                        "description" => "A tool that streams multiple responses.",
+                        "inputSchema" => [
+                            "type" => "object",
+                            "properties" => [
+                                "count" => [
+                                    "type" => "integer",
+                                    "description" => "Number of messages to stream."
+                                ]
+                            ],
+                            "required" => ["count"]
+                        ]
+                    ],
                 ],
             ]
         ];
@@ -271,5 +320,70 @@ class McpServerTest extends TestCase
             'id' => 789,
             'result' => [],
         ];
+    }
+
+    private function callStreamingToolMessage(int $count = 2): array
+    {
+        return [
+            'jsonrpc' => '2.0',
+            'id' => 2,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => 'streaming-tool',
+                'arguments' => [
+                    'count' => $count,
+                ],
+            ],
+        ];
+    }
+
+    private function expectedStreamingToolResponse(int $count = 2): array
+    {
+        $messages = [];
+
+        for ($i = 1; $i <= $count; $i++) {
+            $messages[] = [
+                'jsonrpc' => '2.0',
+                'method' => 'stream/progress',
+                'params' => ['progress' => $i / $count * 100, 'message' => "Processing item {$i} of {$count}"],
+            ];
+        }
+
+        $messages[] = [
+            'jsonrpc' => '2.0',
+            'id' => 2,
+            'result' => [
+                'content' => [['type' => 'text', 'text' => "Finished streaming {$count} messages."]],
+                'isError' => false,
+            ],
+        ];
+
+        return $messages;
+    }
+
+    private function parseJsonRpcMessagesFromSseStream(string $content): array
+    {
+        $messages = [];
+
+        foreach (explode("\n\n", trim($content)) as $event) {
+            if (empty($event)) continue;
+            $messages[] = json_decode(trim(substr($event, strlen('data: '))), true);
+        }
+
+        return $messages;
+    }
+
+    private function parseJsonRpcMessagesFromStdout(string $output): array
+    {
+        $jsonMessages = array_filter(explode("\n", trim($output)));
+
+        $messages = [];
+
+        foreach ($jsonMessages as $jsonMessage) {
+            if (empty($jsonMessage)) continue;
+            $messages[] = json_decode($jsonMessage, true);
+        }
+
+        return $messages;
     }
 }

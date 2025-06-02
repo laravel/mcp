@@ -2,6 +2,9 @@
 
 namespace Laravel\Mcp\Contracts\Transport;
 
+use Closure;
+use Generator;
+
 interface Transport
 {
     public function onReceive(callable $handler);
@@ -11,4 +14,6 @@ interface Transport
     public function send(string $message);
 
     public function sessionId(): ?string;
+
+    public function stream(Closure $stream);
 }
