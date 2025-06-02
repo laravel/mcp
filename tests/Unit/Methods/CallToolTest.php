@@ -51,4 +51,44 @@ class CallToolTest extends TestCase
             'isError' => false,
         ], $response->result);
     }
+
+    #[Test]
+    public function it_returns_a_valid_call_tool_response_with_validation_error()
+    {
+        $message = JsonRpcMessage::fromJson(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => 'hello-tool',
+                'arguments' => ['name' => ''],
+            ],
+        ]));
+
+        $context = new SessionContext(
+            supportedProtocolVersions: ['2025-03-26'],
+            clientCapabilities: [],
+            serverCapabilities: [],
+            serverName: 'Test Server',
+            serverVersion: '1.0.0',
+            instructions: 'Test instructions',
+            tools: ['hello-tool' => ExampleTool::class]
+        );
+
+        $method = new CallTool();
+
+        $response = $method->handle($message, $context);
+
+        $this->assertInstanceOf(JsonRpcResponse::class, $response);
+        $this->assertEquals(1, $response->id);
+        $this->assertEquals([
+            'content' => [
+                [
+                    'type' => 'text',
+                    'text' => 'The name field is required.',
+                ],
+            ],
+            'isError' => true,
+        ], $response->result);
+    }
 }
