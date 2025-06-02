@@ -2,13 +2,13 @@
 
 namespace Laravel\Mcp\Transport;
 
-class JsonRpcNotifcation
+class JsonRpcNotification
 {
     public function __construct(private string $method, private array $params)
     {
     }
 
-    public static function create(string $method, array $params): JsonRpcNotifcation
+    public static function create(string $method, array $params): JsonRpcNotification
     {
         return new static(
             method: $method,

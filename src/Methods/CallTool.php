@@ -9,7 +9,7 @@ use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcMessage;
 use Laravel\Mcp\Tools\ToolNotification;
 use Laravel\Mcp\Tools\ToolResponse;
-use Laravel\Mcp\Transport\JsonRpcNotifcation;
+use Laravel\Mcp\Transport\JsonRpcNotification;
 use Traversable;
 
 class CallTool implements Method
@@ -39,7 +39,7 @@ class CallTool implements Method
             try {
                 foreach ($result as $response) {
                     if ($response instanceof ToolNotification) {
-                        yield JsonRpcNotifcation::create(
+                        yield JsonRpcNotification::create(
                             $response->getMethod(),
                             $response->toArray()
                         );
