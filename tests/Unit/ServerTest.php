@@ -198,6 +198,23 @@ class ServerTest extends TestCase
         $this->assertTrue($server->bootCalled, 'The boot() method was not called on connect.');
     }
 
+    #[Test]
+    public function it_can_handle_a_tool_streaming_multiple_messages()
+    {
+        $transport = new ArrayTransport();
+        $server = new InitializedServer(new ArraySessionStore());
+
+        $server->connect($transport);
+
+        $payload = json_encode($this->callStreamingToolMessage());
+
+        ($transport->handler)($payload);
+
+        $messages = array_map(fn($msg) => json_decode($msg, true), $transport->sent);
+
+        $this->assertEquals($this->expectedStreamingToolResponse(), $messages);
+    }
+
     private function initializeMessage(): array
     {
         return [
@@ -255,6 +272,20 @@ class ServerTest extends TestCase
                                 ]
                             ],
                             "required" => ["name"]
+                        ],
+                    ],
+                    [
+                        "name" => "streaming-tool",
+                        "description" => "A tool that streams multiple responses.",
+                        "inputSchema" => [
+                            "type" => "object",
+                            "properties" => [
+                                "count" => [
+                                    "type" => "integer",
+                                    "description" => "Number of messages to stream."
+                                ]
+                            ],
+                            "required" => ["count"]
                         ]
                     ],
                 ],
@@ -308,5 +339,44 @@ class ServerTest extends TestCase
             'id' => 789,
             'result' => [],
         ];
+    }
+
+    private function callStreamingToolMessage(int $count = 2): array
+    {
+        return [
+            'jsonrpc' => '2.0',
+            'id' => 2, // Assuming a different ID for this new message type for clarity
+            'method' => 'tools/call',
+            'params' => [
+                'name' => 'streaming-tool',
+                'arguments' => [
+                    'count' => $count,
+                ],
+            ],
+        ];
+    }
+
+    private function expectedStreamingToolResponse(int $count = 2): array
+    {
+        $messages = [];
+
+        for ($i = 1; $i <= $count; $i++) {
+            $messages[] = [
+                'jsonrpc' => '2.0',
+                'method' => 'stream/progress',
+                'params' => ['progress' => $i / $count * 100, 'message' => "Processing item {$i} of {$count}"],
+            ];
+        }
+
+        $messages[] = [
+            'jsonrpc' => '2.0',
+            'id' => 2, // Must match the ID in callStreamingToolMessage
+            'result' => [
+                'content' => [['type' => 'text', 'text' => "Finished streaming {$count} messages."]],
+                'isError' => false,
+            ],
+        ];
+
+        return $messages;
     }
 }
