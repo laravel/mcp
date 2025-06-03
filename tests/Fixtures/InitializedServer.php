@@ -23,7 +23,9 @@ class InitializedServer extends Server
             serverName: $this->serverName,
             serverVersion: $this->serverVersion,
             instructions: $this->instructions,
-            tools: $this->tools
+            tools: $this->tools,
+            maxPaginationLength: 50,
+            defaultPaginationLength: 10,
         );
 
         $context->initialized = true;

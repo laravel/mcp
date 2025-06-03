@@ -34,6 +34,10 @@ abstract class Server
 
     public array $tools = [];
 
+    public int $maxPaginationLength = 100;
+
+    public int $defaultPaginationLength = 10;
+
     protected Transport $transport;
 
     protected array $methods = [
@@ -129,7 +133,9 @@ abstract class Server
             serverName: $this->serverName,
             serverVersion: $this->serverVersion,
             instructions: $this->instructions,
-            tools: $this->tools
+            tools: $this->tools,
+            maxPaginationLength: $this->maxPaginationLength,
+            defaultPaginationLength: $this->defaultPaginationLength,
         );
 
         $response = (new Initialize())->handle($message, $context);
