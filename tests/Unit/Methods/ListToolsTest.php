@@ -45,7 +45,9 @@ class ListToolsTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: [ExampleTool::class]
+            tools: [ExampleTool::class],
+            maxPaginationLength: 50,
+            defaultPaginationLength: 5,
         );
 
         $listTools = new ListTools();
@@ -90,7 +92,9 @@ class ListToolsTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: $toolClasses
+            tools: $toolClasses,
+            maxPaginationLength: 50,
+            defaultPaginationLength: 10
         );
 
         $listTools = new ListTools();
@@ -137,5 +141,141 @@ class ListToolsTest extends TestCase
 
         $this->assertEquals('dummy-tool-12', $secondPageResponse->result['tools'][1]['name']);
         $this->assertEquals(12, $secondPageResponse->result['tools'][1]['id']);
+    }
+
+    #[Test]
+    public function it_uses_default_per_page_when_not_provided()
+    {
+        $toolClasses = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $toolClasses[] = "Tests\\Unit\\Methods\\DummyTool{$i}";
+        }
+
+        $context = new SessionContext(
+            supportedProtocolVersions: ['2025-03-26'],
+            clientCapabilities: [],
+            serverCapabilities: [],
+            serverName: 'Test Server',
+            serverVersion: '1.0.0',
+            instructions: 'Test instructions',
+            tools: $toolClasses,
+            maxPaginationLength: 50,
+            defaultPaginationLength: 7
+        );
+
+        $message = JsonRpcMessage::fromJson(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'list-tools',
+            'params' => [/** no per_page */],
+        ]));
+
+        $listTools = new ListTools();
+        $response = $listTools->handle($message, $context);
+
+        $this->assertCount(7, $response->result['tools']);
+        $this->assertArrayHasKey('nextCursor', $response->result);
+    }
+
+    #[Test]
+    public function it_uses_requested_per_page_when_valid()
+    {
+        $toolClasses = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $toolClasses[] = "Tests\\Unit\\Methods\\DummyTool{$i}";
+        }
+
+        $context = new SessionContext(
+            supportedProtocolVersions: ['2025-03-26'],
+            clientCapabilities: [],
+            serverCapabilities: [],
+            serverName: 'Test Server',
+            serverVersion: '1.0.0',
+            instructions: 'Test instructions',
+            tools: $toolClasses,
+            maxPaginationLength: 50,
+            defaultPaginationLength: 10
+        );
+
+        $message = JsonRpcMessage::fromJson(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'list-tools',
+            'params' => ['per_page' => 5],
+        ]));
+
+        $listTools = new ListTools();
+        $response = $listTools->handle($message, $context);
+
+        $this->assertCount(5, $response->result['tools']);
+        $this->assertArrayHasKey('nextCursor', $response->result);
+    }
+
+    #[Test]
+    public function it_caps_per_page_at_max_pagination_length()
+    {
+        $toolClasses = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $toolClasses[] = "Tests\\Unit\\Methods\\DummyTool{$i}";
+        }
+
+        $context = new SessionContext(
+            supportedProtocolVersions: ['2025-03-26'],
+            clientCapabilities: [],
+            serverCapabilities: [],
+            serverName: 'Test Server',
+            serverVersion: '1.0.0',
+            instructions: 'Test instructions',
+            tools: $toolClasses,
+            maxPaginationLength: 7,
+            defaultPaginationLength: 7
+        );
+
+        $message = JsonRpcMessage::fromJson(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'list-tools',
+            'params' => ['per_page' => 20],
+        ]));
+
+        $listTools = new ListTools();
+        $response = $listTools->handle($message, $context);
+
+        $this->assertCount(7, $response->result['tools']);
+        $this->assertArrayHasKey('nextCursor', $response->result);
+    }
+
+    #[Test]
+    public function it_respects_per_page_when_bigger_than_default()
+    {
+        $toolClasses = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $toolClasses[] = "Tests\\Unit\\Methods\\DummyTool{$i}";
+        }
+
+        $context = new SessionContext(
+            supportedProtocolVersions: ['2025-03-26'],
+            clientCapabilities: [],
+            serverCapabilities: [],
+            serverName: 'Test Server',
+            serverVersion: '1.0.0',
+            instructions: 'Test instructions',
+            tools: $toolClasses,
+            maxPaginationLength: 15,
+            defaultPaginationLength: 5
+        );
+
+        $message = JsonRpcMessage::fromJson(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'list-tools',
+            'params' => ['per_page' => 8],
+        ]));
+
+        $listTools = new ListTools();
+        $response = $listTools->handle($message, $context);
+
+        $this->assertCount(8, $response->result['tools']);
+        $this->assertArrayHasKey('nextCursor', $response->result);
     }
 }

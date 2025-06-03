@@ -11,6 +11,8 @@ class SessionContext
         public string $serverVersion,
         public string $instructions,
         public array $tools,
+        public int $maxPaginationLength,
+        public int $defaultPaginationLength,
         public array $clientCapabilities = [],
         public bool $initialized = false
     ) {

@@ -14,7 +14,10 @@ class ListTools implements Method
     public function handle(JsonRpcMessage $message, SessionContext $context): JsonRpcResponse
     {
         $encodedCursor = $message->params['cursor'] ?? null;
-        $perPage = 10; // TODO: Should be configurable
+        $requestedPerPage = $message->params['per_page'] ?? $context->defaultPaginationLength;
+        $maxPerPage = $context->maxPaginationLength;
+
+        $perPage = min($requestedPerPage, $maxPerPage);
 
         $tools = collect($context->tools)->values()
             ->map(fn($toolClass) => new $toolClass())

@@ -32,7 +32,9 @@ class CallToolTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: ['hello-tool' => ExampleTool::class]
+            tools: ['hello-tool' => ExampleTool::class],
+            maxPaginationLength: 50,
+            defaultPaginationLength: 10,
         );
 
         $method = new CallTool();
@@ -72,7 +74,9 @@ class CallToolTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: ['hello-tool' => ExampleTool::class]
+            tools: ['hello-tool' => ExampleTool::class],
+            maxPaginationLength: 50,
+            defaultPaginationLength: 10,
         );
 
         $method = new CallTool();
