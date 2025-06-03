@@ -273,6 +273,7 @@ class ServerTest extends TestCase
                             ],
                             "required" => ["name"]
                         ],
+                        "id" => 1,
                     ],
                     [
                         "name" => "streaming-tool",
@@ -286,7 +287,8 @@ class ServerTest extends TestCase
                                 ]
                             ],
                             "required" => ["count"]
-                        ]
+                        ],
+                        "id" => 2,
                     ],
                 ],
             ]

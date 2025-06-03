@@ -245,7 +245,8 @@ class McpServerTest extends TestCase
                                 ]
                             ],
                             "required" => ["name"]
-                        ]
+                        ],
+                        "id" => 1,
                     ],
                     [
                         "name" => "streaming-tool",
@@ -259,7 +260,8 @@ class McpServerTest extends TestCase
                                 ]
                             ],
                             "required" => ["count"]
-                        ]
+                        ],
+                        "id" => 2,
                     ],
                 ],
             ]

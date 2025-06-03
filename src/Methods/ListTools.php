@@ -3,6 +3,7 @@
 namespace Laravel\Mcp\Methods;
 
 use Laravel\Mcp\Contracts\Methods\Method;
+use Laravel\Mcp\Pagination\CursorPaginator;
 use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -12,18 +13,33 @@ class ListTools implements Method
 {
     public function handle(JsonRpcMessage $message, SessionContext $context): JsonRpcResponse
     {
-        $toolList = collect($context->tools)->values()->map(function (string $toolClass) {
-            $tool = new $toolClass();
+        $encodedCursor = $message->params['cursor'] ?? null;
+        $perPage = 10; // TODO: Should be configurable
 
-            return [
-                'name' => $tool->getName(),
-                'description' => $tool->getDescription(),
-                'inputSchema' => $tool->getInputSchema(new ToolInputSchema())->toArray(),
-            ];
-        });
+        $tools = collect($context->tools)->values()
+            ->map(fn($toolClass) => new $toolClass())
+            ->map(function ($tool, $index) {
+                return [
+                    'id' => $index + 1,
+                    'name' => $tool->getName(),
+                    'description' => $tool->getDescription(),
+                    'inputSchema' => $tool->getInputSchema(new ToolInputSchema())->toArray(),
+                ];
+            })
+            ->sortBy('id')
+            ->values();
 
-        return JsonRpcResponse::create($message->id, [
-            'tools' => $toolList->toArray(),
-        ]);
+        $paginator = new CursorPaginator($tools, $perPage, $encodedCursor);
+        $paginationResult = $paginator->paginate();
+
+        $response = [
+            'tools' => $paginationResult['items']->toArray(),
+        ];
+
+        if (! is_null($paginationResult['nextCursor'])) {
+            $response['nextCursor'] = $paginationResult['nextCursor'];
+        }
+
+        return JsonRpcResponse::create($message->id, $response);
     }
 }
