@@ -20,8 +20,17 @@ class CallTool implements Method
     public function handle(JsonRpcMessage $message, SessionContext $session, ServerContext $context)
     {
         try {
-            $tool = new (collect($context->tools)
-                ->firstOrFail(fn($tool) => (new $tool())->getName() === $message->params['name']))();
+            $tool = collect($context->tools)
+                ->firstOrFail(function($tool) use ($message) {
+                    if (is_string($tool)) {
+                        return (new $tool())->getName() === $message->params['name'];
+                    }
+                    return $tool->getName() === $message->params['name'];
+                });
+
+            if (is_string($tool)) {
+                $tool = new $tool();
+            }
         } catch (Exception $e) {
             return JsonRpcResponse::create(
                 $message->id,
