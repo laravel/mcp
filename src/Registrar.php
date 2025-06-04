@@ -3,19 +3,20 @@
 namespace Laravel\Mcp;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Transport\Stdio;
 use Laravel\Mcp\Transport\HttpTransport;
 use Laravel\Mcp\Transport\StdioTransport;
-use Laravel\Mcp\Session\CacheSessionStore;
 use Laravel\Mcp\Session\ArraySessionStore;
+use Laravel\Mcp\Session\DatabaseSessionStore;
 
 class Registrar
 {
     public function web($handle, string $serverClass)
     {
-        $sessionStore = new CacheSessionStore();
+        $sessionStore = new DatabaseSessionStore(DB::connection());
         $server = new $serverClass($sessionStore);
 
         return Route::post($handle, function (Request $request) use ($server) {
