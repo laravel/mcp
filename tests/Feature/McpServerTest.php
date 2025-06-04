@@ -157,9 +157,25 @@ class McpServerTest extends TestCase
         $this->assertEquals($this->expectedStreamingToolResponse(), $messages);
     }
 
-    private function initializeHttpConnection()
+    #[Test]
+    public function it_can_list_dynamically_added_tools()
     {
-        $response = $this->postJson('test-mcp', $this->initializeMessage());
+        $sessionId = $this->initializeHttpConnection('test-mcp-dynamic-tools');
+
+        $response = $this->postJson(
+            'test-mcp-dynamic-tools',
+            $this->listToolsMessage(),
+            ['Mcp-Session-Id' => $sessionId],
+        );
+
+        $response->assertStatus(200);
+
+        $this->assertEquals($this->expectedListToolsResponse(), $response->json());
+    }
+
+    private function initializeHttpConnection($handle = 'test-mcp')
+    {
+        $response = $this->postJson($handle, $this->initializeMessage());
 
         $sessionId = $response->headers->get('Mcp-Session-Id');
 

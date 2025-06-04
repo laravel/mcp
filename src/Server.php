@@ -40,6 +40,8 @@ abstract class Server
 
     protected Transport $transport;
 
+    protected array $registeredTools = [];
+
     protected array $methods = [
         'tools/list' => ListTools::class,
         'tools/call' => CallTool::class,
@@ -48,6 +50,7 @@ abstract class Server
 
     public function __construct(protected SessionStore $sessionStore)
     {
+        $this->registeredTools = $this->tools;
     }
 
     public function connect(Transport $transport)
@@ -98,6 +101,11 @@ abstract class Server
         // Override this method to add custom methods, etc., when the server boots.
     }
 
+    public function addTool(string $name, string $handlerClass)
+    {
+        $this->registeredTools[$name] = $handlerClass;
+    }
+
     public function addMethod(string $name, string $handlerClass)
     {
         $this->methods[$name] = $handlerClass;
@@ -133,7 +141,7 @@ abstract class Server
             serverName: $this->serverName,
             serverVersion: $this->serverVersion,
             instructions: $this->instructions,
-            tools: $this->tools,
+            tools: $this->registeredTools,
             maxPaginationLength: $this->maxPaginationLength,
             defaultPaginationLength: $this->defaultPaginationLength,
         );

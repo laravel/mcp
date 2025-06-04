@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\Tests\Fixtures\ExampleServer;
 use Laravel\Mcp\Tests\Fixtures\InitializedServer;
+use Laravel\Mcp\Tests\Fixtures\ServerWithDynamicTools;
 
 class WorkbenchServiceProvider extends ServiceProvider
 {
@@ -31,5 +32,6 @@ class WorkbenchServiceProvider extends ServiceProvider
         Mcp::cli('test-mcp', ExampleServer::class);
         Mcp::web('test-mcp', ExampleServer::class);
         Mcp::cli('test-mcp-initialized', InitializedServer::class);
+        Mcp::web('test-mcp-dynamic-tools', ServerWithDynamicTools::class);
     }
 }
