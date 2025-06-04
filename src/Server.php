@@ -101,9 +101,9 @@ abstract class Server
         // Override this method to add custom methods, etc., when the server boots.
     }
 
-    public function addTool(string $name, string $handlerClass)
+    public function addTool(string $handlerClass)
     {
-        $this->registeredTools[$name] = $handlerClass;
+        $this->registeredTools[] = $handlerClass;
     }
 
     public function addMethod(string $name, string $handlerClass)

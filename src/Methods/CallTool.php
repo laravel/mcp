@@ -2,6 +2,7 @@
 
 namespace Laravel\Mcp\Methods;
 
+use Exception;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\SessionContext;
@@ -17,7 +18,15 @@ class CallTool implements Method
     /** @return JsonRpcResponse|Traversable<JsonRpcResponse> */
     public function handle(JsonRpcMessage $message, SessionContext $context)
     {
-        $tool = new $context->tools[$message->params['name']]();
+        try {
+            $tool = new (collect($context->tools)
+                ->firstOrFail(fn($tool) => (new $tool())->getName() === $message->params['name']))();
+        } catch (Exception $e) {
+            return JsonRpcResponse::create(
+                $message->id,
+                (new ToolResponse('Tool not found', true))->toArray()
+            );
+        }
 
         try {
             $result = $tool->call($message->params['arguments']);

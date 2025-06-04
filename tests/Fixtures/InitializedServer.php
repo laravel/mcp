@@ -10,8 +10,8 @@ use Laravel\Mcp\Tests\Fixtures\StreamingTool;
 class InitializedServer extends Server
 {
     public array $tools = [
-        'hello-tool' => ExampleTool::class,
-        'streaming-tool' => StreamingTool::class,
+        ExampleTool::class,
+        StreamingTool::class,
     ];
 
     public function boot($clientCapabilities = [])

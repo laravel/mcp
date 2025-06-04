@@ -9,7 +9,7 @@ use Laravel\Mcp\Tests\Fixtures\StreamingTool;
 class ExampleServer extends Server
 {
     public array $tools = [
-        'hello-tool' => ExampleTool::class,
-        'streaming-tool' => StreamingTool::class,
+        ExampleTool::class,
+        StreamingTool::class,
     ];
 }
