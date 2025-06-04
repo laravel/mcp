@@ -16,20 +16,12 @@ class InitializedServer extends Server
 
     public function boot($clientCapabilities = [])
     {
-        $context = new SessionContext(
-            supportedProtocolVersions: $this->supportedProtocolVersion,
+        $session = new SessionContext(
             clientCapabilities: $clientCapabilities,
-            serverCapabilities: $this->capabilities,
-            serverName: $this->serverName,
-            serverVersion: $this->serverVersion,
-            instructions: $this->instructions,
-            tools: $this->tools,
-            maxPaginationLength: 50,
-            defaultPaginationLength: 10,
         );
 
-        $context->initialized = true;
+        $session->initialized = true;
 
-        $this->sessionStore->put($this->transport->sessionId(), $context);
+        $this->sessionStore->put($this->transport->sessionId(), $session);
     }
 }

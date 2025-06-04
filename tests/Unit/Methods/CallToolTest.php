@@ -3,6 +3,7 @@
 namespace Tests\Unit\Methods;
 
 use Laravel\Mcp\Methods\CallTool;
+use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcMessage;
@@ -25,21 +26,24 @@ class CallToolTest extends TestCase
             ],
         ]));
 
-        $context = new SessionContext(
-            supportedProtocolVersions: ['2025-03-26'],
+        $session = new SessionContext(
             clientCapabilities: [],
+        );
+
+        $context = new ServerContext(
+            supportedProtocolVersions: ['2025-03-26'],
             serverCapabilities: [],
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: ['hello-tool' => ExampleTool::class],
+            tools: [ExampleTool::class],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
         );
 
         $method = new CallTool();
 
-        $response = $method->handle($message, $context);
+        $response = $method->handle($message, $session, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);
@@ -67,21 +71,24 @@ class CallToolTest extends TestCase
             ],
         ]));
 
-        $context = new SessionContext(
-            supportedProtocolVersions: ['2025-03-26'],
+        $session = new SessionContext(
             clientCapabilities: [],
+        );
+
+        $context = new ServerContext(
+            supportedProtocolVersions: ['2025-03-26'],
             serverCapabilities: [],
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: ['hello-tool' => ExampleTool::class],
+            tools: [ExampleTool::class],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
         );
 
         $method = new CallTool();
 
-        $response = $method->handle($message, $context);
+        $response = $method->handle($message, $session, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);

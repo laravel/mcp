@@ -4,6 +4,7 @@ namespace Laravel\Mcp\Methods;
 
 use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\Pagination\CursorPaginator;
+use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -11,7 +12,7 @@ use Laravel\Mcp\Transport\JsonRpcMessage;
 
 class ListTools implements Method
 {
-    public function handle(JsonRpcMessage $message, SessionContext $context): JsonRpcResponse
+    public function handle(JsonRpcMessage $message, SessionContext $session, ServerContext $context): JsonRpcResponse
     {
         $encodedCursor = $message->params['cursor'] ?? null;
         $requestedPerPage = $message->params['per_page'] ?? $context->defaultPaginationLength;
@@ -20,7 +21,7 @@ class ListTools implements Method
         $perPage = min($requestedPerPage, $maxPerPage);
 
         $tools = collect($context->tools)->values()
-            ->map(fn($toolClass) => new $toolClass())
+            ->map(fn($toolClass) => is_string($toolClass) ? new $toolClass() : $toolClass)
             ->map(function ($tool, $index) {
                 return [
                     'id' => $index + 1,

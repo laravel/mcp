@@ -65,24 +65,35 @@ abstract class Server
     public function handle(string $rawMessage)
     {
         $sessionId = $this->transport->sessionId() ?? Str::uuid()->toString();
-        $context = $sessionId ? $this->sessionStore->get($sessionId) : null;
+        $session = $sessionId ? $this->sessionStore->get($sessionId) : null;
+
+        $context = new ServerContext(
+            supportedProtocolVersions: $this->supportedProtocolVersion,
+            serverCapabilities: $this->capabilities,
+            serverName: $this->serverName,
+            serverVersion: $this->serverVersion,
+            instructions: $this->instructions,
+            tools: $this->registeredTools,
+            maxPaginationLength: $this->maxPaginationLength,
+            defaultPaginationLength: $this->defaultPaginationLength,
+        );
 
         try {
             $message = JsonRpcMessage::fromJson($rawMessage);
 
-            if (! $context && $message->method === 'initialize') {
-                return $this->handleInitializeMessage($sessionId, $message);
+            if (! $session && $message->method === 'initialize') {
+                return $this->handleInitializeMessage($sessionId, $message, $context);
             }
 
             if ($message->method === 'notifications/initialized') {
-                return $this->handleInitializedNotificationMessage($sessionId, $context);
+                return $this->handleInitializedNotificationMessage($sessionId, $session);
             }
 
             if (! isset($message->id) || $message->id === null) {
                 return; // This is a generic notification, we'll ignore for now
             }
 
-            if (! $context->initialized && $message->method !== 'ping') {
+            if (! $session->initialized && $message->method !== 'ping') {
                 throw new JsonRpcException("Not initialized.", -32002, $message->id);
             }
 
@@ -90,7 +101,7 @@ abstract class Server
                 throw new JsonRpcException("Method not found: {$message->method}", -32601, $message->id);
             }
 
-            $this->handleMessage($sessionId, $message, $context);
+            $this->handleMessage($sessionId, $message, $session, $context);
         } catch (JsonRpcException $e) {
             $this->transport->send(json_encode($e->toJsonRpcError()), $sessionId);
         }
@@ -101,9 +112,11 @@ abstract class Server
         // Override this method to add custom methods, etc., when the server boots.
     }
 
-    public function addTool(string $handlerClass)
+    public function addTool($tool)
     {
-        $this->registeredTools[] = $handlerClass;
+        if (! in_array($tool, $this->registeredTools)) {
+            $this->registeredTools[] = $tool;
+        }
     }
 
     public function addMethod(string $name, string $handlerClass)
@@ -111,13 +124,13 @@ abstract class Server
         $this->methods[$name] = $handlerClass;
     }
 
-    private function handleMessage(string $sessionId, JsonRpcMessage $message, SessionContext $context)
+    private function handleMessage(string $sessionId, JsonRpcMessage $message, SessionContext $session, ServerContext $context)
     {
         $methodClass = $this->methods[$message->method];
 
         $methodHandler = new $methodClass();
 
-        $response = $methodHandler->handle($message, $context);
+        $response = $methodHandler->handle($message, $session, $context);
 
         if ($response instanceof Generator) {
             $this->transport->stream(function() use ($response, $sessionId) {
@@ -132,31 +145,23 @@ abstract class Server
         return $this->transport->send($response->toJson(), $sessionId);
     }
 
-    private function handleInitializeMessage(string $sessionId, JsonRpcMessage $message)
+    private function handleInitializeMessage(string $sessionId, JsonRpcMessage $message, ServerContext $context)
     {
-        $context = new SessionContext(
-            supportedProtocolVersions: $this->supportedProtocolVersion,
+        $session = new SessionContext(
             clientCapabilities: $message->params['capabilities'] ?? [],
-            serverCapabilities: $this->capabilities,
-            serverName: $this->serverName,
-            serverVersion: $this->serverVersion,
-            instructions: $this->instructions,
-            tools: $this->registeredTools,
-            maxPaginationLength: $this->maxPaginationLength,
-            defaultPaginationLength: $this->defaultPaginationLength,
         );
 
-        $response = (new Initialize())->handle($message, $context);
+        $response = (new Initialize())->handle($message, $session, $context);
 
-        $this->sessionStore->put($sessionId, $context);
+        $this->sessionStore->put($sessionId, $session);
 
         $this->transport->send($response->toJson(), $sessionId);
     }
 
-    private function handleInitializedNotificationMessage(string $sessionId, SessionContext $context)
+    private function handleInitializedNotificationMessage(string $sessionId, SessionContext $session)
     {
-        $context->initialized = true;
-        $this->sessionStore->put($sessionId, $context);
+        $session->initialized = true;
+        $this->sessionStore->put($sessionId, $session);
 
         return;
     }

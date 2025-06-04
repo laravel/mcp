@@ -179,7 +179,7 @@ class McpServerTest extends TestCase
 
         $sessionId = $response->headers->get('Mcp-Session-Id');
 
-        $response = $this->postJson('test-mcp', $this->initializeNotificationMessage(), ['Mcp-Session-Id' => $sessionId]);
+        $this->postJson($handle, $this->initializeNotificationMessage(), ['Mcp-Session-Id' => $sessionId]);
 
         return $sessionId;
     }

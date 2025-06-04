@@ -5,6 +5,7 @@ namespace Laravel\Mcp\Methods;
 use Exception;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Contracts\Methods\Method;
+use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcMessage;
@@ -16,7 +17,7 @@ use Traversable;
 class CallTool implements Method
 {
     /** @return JsonRpcResponse|Traversable<JsonRpcResponse> */
-    public function handle(JsonRpcMessage $message, SessionContext $context)
+    public function handle(JsonRpcMessage $message, SessionContext $session, ServerContext $context)
     {
         try {
             $tool = new (collect($context->tools)

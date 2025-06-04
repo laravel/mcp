@@ -3,6 +3,7 @@
 namespace Tests\Unit\Methods;
 
 use Laravel\Mcp\Methods\Initialize;
+use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcMessage;
@@ -22,9 +23,12 @@ class InitializeTest extends TestCase
             'params' => [],
         ]));
 
-        $context = new SessionContext(
-            supportedProtocolVersions: ['2025-03-26'],
+        $session = new SessionContext(
             clientCapabilities: [],
+        );
+
+        $context = new ServerContext(
+            supportedProtocolVersions: ['2025-03-26'],
             serverCapabilities: ['listChanged' => false],
             serverName: 'Test Server',
             serverVersion: '1.0.0',
@@ -36,7 +40,7 @@ class InitializeTest extends TestCase
 
         $method = new Initialize();
 
-        $response = $method->handle($message, $context);
+        $response = $method->handle($message, $session, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);
@@ -67,10 +71,13 @@ class InitializeTest extends TestCase
             ],
         ]));
 
-        $context = new SessionContext(
-            supportedProtocolVersions: ['2025-03-26'],
+        $session = new SessionContext(
             clientCapabilities: [],
-            serverCapabilities: ['listChanged' => false],
+        );
+
+        $context = new ServerContext(
+            supportedProtocolVersions: ['2025-03-26'],
+            serverCapabilities: [],
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
@@ -82,7 +89,7 @@ class InitializeTest extends TestCase
         $method = new Initialize();
 
         try {
-            $method->handle($message, $context);
+            $method->handle($message, $session, $context);
         } catch (JsonRpcException $e) {
             $this->assertEquals(1, $e->getRequestId());
             $this->assertEquals([
@@ -106,10 +113,13 @@ class InitializeTest extends TestCase
             ],
         ]));
 
-        $context = new SessionContext(
-            supportedProtocolVersions: ['2025-03-26', '2024-11-05'],
+        $session = new SessionContext(
             clientCapabilities: [],
-            serverCapabilities: ['listChanged' => false],
+        );
+
+        $context = new ServerContext(
+            supportedProtocolVersions: ['2025-03-26', '2024-11-05'],
+            serverCapabilities: [],
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
@@ -119,7 +129,7 @@ class InitializeTest extends TestCase
         );
 
         $method = new Initialize();
-        $response = $method->handle($message, $context);
+        $response = $method->handle($message, $session, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);

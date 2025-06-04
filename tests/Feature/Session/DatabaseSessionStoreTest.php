@@ -16,29 +16,22 @@ class DatabaseSessionStoreTest extends TestCase
     public function it_can_put_and_get_session_context()
     {
         $id = 'session_id';
-        $context = new SessionContext(
-            supportedProtocolVersions: ['2025-03-26'],
-            serverCapabilities: ['tools' => ['listChanged' => false]],
-            serverName: 'Test Server',
-            serverVersion: '1.0.0',
-            instructions: 'Test Instructions',
-            tools: [],
-            maxPaginationLength: 100,
-            defaultPaginationLength: 10
+        $session = new SessionContext(
+            clientCapabilities: [],
         );
 
         $store = new DatabaseSessionStore();
 
-        $store->put($id, $context);
+        $store->put($id, $session);
 
         $this->assertDatabaseHas('mcp_sessions', [
             'id' => $id,
-            'payload' => json_encode($context->toArray()), // Assuming payload is stored as JSON
+            'payload' => json_encode($session->toArray()), // Assuming payload is stored as JSON
         ]);
 
-        $retrievedContext = $store->get($id);
+        $retrievedSession = $store->get($id);
 
-        $this->assertEquals($context, $retrievedContext);
+        $this->assertEquals($session, $retrievedSession);
     }
 
     #[Test]
