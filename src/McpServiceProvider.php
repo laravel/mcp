@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Commands\McpInspectorCommand;
 use Laravel\Mcp\Registrar;
+use Laravel\Mcp\Console\Commands\PruneSessionsCommand;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -23,6 +24,7 @@ class McpServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 McpInspectorCommand::class,
+                PruneSessionsCommand::class,
             ]);
         }
     }
@@ -51,6 +53,10 @@ class McpServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../stubs/routes/ai.php' => base_path('routes/ai.php'),
         ], 'ai-routes');
+
+        $this->publishes([
+            __DIR__.'/../config/mcp.php' => config_path('mcp.php'),
+        ], 'mcp-config');
 
         $method = method_exists($this, 'publishesMigrations') ? 'publishesMigrations' : 'publishes';
 
