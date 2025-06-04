@@ -2,34 +2,18 @@
 
 namespace Laravel\Mcp\Tests\Feature;
 
-use Laravel\Mcp\McpServiceProvider;
 use Laravel\Mcp\Session\ArraySessionStore;
-use Orchestra\Testbench\TestCase;
 use Laravel\Mcp\Tests\Fixtures\ExampleServer;
-use Orchestra\Testbench\Attributes\DefineEnvironment;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Process\Process;
-use Workbench\App\Providers\WorkbenchServiceProvider;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Mcp\Tests\TestCase;
 
 class McpServerTest extends TestCase
 {
-    protected function getPackageProviders($app)
-    {
-        return [
-            McpServiceProvider::class,
-
-            // MCP servers used in this test are defined in the service provider
-            WorkbenchServiceProvider::class,
-        ];
-    }
-
-    protected function usesArrayCacheStore($app)
-    {
-        $app['config']->set('cache.default', 'array');
-    }
+    use RefreshDatabase;
 
     #[Test]
-    #[DefineEnvironment('usesArrayCacheStore')]
     public function it_can_initialize_a_connection_over_http()
     {
         $response = $this->postJson('test-mcp', $this->initializeMessage());
@@ -40,7 +24,6 @@ class McpServerTest extends TestCase
     }
 
     #[Test]
-    #[DefineEnvironment('usesArrayCacheStore')]
     public function it_can_list_tools_over_http()
     {
         $sessionId = $this->initializeHttpConnection();
@@ -57,7 +40,6 @@ class McpServerTest extends TestCase
     }
 
     #[Test]
-    #[DefineEnvironment('usesArrayCacheStore')]
     public function it_can_call_a_tool_over_http()
     {
         $sessionId = $this->initializeHttpConnection();
@@ -74,7 +56,6 @@ class McpServerTest extends TestCase
     }
 
     #[Test]
-    #[DefineEnvironment('usesArrayCacheStore')]
     public function it_can_handle_a_ping_over_http()
     {
         $sessionId = $this->initializeHttpConnection();
@@ -91,7 +72,6 @@ class McpServerTest extends TestCase
     }
 
     #[Test]
-    #[DefineEnvironment('usesArrayCacheStore')]
     public function it_can_stream_a_tool_response_over_http()
     {
         $sessionId = $this->initializeHttpConnection();

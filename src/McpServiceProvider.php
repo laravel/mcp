@@ -34,11 +34,29 @@ class McpServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        if ($this->app->runningInConsole()) {
+            $this->offerPublishing();
+        }
+
+        $this->loadAiRoutes();
+    }
+
+    /**
+     * Register the migrations and publishing for the package.
+     *
+     * @return void
+     */
+    protected function offerPublishing()
+    {
         $this->publishes([
             __DIR__ . '/../stubs/routes/ai.php' => base_path('routes/ai.php'),
         ], 'ai-routes');
 
-        $this->loadAiRoutes();
+        $method = method_exists($this, 'publishesMigrations') ? 'publishesMigrations' : 'publishes';
+
+        $this->{$method}([
+            __DIR__.'/../database/migrations' => $this->app->databasePath('migrations'),
+        ], 'mcp-migrations');
     }
 
     protected function loadAiRoutes(): void
