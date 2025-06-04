@@ -33,6 +33,6 @@ class {{ class }} extends Server
      * @var array
      */
     public array $tools = [
-        //
+        // 'example-tool' => ExampleTool::class,
     ];
 }
