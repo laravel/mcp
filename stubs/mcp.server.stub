@@ -1,0 +1,38 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravel\Mcp\Server;
+
+class {{ class }} extends Server
+{
+    /**
+     * The displayable name of the server.
+     *
+     * @var string
+     */
+    public string $serverName = '{{ serverDisplayName }}';
+
+    /**
+     * The version of the server.
+     *
+     * @var string
+     */
+    public string $serverVersion = '0.1.0';
+
+    /**
+     * The instructions for the server.
+     *
+     * @var string
+     */
+    public string $instructions = 'Example instructions for LLMs connecting to this MCP server.';
+
+    /**
+     * The tools available to the server.
+     *
+     * @var array
+     */
+    public array $tools = [
+        //
+    ];
+}

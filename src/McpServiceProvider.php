@@ -7,6 +7,8 @@ use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Commands\McpInspectorCommand;
 use Laravel\Mcp\Registrar;
 use Laravel\Mcp\Console\Commands\PruneSessionsCommand;
+use Laravel\Mcp\Commands\ServerMakeCommand;
+use Laravel\Mcp\Commands\ToolMakeCommand;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -25,6 +27,8 @@ class McpServiceProvider extends ServiceProvider
             $this->commands([
                 McpInspectorCommand::class,
                 PruneSessionsCommand::class,
+                ServerMakeCommand::class,
+                ToolMakeCommand::class,
             ]);
         }
     }

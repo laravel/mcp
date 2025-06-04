@@ -1,0 +1,40 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravel\Mcp\Contracts\Tools\Tool;
+use Laravel\Mcp\Tools\ToolInputSchema;
+use Laravel\Mcp\Tools\ToolResponse;
+use Generator;
+
+class {{ class }} implements Tool
+{
+    public function getName(): string
+    {
+        return '{{ toolName }}';
+    }
+
+    public function getDescription(): string
+    {
+        return 'A description of what this tool does.';
+    }
+
+    public function getInputSchema(ToolInputSchema $schema): ToolInputSchema
+    {
+        $schema->string('example')
+            ->description('An example input description.')
+            ->required();
+
+        return $schema;
+    }
+
+    /**
+     * @return ToolResponse|Generator
+     */
+    public function call(array $arguments)
+    {
+        // Implement tool logic here
+
+        return new ToolResponse('Tool executed successfully.');
+    }
+}
