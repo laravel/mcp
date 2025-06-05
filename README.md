@@ -18,6 +18,7 @@ This Laravel package helps you build MCP-compliant servers within your Laravel a
 - [Testing Servers with MCP Inspector](#testing-servers-with-mcp-inspector)
 - [Advanced](#advanced)
   - [Customizing Server Behavior with `boot()`](#customizing-server-behavior-with-boot)
+  - [Streaming Responses with Generators](#streaming-responses-with-generators)
 
 ## Setup
 
@@ -212,3 +213,42 @@ class ExampleServer extends Server
 ```
 
 Now, your server will be able to handle `ping` requests.
+
+### Streaming Responses
+
+For tools that need to send multiple updates to the client before completing, or that produce a large amount of data, you can return a generator from the `call` method. For web-based servers, this will automatically open an SSE stream to the client.
+
+Within your generator, you can `yield` instances of `Laravel\Mcp\Tools\ToolNotification` for intermediate updates and finally `yield` a single `Laravel\Mcp\Tools\ToolResponse` for the main result of the tool execution.
+
+This is particularly useful for long-running tasks or when you want to provide real-time feedback to the client, such as streaming tokens in a chat application.
+
+```php
+<?php
+
+namespace App\Mcp\Tools;
+
+use Generator;
+use Laravel\Mcp\Contracts\Tools\Tool;
+use Laravel\Mcp\Tools\ToolInputSchema;
+use Laravel\Mcp\Tools\ToolNotification;
+use Laravel\Mcp\Tools\ToolResponse;
+
+class ChatStreamingTool implements Tool
+{
+    // ...
+
+    public function call(array $arguments): Generator
+    {
+        $message = "Here's a message from the chat bot."
+        $tokens = "explode(' ', $message);
+
+        foreach ($tokens as $token) {
+            yield new ToolNotification('chat/token', ['token' => $token]);
+
+            usleep(100000);
+        }
+
+        yield new ToolResponse("Message streamed successfully.");
+    }
+}
+```
