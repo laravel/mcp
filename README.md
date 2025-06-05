@@ -18,7 +18,7 @@ This Laravel package helps you build MCP-compliant servers within your Laravel a
 - [Testing Servers with MCP Inspector](#testing-servers-with-mcp-inspector)
 - [Advanced](#advanced)
   - [Customizing Server Behavior with `boot()`](#customizing-server-behavior-with-boot)
-  - [Streaming Responses with Generators](#streaming-responses-with-generators)
+  - [Streaming Responses](#streaming-responses)
 
 ## Setup
 
@@ -63,6 +63,11 @@ class ExampleServer extends Server
     ];
 }
 ```
+
+The `Server` class has a few other properties you can override to customize its behavior:
+
+-   `$defaultPaginationLength`: Controls the default number of tools returned by the `tools/list` method if the client doesn't specify a limit (defaults to `10`).
+-   `$maxPaginationLength`: Sets the maximum number of tools a client can request via `tools/list` in a single call (defaults to `100`).
 
 ## Creating Tools
 
