@@ -8,6 +8,7 @@ This Laravel package helps you build MCP-compliant servers within your Laravel a
 
 - [Setup](#setup)
   - [Publishing Routes](#publishing-routes)
+  - [Database Sessions](#database-sessions)
 - [Caveats](#caveats)
 - [Creating a Server](#creating-a-server)
 - [Creating Tools](#creating-tools)
@@ -31,6 +32,47 @@ php artisan vendor:publish --tag=ai-routes
 ```
 
 The package automatically loads routes defined in this file. Web routes will be prefixed with `/mcp`.
+
+### Database Sessions
+
+For web (HTTP) based servers, MCP sessions are stored in the database for persistence across requests.
+
+**Publish and Run the Migration:**
+First, you need to publish the migration file that creates the `mcp_sessions` table and then run it:
+```bash
+php artisan vendor:publish --tag=mcp-migrations
+php artisan migrate
+```
+
+**Pruning Old Sessions (Optional):**
+To prevent the `mcp_sessions` table from growing indefinitely, you can prune old sessions. This requires publishing the package's configuration file and setting an expiration time.
+
+a.  **Publish the Configuration File:**
+    ```bash
+    php artisan vendor:publish --tag=mcp-config
+    ```
+    This will create a `config/mcp.php` file.
+
+b.  **Configure Session Expiration for Pruning:**
+    Open `config/mcp.php` and set the `session.expiration` value. This value, in minutes, determines how long a session is considered active before it becomes eligible for pruning.
+    ```php
+    // config/mcp.php
+    return [
+        // ...
+        'session' => [
+            // Prune sessions older than 60 minutes
+            'expiration' => 60, 
+        ],
+        // ...
+    ];
+    ```
+
+c.  **Run the Pruning Command:**
+    Once session expiration is configured, you can run the `mcp:prune-sessions` Artisan command to delete expired sessions:
+    ```bash
+    php artisan mcp:prune-sessions
+    ```
+    It's recommended to schedule this command to run periodically (e.g., daily) in your `app/Console/Kernel.php` file.
 
 ## Caveats
 
