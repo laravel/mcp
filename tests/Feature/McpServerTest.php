@@ -173,6 +173,23 @@ class McpServerTest extends TestCase
         $this->assertEquals($this->expectedListToolsResponse(), $response->json());
     }
 
+    #[Test]
+    public function it_handles_deleted_session_gracefully()
+    {
+        $this->initializeHttpConnection();
+
+        $nonExistentSessionId = 'non-existent-session-id-'.\Illuminate\Support\Str::uuid();
+
+        $response = $this->postJson(
+            'test-mcp',
+            $this->listToolsMessage(),
+            ['Mcp-Session-Id' => $nonExistentSessionId],
+        );
+
+        $response->assertStatus(200);
+        $this->assertEquals($this->expectedDeletedSessionErrorResponse($this->listToolsMessage()['id']), $response->json());
+    }
+
     private function initializeHttpConnection($handle = 'test-mcp')
     {
         $response = $this->postJson($handle, $this->initializeMessage());
@@ -357,6 +374,18 @@ class McpServerTest extends TestCase
         ];
 
         return $messages;
+    }
+
+    private function expectedDeletedSessionErrorResponse(string|int $requestId): array
+    {
+        return [
+            'jsonrpc' => '2.0',
+            'id' => $requestId,
+            'error' => [
+                'code' => -32000,
+                'message' => 'Session not found or not initialized.',
+            ],
+        ];
     }
 
     private function parseJsonRpcMessagesFromSseStream(string $content): array

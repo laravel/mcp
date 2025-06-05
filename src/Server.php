@@ -81,7 +81,7 @@ abstract class Server
         try {
             $message = JsonRpcMessage::fromJson($rawMessage);
 
-            if (! $session && $message->method === 'initialize') {
+            if ($message->method === 'initialize') {
                 return $this->handleInitializeMessage($sessionId, $message, $context);
             }
 
@@ -89,12 +89,23 @@ abstract class Server
                 return $this->handleInitializedNotificationMessage($sessionId, $session);
             }
 
-            if (! isset($message->id) || $message->id === null) {
-                return; // This is a generic notification, we'll ignore for now
+            if (! $session) {
+                throw new JsonRpcException(
+                    'Session not found or not initialized.',
+                    -32000,
+                    isset($message->id) ? $message->id : null
+                );
             }
 
             if (! $session->initialized && $message->method !== 'ping') {
-                throw new JsonRpcException("Not initialized.", -32002, $message->id);
+                if (! isset($message->id) || $message->id === null) {
+                    return;
+                }
+                throw new JsonRpcException("Session not initialized.", -32002, $message->id);
+            }
+
+            if (! isset($message->id) || $message->id === null) {
+                return;
             }
 
             if (! isset($this->methods[$message->method])) {
