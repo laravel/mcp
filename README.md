@@ -47,32 +47,26 @@ php artisan migrate
 **Pruning Old Sessions (Optional):**
 To prevent the `mcp_sessions` table from growing indefinitely, you can prune old sessions. This requires publishing the package's configuration file and setting an expiration time.
 
-a.  **Publish the Configuration File:**
-    ```bash
-    php artisan vendor:publish --tag=mcp-config
-    ```
-    This will create a `config/mcp.php` file.
+```bash
+php artisan vendor:publish --tag=mcp-config
+```
+This will create a `config/mcp.php` file.
 
-b.  **Configure Session Expiration for Pruning:**
-    Open `config/mcp.php` and set the `session.expiration` value. This value, in minutes, determines how long a session is considered active before it becomes eligible for pruning.
-    ```php
-    // config/mcp.php
-    return [
-        // ...
-        'session' => [
-            // Prune sessions older than 60 minutes
-            'expiration' => 60, 
-        ],
-        // ...
-    ];
-    ```
+Open `config/mcp.php` and set the `session.expiration` value. This value, in minutes, determines how long a session is considered active before it becomes eligible for pruning.
+```php
+return [
+    'session' => [
+        // Prune sessions older than 60 minutes
+        'expiration' => 60, 
+    ],
+];
+```
 
-c.  **Run the Pruning Command:**
-    Once session expiration is configured, you can run the `mcp:prune-sessions` Artisan command to delete expired sessions:
-    ```bash
-    php artisan mcp:prune-sessions
-    ```
-    It's recommended to schedule this command to run periodically (e.g., daily) in your `app/Console/Kernel.php` file.
+Once session expiration is configured, you can run the `mcp:prune-sessions` Artisan command to delete expired sessions:
+```bash
+php artisan mcp:prune-sessions
+```
+It's recommended to schedule this command to run periodically (e.g., daily) in your `app/Console/Kernel.php` file.
 
 ## Caveats
 
