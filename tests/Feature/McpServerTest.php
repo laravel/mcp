@@ -94,7 +94,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_initialize_a_connection_over_stdio()
     {
-        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp']);
+        $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
         $process->setInput(json_encode($this->initializeMessage()));
 
         $process->run();
@@ -107,7 +107,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_list_tools_over_stdio()
     {
-        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp-initialized']);
+        $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp-initialized']);
         $process->setInput(json_encode($this->listToolsMessage()));
 
         $process->run();
@@ -120,7 +120,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_call_a_tool_over_stdio()
     {
-        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp-initialized']);
+        $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp-initialized']);
         $process->setInput(json_encode($this->callToolMessage()));
 
         $process->run();
@@ -133,7 +133,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_handle_a_ping_over_stdio()
     {
-        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp-initialized']);
+        $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp-initialized']);
         $process->setInput(json_encode($this->pingMessage()));
 
         $process->run();
@@ -146,7 +146,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_stream_a_tool_response_over_stdio()
     {
-        $process = new Process(['./vendor/bin/testbench', 'mcp:test-mcp-initialized']);
+        $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp-initialized']);
         $process->setInput(json_encode($this->callStreamingToolMessage()));
 
         $process->run();

@@ -9,6 +9,7 @@ use Laravel\Mcp\Registrar;
 use Laravel\Mcp\Console\Commands\PruneSessionsCommand;
 use Laravel\Mcp\Console\Commands\ServerMakeCommand;
 use Laravel\Mcp\Console\Commands\ToolMakeCommand;
+use Laravel\Mcp\Console\Commands\StartServerCommand;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -19,7 +20,7 @@ class McpServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->bind('mcp', function ($app) {
+        $this->app->singleton('mcp', function ($app) {
             return new Registrar();
         });
 
@@ -29,6 +30,7 @@ class McpServiceProvider extends ServiceProvider
                 PruneSessionsCommand::class,
                 ServerMakeCommand::class,
                 ToolMakeCommand::class,
+                StartServerCommand::class,
             ]);
         }
     }
