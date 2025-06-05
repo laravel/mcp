@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\Mcp\Commands;
+namespace Laravel\Mcp\Console\Commands;
 
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Support\Str;

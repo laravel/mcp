@@ -4,11 +4,11 @@ namespace Laravel\Mcp;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Laravel\Mcp\Commands\McpInspectorCommand;
+use Laravel\Mcp\Console\Commands\McpInspectorCommand;
 use Laravel\Mcp\Registrar;
 use Laravel\Mcp\Console\Commands\PruneSessionsCommand;
-use Laravel\Mcp\Commands\ServerMakeCommand;
-use Laravel\Mcp\Commands\ToolMakeCommand;
+use Laravel\Mcp\Console\Commands\ServerMakeCommand;
+use Laravel\Mcp\Console\Commands\ToolMakeCommand;
 
 class McpServiceProvider extends ServiceProvider
 {
