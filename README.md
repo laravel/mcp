@@ -37,14 +37,14 @@ The package automatically loads routes defined in this file. Web routes will be 
 
 For web (HTTP) based servers, MCP sessions are stored in the database for persistence across requests.
 
-**Publish and Run the Migration:**
+#### Publish and Run the Migration
 First, you need to publish the migration file that creates the `mcp_sessions` table and then run it:
 ```bash
 php artisan vendor:publish --tag=mcp-migrations
 php artisan migrate
 ```
 
-**Pruning Old Sessions (Optional):**
+#### Pruning Old Sessions (Optional)
 To prevent the `mcp_sessions` table from growing indefinitely, you can prune old sessions. This requires publishing the package's configuration file and setting an expiration time.
 
 ```bash
