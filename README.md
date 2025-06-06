@@ -76,7 +76,13 @@ It's recommended to schedule this command to run periodically (e.g., daily) in y
 
 ## Creating a Server
 
-A server is the central point that handles communication and exposes tools. To create a server, you need to extend the `Laravel\Mcp\Server` base class.
+A server is the central point that handles communication and exposes tools. To create a server, you can extend the `Laravel\Mcp\Server` base class or use the `mcp:server` Artisan command to generate a server class:
+
+```bash
+php artisan mcp:server ExampleServer
+```
+
+This will create a new server class in `app/Mcp/Servers/ExampleServer.php`. Here's what a basic server class looks like:
 
 ```php
 <?php
@@ -107,7 +113,13 @@ The `Server` class has a few other properties you can override to customize its 
 
 ## Creating Tools
 
-Tools are individual units of functionality that your server exposes. Each tool must implement the `Laravel\Mcp\Contracts\Tools\Tool` interface.
+Tools are individual units of functionality that your server exposes. Each tool must implement the `Laravel\Mcp\Contracts\Tools\Tool` interface. You can also use the `mcp:tool` Artisan command to generate a tool class:
+
+```bash
+php artisan mcp:tool MyExampleTool
+```
+
+This will create a new tool class in `app/Mcp/Tools/MyExampleTool.php`. Here's what a basic tool class looks like:
 
 ```php
 <?php
