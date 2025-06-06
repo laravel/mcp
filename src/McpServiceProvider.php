@@ -20,17 +20,15 @@ class McpServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->singleton('mcp', function ($app) {
-            return new Registrar();
-        });
+        $this->app->singleton('mcp', fn () => new Registrar());
 
         if ($this->app->runningInConsole()) {
             $this->commands([
-                McpInspectorCommand::class,
+                StartServerCommand::class,
                 PruneSessionsCommand::class,
                 ServerMakeCommand::class,
                 ToolMakeCommand::class,
-                StartServerCommand::class,
+                McpInspectorCommand::class,
             ]);
         }
     }

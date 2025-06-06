@@ -26,17 +26,17 @@ abstract class Server
         ],
     ];
 
-    public string $serverName = 'My Laravel MCP Server';
+    public string $serverName = 'Laravel MCP Server';
 
-    public string $serverVersion = '0.1.0';
+    public string $serverVersion = '0.0.1';
 
-    public string $instructions = 'Welcome to my Laravel MCP Server!';
+    public string $instructions = 'This MCP server lets AI agents interact with my Laravel application.';
 
     public array $tools = [];
 
-    public int $maxPaginationLength = 100;
+    public int $maxPaginationLength = 50;
 
-    public int $defaultPaginationLength = 10;
+    public int $defaultPaginationLength = 15;
 
     protected Transport $transport;
 
@@ -65,7 +65,7 @@ abstract class Server
     public function handle(string $rawMessage)
     {
         $sessionId = $this->transport->sessionId() ?? Str::uuid()->toString();
-        $session = $sessionId ? $this->sessionStore->get($sessionId) : null;
+        $session = $this->sessionStore->get($sessionId);
 
         $context = new ServerContext(
             supportedProtocolVersions: $this->supportedProtocolVersion,
@@ -92,20 +92,17 @@ abstract class Server
             if (! $session) {
                 throw new JsonRpcException(
                     'Session not found or not initialized.',
-                    -32000,
+                    -32601,
                     isset($message->id) ? $message->id : null
                 );
             }
 
-            if (! $session->initialized && $message->method !== 'ping') {
-                if (! isset($message->id) || $message->id === null) {
-                    return;
-                }
-                throw new JsonRpcException("Session not initialized.", -32002, $message->id);
+            if (! isset($message->id) || $message->id === null) {
+                return; // JSON-RPC notification, no response needed
             }
 
-            if (! isset($message->id) || $message->id === null) {
-                return;
+            if (! $session->initialized && $message->method !== 'ping') {
+                throw new JsonRpcException("Session not initialized.", -32601, $message->id);
             }
 
             if (! isset($this->methods[$message->method])) {
@@ -120,7 +117,7 @@ abstract class Server
 
     public function boot()
     {
-        // Override this method to add custom methods, etc., when the server boots.
+        // Override this method to dynamically add tools, custom methods, etc., when the server boots.
     }
 
     public function addTool($tool)
@@ -139,9 +136,7 @@ abstract class Server
     {
         $methodClass = $this->methods[$message->method];
 
-        $methodHandler = new $methodClass();
-
-        $response = $methodHandler->handle($message, $session, $context);
+        $response = (new $methodClass())->handle($message, $session, $context);
 
         if ($response instanceof Generator) {
             $this->transport->stream(function() use ($response, $sessionId) {

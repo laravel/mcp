@@ -382,7 +382,7 @@ class McpServerTest extends TestCase
             'jsonrpc' => '2.0',
             'id' => $requestId,
             'error' => [
-                'code' => -32000,
+                'code' => -32601,
                 'message' => 'Session not found or not initialized.',
             ],
         ];
