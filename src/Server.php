@@ -30,7 +30,7 @@ abstract class Server
 
     public string $serverVersion = '0.0.1';
 
-    public string $instructions = 'This MCP server lets AI agents interact with my Laravel application.';
+    public string $instructions = 'This MCP server lets AI agents interact with our Laravel application.';
 
     public array $tools = [];
 

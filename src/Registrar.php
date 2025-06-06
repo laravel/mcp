@@ -16,7 +16,7 @@ class Registrar
 
     public function web(string $handle, string $serverClass)
     {
-        return Route::post($handle, fn () => $this->bootServer(
+        Route::post($handle, fn () => $this->bootServer(
             $serverClass,
             fn () => new DatabaseSessionStore(DB::connection()),
             fn () => new HttpTransport(request())
