@@ -9,7 +9,6 @@ This Laravel package helps you build MCP-compliant servers within your Laravel a
 - [Setup](#setup)
   - [Publishing Routes](#publishing-routes)
   - [Database Sessions](#database-sessions)
-- [Caveats](#caveats)
 - [Creating a Server](#creating-a-server)
 - [Creating Tools](#creating-tools)
 - [Registering Servers](#registering-servers)
@@ -67,12 +66,6 @@ Once session expiration is configured, you can run the `mcp:prune-sessions` Arti
 php artisan mcp:prune-sessions
 ```
 It's recommended to schedule this command to run periodically (e.g., daily) in your `app/Console/Kernel.php` file.
-
-## Caveats
-
-- **No tests yet.** This is an early-stage package, and I haven't written any tests for it yet.
-- **SSE transport is missing.** I haven't implemented an SSE transport layer. Cursor, for example, uses this for HTTP (even though it's actually deprecated in the protocol), so you'll need to use STDIO for local connections or the basic HTTP streaming for web if your client handles that.
-- **It's a prototype.** This is very much a prototype. My main goal right now is to nail the developer experience (DX), so things will change.
 
 ## Creating a Server
 
