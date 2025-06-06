@@ -189,7 +189,11 @@ use Laravel\Mcp\Facades\Mcp;
 
 Mcp::cli('demo', ExampleServer::class);
 ```
-This will create an Artisan command `php artisan mcp:demo` to connect to the server.
+This makes the server available via the `mcp:start` Artisan command:
+
+```bash
+php artisan mcp:start demo
+```
 
 ## Authentication
 
