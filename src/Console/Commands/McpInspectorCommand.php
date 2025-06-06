@@ -36,7 +36,7 @@ class McpInspectorCommand extends Command
             '@modelcontextprotocol/inspector',
             'php',
             $currentDir . '/artisan',
-            "mcp:{$handle}"
+            "mcp:start {$handle}"
         ];
 
         $this->line('Running: ' . implode(' ', $command));
