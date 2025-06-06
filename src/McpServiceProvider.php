@@ -57,7 +57,7 @@ class McpServiceProvider extends ServiceProvider
     protected function offerPublishing()
     {
         $this->publishes([
-            __DIR__ . '/../stubs/routes/ai.php' => base_path('routes/ai.php'),
+            __DIR__ . '/../routes/ai.php' => base_path('routes/ai.php'),
         ], 'ai-routes');
 
         $this->publishes([
