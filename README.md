@@ -17,8 +17,9 @@ This Laravel package helps you build MCP-compliant servers within your Laravel a
 - [Authentication (Optional)](#authentication-optional)
 - [Testing Servers with MCP Inspector](#testing-servers-with-mcp-inspector)
 - [Advanced](#advanced)
-  - [Customizing Server Behavior with `boot()`](#customizing-server-behavior-with-boot)
   - [Streaming Responses](#streaming-responses)
+  - [Dynamically Adding Tools](#dynamically-adding-tools)
+  - [Dynamically Adding Methods](#dynamically-adding-methods)
 
 ## Setup
 
@@ -208,9 +209,75 @@ The [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an 
 
 ## Advanced
 
-### Customizing Server Behavior with `boot()`
+### Streaming Responses
 
-The `Server` class provides a `boot()` method that you can override to customize its behavior when it connects to a transport. This is useful for tasks like registering custom JSON-RPC methods.
+For tools that need to send multiple updates to the client before completing, or that produce a large amount of data, you can return a generator from the `call` method. For web-based servers, this will automatically open an SSE stream to the client.
+
+Within your generator, you can `yield` instances of `Laravel\Mcp\Tools\ToolNotification` for intermediate updates and finally `yield` a single `Laravel\Mcp\Tools\ToolResponse` for the main result of the tool execution.
+
+This is particularly useful for long-running tasks or when you want to provide real-time feedback to the client, such as streaming tokens in a chat application.
+
+```php
+<?php
+
+namespace App\Mcp\Tools;
+
+use Generator;
+use Laravel\Mcp\Contracts\Tools\Tool;
+use Laravel\Mcp\Tools\ToolInputSchema;
+use Laravel\Mcp\Tools\ToolNotification;
+use Laravel\Mcp\Tools\ToolResponse;
+
+class ChatStreamingTool implements Tool
+{
+    // ...
+
+    public function call(array $arguments): Generator
+    {
+        $message = "Here's a message from the chat bot."
+        $tokens = "explode(' ', $message);
+
+        foreach ($tokens as $token) {
+            yield new ToolNotification('chat/token', ['token' => $token]);
+
+            usleep(100000);
+        }
+
+        yield new ToolResponse("Message streamed successfully.");
+    }
+}
+```
+
+### Dynamically Adding Tools
+
+In addition to registering tools via the `$tools` property on your server, you can also add them dynamically within the `boot()` method. This is useful when the availability of a tool depends on runtime conditions, such as application configuration.
+
+The `addTool()` method accepts an object that implements the `Laravel\Mcp\Contracts\Tools\Tool` interface. You can pass a pre-existing tool class instance or define one on-the-fly with an anonymous class.
+
+Here's how you can add a tool using an anonymous class inside your server's `boot()` method:
+
+```php
+public function boot(): void
+{
+    $this->addTool(new class implements Tool {
+        public function getName(): string
+        {
+            return 'dynamic_tool';
+        }
+
+        // ...
+
+        public function call(array $arguments): ToolResponse
+        {
+            return new ToolResponse('Dynamic tool was called!');
+        }
+    });
+}
+```
+
+### Dynamically Adding Methods
+
+If you want to add you own JSON-RPC methods to the server to support other MCP features, you can use the `boot()` method to register them.
 
 For example, to add a custom `ping` method:
 
@@ -259,42 +326,3 @@ class ExampleServer extends Server
 ```
 
 Now, your server will be able to handle `ping` requests.
-
-### Streaming Responses
-
-For tools that need to send multiple updates to the client before completing, or that produce a large amount of data, you can return a generator from the `call` method. For web-based servers, this will automatically open an SSE stream to the client.
-
-Within your generator, you can `yield` instances of `Laravel\Mcp\Tools\ToolNotification` for intermediate updates and finally `yield` a single `Laravel\Mcp\Tools\ToolResponse` for the main result of the tool execution.
-
-This is particularly useful for long-running tasks or when you want to provide real-time feedback to the client, such as streaming tokens in a chat application.
-
-```php
-<?php
-
-namespace App\Mcp\Tools;
-
-use Generator;
-use Laravel\Mcp\Contracts\Tools\Tool;
-use Laravel\Mcp\Tools\ToolInputSchema;
-use Laravel\Mcp\Tools\ToolNotification;
-use Laravel\Mcp\Tools\ToolResponse;
-
-class ChatStreamingTool implements Tool
-{
-    // ...
-
-    public function call(array $arguments): Generator
-    {
-        $message = "Here's a message from the chat bot."
-        $tokens = "explode(' ', $message);
-
-        foreach ($tokens as $token) {
-            yield new ToolNotification('chat/token', ['token' => $token]);
-
-            usleep(100000);
-        }
-
-        yield new ToolResponse("Message streamed successfully.");
-    }
-}
-```
