@@ -5,6 +5,7 @@ namespace Laravel\Mcp\Contracts\Tools;
 use Generator;
 use Laravel\Mcp\Tools\ToolResponse;
 use Laravel\Mcp\Tools\ToolInputSchema;
+use Laravel\Mcp\Tools\ToolNotification;
 
 interface Tool
 {
@@ -15,7 +16,7 @@ interface Tool
     public function getInputSchema(ToolInputSchema $schema): ToolInputSchema;
 
     /**
-     * @return ToolResponse|Generator
+     * @return ToolResponse|Generator<ToolNotification|ToolResponse>
      */
     public function call(array $arguments);
 }

@@ -28,7 +28,7 @@ class McpInspectorCommand extends Command
     {
         $handle = $this->argument('handle');
 
-        $this->info("Starting MCP Inspector for server: mcp:{$handle}");
+        $this->info("Starting the MCP Inspector for server: {$handle}");
 
         $currentDir = getcwd();
         $command = [
@@ -50,9 +50,9 @@ class McpInspectorCommand extends Command
             });
         } catch (\Exception $e) {
             $this->error('Failed to start MCP Inspector: ' . $e->getMessage());
-            return 1;
+            return Command::FAILURE;
         }
 
-        return 0;
+        return Command::SUCCESS;
     }
 }

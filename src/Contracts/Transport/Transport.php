@@ -3,7 +3,6 @@
 namespace Laravel\Mcp\Contracts\Transport;
 
 use Closure;
-use Generator;
 
 interface Transport
 {
