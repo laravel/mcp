@@ -48,12 +48,19 @@ class CallTool implements Method
         }
 
         if (! $result instanceof Generator) {
-            return JsonRpcResponse::create(
-                $request->id,
-                $result->toArray()
-            );
+            return $this->toResponse($request->id, $result->toArray());
         }
 
+        return $this->toStream($request, $result);
+    }
+
+    private function toResponse(string $id, array $result): JsonRpcResponse
+    {
+        return JsonRpcResponse::create($id, $result);
+    }
+
+    private function toStream(JsonRpcRequest $request, Generator $result): Generator
+    {
         return (function () use ($result, $request) {
             try {
                 foreach ($result as $response) {
@@ -65,16 +72,10 @@ class CallTool implements Method
                         continue;
                     }
 
-                    yield JsonRpcResponse::create(
-                        $request->id,
-                        $response->toArray()
-                    );
+                    yield $this->toResponse($request->id, $response->toArray());
                 }
             } catch (ValidationException $e) {
-                yield JsonRpcResponse::create(
-                    $request->id,
-                    (new ToolResponse($e->getMessage(), true))->toArray()
-                );
+                yield $this->toResponse($request->id, (new ToolResponse($e->getMessage(), true))->toArray());
             }
         })();
     }
