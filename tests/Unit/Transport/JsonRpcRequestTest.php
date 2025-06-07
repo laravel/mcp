@@ -3,34 +3,34 @@
 namespace Laravel\Mcp\Tests\Unit\Transport;
 
 use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\Transport\JsonRpcMessage;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-class JsonRpcMessageTest extends TestCase
+class JsonRpcRequestTest extends TestCase
 {
     #[Test]
     public function it_can_create_a_message_from_valid_json()
     {
         $json = '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "echo", "arguments": {"message": "Hello, world!"}}}';
-        $message = JsonRpcMessage::fromJson($json);
+        $request = JsonRpcRequest::fromJson($json);
 
-        $this->assertInstanceOf(JsonRpcMessage::class, $message);
-        $this->assertEquals(1, $message->id);
-        $this->assertEquals('tools/call', $message->method);
-        $this->assertEquals(['name' => 'echo', 'arguments' => ['message' => 'Hello, world!']], $message->params);
+        $this->assertInstanceOf(JsonRpcRequest::class, $request);
+        $this->assertEquals(1, $request->id);
+        $this->assertEquals('tools/call', $request->method);
+        $this->assertEquals(['name' => 'echo', 'arguments' => ['message' => 'Hello, world!']], $request->params);
     }
 
     #[Test]
     public function it_can_create_a_notification_message_from_valid_json()
     {
         $json = '{"jsonrpc": "2.0", "method": "notifications/initialized"}';
-        $message = JsonRpcMessage::fromJson($json);
+        $request = JsonRpcRequest::fromJson($json);
 
-        $this->assertInstanceOf(JsonRpcMessage::class, $message);
-        $this->assertNull($message->id);
-        $this->assertEquals('notifications/initialized', $message->method);
-        $this->assertEquals([], $message->params);
+        $this->assertInstanceOf(JsonRpcRequest::class, $request);
+        $this->assertNull($request->id);
+        $this->assertEquals('notifications/initialized', $request->method);
+        $this->assertEquals([], $request->params);
     }
 
     #[Test]
@@ -40,7 +40,7 @@ class JsonRpcMessageTest extends TestCase
         $this->expectExceptionMessage('Parse error');
         $this->expectExceptionCode(-32700);
 
-        JsonRpcMessage::fromJson('invalid_json');
+        JsonRpcRequest::fromJson('invalid_json');
     }
 
     #[Test]
@@ -50,7 +50,7 @@ class JsonRpcMessageTest extends TestCase
         $this->expectExceptionMessage('Invalid Request: Invalid JSON-RPC version. Must be "2.0".');
         $this->expectExceptionCode(-32600);
 
-        JsonRpcMessage::fromJson('{"id": 1, "method": "initialize"}');
+        JsonRpcRequest::fromJson('{"id": 1, "method": "initialize"}');
     }
 
     #[Test]
@@ -60,7 +60,7 @@ class JsonRpcMessageTest extends TestCase
         $this->expectExceptionMessage('Invalid Request: Invalid JSON-RPC version. Must be "2.0".');
         $this->expectExceptionCode(-32600);
 
-        JsonRpcMessage::fromJson('{"jsonrpc": "1.0", "id": 1, "method": "initialize"}');
+        JsonRpcRequest::fromJson('{"jsonrpc": "1.0", "id": 1, "method": "initialize"}');
     }
 
     #[Test]
@@ -70,7 +70,7 @@ class JsonRpcMessageTest extends TestCase
         $this->expectExceptionMessage('Invalid params: "id" must be an integer or null if present.');
         $this->expectExceptionCode(-32602);
 
-        JsonRpcMessage::fromJson('{"jsonrpc": "2.0", "id": "not-an-integer", "method": "initialize"}');
+        JsonRpcRequest::fromJson('{"jsonrpc": "2.0", "id": "not-an-integer", "method": "initialize"}');
     }
 
     #[Test]
@@ -80,7 +80,7 @@ class JsonRpcMessageTest extends TestCase
         $this->expectExceptionMessage('Invalid Request: Invalid or missing "method". Must be a string.');
         $this->expectExceptionCode(-32600);
 
-        JsonRpcMessage::fromJson('{"jsonrpc": "2.0", "id": 1}');
+        JsonRpcRequest::fromJson('{"jsonrpc": "2.0", "id": 1}');
     }
 
     #[Test]
@@ -90,6 +90,6 @@ class JsonRpcMessageTest extends TestCase
         $this->expectExceptionMessage('Invalid Request: Invalid or missing "method". Must be a string.');
         $this->expectExceptionCode(-32600);
 
-        JsonRpcMessage::fromJson('{"jsonrpc": "2.0", "id": 1, "method": 123}');
+        JsonRpcRequest::fromJson('{"jsonrpc": "2.0", "id": 1, "method": 123}');
     }
 }

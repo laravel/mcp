@@ -3,6 +3,7 @@
 namespace Laravel\Mcp\Exceptions;
 
 use Exception;
+use Laravel\Mcp\Transport\JsonRpcProtocolError;
 
 class JsonRpcException extends Exception
 {
@@ -28,19 +29,11 @@ class JsonRpcException extends Exception
 
     public function toJsonRpcError(): array
     {
-        $error = [
-            'code' => $this->getCode(),
-            'message' => $this->getMessage(),
-        ];
-
-        if ($this->data !== null) {
-            $error['data'] = $this->data;
-        }
-
-        return [
-            'jsonrpc' => '2.0',
-            'error' => $error,
-            'id' => $this->requestId,
-        ];
+        return (new JsonRpcProtocolError(
+            code: $this->getCode(),
+            message: $this->getMessage(),
+            requestId: $this->requestId,
+            data: $this->data,
+        ))->toArray();
     }
 }

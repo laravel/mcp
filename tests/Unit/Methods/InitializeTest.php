@@ -6,7 +6,7 @@ use Laravel\Mcp\Methods\Initialize;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
-use Laravel\Mcp\Transport\JsonRpcMessage;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Laravel\Mcp\Exceptions\JsonRpcException;
@@ -16,7 +16,7 @@ class InitializeTest extends TestCase
     #[Test]
     public function it_returns_a_valid_initialize_response()
     {
-        $message = JsonRpcMessage::fromJson(json_encode([
+        $request = JsonRpcRequest::fromJson(json_encode([
             'jsonrpc' => '2.0',
             'id' => 1,
             'method' => 'initialize',
@@ -40,7 +40,7 @@ class InitializeTest extends TestCase
 
         $method = new Initialize();
 
-        $response = $method->handle($message, $session, $context);
+        $response = $method->handle($request, $session, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);
@@ -62,7 +62,7 @@ class InitializeTest extends TestCase
         $this->expectExceptionMessage('Unsupported protocol version');
         $this->expectExceptionCode(-32602);
 
-        $message = JsonRpcMessage::fromJson(json_encode([
+        $request = JsonRpcRequest::fromJson(json_encode([
             'jsonrpc' => '2.0',
             'id' => 1,
             'method' => 'initialize',
@@ -89,7 +89,7 @@ class InitializeTest extends TestCase
         $method = new Initialize();
 
         try {
-            $method->handle($message, $session, $context);
+            $method->handle($request, $session, $context);
         } catch (JsonRpcException $e) {
             $this->assertEquals(1, $e->getRequestId());
             $this->assertEquals([
@@ -104,7 +104,7 @@ class InitializeTest extends TestCase
     public function it_uses_requested_protocol_version_if_supported()
     {
         $requestedVersion = '2024-11-05';
-        $message = JsonRpcMessage::fromJson(json_encode([
+        $request = JsonRpcRequest::fromJson(json_encode([
             'jsonrpc' => '2.0',
             'id' => 1,
             'method' => 'initialize',
@@ -129,7 +129,7 @@ class InitializeTest extends TestCase
         );
 
         $method = new Initialize();
-        $response = $method->handle($message, $session, $context);
+        $response = $method->handle($request, $session, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);

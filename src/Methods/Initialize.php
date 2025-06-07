@@ -7,19 +7,19 @@ use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
-use Laravel\Mcp\Transport\JsonRpcMessage;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 
 class Initialize implements Method
 {
-    public function handle(JsonRpcMessage $message, SessionContext $session, ServerContext $context): JsonRpcResponse
+    public function handle(JsonRpcRequest $request, SessionContext $session, ServerContext $context): JsonRpcResponse
     {
-        $requestedVersion = $message->params['protocolVersion'] ?? null;
+        $requestedVersion = $request->params['protocolVersion'] ?? null;
 
         if (! is_null($requestedVersion) && ! in_array($requestedVersion, $context->supportedProtocolVersions)) {
             throw new JsonRpcException(
                 message: 'Unsupported protocol version',
                 code: -32602,
-                requestId: $message->id,
+                requestId: $request->id,
                 data: [
                     'supported' => $context->supportedProtocolVersions,
                     'requested' => $requestedVersion,
@@ -29,7 +29,7 @@ class Initialize implements Method
 
         $protocol = $requestedVersion ?? $context->supportedProtocolVersions[0];
 
-        return JsonRpcResponse::create($message->id, [
+        return JsonRpcResponse::create($request->id, [
             'protocolVersion' => $protocol,
             'capabilities' => $context->serverCapabilities,
             'serverInfo' => [

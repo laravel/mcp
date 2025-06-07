@@ -8,24 +8,24 @@ use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
-use Laravel\Mcp\Transport\JsonRpcMessage;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Tools\ToolNotification;
 use Laravel\Mcp\Tools\ToolResponse;
 use Laravel\Mcp\Transport\JsonRpcNotification;
-use Traversable;
+use Generator;
 
 class CallTool implements Method
 {
-    /** @return JsonRpcResponse|Traversable<JsonRpcResponse> */
-    public function handle(JsonRpcMessage $message, SessionContext $session, ServerContext $context)
+    /** @return JsonRpcResponse|Generator<JsonRpcResponse> */
+    public function handle(JsonRpcRequest $request, SessionContext $session, ServerContext $context)
     {
         try {
             $tool = collect($context->tools)
-                ->firstOrFail(function($tool) use ($message) {
+                ->firstOrFail(function($tool) use ($request) {
                     if (is_string($tool)) {
-                        return (new $tool())->getName() === $message->params['name'];
+                        return (new $tool())->getName() === $request->params['name'];
                     }
-                    return $tool->getName() === $message->params['name'];
+                    return $tool->getName() === $request->params['name'];
                 });
 
             if (is_string($tool)) {
@@ -33,28 +33,28 @@ class CallTool implements Method
             }
         } catch (Exception $e) {
             return JsonRpcResponse::create(
-                $message->id,
+                $request->id,
                 (new ToolResponse('Tool not found', true))->toArray()
             );
         }
 
         try {
-            $result = $tool->call($message->params['arguments']);
+            $result = $tool->call($request->params['arguments']);
         } catch (ValidationException $e) {
             return JsonRpcResponse::create(
-                $message->id,
+                $request->id,
                 (new ToolResponse($e->getMessage(), true))->toArray()
             );
         }
 
-        if (! $result instanceof Traversable) {
+        if (! $result instanceof Generator) {
             return JsonRpcResponse::create(
-                $message->id,
+                $request->id,
                 $result->toArray()
             );
         }
 
-        return (function () use ($result, $message) {
+        return (function () use ($result, $request) {
             try {
                 foreach ($result as $response) {
                     if ($response instanceof ToolNotification) {
@@ -66,13 +66,13 @@ class CallTool implements Method
                     }
 
                     yield JsonRpcResponse::create(
-                        $message->id,
+                        $request->id,
                         $response->toArray()
                     );
                 }
             } catch (ValidationException $e) {
                 yield JsonRpcResponse::create(
-                    $message->id,
+                    $request->id,
                     (new ToolResponse($e->getMessage(), true))->toArray()
                 );
             }

@@ -8,14 +8,14 @@ use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Transport\JsonRpcResponse;
-use Laravel\Mcp\Transport\JsonRpcMessage;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 
 class ListTools implements Method
 {
-    public function handle(JsonRpcMessage $message, SessionContext $session, ServerContext $context): JsonRpcResponse
+    public function handle(JsonRpcRequest $request, SessionContext $session, ServerContext $context): JsonRpcResponse
     {
-        $encodedCursor = $message->params['cursor'] ?? null;
-        $requestedPerPage = $message->params['per_page'] ?? $context->defaultPaginationLength;
+        $encodedCursor = $request->params['cursor'] ?? null;
+        $requestedPerPage = $request->params['per_page'] ?? $context->defaultPaginationLength;
         $maxPerPage = $context->maxPaginationLength;
 
         $perPage = min($requestedPerPage, $maxPerPage);
@@ -44,6 +44,6 @@ class ListTools implements Method
             $response['nextCursor'] = $paginationResult['nextCursor'];
         }
 
-        return JsonRpcResponse::create($message->id, $response);
+        return JsonRpcResponse::create($request->id, $response);
     }
 }

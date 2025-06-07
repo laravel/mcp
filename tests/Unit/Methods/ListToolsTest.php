@@ -6,7 +6,7 @@ use Laravel\Mcp\Methods\ListTools;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
-use Laravel\Mcp\Transport\JsonRpcMessage;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Tests\Fixtures\ExampleTool;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -32,7 +32,7 @@ class ListToolsTest extends TestCase
     #[Test]
     public function it_returns_a_valid_list_tools_response()
     {
-        $message = JsonRpcMessage::fromJson(json_encode([
+        $request = JsonRpcRequest::fromJson(json_encode([
             'jsonrpc' => '2.0',
             'id' => 1,
             'method' => 'list-tools',
@@ -56,7 +56,7 @@ class ListToolsTest extends TestCase
 
         $listTools = new ListTools();
 
-        $response = $listTools->handle($message, $session, $context);
+        $response = $listTools->handle($request, $session, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);
@@ -106,14 +106,14 @@ class ListToolsTest extends TestCase
 
         $listTools = new ListTools();
 
-        $firstListToolsMessage = JsonRpcMessage::fromJson(json_encode([
+        $firstListToolsRequest = JsonRpcRequest::fromJson(json_encode([
             'jsonrpc' => '2.0',
             'id' => 1,
             'method' => 'list-tools',
             'params' => [],
         ]));
 
-        $firstPageResponse = $listTools->handle($firstListToolsMessage, $session, $context);
+        $firstPageResponse = $listTools->handle($firstListToolsRequest, $session, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $firstPageResponse);
         $this->assertEquals(1, $firstPageResponse->id);
@@ -129,14 +129,14 @@ class ListToolsTest extends TestCase
 
         $nextCursor = $firstPageResponse->result['nextCursor'];
 
-        $secondListToolsMessage = JsonRpcMessage::fromJson(json_encode([
+        $secondListToolsRequest = JsonRpcRequest::fromJson(json_encode([
             'jsonrpc' => '2.0',
             'id' => 2,
             'method' => 'list-tools',
             'params' => ['cursor' => $nextCursor],
         ]));
 
-        $secondPageResponse = $listTools->handle($secondListToolsMessage, $session, $context);
+        $secondPageResponse = $listTools->handle($secondListToolsRequest, $session, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $secondPageResponse);
         $this->assertEquals(2, $secondPageResponse->id);
@@ -173,7 +173,7 @@ class ListToolsTest extends TestCase
             defaultPaginationLength: 7,
         );
 
-        $message = JsonRpcMessage::fromJson(json_encode([
+        $request = JsonRpcRequest::fromJson(json_encode([
             'jsonrpc' => '2.0',
             'id' => 1,
             'method' => 'list-tools',
@@ -181,7 +181,7 @@ class ListToolsTest extends TestCase
         ]));
 
         $listTools = new ListTools();
-        $response = $listTools->handle($message, $session, $context);
+        $response = $listTools->handle($request, $session, $context);
 
         $this->assertCount(7, $response->result['tools']);
         $this->assertArrayHasKey('nextCursor', $response->result);
@@ -210,7 +210,7 @@ class ListToolsTest extends TestCase
             defaultPaginationLength: 10,
         );
 
-        $message = JsonRpcMessage::fromJson(json_encode([
+        $request = JsonRpcRequest::fromJson(json_encode([
             'jsonrpc' => '2.0',
             'id' => 1,
             'method' => 'list-tools',
@@ -218,7 +218,7 @@ class ListToolsTest extends TestCase
         ]));
 
         $listTools = new ListTools();
-        $response = $listTools->handle($message, $session, $context);
+        $response = $listTools->handle($request, $session, $context);
 
         $this->assertCount(5, $response->result['tools']);
         $this->assertArrayHasKey('nextCursor', $response->result);
@@ -247,7 +247,7 @@ class ListToolsTest extends TestCase
             defaultPaginationLength: 7,
         );
 
-        $message = JsonRpcMessage::fromJson(json_encode([
+        $request = JsonRpcRequest::fromJson(json_encode([
             'jsonrpc' => '2.0',
             'id' => 1,
             'method' => 'list-tools',
@@ -255,7 +255,7 @@ class ListToolsTest extends TestCase
         ]));
 
         $listTools = new ListTools();
-        $response = $listTools->handle($message, $session, $context);
+        $response = $listTools->handle($request, $session, $context);
 
         $this->assertCount(7, $response->result['tools']);
         $this->assertArrayHasKey('nextCursor', $response->result);
@@ -284,7 +284,7 @@ class ListToolsTest extends TestCase
             defaultPaginationLength: 5,
         );
 
-        $message = JsonRpcMessage::fromJson(json_encode([
+        $request = JsonRpcRequest::fromJson(json_encode([
             'jsonrpc' => '2.0',
             'id' => 1,
             'method' => 'list-tools',
@@ -292,7 +292,7 @@ class ListToolsTest extends TestCase
         ]));
 
         $listTools = new ListTools();
-        $response = $listTools->handle($message, $session, $context);
+        $response = $listTools->handle($request, $session, $context);
 
         $this->assertCount(8, $response->result['tools']);
         $this->assertArrayHasKey('nextCursor', $response->result);

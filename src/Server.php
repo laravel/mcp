@@ -7,7 +7,7 @@ use Laravel\Mcp\Methods\Initialize;
 use Laravel\Mcp\Methods\ListTools;
 use Laravel\Mcp\Methods\Ping;
 use Laravel\Mcp\SessionContext;
-use Laravel\Mcp\Transport\JsonRpcMessage;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Contracts\Transport\Transport;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Session\SessionStore;
@@ -79,13 +79,13 @@ abstract class Server
         );
 
         try {
-            $message = JsonRpcMessage::fromJson($rawMessage);
+            $request = JsonRpcRequest::fromJson($rawMessage);
 
-            if ($message->method === 'initialize') {
-                return $this->handleInitializeMessage($sessionId, $message, $context);
+            if ($request->method === 'initialize') {
+                return $this->handleInitializeMessage($sessionId, $request, $context);
             }
 
-            if ($message->method === 'notifications/initialized') {
+            if ($request->method === 'notifications/initialized') {
                 return $this->handleInitializedNotificationMessage($sessionId, $session);
             }
 
@@ -93,23 +93,23 @@ abstract class Server
                 throw new JsonRpcException(
                     'Session not found or not initialized.',
                     -32601,
-                    isset($message->id) ? $message->id : null
+                    isset($request->id) ? $request->id : null
                 );
             }
 
-            if (! isset($message->id) || $message->id === null) {
+            if (! isset($request->id) || $request->id === null) {
                 return; // JSON-RPC notification, no response needed
             }
 
-            if (! $session->initialized && $message->method !== 'ping') {
-                throw new JsonRpcException("Session not initialized.", -32601, $message->id);
+            if (! $session->initialized && $request->method !== 'ping') {
+                throw new JsonRpcException("Session not initialized.", -32601, $request->id);
             }
 
-            if (! isset($this->methods[$message->method])) {
-                throw new JsonRpcException("Method not found: {$message->method}", -32601, $message->id);
+            if (! isset($this->methods[$request->method])) {
+                throw new JsonRpcException("Method not found: {$request->method}", -32601, $request->id);
             }
 
-            $this->handleMessage($sessionId, $message, $session, $context);
+            $this->handleMessage($sessionId, $request, $session, $context);
         } catch (JsonRpcException $e) {
             $this->transport->send(json_encode($e->toJsonRpcError()), $sessionId);
         }
@@ -132,11 +132,11 @@ abstract class Server
         $this->methods[$name] = $handlerClass;
     }
 
-    private function handleMessage(string $sessionId, JsonRpcMessage $message, SessionContext $session, ServerContext $context)
+    private function handleMessage(string $sessionId, JsonRpcRequest $request, SessionContext $session, ServerContext $context)
     {
-        $methodClass = $this->methods[$message->method];
+        $methodClass = $this->methods[$request->method];
 
-        $response = (new $methodClass())->handle($message, $session, $context);
+        $response = (new $methodClass())->handle($request, $session, $context);
 
         if ($response instanceof Generator) {
             $this->transport->stream(function() use ($response, $sessionId) {
@@ -151,13 +151,13 @@ abstract class Server
         return $this->transport->send($response->toJson(), $sessionId);
     }
 
-    private function handleInitializeMessage(string $sessionId, JsonRpcMessage $message, ServerContext $context)
+    private function handleInitializeMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context)
     {
         $session = new SessionContext(
-            clientCapabilities: $message->params['capabilities'] ?? [],
+            clientCapabilities: $request->params['capabilities'] ?? [],
         );
 
-        $response = (new Initialize())->handle($message, $session, $context);
+        $response = (new Initialize())->handle($request, $session, $context);
 
         $this->sessionStore->put($sessionId, $session);
 

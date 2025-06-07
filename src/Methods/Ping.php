@@ -6,11 +6,11 @@ use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
-use Laravel\Mcp\Transport\JsonRpcMessage;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 
 class Ping implements Method
 {
-    public function handle(JsonRpcMessage $request, SessionContext $session, ServerContext $context): JsonRpcResponse
+    public function handle(JsonRpcRequest $request, SessionContext $session, ServerContext $context): JsonRpcResponse
     {
         return new JsonRpcResponse(
             id: $request->id,

@@ -4,7 +4,7 @@ namespace Laravel\Mcp\Transport;
 
 use Laravel\Mcp\Exceptions\JsonRpcException;
 
-class JsonRpcMessage
+class JsonRpcRequest
 {
     public function __construct(
         public ?int $id,

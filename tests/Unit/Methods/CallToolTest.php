@@ -6,7 +6,7 @@ use Laravel\Mcp\Methods\CallTool;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
-use Laravel\Mcp\Transport\JsonRpcMessage;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Tests\Fixtures\ExampleTool;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -16,7 +16,7 @@ class CallToolTest extends TestCase
     #[Test]
     public function it_returns_a_valid_call_tool_response()
     {
-        $message = JsonRpcMessage::fromJson(json_encode([
+        $request = JsonRpcRequest::fromJson(json_encode([
             'jsonrpc' => '2.0',
             'id' => 1,
             'method' => 'tools/call',
@@ -43,7 +43,7 @@ class CallToolTest extends TestCase
 
         $method = new CallTool();
 
-        $response = $method->handle($message, $session, $context);
+        $response = $method->handle($request, $session, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);
@@ -61,7 +61,7 @@ class CallToolTest extends TestCase
     #[Test]
     public function it_returns_a_valid_call_tool_response_with_validation_error()
     {
-        $message = JsonRpcMessage::fromJson(json_encode([
+        $request = JsonRpcRequest::fromJson(json_encode([
             'jsonrpc' => '2.0',
             'id' => 1,
             'method' => 'tools/call',
@@ -88,7 +88,7 @@ class CallToolTest extends TestCase
 
         $method = new CallTool();
 
-        $response = $method->handle($message, $session, $context);
+        $response = $method->handle($request, $session, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);
