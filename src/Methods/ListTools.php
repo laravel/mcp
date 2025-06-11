@@ -9,6 +9,7 @@ use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcRequest;
+use Illuminate\Support\Str;
 
 class ListTools implements Method
 {
@@ -25,9 +26,9 @@ class ListTools implements Method
             ->map(function ($tool, $index) {
                 return [
                     'id' => $index + 1,
-                    'name' => $tool->getName(),
-                    'description' => $tool->getDescription(),
-                    'inputSchema' => $tool->getInputSchema(new ToolInputSchema())->toArray(),
+                    'name' => $tool->name(),
+                    'description' => $tool->description(),
+                    'inputSchema' => $tool->schema(new ToolInputSchema())->toArray(),
                 ];
             })
             ->sortBy('id')

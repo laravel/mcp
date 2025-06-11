@@ -261,7 +261,7 @@ class ServerTest extends TestCase
             "result" => [
                 "tools" => [
                     [
-                        "name" => "hello-tool",
+                        "name" => "example-tool",
                         "description" => "This tool says hello to a person",
                         "inputSchema" => [
                             "type" => "object",
@@ -302,7 +302,7 @@ class ServerTest extends TestCase
             'id' => 1,
             'method' => 'tools/call',
             'params' => [
-                'name' => 'hello-tool',
+                    'name' => 'example-tool',
                 'arguments' => [
                     'name' => 'John Doe',
                 ],

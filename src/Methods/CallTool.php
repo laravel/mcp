@@ -13,6 +13,7 @@ use Laravel\Mcp\Tools\ToolNotification;
 use Laravel\Mcp\Tools\ToolResponse;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Generator;
+use Illuminate\Support\Str;
 
 class CallTool implements Method
 {
@@ -23,9 +24,9 @@ class CallTool implements Method
             $tool = collect($context->tools)
                 ->firstOrFail(function($tool) use ($request) {
                     if (is_string($tool)) {
-                        return (new $tool())->getName() === $request->params['name'];
+                        return (new $tool())->name() === $request->params['name'];
                     }
-                    return $tool->getName() === $request->params['name'];
+                    return $tool->name() === $request->params['name'];
                 });
 
             if (is_string($tool)) {
@@ -39,7 +40,7 @@ class CallTool implements Method
         }
 
         try {
-            $result = $tool->call($request->params['arguments']);
+            $result = $tool->handle($request->params['arguments']);
         } catch (ValidationException $e) {
             return JsonRpcResponse::create(
                 $request->id,

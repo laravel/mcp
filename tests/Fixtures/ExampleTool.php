@@ -5,29 +5,25 @@ namespace Laravel\Mcp\Tests\Fixtures;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Support\MessageBag;
 use Illuminate\Validation\ValidationException;
-use Laravel\Mcp\Contracts\Tools\Tool;
+use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolResponse;
 use Mockery;
+use Generator;
 
-class ExampleTool implements Tool
+class ExampleTool extends Tool
 {
-    public function getName(): string
-    {
-        return 'hello-tool';
-    }
-
-    public function getDescription(): string
+    public function description(): string
     {
         return 'This tool says hello to a person';
     }
 
-    public function getInputSchema(ToolInputSchema $schema): ToolInputSchema
+    public function schema(ToolInputSchema $schema): ToolInputSchema
     {
         return $schema->string('name')->description('The name of the person to greet')->required();
     }
 
-    public function call(array $arguments): ToolResponse
+    public function handle(array $arguments): ToolResponse|Generator
     {
         if (empty($arguments['name'])) {
             $validator = Mockery::mock(Validator::class);

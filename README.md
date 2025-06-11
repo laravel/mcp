@@ -107,7 +107,7 @@ The `Server` class has a few other properties you can override to customize its 
 
 ## Creating Tools
 
-Tools are individual units of functionality that your server exposes. Each tool must implement the `Laravel\Mcp\Contracts\Tools\Tool` interface. You can also use the `mcp:tool` Artisan command to generate a tool class:
+Tools are individual units of functionality that your server exposes. Each tool must extend the `Laravel\Mcp\Tools\Tool` abstract class. You can also use the `mcp:tool` Artisan command to generate a tool class:
 
 ```bash
 php artisan mcp:tool MyExampleTool
@@ -120,23 +120,18 @@ This will create a new tool class in `app/Mcp/Tools/MyExampleTool.php`. Here's w
 
 namespace App\Mcp\Tools;
 
-use Laravel\Mcp\Contracts\Tools\Tool;
+use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolResponse;
 
-class MyExampleTool implements Tool
+class MyExampleTool extends Tool
 {
-    public function getName(): string
-    {
-        return 'my_example_tool'; // Should match the key in Server's $tools array
-    }
-
-    public function getDescription(): string
+    public function description(): string
     {
         return 'This is an example tool that performs a sample action.';
     }
 
-    public function getInputSchema(ToolInputSchema $schema): ToolInputSchema
+    public function schema(ToolInputSchema $schema): ToolInputSchema
     {
         $schema->string('param1')
             ->description('The first parameter for this tool.')
@@ -148,7 +143,7 @@ class MyExampleTool implements Tool
         return $schema;
     }
 
-    public function call(array $arguments): ToolResponse
+    public function handle(array $arguments): ToolResponse
     {
         // Your tool logic here
         $param1 = $arguments['param1'] ?? 'default';
@@ -215,7 +210,7 @@ The [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an 
 
 ### Streaming Responses
 
-For tools that need to send multiple updates to the client before completing, or that produce a large amount of data, you can return a generator from the `call` method. For web-based servers, this will automatically open an SSE stream to the client.
+For tools that need to send multiple updates to the client before completing, or that produce a large amount of data, you can return a generator from the `handle` method. For web-based servers, this will automatically open an SSE stream to the client.
 
 Within your generator, you can `yield` instances of `Laravel\Mcp\Tools\ToolNotification` for intermediate updates and finally `yield` a single `Laravel\Mcp\Tools\ToolResponse` for the main result of the tool execution.
 
@@ -227,22 +222,30 @@ This is particularly useful for long-running tasks or when you want to provide r
 namespace App\Mcp\Tools;
 
 use Generator;
-use Laravel\Mcp\Contracts\Tools\Tool;
+use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolNotification;
 use Laravel\Mcp\Tools\ToolResponse;
 
-class ChatStreamingTool implements Tool
+class ChatStreamingTool extends Tool
 {
-    // ...
-
-    public function call(array $arguments): Generator
+    public function description(): string
     {
-        $message = "Here's a message from the chat bot."
-        $tokens = "explode(' ', $message);
+        return 'A tool that streams a chat response.';
+    }
+
+    public function schema(ToolInputSchema $schema): ToolInputSchema
+    {
+        return $schema->string('message')->description('The message to stream back.');
+    }
+
+    public function handle(array $arguments): Generator
+    {
+        $message = $arguments['message'] ?? "Here's a message from the chat bot.";
+        $tokens = explode(' ', $message);
 
         foreach ($tokens as $token) {
-            yield new ToolNotification('chat/token', ['token' => $token]);
+            yield new ToolNotification('chat/token', ['token' => $token . ' ']);
 
             usleep(100000);
         }
@@ -256,22 +259,25 @@ class ChatStreamingTool implements Tool
 
 In addition to registering tools via the `$tools` property on your server, you can also add them dynamically within the `boot()` method. This is useful when the availability of a tool depends on runtime conditions, such as application configuration.
 
-The `addTool()` method accepts an object that implements the `Laravel\Mcp\Contracts\Tools\Tool` interface. You can pass a pre-existing tool class instance or define one on-the-fly with an anonymous class.
+The `addTool()` method accepts an instance of a class that extends `Laravel\Mcp\Tools\Tool`. You can pass a pre-existing tool class instance or define one on-the-fly with an anonymous class.
 
 Here's how you can add a tool using an anonymous class inside your server's `boot()` method:
 
 ```php
 public function boot(): void
 {
-    $this->addTool(new class implements Tool {
-        public function getName(): string
+    $this->addTool(new class extends Tool {
+        public function description(): string
         {
-            return 'dynamic_tool';
+            return 'A dynamically registered tool.';
         }
 
-        // ...
+        public function schema(ToolInputSchema $schema): ToolInputSchema
+        {
+            return $schema;
+        }
 
-        public function call(array $arguments): ToolResponse
+        public function handle(array $arguments): ToolResponse
         {
             return new ToolResponse('Dynamic tool was called!');
         }

@@ -2,31 +2,27 @@
 
 namespace Laravel\Mcp\Tests\Fixtures;
 
-use Laravel\Mcp\Contracts\Tools\Tool;
+use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolResponse;
 use Laravel\Mcp\Tools\ToolNotification;
+use Generator;
 
-class StreamingTool implements Tool
+class StreamingTool extends Tool
 {
-    public function getName(): string
-    {
-        return 'streaming-tool';
-    }
-
-    public function getDescription(): string
+    public function description(): string
     {
         return 'A tool that streams multiple responses.';
     }
 
-    public function getInputSchema(ToolInputSchema $schema): ToolInputSchema
+    public function schema(ToolInputSchema $schema): ToolInputSchema
     {
         return $schema->integer('count')
             ->description('Number of messages to stream.')
             ->required();
     }
 
-    public function call(array $arguments): \Generator
+    public function handle(array $arguments): Generator
     {
         $count = $arguments['count'] ?? 2;
 

@@ -15,13 +15,14 @@ if (!class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
     for ($i = 1; $i <= 12; $i++) {
         eval("
             namespace Tests\\Unit\\Methods;
-            use Laravel\\Mcp\\Contracts\\Tools\\Tool;
+            use Generator;
+            use Laravel\\Mcp\\Tools\\Tool;
+            use Laravel\\Mcp\\Tools\\ToolResponse;
             use Laravel\\Mcp\\Tools\\ToolInputSchema;
-            class DummyTool{$i} implements Tool {
-                public function getName(): string { return 'dummy-tool-{$i}'; }
-                public function getDescription(): string { return 'Description for dummy tool {$i}'; }
-                public function getInputSchema(ToolInputSchema \$schema): ToolInputSchema { return \$schema; }
-                public function call(array \$arguments) { return []; }
+            class DummyTool{$i} extends Tool {
+                public function description(): string { return 'Description for dummy tool {$i}'; }
+                public function schema(ToolInputSchema \$schema): ToolInputSchema { return \$schema; }
+                public function handle(array \$arguments): ToolResponse|Generator { return []; }
             }
         ");
     }
@@ -63,7 +64,7 @@ class ListToolsTest extends TestCase
         $this->assertEquals([
             'tools' => [
                 [
-                    'name' => 'hello-tool',
+                    'name' => 'example-tool',
                     'description' => 'This tool says hello to a person',
                     'inputSchema' => [
                         'type' => 'object',
@@ -121,10 +122,10 @@ class ListToolsTest extends TestCase
         $this->assertArrayHasKey('nextCursor', $firstPageResponse->result);
         $this->assertNotNull($firstPageResponse->result['nextCursor']);
 
-        $this->assertEquals('dummy-tool-1', $firstPageResponse->result['tools'][0]['name']);
+        $this->assertEquals('dummy-tool1', $firstPageResponse->result['tools'][0]['name']);
         $this->assertEquals(1, $firstPageResponse->result['tools'][0]['id']);
 
-        $this->assertEquals('dummy-tool-10', $firstPageResponse->result['tools'][9]['name']);
+        $this->assertEquals('dummy-tool10', $firstPageResponse->result['tools'][9]['name']);
         $this->assertEquals(10, $firstPageResponse->result['tools'][9]['id']);
 
         $nextCursor = $firstPageResponse->result['nextCursor'];
@@ -143,10 +144,10 @@ class ListToolsTest extends TestCase
         $this->assertCount(2, $secondPageResponse->result['tools']);
         $this->assertArrayNotHasKey('nextCursor', $secondPageResponse->result);
 
-        $this->assertEquals('dummy-tool-11', $secondPageResponse->result['tools'][0]['name']);
+        $this->assertEquals('dummy-tool11', $secondPageResponse->result['tools'][0]['name']);
         $this->assertEquals(11, $secondPageResponse->result['tools'][0]['id']);
 
-        $this->assertEquals('dummy-tool-12', $secondPageResponse->result['tools'][1]['name']);
+        $this->assertEquals('dummy-tool12', $secondPageResponse->result['tools'][1]['name']);
         $this->assertEquals(12, $secondPageResponse->result['tools'][1]['id']);
     }
 
