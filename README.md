@@ -95,10 +95,12 @@ class ExampleServer extends Server
     public string $instructions = 'Welcome! This server provides tools for X, Y, and Z.';
 
     public array $tools = [
-        'example_tool' => MyExampleTool::class,
+        MyExampleTool::class,
     ];
 }
 ```
+
+The tool's name is automatically determined from its class name. For example, `MyExampleTool` will be exposed to clients as `my-example-tool`. The tool name can also be overwritten by adding a `name()` method to the tool.
 
 The `Server` class has a few other properties you can override to customize its behavior:
 
