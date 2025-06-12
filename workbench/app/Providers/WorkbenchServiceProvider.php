@@ -31,7 +31,6 @@ class WorkbenchServiceProvider extends ServiceProvider
         // Used in tests
         Mcp::cli('test-mcp', ExampleServer::class);
         Mcp::web('test-mcp', ExampleServer::class);
-        Mcp::cli('test-mcp-initialized', InitializedServer::class);
         Mcp::web('test-mcp-dynamic-tools', ServerWithDynamicTools::class);
     }
 }

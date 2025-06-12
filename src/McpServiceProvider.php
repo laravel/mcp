@@ -6,7 +6,6 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Console\Commands\McpInspectorCommand;
 use Laravel\Mcp\Registrar;
-use Laravel\Mcp\Console\Commands\PruneSessionsCommand;
 use Laravel\Mcp\Console\Commands\ServerMakeCommand;
 use Laravel\Mcp\Console\Commands\ToolMakeCommand;
 use Laravel\Mcp\Console\Commands\StartServerCommand;
@@ -25,7 +24,6 @@ class McpServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 StartServerCommand::class,
-                PruneSessionsCommand::class,
                 ServerMakeCommand::class,
                 ToolMakeCommand::class,
                 McpInspectorCommand::class,
@@ -61,12 +59,6 @@ class McpServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../config/mcp.php' => config_path('mcp.php'),
         ], 'mcp-config');
-
-        $method = method_exists($this, 'publishesMigrations') ? 'publishesMigrations' : 'publishes';
-
-        $this->{$method}([
-            __DIR__.'/../database/migrations' => $this->app->databasePath('migrations'),
-        ], 'mcp-migrations');
     }
 
     protected function loadAiRoutes(): void

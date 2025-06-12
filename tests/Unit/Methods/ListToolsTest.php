@@ -4,7 +4,6 @@ namespace Tests\Unit\Methods;
 
 use Laravel\Mcp\Methods\ListTools;
 use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Tests\Fixtures\ExampleTool;
@@ -40,10 +39,6 @@ class ListToolsTest extends TestCase
             'params' => [],
         ]));
 
-        $session = new SessionContext(
-            clientCapabilities: [],
-        );
-
         $context = new ServerContext(
             supportedProtocolVersions: ['2025-03-26'],
             serverCapabilities: [],
@@ -57,7 +52,7 @@ class ListToolsTest extends TestCase
 
         $listTools = new ListTools();
 
-        $response = $listTools->handle($request, $session, $context);
+        $response = $listTools->handle($request, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);
@@ -90,10 +85,6 @@ class ListToolsTest extends TestCase
             $toolClasses[] = "Tests\\Unit\\Methods\\DummyTool{$i}";
         }
 
-        $session = new SessionContext(
-            clientCapabilities: [],
-        );
-
         $context = new ServerContext(
             supportedProtocolVersions: ['2025-03-26'],
             serverCapabilities: [],
@@ -114,7 +105,7 @@ class ListToolsTest extends TestCase
             'params' => [],
         ]));
 
-        $firstPageResponse = $listTools->handle($firstListToolsRequest, $session, $context);
+        $firstPageResponse = $listTools->handle($firstListToolsRequest, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $firstPageResponse);
         $this->assertEquals(1, $firstPageResponse->id);
@@ -137,7 +128,7 @@ class ListToolsTest extends TestCase
             'params' => ['cursor' => $nextCursor],
         ]));
 
-        $secondPageResponse = $listTools->handle($secondListToolsRequest, $session, $context);
+        $secondPageResponse = $listTools->handle($secondListToolsRequest, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $secondPageResponse);
         $this->assertEquals(2, $secondPageResponse->id);
@@ -159,10 +150,6 @@ class ListToolsTest extends TestCase
             $toolClasses[] = "Tests\\Unit\\Methods\\DummyTool{$i}";
         }
 
-        $session = new SessionContext(
-            clientCapabilities: [],
-        );
-
         $context = new ServerContext(
             supportedProtocolVersions: ['2025-03-26'],
             serverCapabilities: [],
@@ -182,7 +169,7 @@ class ListToolsTest extends TestCase
         ]));
 
         $listTools = new ListTools();
-        $response = $listTools->handle($request, $session, $context);
+        $response = $listTools->handle($request, $context);
 
         $this->assertCount(7, $response->result['tools']);
         $this->assertArrayHasKey('nextCursor', $response->result);
@@ -195,10 +182,6 @@ class ListToolsTest extends TestCase
         for ($i = 1; $i <= 12; $i++) {
             $toolClasses[] = "Tests\\Unit\\Methods\\DummyTool{$i}";
         }
-
-        $session = new SessionContext(
-            clientCapabilities: [],
-        );
 
         $context = new ServerContext(
             supportedProtocolVersions: ['2025-03-26'],
@@ -219,7 +202,7 @@ class ListToolsTest extends TestCase
         ]));
 
         $listTools = new ListTools();
-        $response = $listTools->handle($request, $session, $context);
+        $response = $listTools->handle($request, $context);
 
         $this->assertCount(5, $response->result['tools']);
         $this->assertArrayHasKey('nextCursor', $response->result);
@@ -232,10 +215,6 @@ class ListToolsTest extends TestCase
         for ($i = 1; $i <= 12; $i++) {
             $toolClasses[] = "Tests\\Unit\\Methods\\DummyTool{$i}";
         }
-
-        $session = new SessionContext(
-            clientCapabilities: [],
-        );
 
         $context = new ServerContext(
             supportedProtocolVersions: ['2025-03-26'],
@@ -256,7 +235,7 @@ class ListToolsTest extends TestCase
         ]));
 
         $listTools = new ListTools();
-        $response = $listTools->handle($request, $session, $context);
+        $response = $listTools->handle($request, $context);
 
         $this->assertCount(7, $response->result['tools']);
         $this->assertArrayHasKey('nextCursor', $response->result);
@@ -269,10 +248,6 @@ class ListToolsTest extends TestCase
         for ($i = 1; $i <= 12; $i++) {
             $toolClasses[] = "Tests\\Unit\\Methods\\DummyTool{$i}";
         }
-
-        $session = new SessionContext(
-            clientCapabilities: [],
-        );
 
         $context = new ServerContext(
             supportedProtocolVersions: ['2025-03-26'],
@@ -293,7 +268,7 @@ class ListToolsTest extends TestCase
         ]));
 
         $listTools = new ListTools();
-        $response = $listTools->handle($request, $session, $context);
+        $response = $listTools->handle($request, $context);
 
         $this->assertCount(8, $response->result['tools']);
         $this->assertArrayHasKey('nextCursor', $response->result);

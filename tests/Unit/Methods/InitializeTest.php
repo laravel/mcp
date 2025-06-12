@@ -4,7 +4,6 @@ namespace Tests\Unit\Methods;
 
 use Laravel\Mcp\Methods\Initialize;
 use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use PHPUnit\Framework\Attributes\Test;
@@ -23,10 +22,6 @@ class InitializeTest extends TestCase
             'params' => [],
         ]));
 
-        $session = new SessionContext(
-            clientCapabilities: [],
-        );
-
         $context = new ServerContext(
             supportedProtocolVersions: ['2025-03-26'],
             serverCapabilities: ['listChanged' => false],
@@ -40,7 +35,7 @@ class InitializeTest extends TestCase
 
         $method = new Initialize();
 
-        $response = $method->handle($request, $session, $context);
+        $response = $method->handle($request, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);
@@ -71,10 +66,6 @@ class InitializeTest extends TestCase
             ],
         ]));
 
-        $session = new SessionContext(
-            clientCapabilities: [],
-        );
-
         $context = new ServerContext(
             supportedProtocolVersions: ['2025-03-26'],
             serverCapabilities: [],
@@ -89,7 +80,7 @@ class InitializeTest extends TestCase
         $method = new Initialize();
 
         try {
-            $method->handle($request, $session, $context);
+            $method->handle($request, $context);
         } catch (JsonRpcException $e) {
             $this->assertEquals(1, $e->getRequestId());
             $this->assertEquals([
@@ -113,10 +104,6 @@ class InitializeTest extends TestCase
             ],
         ]));
 
-        $session = new SessionContext(
-            clientCapabilities: [],
-        );
-
         $context = new ServerContext(
             supportedProtocolVersions: ['2025-03-26', '2024-11-05'],
             serverCapabilities: [],
@@ -129,7 +116,7 @@ class InitializeTest extends TestCase
         );
 
         $method = new Initialize();
-        $response = $method->handle($request, $session, $context);
+        $response = $method->handle($request, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);

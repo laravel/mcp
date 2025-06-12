@@ -6,19 +6,17 @@ use Exception;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Tools\ToolNotification;
 use Laravel\Mcp\Tools\ToolResponse;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Generator;
-use Illuminate\Support\Str;
 
 class CallTool implements Method
 {
     /** @return JsonRpcResponse|Generator<JsonRpcResponse> */
-    public function handle(JsonRpcRequest $request, SessionContext $session, ServerContext $context)
+    public function handle(JsonRpcRequest $request, ServerContext $context)
     {
         try {
             $tool = collect($context->tools)

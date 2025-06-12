@@ -107,7 +107,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_list_tools_over_stdio()
     {
-        $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp-initialized']);
+        $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
         $process->setInput(json_encode($this->listToolsMessage()));
 
         $process->run();
@@ -120,7 +120,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_call_a_tool_over_stdio()
     {
-        $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp-initialized']);
+        $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
         $process->setInput(json_encode($this->callToolMessage()));
 
         $process->run();
@@ -133,7 +133,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_handle_a_ping_over_stdio()
     {
-        $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp-initialized']);
+        $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
         $process->setInput(json_encode($this->pingMessage()));
 
         $process->run();
@@ -146,7 +146,7 @@ class McpServerTest extends TestCase
     #[Test]
     public function it_can_stream_a_tool_response_over_stdio()
     {
-        $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp-initialized']);
+        $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
         $process->setInput(json_encode($this->callStreamingToolMessage()));
 
         $process->run();
@@ -173,23 +173,6 @@ class McpServerTest extends TestCase
         $this->assertEquals($this->expectedListToolsResponse(), $response->json());
     }
 
-    #[Test]
-    public function it_handles_deleted_session_gracefully()
-    {
-        $this->initializeHttpConnection();
-
-        $nonExistentSessionId = 'non-existent-session-id-'.\Illuminate\Support\Str::uuid();
-
-        $response = $this->postJson(
-            'test-mcp',
-            $this->listToolsMessage(),
-            ['Mcp-Session-Id' => $nonExistentSessionId],
-        );
-
-        $response->assertStatus(200);
-        $this->assertEquals($this->expectedDeletedSessionErrorResponse($this->listToolsMessage()['id']), $response->json());
-    }
-
     private function initializeHttpConnection($handle = 'test-mcp')
     {
         $response = $this->postJson($handle, $this->initializeMessage());
@@ -213,7 +196,7 @@ class McpServerTest extends TestCase
 
     private function expectedInitializeResponse(): array
     {
-        $server = new ExampleServer(new ArraySessionStore());
+        $server = new ExampleServer();
 
         return [
             'jsonrpc' => '2.0',
