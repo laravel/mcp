@@ -253,9 +253,9 @@ public function boot(): void
 
 ### Dynamically Adding Methods
 
-If you want to add you own JSON-RPC methods to the server to support other MCP features, you can use the `boot()` method to register them.
+If you want to add you own JSON-RPC methods to the server to support other MCP features, you can use the `boot()` method to register them. This is helpful if you want your MCP server to support methods that still aren't supported by this package, such as [Resources](https://modelcontextprotocol.io/specification/2025-03-26/server/resources) and [Prompts](https://modelcontextprotocol.io/specification/2025-03-26/server/prompts).
 
-For example, to add a custom `ping` method:
+Here's a simple example of how to support the [Ping](https://modelcontextprotocol.io/specification/2025-03-26/basic/utilities/ping) method, the simplest method in the MCP protocol:
 
 First, define your method handler. This class must implement the `Laravel\Mcp\Contracts\Methods\Method` interface:
 
