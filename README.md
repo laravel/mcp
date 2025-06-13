@@ -13,7 +13,7 @@ This Laravel package helps you build MCP-compliant servers within your Laravel a
 - [Registering Servers](#registering-servers)
   - [Web Servers](#web-servers)
   - [Local (CLI) Servers](#local-cli-servers)
-- [Authentication (Optional)](#authentication-optional)
+- [Authentication](#authentication)
 - [Testing Servers with MCP Inspector](#testing-servers-with-mcp-inspector)
 - [Advanced](#advanced)
   - [Streaming Responses](#streaming-responses)

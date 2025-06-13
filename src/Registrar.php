@@ -2,8 +2,9 @@
 
 namespace Laravel\Mcp;
 
+use Illuminate\Routing\Route;
+use Illuminate\Support\Facades\Route as Router;
 use Laravel\Mcp\Transport\Stdio;
-use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Transport\HttpTransport;
 use Laravel\Mcp\Transport\StdioTransport;
 
@@ -11,15 +12,15 @@ class Registrar
 {
     private array $cliServers = [];
 
-    public function web(string $handle, string $serverClass)
+    public function web(string $handle, string $serverClass): Route
     {
-        Route::post($handle, fn () => $this->bootServer(
+        return Router::post($handle, fn () => $this->bootServer(
             $serverClass,
             fn () => new HttpTransport(request())
         ));
     }
 
-    public function cli(string $handle, string $serverClass)
+    public function cli(string $handle, string $serverClass): void
     {
         $this->cliServers[$handle] = fn () => $this->bootServer(
             $serverClass,
