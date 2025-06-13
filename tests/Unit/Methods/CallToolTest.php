@@ -4,7 +4,6 @@ namespace Tests\Unit\Methods;
 
 use Laravel\Mcp\Methods\CallTool;
 use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Tests\Fixtures\ExampleTool;
@@ -26,10 +25,6 @@ class CallToolTest extends TestCase
             ],
         ]));
 
-        $session = new SessionContext(
-            clientCapabilities: [],
-        );
-
         $context = new ServerContext(
             supportedProtocolVersions: ['2025-03-26'],
             serverCapabilities: [],
@@ -43,7 +38,7 @@ class CallToolTest extends TestCase
 
         $method = new CallTool();
 
-        $response = $method->handle($request, $session, $context);
+        $response = $method->handle($request, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);
@@ -71,10 +66,6 @@ class CallToolTest extends TestCase
             ],
         ]));
 
-        $session = new SessionContext(
-            clientCapabilities: [],
-        );
-
         $context = new ServerContext(
             supportedProtocolVersions: ['2025-03-26'],
             serverCapabilities: [],
@@ -88,7 +79,7 @@ class CallToolTest extends TestCase
 
         $method = new CallTool();
 
-        $response = $method->handle($request, $session, $context);
+        $response = $method->handle($request, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
         $this->assertEquals(1, $response->id);

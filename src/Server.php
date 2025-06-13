@@ -6,11 +6,9 @@ use Laravel\Mcp\Methods\CallTool;
 use Laravel\Mcp\Methods\Initialize;
 use Laravel\Mcp\Methods\ListTools;
 use Laravel\Mcp\Methods\Ping;
-use Laravel\Mcp\SessionContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Contracts\Transport\Transport;
 use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\Session\SessionStore;
 use Illuminate\Support\Str;
 use Generator;
 
@@ -48,7 +46,7 @@ abstract class Server
         'ping' => Ping::class,
     ];
 
-    public function __construct(protected SessionStore $sessionStore)
+    public function __construct()
     {
         $this->registeredTools = $this->tools;
     }
@@ -65,7 +63,6 @@ abstract class Server
     public function handle(string $rawMessage)
     {
         $sessionId = $this->transport->sessionId() ?? Str::uuid()->toString();
-        $session = $this->sessionStore->get($sessionId);
 
         $context = new ServerContext(
             supportedProtocolVersions: $this->supportedProtocolVersion,
@@ -85,31 +82,15 @@ abstract class Server
                 return $this->handleInitializeMessage($sessionId, $request, $context);
             }
 
-            if ($request->method === 'notifications/initialized') {
-                return $this->handleInitializedNotificationMessage($sessionId, $session);
-            }
-
-            if (! $session) {
-                throw new JsonRpcException(
-                    'Session not found or not initialized.',
-                    -32601,
-                    isset($request->id) ? $request->id : null
-                );
-            }
-
             if (! isset($request->id) || $request->id === null) {
                 return; // JSON-RPC notification, no response needed
-            }
-
-            if (! $session->initialized && $request->method !== 'ping') {
-                throw new JsonRpcException("Session not initialized.", -32601, $request->id);
             }
 
             if (! isset($this->methods[$request->method])) {
                 throw new JsonRpcException("Method not found: {$request->method}", -32601, $request->id);
             }
 
-            $this->handleMessage($sessionId, $request, $session, $context);
+            $this->handleMessage($sessionId, $request, $context);
         } catch (JsonRpcException $e) {
             $this->transport->send(json_encode($e->toJsonRpcError()), $sessionId);
         }
@@ -132,11 +113,11 @@ abstract class Server
         $this->methods[$name] = $handlerClass;
     }
 
-    private function handleMessage(string $sessionId, JsonRpcRequest $request, SessionContext $session, ServerContext $context)
+    private function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context)
     {
         $methodClass = $this->methods[$request->method];
 
-        $response = (new $methodClass())->handle($request, $session, $context);
+        $response = (new $methodClass())->handle($request, $context);
 
         if ($response instanceof Generator) {
             $this->transport->stream(function() use ($response, $sessionId) {
@@ -153,22 +134,8 @@ abstract class Server
 
     private function handleInitializeMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context)
     {
-        $session = new SessionContext(
-            clientCapabilities: $request->params['capabilities'] ?? [],
-        );
-
-        $response = (new Initialize())->handle($request, $session, $context);
-
-        $this->sessionStore->put($sessionId, $session);
+        $response = (new Initialize())->handle($request, $context);
 
         $this->transport->send($response->toJson(), $sessionId);
-    }
-
-    private function handleInitializedNotificationMessage(string $sessionId, SessionContext $session)
-    {
-        $session->initialized = true;
-        $this->sessionStore->put($sessionId, $session);
-
-        return;
     }
 }
