@@ -55,10 +55,6 @@ class McpServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__ . '/../routes/ai.php' => base_path('routes/ai.php'),
         ], 'ai-routes');
-
-        $this->publishes([
-            __DIR__.'/../config/mcp.php' => config_path('mcp.php'),
-        ], 'mcp-config');
     }
 
     protected function loadAiRoutes(): void
