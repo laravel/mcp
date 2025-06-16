@@ -6,6 +6,9 @@ use Laravel\Mcp\Exceptions\JsonRpcException;
 
 class JsonRpcRequest
 {
+    /**
+     * Create a new JSON-RPC request.
+     */
     public function __construct(
         public ?int $id,
         public string $method,
@@ -13,6 +16,9 @@ class JsonRpcRequest
     ) {
     }
 
+    /**
+     * Create a new JSON-RPC request from a JSON string.
+     */
     public static function fromJson(string $jsonString): self
     {
         $data = json_decode($jsonString, true);

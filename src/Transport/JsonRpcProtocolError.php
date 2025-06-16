@@ -4,6 +4,9 @@ namespace Laravel\Mcp\Transport;
 
 class JsonRpcProtocolError
 {
+    /**
+     * Create a new JSON-RPC protocol error response.
+     */
     public function __construct(
         public readonly int $code,
         public readonly string $message,
@@ -12,6 +15,9 @@ class JsonRpcProtocolError
     ) {
     }
 
+    /**
+     * Convert the error response to an array.
+     */
     public function toArray(): array
     {
         $error = [
@@ -30,6 +36,9 @@ class JsonRpcProtocolError
         ];
     }
 
+    /**
+     * Convert the error response to a JSON string.
+     */
     public function toJson(): string
     {
         return json_encode($this->toArray());

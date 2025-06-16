@@ -12,7 +12,7 @@ interface Transport
     public function onReceive(callable $handler): void;
 
     /**
-     * Run the transport.
+     * Run the transport and process the request.
      */
     public function run();
 
@@ -27,7 +27,7 @@ interface Transport
     public function sessionId(): ?string;
 
     /**
-     * Stream the yielded values from the given callback.
+     * Stream the yielded values from the callback.
      */
     public function stream(Closure $stream): void;
 }
