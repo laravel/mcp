@@ -7,23 +7,12 @@ use Illuminate\Support\Str;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
 
-#[AsCommand(name: 'mcp:tool')]
+#[AsCommand(
+    name: 'mcp:tool',
+    description: 'Create a new MCP tool class'
+)]
 class ToolMakeCommand extends GeneratorCommand
 {
-    /**
-     * The console command name.
-     *
-     * @var string
-     */
-    protected $name = 'mcp:tool';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Create a new MCP tool class';
-
     /**
      * The type of class being generated.
      *
@@ -40,7 +29,7 @@ class ToolMakeCommand extends GeneratorCommand
     {
         return file_exists($customPath = $this->laravel->basePath('stubs/tool.stub'))
             ? $customPath
-            : __DIR__.'/../../stubs/tool.stub';
+            : __DIR__.'/../../../stubs/tool.stub';
     }
 
     /**

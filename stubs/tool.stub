@@ -2,7 +2,7 @@
 
 namespace {{ namespace }};
 
-use Laravel\Mcp\Contracts\Tools\Tool;
+use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolResponse;
 use Generator;

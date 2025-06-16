@@ -3,27 +3,15 @@
 namespace Laravel\Mcp\Console\Commands;
 
 use Illuminate\Console\GeneratorCommand;
-use Illuminate\Support\Str;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
 
-#[AsCommand(name: 'mcp:server')]
+#[AsCommand(
+    name: 'mcp:server',
+    description: 'Create a new MCP server class'
+)]
 class ServerMakeCommand extends GeneratorCommand
 {
-    /**
-     * The console command name.
-     *
-     * @var string
-     */
-    protected $name = 'mcp:server';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Create a new MCP server class';
-
     /**
      * The type of class being generated.
      *
@@ -40,7 +28,7 @@ class ServerMakeCommand extends GeneratorCommand
     {
         return file_exists($customPath = $this->laravel->basePath('stubs/server.stub'))
             ? $customPath
-            : __DIR__.'/../../stubs/server.stub';
+            : __DIR__.'/../../../stubs/server.stub';
     }
 
     /**

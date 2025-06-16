@@ -3,25 +3,17 @@
 namespace Laravel\Mcp\Console\Commands;
 
 use Illuminate\Console\Command;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Input\InputArgument;
 
+#[AsCommand(
+    name: 'mcp:start',
+    description: 'Start the MCP server for a given handle'
+)]
 class StartServerCommand extends Command
 {
     /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'mcp:start {handle : The handle of the MCP server to start.}';
-
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Start the MCP server for a given handle';
-
-    /**
-     * Execute the console command.
+     * Start the MCP server for a given handle.
      */
     public function handle()
     {
@@ -35,5 +27,17 @@ class StartServerCommand extends Command
         }
 
         $server();
+    }
+
+    /**
+     * Get the console command arguments.
+     *
+     * @return array
+     */
+    protected function getArguments()
+    {
+        return [
+            ['handle', InputArgument::REQUIRED, 'The handle of the MCP server to start.'],
+        ];
     }
 }
