@@ -7,32 +7,24 @@ use Laravel\Mcp\Server;
 class {{ class }} extends Server
 {
     /**
-     * The displayable name of the server.
-     *
-     * @var string
+     * The server's display name.
      */
     public string $serverName = '{{ serverDisplayName }}';
 
     /**
-     * The version of the server.
-     *
-     * @var string
+     * The server version.
      */
     public string $serverVersion = '0.1.0';
 
     /**
-     * The instructions for the server.
-     *
-     * @var string
+     * The instructions for the AI.
      */
     public string $instructions = 'Example instructions for LLMs connecting to this MCP server.';
 
     /**
-     * The tools available to the server.
-     *
-     * @var array
+     * The available tools.
      */
     public array $tools = [
-        // 'example-tool' => ExampleTool::class,
+        // ExampleTool::class,
     ];
 }

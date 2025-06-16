@@ -9,17 +9,26 @@ use Generator;
 
 class {{ class }} implements Tool
 {
-    public function getName(): string
+    /**
+     * The name of the tool.
+     */
+    public function name(): string
     {
         return '{{ toolName }}';
     }
 
-    public function getDescription(): string
+    /**
+     * A description of the tool.
+     */
+    public function description(): string
     {
         return 'A description of what this tool does.';
     }
 
-    public function getInputSchema(ToolInputSchema $schema): ToolInputSchema
+    /**
+     * The input schema of the tool.
+     */
+    public function schema(ToolInputSchema $schema): ToolInputSchema
     {
         $schema->string('example')
             ->description('An example input description.')
@@ -29,9 +38,11 @@ class {{ class }} implements Tool
     }
 
     /**
+     * Execute the tool call.
+     *
      * @return ToolResponse|Generator
      */
-    public function call(array $arguments)
+    public function handle(array $arguments)
     {
         // Implement tool logic here
 

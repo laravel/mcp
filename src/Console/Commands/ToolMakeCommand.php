@@ -38,9 +38,9 @@ class ToolMakeCommand extends GeneratorCommand
      */
     protected function getStub()
     {
-        return file_exists($customPath = $this->laravel->basePath('stubs/mcp.tool.stub'))
+        return file_exists($customPath = $this->laravel->basePath('stubs/tool.stub'))
             ? $customPath
-            : __DIR__.'/../../stubs/mcp.tool.stub';
+            : __DIR__.'/../../stubs/tool.stub';
     }
 
     /**

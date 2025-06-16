@@ -38,9 +38,9 @@ class ServerMakeCommand extends GeneratorCommand
      */
     protected function getStub()
     {
-        return file_exists($customPath = $this->laravel->basePath('stubs/mcp.server.stub'))
+        return file_exists($customPath = $this->laravel->basePath('stubs/server.stub'))
             ? $customPath
-            : __DIR__.'/../../stubs/mcp.server.stub';
+            : __DIR__.'/../../stubs/server.stub';
     }
 
     /**
