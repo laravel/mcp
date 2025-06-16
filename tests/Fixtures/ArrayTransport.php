@@ -17,17 +17,17 @@ class ArrayTransport implements Transport
         $this->sessionId = Str::uuid()->toString();
     }
 
-    public function onReceive(callable $handler)
+    public function onReceive(callable $handler): void
     {
         $this->handler = $handler;
     }
 
-    public function run()
+    public function run(): void
     {
         //
     }
 
-    public function send(string $message)
+    public function send(string $message): void
     {
         $this->sent[] = $message;
     }

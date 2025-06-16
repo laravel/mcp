@@ -23,15 +23,15 @@ class HttpTransport implements Transport
         $this->sessionId = $request->header('Mcp-Session-Id');
     }
 
-    public function onReceive(callable $handler)
+    public function onReceive(callable $handler): void
     {
         $this->handler = $handler;
     }
 
-    public function send(string $message, ?string $sessionId = null)
+    public function send(string $message, ?string $sessionId = null): void
     {
         if ($this->stream) {
-            return $this->sendStreamMessage($message);
+            $this->sendStreamMessage($message);
         }
 
         $this->reply = $message;

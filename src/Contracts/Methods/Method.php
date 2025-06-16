@@ -2,13 +2,19 @@
 
 namespace Laravel\Mcp\Contracts\Methods;
 
-use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\Transport\JsonRpcResponse;
-use Laravel\Mcp\Transport\JsonRpcRequest;
 use Generator;
+use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\ServerContext;
+use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 
 interface Method
 {
-    /** @return JsonRpcResponse|Generator<JsonRpcResponse> */
+    /**
+     * Implement the JSON-RPC method.
+     *
+     * @return JsonRpcResponse|Generator<JsonRpcNotification|JsonRpcResponse>
+     * @throws JsonRpcException
+     */
     public function handle(JsonRpcRequest $request, ServerContext $context);
 }

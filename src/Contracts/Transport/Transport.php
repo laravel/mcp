@@ -6,13 +6,28 @@ use Closure;
 
 interface Transport
 {
-    public function onReceive(callable $handler);
+    /**
+     * Register the callback to handle incoming messages.
+     */
+    public function onReceive(callable $handler): void;
 
+    /**
+     * Run the transport.
+     */
     public function run();
 
-    public function send(string $message);
+    /**
+     * Send a message to the transport.
+     */
+    public function send(string $message): void;
 
+    /**
+     * Get the session ID.
+     */
     public function sessionId(): ?string;
 
-    public function stream(Closure $stream);
+    /**
+     * Stream the yielded values from the given callback.
+     */
+    public function stream(Closure $stream): void;
 }
