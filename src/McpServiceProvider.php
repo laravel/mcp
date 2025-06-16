@@ -47,16 +47,17 @@ class McpServiceProvider extends ServiceProvider
 
     /**
      * Register the migrations and publishing for the package.
-     *
-     * @return void
      */
-    protected function offerPublishing()
+    protected function offerPublishing(): void
     {
         $this->publishes([
             __DIR__ . '/../routes/ai.php' => base_path('routes/ai.php'),
         ], 'ai-routes');
     }
 
+    /**
+     * Load the AI routes file if it exists.
+     */
     protected function loadAiRoutes(): void
     {
         $path = base_path('routes/ai.php');

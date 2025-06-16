@@ -4,6 +4,9 @@ namespace Laravel\Mcp;
 
 class ServerContext
 {
+    /**
+     * Create a new server context instance.
+     */
     public function __construct(
         public array $supportedProtocolVersions,
         public array $serverCapabilities,

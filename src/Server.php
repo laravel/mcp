@@ -14,43 +14,82 @@ use Generator;
 
 abstract class Server
 {
+    /**
+     * The versions of the MCP specification supported by the server.
+     */
     public array $supportedProtocolVersion = [
         '2025-03-26',
     ];
 
+    /**
+     * The capabilities of the server.
+     */
     public array $capabilities = [
         'tools' => [
             'listChanged' => false,
         ],
     ];
 
+    /**
+     * The name of the MCP server.
+     */
     public string $serverName = 'Laravel MCP Server';
 
+    /**
+     * The version of the MCP server.
+     */
     public string $serverVersion = '0.0.1';
 
+    /**
+     * The instructions for the AI.
+     */
     public string $instructions = 'This MCP server lets AI agents interact with our Laravel application.';
 
+    /**
+     * The available tools.
+     */
     public array $tools = [];
 
+    /**
+     * The maximum pagination length for tool/list calls.
+     */
     public int $maxPaginationLength = 50;
 
+    /**
+     * The default pagination length for tool/list calls.
+     */
     public int $defaultPaginationLength = 15;
 
+    /**
+     * The transport used to communicate with the client.
+     */
     protected Transport $transport;
 
+    /**
+     * All registered tools once the server is booted (both statically and dynamically added).
+     */
     protected array $registeredTools = [];
 
+    /**
+     * The JSON-RPC methods available to the server.
+     */
     protected array $methods = [
         'tools/list' => ListTools::class,
         'tools/call' => CallTool::class,
         'ping' => Ping::class,
     ];
 
+    /**
+     * Create a new MCP server instance.
+     */
     public function __construct()
     {
         $this->registeredTools = $this->tools;
     }
 
+    /**
+     * Connect the server to the transport.
+     */
     public function connect(Transport $transport)
     {
         $this->transport = $transport;
@@ -60,6 +99,9 @@ abstract class Server
         $this->transport->onReceive(fn ($message) => $this->handle($message));
     }
 
+    /**
+     * Process a message from the transport.
+     */
     public function handle(string $rawMessage)
     {
         $sessionId = $this->transport->sessionId() ?? Str::uuid()->toString();
@@ -96,11 +138,17 @@ abstract class Server
         }
     }
 
+    /**
+     * Boot the server.
+     */
     public function boot()
     {
         // Override this method to dynamically add tools, custom methods, etc., when the server boots.
     }
 
+    /**
+     * Add a tool dynamically to the server.
+     */
     public function addTool($tool)
     {
         if (! in_array($tool, $this->registeredTools)) {
@@ -108,11 +156,17 @@ abstract class Server
         }
     }
 
+    /**
+     * Add a JSON-RPC method dynamically to the server.
+     */
     public function addMethod(string $name, string $handlerClass)
     {
         $this->methods[$name] = $handlerClass;
     }
 
+    /**
+     * Handle a JSON-RPC message.
+     */
     private function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context)
     {
         $methodClass = $this->methods[$request->method];
@@ -132,6 +186,9 @@ abstract class Server
         return $this->transport->send($response->toJson(), $sessionId);
     }
 
+    /**
+     * Handle the JSON-RPC initialize message.
+     */
     private function handleInitializeMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context)
     {
         $response = (new Initialize())->handle($request, $context);

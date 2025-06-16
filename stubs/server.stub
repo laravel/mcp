@@ -14,7 +14,7 @@ class {{ class }} extends Server
     /**
      * The server version.
      */
-    public string $serverVersion = '0.1.0';
+    public string $serverVersion = '0.0.1';
 
     /**
      * The instructions for the AI.
