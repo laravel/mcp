@@ -2,7 +2,7 @@
 
 namespace Laravel\Mcp\Methods;
 
-use Exception;
+use Illuminate\Support\ItemNotFoundException;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\ServerContext;
@@ -24,17 +24,9 @@ class CallTool implements Method
     {
         try {
             $tool = collect($context->tools)
-                ->firstOrFail(function($tool) use ($request) {
-                    if (is_string($tool)) {
-                        return (new $tool())->name() === $request->params['name'];
-                    }
-                    return $tool->name() === $request->params['name'];
-                });
-
-            if (is_string($tool)) {
-                $tool = new $tool();
-            }
-        } catch (Exception $e) {
+                ->map(fn($tool) => is_string($tool) ? new $tool() : $tool)
+                ->firstOrFail(fn($tool) => $tool->name() === $request->params['name']);
+        } catch (ItemNotFoundException $e) {
             return JsonRpcResponse::create(
                 $request->id,
                 (new ToolResponse('Tool not found', true))->toArray()
@@ -50,11 +42,9 @@ class CallTool implements Method
             );
         }
 
-        if (! $result instanceof Generator) {
-            return $this->toResponse($request->id, $result->toArray());
-        }
-
-        return $this->toStream($request, $result);
+        return $result instanceof Generator
+            ? $this->toStream($request, $result)
+            : $this->toResponse($request->id, $result->toArray());
     }
 
     /**
