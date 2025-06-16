@@ -12,6 +12,9 @@ class CursorPaginator
     private ?string $cursor;
     private string $idField;
 
+    /**
+     * Create a new cursor paginator.
+     */
     public function __construct(Collection $items, int $perPage = 10, ?string $cursor = null, string $idField = 'id')
     {
         $this->items = $items;
@@ -20,6 +23,9 @@ class CursorPaginator
         $this->idField = $idField;
     }
 
+    /**
+     * Paginate the items using a cursor.
+     */
     public function paginate(): array
     {
         $startId = $this->getStartIdFromCursor();
@@ -43,6 +49,9 @@ class CursorPaginator
         ];
     }
 
+    /**
+     * Get the start ID from the cursor.
+     */
     private function getStartIdFromCursor(): int
     {
         if (! $this->cursor) {
@@ -68,6 +77,9 @@ class CursorPaginator
         }
     }
 
+    /**
+     * Create a cursor from the last ID.
+     */
     private function createCursor(int $lastId): string
     {
         $cursorData = ['last_id' => $lastId];

@@ -11,7 +11,7 @@ use Illuminate\Support\Str;
 abstract class Tool
 {
     /**
-     * @return string
+     * Get the name of the tool.
      */
     public function name(): string
     {
@@ -19,17 +19,18 @@ abstract class Tool
     }
 
     /**
-     * @return string
+     * Get the description of the tool.
      */
     abstract public function description(): string;
 
     /**
-     * @param ToolInputSchema $schema
-     * @return ToolInputSchema
+     * Get the tool input schema.
      */
     abstract public function schema(ToolInputSchema $schema): ToolInputSchema;
 
     /**
+     * Execute the tool call.
+     *
      * @return ToolResponse|Generator<ToolNotification|ToolResponse>
      */
     abstract public function handle(array $arguments): ToolResponse|Generator;

@@ -9,6 +9,9 @@ use Laravel\Mcp\Transport\JsonRpcRequest;
 
 class Ping implements Method
 {
+    /**
+     * Handle the JSON-RPC ping request.
+     */
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
         return JsonRpcResponse::create($request->id, []);

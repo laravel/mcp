@@ -15,7 +15,11 @@ use Generator;
 
 class CallTool implements Method
 {
-    /** @return JsonRpcResponse|Generator<JsonRpcResponse> */
+    /**
+     * Handle the JSON-RPC tool/call request.
+     *
+     * @return JsonRpcResponse|Generator<JsonRpcNotification|JsonRpcResponse>
+     */
     public function handle(JsonRpcRequest $request, ServerContext $context)
     {
         try {
@@ -53,11 +57,17 @@ class CallTool implements Method
         return $this->toStream($request, $result);
     }
 
+    /**
+     * Convert the result to a JSON-RPC response.
+     */
     private function toResponse(string $id, array $result): JsonRpcResponse
     {
         return JsonRpcResponse::create($id, $result);
     }
 
+    /**
+     * Convert the result to a JSON-RPC stream.
+     */
     private function toStream(JsonRpcRequest $request, Generator $result): Generator
     {
         return (function () use ($result, $request) {

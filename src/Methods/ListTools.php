@@ -11,6 +11,9 @@ use Laravel\Mcp\Transport\JsonRpcRequest;
 
 class ListTools implements Method
 {
+    /**
+     * Handle the JSON-RPC tool/list request.
+     */
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
         $encodedCursor = $request->params['cursor'] ?? null;
