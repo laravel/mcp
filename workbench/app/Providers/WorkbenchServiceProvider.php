@@ -5,7 +5,6 @@ namespace Workbench\App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\Tests\Fixtures\ExampleServer;
-use Laravel\Mcp\Tests\Fixtures\InitializedServer;
 use Laravel\Mcp\Tests\Fixtures\ServerWithDynamicTools;
 
 class WorkbenchServiceProvider extends ServiceProvider
@@ -29,7 +28,7 @@ class WorkbenchServiceProvider extends ServiceProvider
     public function loadAiRoutes()
     {
         // Used in tests
-        Mcp::cli('test-mcp', ExampleServer::class);
+        Mcp::local('test-mcp', ExampleServer::class);
         Mcp::web('test-mcp', ExampleServer::class);
         Mcp::web('test-mcp-dynamic-tools', ServerWithDynamicTools::class);
     }

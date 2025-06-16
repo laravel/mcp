@@ -10,7 +10,7 @@ use Laravel\Mcp\Transport\StdioTransport;
 
 class Registrar
 {
-    private array $cliServers = [];
+    private array $localServers = [];
 
     public function web(string $handle, string $serverClass): Route
     {
@@ -20,17 +20,17 @@ class Registrar
         ));
     }
 
-    public function cli(string $handle, string $serverClass): void
+    public function local(string $handle, string $serverClass): void
     {
-        $this->cliServers[$handle] = fn () => $this->bootServer(
+        $this->localServers[$handle] = fn () => $this->bootServer(
             $serverClass,
             fn () => new StdioTransport(new Stdio())
         );
     }
 
-    public function getCliServer(string $handle): ?callable
+    public function getLocalServer(string $handle): ?callable
     {
-        return $this->cliServers[$handle] ?? null;
+        return $this->localServers[$handle] ?? null;
     }
 
     private function bootServer(string $serverClass, callable $transportFactory)

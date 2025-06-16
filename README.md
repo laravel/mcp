@@ -12,7 +12,7 @@ This Laravel package helps you build MCP-compliant servers within your Laravel a
 - [Creating Tools](#creating-tools)
 - [Registering Servers](#registering-servers)
   - [Web Servers](#web-servers)
-  - [Local (CLI) Servers](#local-cli-servers)
+  - [Local Servers](#local-servers)
 - [Authentication](#authentication)
 - [Testing Servers with MCP Inspector](#testing-servers-with-mcp-inspector)
 - [Advanced](#advanced)
@@ -140,7 +140,9 @@ Mcp::web('demo', ExampleServer::class);
 ```
 This will make `ExampleServer` available at the `/mcp/demo` endpoint.
 
-### Local (CLI) Servers
+> **Security Note:** Exposing a local development server via `Mcp::web()` can make your application vulnerable to DNS rebinding attacks. If you must expose a local server, it is critical to validate the `Host` and `Origin` headers on incoming requests to ensure they are coming from a trusted source.
+
+### Local Servers
 
 To register a server that can be run as an Artisan command:
 
@@ -148,7 +150,7 @@ To register a server that can be run as an Artisan command:
 use App\Mcp\Servers\ExampleServer;
 use Laravel\Mcp\Facades\Mcp;
 
-Mcp::cli('demo', ExampleServer::class);
+Mcp::local('demo', ExampleServer::class);
 ```
 This makes the server available via the `mcp:start` Artisan command:
 

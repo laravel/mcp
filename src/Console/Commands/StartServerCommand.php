@@ -27,7 +27,7 @@ class StartServerCommand extends Command
     {
         $registrar = app('mcp');
         $handle = $this->argument('handle');
-        $server = $registrar->getCliServer($handle);
+        $server = $registrar->getLocalServer($handle);
 
         if (! $server) {
             $this->error("MCP server with handle '{$handle}' not found.");
