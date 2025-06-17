@@ -68,8 +68,8 @@ The tool's name is automatically determined from its class name. For example, `M
 
 The `Server` class has a few other properties you can override to customize its behavior:
 
--   `$defaultPaginationLength`: Controls the default number of tools returned by the `tools/list` method if the client doesn't specify a limit (defaults to `10`).
--   `$maxPaginationLength`: Sets the maximum number of tools a client can request via `tools/list` in a single call (defaults to `100`).
+-   `$defaultPaginationLength`: Controls the default number of tools returned by the `tools/list` method if the client doesn't specify a limit (defaults to `15`).
+-   `$maxPaginationLength`: Sets the maximum number of tools a client can request via `tools/list` in a single call (defaults to `50`).
 
 ## Creating Tools
 
