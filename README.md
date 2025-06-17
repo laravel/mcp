@@ -174,6 +174,18 @@ Mcp::web('demo', ExampleServer::class)
 
 The [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an interactive tool for testing and debugging MCP servers. It allows you to connect to your server, inspect tools, and test them with custom inputs.
 
+For local servers, you can start the inspector pre-configured for your server by using the `mcp:inspector` Artisan command. For example, if your server handle is `dev-assistant`, you would run:
+
+```bash
+php artisan mcp:inspector dev-assistant
+```
+
+For web-based servers, the inspector must be started and configured manually:
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
 ## Advanced
 
 ### Streaming Responses
