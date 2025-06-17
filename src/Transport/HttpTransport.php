@@ -106,6 +106,11 @@ class HttpTransport implements Transport
     private function sendStreamMessage(string $message): void
     {
         echo 'data: '.$message."\n\n";
+
+        if (ob_get_level()) {
+            ob_flush();
+        }
+
         flush();
     }
 
