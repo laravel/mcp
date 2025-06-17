@@ -4,8 +4,8 @@ namespace Laravel\Mcp\Transport;
 
 use Closure;
 use Illuminate\Http\Request;
-use Laravel\Mcp\Contracts\Transport\Transport;
 use Illuminate\Http\Response;
+use Laravel\Mcp\Contracts\Transport\Transport;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HttpTransport implements Transport
@@ -105,7 +105,7 @@ class HttpTransport implements Transport
      */
     private function sendStreamMessage(string $message): void
     {
-        echo 'data: ' . $message . "\n\n";
+        echo 'data: '.$message."\n\n";
         flush();
     }
 

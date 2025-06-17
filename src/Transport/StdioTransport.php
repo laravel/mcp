@@ -2,10 +2,9 @@
 
 namespace Laravel\Mcp\Transport;
 
-use Laravel\Mcp\Contracts\Transport\Transport;
-use Illuminate\Support\Str;
-use Generator;
 use Closure;
+use Illuminate\Support\Str;
+use Laravel\Mcp\Contracts\Transport\Transport;
 
 class StdioTransport implements Transport
 {

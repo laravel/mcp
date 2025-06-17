@@ -4,13 +4,13 @@ namespace Tests\Unit\Methods;
 
 use Laravel\Mcp\Methods\ListTools;
 use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\Transport\JsonRpcResponse;
-use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Tests\Fixtures\ExampleTool;
+use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-if (!class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
+if (! class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
     for ($i = 1; $i <= 12; $i++) {
         eval("
             namespace Tests\\Unit\\Methods;
@@ -50,7 +50,7 @@ class ListToolsTest extends TestCase
             defaultPaginationLength: 5,
         );
 
-        $listTools = new ListTools();
+        $listTools = new ListTools;
 
         $response = $listTools->handle($request, $context);
 
@@ -96,7 +96,7 @@ class ListToolsTest extends TestCase
             defaultPaginationLength: 10,
         );
 
-        $listTools = new ListTools();
+        $listTools = new ListTools;
 
         $firstListToolsRequest = JsonRpcRequest::fromJson(json_encode([
             'jsonrpc' => '2.0',
@@ -168,7 +168,7 @@ class ListToolsTest extends TestCase
             'params' => [/** no per_page */],
         ]));
 
-        $listTools = new ListTools();
+        $listTools = new ListTools;
         $response = $listTools->handle($request, $context);
 
         $this->assertCount(7, $response->result['tools']);
@@ -201,7 +201,7 @@ class ListToolsTest extends TestCase
             'params' => ['per_page' => 5],
         ]));
 
-        $listTools = new ListTools();
+        $listTools = new ListTools;
         $response = $listTools->handle($request, $context);
 
         $this->assertCount(5, $response->result['tools']);
@@ -234,7 +234,7 @@ class ListToolsTest extends TestCase
             'params' => ['per_page' => 20],
         ]));
 
-        $listTools = new ListTools();
+        $listTools = new ListTools;
         $response = $listTools->handle($request, $context);
 
         $this->assertCount(7, $response->result['tools']);
@@ -267,7 +267,7 @@ class ListToolsTest extends TestCase
             'params' => ['per_page' => 8],
         ]));
 
-        $listTools = new ListTools();
+        $listTools = new ListTools;
         $response = $listTools->handle($request, $context);
 
         $this->assertCount(8, $response->result['tools']);

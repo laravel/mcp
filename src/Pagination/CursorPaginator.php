@@ -8,8 +8,11 @@ use Throwable;
 class CursorPaginator
 {
     private Collection $items;
+
     private int $perPage;
+
     private ?string $cursor;
+
     private string $idField;
 
     /**
@@ -30,7 +33,7 @@ class CursorPaginator
     {
         $startId = $this->getStartIdFromCursor();
 
-        $filteredItems = $this->items->filter(fn($item) => $item[$this->idField] >= $startId);
+        $filteredItems = $this->items->filter(fn ($item) => $item[$this->idField] >= $startId);
 
         $paginatedItems = $filteredItems->take($this->perPage);
 

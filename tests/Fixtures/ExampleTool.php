@@ -2,6 +2,7 @@
 
 namespace Laravel\Mcp\Tests\Fixtures;
 
+use Generator;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Support\MessageBag;
 use Illuminate\Validation\ValidationException;
@@ -9,7 +10,6 @@ use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolResponse;
 use Mockery;
-use Generator;
 
 class ExampleTool extends Tool
 {

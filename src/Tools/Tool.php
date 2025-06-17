@@ -3,9 +3,6 @@
 namespace Laravel\Mcp\Tools;
 
 use Generator;
-use Laravel\Mcp\Tools\ToolResponse;
-use Laravel\Mcp\Tools\ToolInputSchema;
-use Laravel\Mcp\Tools\ToolNotification;
 use Illuminate\Support\Str;
 
 abstract class Tool

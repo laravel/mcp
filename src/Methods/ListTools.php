@@ -6,8 +6,8 @@ use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\Pagination\CursorPaginator;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Tools\ToolInputSchema;
-use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 
 class ListTools implements Method
 {
@@ -23,13 +23,13 @@ class ListTools implements Method
         $perPage = min($requestedPerPage, $maxPerPage);
 
         $tools = collect($context->tools)->values()
-            ->map(fn($toolClass) => is_string($toolClass) ? new $toolClass() : $toolClass)
+            ->map(fn ($toolClass) => is_string($toolClass) ? new $toolClass : $toolClass)
             ->map(function ($tool, $index) {
                 return [
                     'id' => $index + 1,
                     'name' => $tool->name(),
                     'description' => $tool->description(),
-                    'inputSchema' => $tool->schema(new ToolInputSchema())->toArray(),
+                    'inputSchema' => $tool->schema(new ToolInputSchema)->toArray(),
                 ];
             })
             ->sortBy('id')

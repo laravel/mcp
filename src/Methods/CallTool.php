@@ -2,16 +2,16 @@
 
 namespace Laravel\Mcp\Methods;
 
+use Generator;
 use Illuminate\Support\ItemNotFoundException;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\Transport\JsonRpcResponse;
-use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Tools\ToolNotification;
 use Laravel\Mcp\Tools\ToolResponse;
 use Laravel\Mcp\Transport\JsonRpcNotification;
-use Generator;
+use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 
 class CallTool implements Method
 {
@@ -24,8 +24,8 @@ class CallTool implements Method
     {
         try {
             $tool = collect($context->tools)
-                ->map(fn($tool) => is_string($tool) ? new $tool() : $tool)
-                ->firstOrFail(fn($tool) => $tool->name() === $request->params['name']);
+                ->map(fn ($tool) => is_string($tool) ? new $tool : $tool)
+                ->firstOrFail(fn ($tool) => $tool->name() === $request->params['name']);
         } catch (ItemNotFoundException $e) {
             return JsonRpcResponse::create(
                 $request->id,
@@ -68,6 +68,7 @@ class CallTool implements Method
                             $response->getMethod(),
                             $response->toArray()
                         );
+
                         continue;
                     }
 

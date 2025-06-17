@@ -2,12 +2,11 @@
 
 namespace Laravel\Mcp\Tests\Feature;
 
-use Laravel\Mcp\Session\ArraySessionStore;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Mcp\Tests\Fixtures\ExampleServer;
+use Laravel\Mcp\Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
 use Symfony\Component\Process\Process;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Laravel\Mcp\Tests\TestCase;
 
 class McpServerTest extends TestCase
 {
@@ -196,7 +195,7 @@ class McpServerTest extends TestCase
 
     private function expectedInitializeResponse(): array
     {
-        $server = new ExampleServer();
+        $server = new ExampleServer;
 
         return [
             'jsonrpc' => '2.0',
@@ -225,42 +224,42 @@ class McpServerTest extends TestCase
     private function expectedListToolsResponse(): array
     {
         return [
-            "jsonrpc" => "2.0",
-            "id" => 1,
-            "result" => [
-                "tools" => [
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'result' => [
+                'tools' => [
                     [
-                        "name" => "example-tool",
-                        "description" => "This tool says hello to a person",
-                        "inputSchema" => [
-                            "type" => "object",
-                            "properties" => [
-                                "name" => [
-                                    "type" => "string",
-                                    "description" => "The name of the person to greet"
-                                ]
+                        'name' => 'example-tool',
+                        'description' => 'This tool says hello to a person',
+                        'inputSchema' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'name' => [
+                                    'type' => 'string',
+                                    'description' => 'The name of the person to greet',
+                                ],
                             ],
-                            "required" => ["name"]
+                            'required' => ['name'],
                         ],
-                        "id" => 1,
+                        'id' => 1,
                     ],
                     [
-                        "name" => "streaming-tool",
-                        "description" => "A tool that streams multiple responses.",
-                        "inputSchema" => [
-                            "type" => "object",
-                            "properties" => [
-                                "count" => [
-                                    "type" => "integer",
-                                    "description" => "Number of messages to stream."
-                                ]
+                        'name' => 'streaming-tool',
+                        'description' => 'A tool that streams multiple responses.',
+                        'inputSchema' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'count' => [
+                                    'type' => 'integer',
+                                    'description' => 'Number of messages to stream.',
+                                ],
                             ],
-                            "required" => ["count"]
+                            'required' => ['count'],
                         ],
-                        "id" => 2,
+                        'id' => 2,
                     ],
                 ],
-            ]
+            ],
         ];
     }
 
@@ -376,7 +375,9 @@ class McpServerTest extends TestCase
         $messages = [];
 
         foreach (explode("\n\n", trim($content)) as $event) {
-            if (empty($event)) continue;
+            if (empty($event)) {
+                continue;
+            }
             $messages[] = json_decode(trim(substr($event, strlen('data: '))), true);
         }
 
@@ -390,7 +391,9 @@ class McpServerTest extends TestCase
         $messages = [];
 
         foreach ($jsonMessages as $jsonMessage) {
-            if (empty($jsonMessage)) continue;
+            if (empty($jsonMessage)) {
+                continue;
+            }
             $messages[] = json_decode($jsonMessage, true);
         }
 

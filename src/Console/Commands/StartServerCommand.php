@@ -23,6 +23,7 @@ class StartServerCommand extends Command
 
         if (! $server) {
             $this->error("MCP server with handle '{$handle}' not found.");
+
             return Command::FAILURE;
         }
 

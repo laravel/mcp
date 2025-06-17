@@ -3,8 +3,8 @@
 namespace Laravel\Mcp\Tests\Unit\Pagination;
 
 use Laravel\Mcp\Pagination\CursorPaginator;
-use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
 
 class CursorPaginatorTest extends TestCase
 {

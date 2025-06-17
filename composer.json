@@ -22,7 +22,8 @@
     "minimum-stability": "dev",
     "require-dev": {
         "orchestra/testbench": "10.x-dev",
-        "phpstan/phpstan": "2.1.x-dev"
+        "phpstan/phpstan": "2.1.x-dev",
+        "laravel/pint": "dev-main"
     },
     "autoload-dev": {
         "psr-4": {

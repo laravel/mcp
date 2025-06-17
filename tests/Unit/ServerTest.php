@@ -2,18 +2,18 @@
 
 namespace Laravel\Mcp\Tests\Unit;
 
-use Laravel\Mcp\Tests\Fixtures\ExampleServer;
-use PHPUnit\Framework\TestCase;
-use PHPUnit\Framework\Attributes\Test;
 use Laravel\Mcp\Tests\Fixtures\ArrayTransport;
+use Laravel\Mcp\Tests\Fixtures\ExampleServer;
+use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
 
 class ServerTest extends TestCase
 {
     #[Test]
     public function it_can_handle_an_initialize_message()
     {
-        $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $transport = new ArrayTransport;
+        $server = new ExampleServer;
 
         $server->connect($transport);
 
@@ -29,8 +29,8 @@ class ServerTest extends TestCase
     #[Test]
     public function it_can_handle_a_list_tools_message()
     {
-        $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $transport = new ArrayTransport;
+        $server = new ExampleServer;
 
         $server->connect($transport);
 
@@ -46,8 +46,8 @@ class ServerTest extends TestCase
     #[Test]
     public function it_can_handle_a_call_tool_message()
     {
-        $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $transport = new ArrayTransport;
+        $server = new ExampleServer;
 
         $server->connect($transport);
 
@@ -63,8 +63,8 @@ class ServerTest extends TestCase
     #[Test]
     public function it_can_handle_a_notification_message()
     {
-        $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $transport = new ArrayTransport;
+        $server = new ExampleServer;
 
         $server->connect($transport);
 
@@ -81,8 +81,8 @@ class ServerTest extends TestCase
     #[Test]
     public function it_can_handle_an_unknown_method()
     {
-        $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $transport = new ArrayTransport;
+        $server = new ExampleServer;
 
         $server->connect($transport);
 
@@ -110,8 +110,8 @@ class ServerTest extends TestCase
     #[Test]
     public function it_handles_json_decode_errors()
     {
-        $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $transport = new ArrayTransport;
+        $server = new ExampleServer;
 
         $server->connect($transport);
 
@@ -131,8 +131,8 @@ class ServerTest extends TestCase
     #[Test]
     public function it_can_handle_a_custom_method_message()
     {
-        $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $transport = new ArrayTransport;
+        $server = new ExampleServer;
 
         $server->addMethod('custom/method', \Laravel\Mcp\Tests\Fixtures\CustomMethodHandler::class);
 
@@ -162,8 +162,8 @@ class ServerTest extends TestCase
     #[Test]
     public function it_can_handle_a_ping_message()
     {
-        $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $transport = new ArrayTransport;
+        $server = new ExampleServer;
 
         $server->connect($transport);
 
@@ -179,9 +179,10 @@ class ServerTest extends TestCase
     #[Test]
     public function it_calls_boot_method_on_connect()
     {
-        $transport = new ArrayTransport();
+        $transport = new ArrayTransport;
 
-        $server = new class() extends \Laravel\Mcp\Server {
+        $server = new class extends \Laravel\Mcp\Server
+        {
             public bool $bootCalled = false;
 
             public function boot()
@@ -199,8 +200,8 @@ class ServerTest extends TestCase
     #[Test]
     public function it_can_handle_a_tool_streaming_multiple_messages()
     {
-        $transport = new ArrayTransport();
-        $server = new ExampleServer();
+        $transport = new ArrayTransport;
+        $server = new ExampleServer;
 
         $server->connect($transport);
 
@@ -208,7 +209,7 @@ class ServerTest extends TestCase
 
         ($transport->handler)($payload);
 
-        $messages = array_map(fn($msg) => json_decode($msg, true), $transport->sent);
+        $messages = array_map(fn ($msg) => json_decode($msg, true), $transport->sent);
 
         $this->assertEquals($this->expectedStreamingToolResponse(), $messages);
     }
@@ -225,7 +226,7 @@ class ServerTest extends TestCase
 
     private function expectedInitializeResponse(): array
     {
-        $server = new ExampleServer();
+        $server = new ExampleServer;
 
         return [
             'jsonrpc' => '2.0',
@@ -254,42 +255,42 @@ class ServerTest extends TestCase
     private function expectedListToolsResponse(): array
     {
         return [
-            "jsonrpc" => "2.0",
-            "id" => 1,
-            "result" => [
-                "tools" => [
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'result' => [
+                'tools' => [
                     [
-                        "name" => "example-tool",
-                        "description" => "This tool says hello to a person",
-                        "inputSchema" => [
-                            "type" => "object",
-                            "properties" => [
-                                "name" => [
-                                    "type" => "string",
-                                    "description" => "The name of the person to greet"
-                                ]
+                        'name' => 'example-tool',
+                        'description' => 'This tool says hello to a person',
+                        'inputSchema' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'name' => [
+                                    'type' => 'string',
+                                    'description' => 'The name of the person to greet',
+                                ],
                             ],
-                            "required" => ["name"]
+                            'required' => ['name'],
                         ],
-                        "id" => 1,
+                        'id' => 1,
                     ],
                     [
-                        "name" => "streaming-tool",
-                        "description" => "A tool that streams multiple responses.",
-                        "inputSchema" => [
-                            "type" => "object",
-                            "properties" => [
-                                "count" => [
-                                    "type" => "integer",
-                                    "description" => "Number of messages to stream."
-                                ]
+                        'name' => 'streaming-tool',
+                        'description' => 'A tool that streams multiple responses.',
+                        'inputSchema' => [
+                            'type' => 'object',
+                            'properties' => [
+                                'count' => [
+                                    'type' => 'integer',
+                                    'description' => 'Number of messages to stream.',
+                                ],
                             ],
-                            "required" => ["count"]
+                            'required' => ['count'],
                         ],
-                        "id" => 2,
+                        'id' => 2,
                     ],
                 ],
-            ]
+            ],
         ];
     }
 
@@ -300,7 +301,7 @@ class ServerTest extends TestCase
             'id' => 1,
             'method' => 'tools/call',
             'params' => [
-                    'name' => 'example-tool',
+                'name' => 'example-tool',
                 'arguments' => [
                     'name' => 'John Doe',
                 ],

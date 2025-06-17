@@ -2,14 +2,16 @@
 
 namespace Laravel\Mcp\Tests\Fixtures;
 
-use Laravel\Mcp\Contracts\Transport\Transport;
-use Illuminate\Support\Str;
 use Closure;
+use Illuminate\Support\Str;
+use Laravel\Mcp\Contracts\Transport\Transport;
 
 class ArrayTransport implements Transport
 {
     public $handler = null;
+
     public array $sent = [];
+
     public ?string $sessionId = null;
 
     public function __construct()

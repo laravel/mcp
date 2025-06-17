@@ -9,7 +9,7 @@ class Stdio
      */
     public function write(string $output): void
     {
-        fwrite(STDOUT, $output . PHP_EOL);
+        fwrite(STDOUT, $output.PHP_EOL);
     }
 
     /**

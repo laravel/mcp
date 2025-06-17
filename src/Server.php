@@ -2,15 +2,15 @@
 
 namespace Laravel\Mcp;
 
+use Generator;
+use Illuminate\Support\Str;
+use Laravel\Mcp\Contracts\Transport\Transport;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Methods\CallTool;
 use Laravel\Mcp\Methods\Initialize;
 use Laravel\Mcp\Methods\ListTools;
 use Laravel\Mcp\Methods\Ping;
 use Laravel\Mcp\Transport\JsonRpcRequest;
-use Laravel\Mcp\Contracts\Transport\Transport;
-use Laravel\Mcp\Exceptions\JsonRpcException;
-use Illuminate\Support\Str;
-use Generator;
 
 abstract class Server
 {
@@ -171,10 +171,10 @@ abstract class Server
     {
         $methodClass = $this->methods[$request->method];
 
-        $response = (new $methodClass())->handle($request, $context);
+        $response = (new $methodClass)->handle($request, $context);
 
         if ($response instanceof Generator) {
-            $this->transport->stream(function() use ($response, $sessionId) {
+            $this->transport->stream(function () use ($response, $sessionId) {
                 foreach ($response as $message) {
                     $this->transport->send($message->toJson(), $sessionId);
                 }
@@ -191,7 +191,7 @@ abstract class Server
      */
     private function handleInitializeMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context)
     {
-        $response = (new Initialize())->handle($request, $context);
+        $response = (new Initialize)->handle($request, $context);
 
         $this->transport->send($response->toJson(), $sessionId);
     }

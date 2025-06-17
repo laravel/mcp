@@ -4,8 +4,8 @@ namespace Laravel\Mcp;
 
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
-use Laravel\Mcp\Transport\Stdio;
 use Laravel\Mcp\Transport\HttpTransport;
+use Laravel\Mcp\Transport\Stdio;
 use Laravel\Mcp\Transport\StdioTransport;
 
 class Registrar
@@ -33,7 +33,7 @@ class Registrar
     {
         $this->localServers[$handle] = fn () => $this->bootServer(
             $serverClass,
-            fn () => new StdioTransport(new Stdio())
+            fn () => new StdioTransport(new Stdio)
         );
     }
 
@@ -52,7 +52,7 @@ class Registrar
     {
         $transport = $transportFactory();
 
-        $server = new $serverClass();
+        $server = new $serverClass;
 
         $server->connect($transport);
 

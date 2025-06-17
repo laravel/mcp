@@ -7,9 +7,7 @@ class JsonRpcNotification
     /**
      * Create a new JSON-RPC notification response.
      */
-    public function __construct(private string $method, private array $params)
-    {
-    }
+    public function __construct(private string $method, private array $params) {}
 
     /**
      * Create a new JSON-RPC notification response.

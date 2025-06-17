@@ -27,11 +27,11 @@ class McpInspectorCommand extends Command
             'npx',
             '@modelcontextprotocol/inspector',
             'php',
-            $currentDir . '/artisan',
-            "mcp:start {$handle}"
+            $currentDir.'/artisan',
+            "mcp:start {$handle}",
         ];
 
-        $this->line('Running: ' . implode(' ', $command));
+        $this->line('Running: '.implode(' ', $command));
 
         $process = new Process($command);
         $process->setTimeout(null);
@@ -41,7 +41,8 @@ class McpInspectorCommand extends Command
                 echo $buffer;
             });
         } catch (\Exception $e) {
-            $this->error('Failed to start MCP Inspector: ' . $e->getMessage());
+            $this->error('Failed to start MCP Inspector: '.$e->getMessage());
+
             return Command::FAILURE;
         }
 

@@ -8,6 +8,7 @@ use Laravel\Mcp\Transport\JsonRpcProtocolError;
 class JsonRpcException extends Exception
 {
     protected mixed $requestId;
+
     protected ?array $data;
 
     /**

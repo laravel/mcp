@@ -4,8 +4,8 @@ namespace Laravel\Mcp\Methods;
 
 use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 
 class Ping implements Method
 {

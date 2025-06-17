@@ -14,6 +14,7 @@ interface Method
      * Implement the JSON-RPC method.
      *
      * @return JsonRpcResponse|Generator<JsonRpcNotification|JsonRpcResponse>
+     *
      * @throws JsonRpcException
      */
     public function handle(JsonRpcRequest $request, ServerContext $context);

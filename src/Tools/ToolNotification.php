@@ -7,9 +7,7 @@ class ToolNotification
     /**
      * Create a new tool notification response.
      */
-    public function __construct(private string $method, private array $params)
-    {
-    }
+    public function __construct(private string $method, private array $params) {}
 
     /**
      * Get the method (name) of the notification.

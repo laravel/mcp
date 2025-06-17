@@ -3,15 +3,15 @@
 namespace Laravel\Mcp\Tests\Unit\Tools;
 
 use Laravel\Mcp\Tools\ToolInputSchema;
-use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\Test;
+use PHPUnit\Framework\TestCase;
 
 class ToolInputSchemaTest extends TestCase
 {
     #[Test]
     public function sets_string_type_correctly()
     {
-        $schema = new ToolInputSchema();
+        $schema = new ToolInputSchema;
 
         $schema->string('name');
 
@@ -26,7 +26,7 @@ class ToolInputSchemaTest extends TestCase
     #[Test]
     public function sets_integer_type_correctly()
     {
-        $schema = new ToolInputSchema();
+        $schema = new ToolInputSchema;
 
         $schema->integer('age');
 
@@ -41,7 +41,7 @@ class ToolInputSchemaTest extends TestCase
     #[Test]
     public function sets_number_type_correctly()
     {
-        $schema = new ToolInputSchema();
+        $schema = new ToolInputSchema;
 
         $schema->number('price');
 
@@ -56,7 +56,7 @@ class ToolInputSchemaTest extends TestCase
     #[Test]
     public function sets_boolean_type_correctly()
     {
-        $schema = new ToolInputSchema();
+        $schema = new ToolInputSchema;
 
         $schema->boolean('is_active');
 
@@ -71,7 +71,7 @@ class ToolInputSchemaTest extends TestCase
     #[Test]
     public function description_mutates_last_property_only()
     {
-        $schema = new ToolInputSchema();
+        $schema = new ToolInputSchema;
         $schema->string('name')->description('The name of the item.');
         $schema->integer('quantity')->description('The number of items.');
 
@@ -97,7 +97,7 @@ class ToolInputSchemaTest extends TestCase
     #[Test]
     public function description_without_property_does_nothing()
     {
-        $schema = new ToolInputSchema();
+        $schema = new ToolInputSchema;
 
         $schema->description('This should not be added.');
 
@@ -107,11 +107,10 @@ class ToolInputSchemaTest extends TestCase
         ], $schema->toArray());
     }
 
-
     #[Test]
     public function required_accumulates_without_duplicates()
     {
-        $schema = new ToolInputSchema();
+        $schema = new ToolInputSchema;
 
         $schema->string('name')->required();
         $schema->string('name')->required(); // Duplicate
@@ -130,7 +129,7 @@ class ToolInputSchemaTest extends TestCase
     #[Test]
     public function to_array_omits_required_when_no_fields_marked_required()
     {
-        $schema = new ToolInputSchema();
+        $schema = new ToolInputSchema;
 
         $schema->string('name');
         $schema->integer('age');
@@ -147,7 +146,7 @@ class ToolInputSchemaTest extends TestCase
     #[Test]
     public function it_can_be_used_fluently()
     {
-        $schema = new ToolInputSchema();
+        $schema = new ToolInputSchema;
 
         $schema->string('name')->description('User name')->required();
         $schema->integer('level')->description('User level')->required();
@@ -167,7 +166,7 @@ class ToolInputSchemaTest extends TestCase
     #[Test]
     public function required_without_property_does_nothing()
     {
-        $schema = new ToolInputSchema();
+        $schema = new ToolInputSchema;
 
         $schema->required();
 

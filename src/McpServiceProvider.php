@@ -5,10 +5,9 @@ namespace Laravel\Mcp;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Console\Commands\McpInspectorCommand;
-use Laravel\Mcp\Registrar;
 use Laravel\Mcp\Console\Commands\ServerMakeCommand;
-use Laravel\Mcp\Console\Commands\ToolMakeCommand;
 use Laravel\Mcp\Console\Commands\StartServerCommand;
+use Laravel\Mcp\Console\Commands\ToolMakeCommand;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -19,7 +18,7 @@ class McpServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $this->app->singleton('mcp', fn () => new Registrar());
+        $this->app->singleton('mcp', fn () => new Registrar);
 
         if ($this->app->runningInConsole()) {
             $this->commands([
@@ -51,7 +50,7 @@ class McpServiceProvider extends ServiceProvider
     protected function offerPublishing(): void
     {
         $this->publishes([
-            __DIR__ . '/../routes/ai.php' => base_path('routes/ai.php'),
+            __DIR__.'/../routes/ai.php' => base_path('routes/ai.php'),
         ], 'ai-routes');
     }
 

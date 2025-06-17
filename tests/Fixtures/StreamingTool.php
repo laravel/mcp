@@ -2,11 +2,11 @@
 
 namespace Laravel\Mcp\Tests\Fixtures;
 
+use Generator;
 use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
-use Laravel\Mcp\Tools\ToolResponse;
 use Laravel\Mcp\Tools\ToolNotification;
-use Generator;
+use Laravel\Mcp\Tools\ToolResponse;
 
 class StreamingTool extends Tool
 {

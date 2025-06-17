@@ -2,13 +2,13 @@
 
 namespace Tests\Unit\Methods;
 
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Methods\Initialize;
 use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\Transport\JsonRpcResponse;
 use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
-use Laravel\Mcp\Exceptions\JsonRpcException;
 
 class InitializeTest extends TestCase
 {
@@ -33,7 +33,7 @@ class InitializeTest extends TestCase
             defaultPaginationLength: 10,
         );
 
-        $method = new Initialize();
+        $method = new Initialize;
 
         $response = $method->handle($request, $context);
 
@@ -77,7 +77,7 @@ class InitializeTest extends TestCase
             defaultPaginationLength: 10,
         );
 
-        $method = new Initialize();
+        $method = new Initialize;
 
         try {
             $method->handle($request, $context);
@@ -115,7 +115,7 @@ class InitializeTest extends TestCase
             defaultPaginationLength: 10,
         );
 
-        $method = new Initialize();
+        $method = new Initialize;
         $response = $method->handle($request, $context);
 
         $this->assertInstanceOf(JsonRpcResponse::class, $response);
