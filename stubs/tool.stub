@@ -7,7 +7,7 @@ use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolResponse;
 use Generator;
 
-class {{ class }} implements Tool
+class {{ class }} extends Tool
 {
     /**
      * The name of the tool.
