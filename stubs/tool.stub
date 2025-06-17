@@ -2,10 +2,10 @@
 
 namespace {{ namespace }};
 
+use Generator;
 use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolResponse;
-use Generator;
 
 class {{ class }} extends Tool
 {
@@ -42,7 +42,7 @@ class {{ class }} extends Tool
      *
      * @return ToolResponse|Generator
      */
-    public function handle(array $arguments)
+    public function handle(array $arguments): ToolResponse|Generator
     {
         // Implement tool logic here
 
