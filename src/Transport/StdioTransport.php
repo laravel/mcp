@@ -14,11 +14,6 @@ class StdioTransport implements Transport
     private $handler;
 
     /**
-     * The standard input/output instance.
-     */
-    private Stdio $stdio;
-
-    /**
      * The session ID of the request.
      */
     private string $sessionId;
@@ -26,9 +21,8 @@ class StdioTransport implements Transport
     /**
      * Create a new STDIO transport.
      */
-    public function __construct(Stdio $stdio)
+    public function __construct()
     {
-        $this->stdio = $stdio;
         $this->sessionId = Str::uuid()->toString();
     }
 
@@ -43,9 +37,9 @@ class StdioTransport implements Transport
     /**
      * Send a message to the client.
      */
-    public function send(string $message): void
+    public function send(string $message, ?string $sessionId = null): void
     {
-        $this->stdio->write($message);
+        fwrite(STDOUT, $message.PHP_EOL);
     }
 
     /**
@@ -53,7 +47,15 @@ class StdioTransport implements Transport
      */
     public function run(): void
     {
-        while ($line = $this->stdio->read()) {
+        stream_set_blocking(STDIN, false);
+
+        while (! feof(STDIN)) {
+            if (($line = fgets(STDIN)) === false) {
+                usleep(10000);
+
+                continue;
+            }
+
             ($this->handler)($line);
         }
     }
