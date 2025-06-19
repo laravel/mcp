@@ -101,10 +101,7 @@ class ToolInputSchemaTest extends TestCase
 
         $schema->description('This should not be added.');
 
-        $this->assertSame([
-            'type' => 'object',
-            'properties' => [],
-        ], $schema->toArray());
+        $this->assertEquals('{"type":"object","properties":{}}', json_encode($schema->toArray()));
     }
 
     #[Test]
@@ -170,9 +167,6 @@ class ToolInputSchemaTest extends TestCase
 
         $schema->required();
 
-        $this->assertSame([
-            'type' => 'object',
-            'properties' => [],
-        ], $schema->toArray());
+        $this->assertEquals('{"type":"object","properties":{}}', json_encode($schema->toArray()));
     }
 }

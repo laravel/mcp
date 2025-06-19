@@ -107,7 +107,7 @@ class ToolInputSchema
     {
         $schema = [
             'type' => 'object',
-            'properties' => $this->properties,
+            'properties' => $this->properties ?: (object) [],
         ];
 
         if (! empty($this->requiredProperties)) {
