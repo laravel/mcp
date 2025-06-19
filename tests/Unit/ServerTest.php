@@ -6,7 +6,7 @@ use Laravel\Mcp\Tests\Fixtures\ArrayTransport;
 use Laravel\Mcp\Tests\Fixtures\ExampleServer;
 use Laravel\Mcp\Tests\Fixtures\CustomMethodHandler;
 use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
+use Laravel\Mcp\Tests\TestCase;
 
 class ServerTest extends TestCase
 {
@@ -163,9 +163,8 @@ class ServerTest extends TestCase
         $server = new ExampleServer;
 
         $server->addMethod('custom/method', CustomMethodHandler::class);
-        $server->resolveMethodUsing(CustomMethodHandler::class, function () {
-            return new CustomMethodHandler('custom-dependency');
-        });
+
+        $this->app->bind(CustomMethodHandler::class, fn () => new CustomMethodHandler('custom-dependency'));
 
         $server->connect($transport);
 

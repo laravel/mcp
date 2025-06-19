@@ -317,20 +317,6 @@ class ExampleServer extends Server
 
 Now, your server will be able to handle `ping` requests.
 
-If your method handler has dependencies that need to be injected via its constructor, you can register a custom resolver for it. The `resolveMethodUsing()` method allows you to provide a factory callback that will be responsible for instantiating your handler:
-
-```php
-public function boot(): void
-{
-    $this->addMethod('custom/method', CustomMethodHandler::class);
-
-    $this->resolveMethodUsing(CustomMethodHandler::class, function () {
-        // Resolve any dependencies from the container or instantiate them manually
-        return new CustomMethodHandler(new MyDependency());
-    });
-}
-```
-
 ### Dynamically Adding Capabilities
 
 You can add custom capabilities to your server in the `boot()` method. This is useful for advertising support for non-standard features to the client during the `initialize` handshake. The client can then check for these capabilities and adjust its behavior accordingly.

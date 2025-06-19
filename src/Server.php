@@ -71,13 +71,6 @@ abstract class Server
     protected array $registeredTools = [];
 
     /**
-     * The registered method resolvers.
-     *
-     * @var array<string, callable>
-     */
-    protected array $methodResolvers = [];
-
-    /**
      * The JSON-RPC methods available to the server.
      */
     protected array $methods = [
@@ -172,14 +165,6 @@ abstract class Server
     }
 
     /**
-     * Register a custom method resolver.
-     */
-    public function resolveMethodUsing(string $class, callable $resolver): void
-    {
-        $this->methodResolvers[$class] = $resolver;
-    }
-
-    /**
      * Add a capability dynamically to the server.
      */
     public function addCapability(string $key, mixed $value = null)
@@ -190,25 +175,13 @@ abstract class Server
     }
 
     /**
-     * Resolve a method handler.
-     */
-    protected function resolveMethod(string $class): object
-    {
-        if (isset($this->methodResolvers[$class])) {
-            return ($this->methodResolvers[$class])();
-        }
-
-        return new $class;
-    }
-
-    /**
      * Handle a JSON-RPC message.
      */
     private function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context)
     {
         $methodClass = $this->methods[$request->method];
 
-        $response = $this->resolveMethod($methodClass)->handle($request, $context);
+        $response = app($methodClass)->handle($request, $context);
 
         if ($response instanceof Generator) {
             $this->transport->stream(function () use ($response, $sessionId) {
