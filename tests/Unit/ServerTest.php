@@ -4,6 +4,7 @@ namespace Laravel\Mcp\Tests\Unit;
 
 use Laravel\Mcp\Tests\Fixtures\ArrayTransport;
 use Laravel\Mcp\Tests\Fixtures\ExampleServer;
+use Laravel\Mcp\Tests\Fixtures\CustomMethodHandler;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -24,6 +25,28 @@ class ServerTest extends TestCase
         $response = json_decode($transport->sent[0], true);
 
         $this->assertEquals($this->expectedInitializeResponse(), $response);
+    }
+
+    #[Test]
+    public function it_can_add_a_capability()
+    {
+        $transport = new ArrayTransport;
+        $server = new ExampleServer;
+
+        $server->addCapability('customFeature.enabled', true);
+
+        $server->connect($transport);
+
+        $payload = json_encode($this->initializeMessage());
+
+        ($transport->handler)($payload);
+
+        $response = json_decode($transport->sent[0], true);
+
+        $expectedCapabilities = (new ExampleServer)->capabilities;
+        data_set($expectedCapabilities, 'customFeature.enabled', true);
+
+        $this->assertEquals($expectedCapabilities, $response['result']['capabilities']);
     }
 
     #[Test]
@@ -134,7 +157,10 @@ class ServerTest extends TestCase
         $transport = new ArrayTransport;
         $server = new ExampleServer;
 
-        $server->addMethod('custom/method', \Laravel\Mcp\Tests\Fixtures\CustomMethodHandler::class);
+        $server->addMethod('custom/method', CustomMethodHandler::class);
+        $server->resolveMethodUsing(CustomMethodHandler::class, function () {
+            return new CustomMethodHandler('custom-dependency');
+        });
 
         $server->connect($transport);
 
