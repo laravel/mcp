@@ -182,8 +182,10 @@ abstract class Server
     /**
      * Add a capability dynamically to the server.
      */
-    public function addCapability(string $key, mixed $value)
+    public function addCapability(string $key, mixed $value = null)
     {
+        $value = $value ?? (object) [];
+
         data_set($this->capabilities, $key, $value);
     }
 

@@ -34,6 +34,7 @@ class ServerTest extends TestCase
         $server = new ExampleServer;
 
         $server->addCapability('customFeature.enabled', true);
+        $server->addCapability('anotherFeature');
 
         $server->connect($transport);
 
@@ -41,12 +42,16 @@ class ServerTest extends TestCase
 
         ($transport->handler)($payload);
 
-        $response = json_decode($transport->sent[0], true);
+        $jsonResponse = $transport->sent[0];
 
-        $expectedCapabilities = (new ExampleServer)->capabilities;
-        data_set($expectedCapabilities, 'customFeature.enabled', true);
+        $expectedCapabilitiesJson = json_encode(array_merge((new ExampleServer)->capabilities, [
+            'customFeature' => [
+                'enabled' => true,
+            ],
+            'anotherFeature' => (object) [],
+        ]));
 
-        $this->assertEquals($expectedCapabilities, $response['result']['capabilities']);
+        $this->assertStringContainsString($expectedCapabilitiesJson, $jsonResponse);
     }
 
     #[Test]
