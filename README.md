@@ -124,6 +124,41 @@ class MyExampleTool extends Tool
 }
 ```
 
+### Tool Annotations
+
+You can add annotations to your tools to provide hints to the client about their behavior. This is done using PHP attributes on your tool class. These annotations are optional, and the package provides sensible defaults.
+
+| Annotation        | Type    | Default      | Description                                                                                                                           |
+| ----------------- | ------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `#[Title]`        | string  | Class name   | A human-readable title for the tool. Defaults to a "headline" version of the class name (e.g., `MyExampleTool` becomes "My Example Tool"). |
+| `#[IsReadOnly]`   | boolean | `false`      | If `true`, indicates the tool does not modify its environment.                                                                        |
+| `#[IsDestructive]`| boolean | `true`       | If `true`, the tool may perform destructive updates (only meaningful when `IsReadOnly` is `false`).                                       |
+| `#[IsIdempotent]` | boolean | `false`      | If `true`, calling the tool repeatedly with the same arguments has no additional effect (only meaningful when `IsReadOnly` is `false`).  |
+| `#[IsOpenWorld]`  | boolean | `true`       | If `true`, the tool may interact with an "open world" of external entities.                                                           |
+
+Here's an example of how to apply these annotations to a tool:
+
+```php
+<?php
+
+namespace App\Mcp\Tools;
+
+use Laravel\Mcp\Tools\Annotations\IsReadOnly;
+use Laravel\Mcp\Tools\Annotations\IsDestructive;
+use Laravel\Mcp\Tools\Annotations\Title;
+use Laravel\Mcp\Tools\Tool;
+use Laravel\Mcp\Tools\ToolInputSchema;
+use Laravel\Mcp\Tools\ToolResult;
+
+#[Title('A Safe Example Tool')]
+#[IsReadOnly]
+#[IsDestructive(false)]
+class MyExampleTool extends Tool
+{
+    // ...
+}
+```
+
 ### Tool Results
 
 The `handle` method of a tool must return an instance of `Laravel\Mcp\Tools\ToolResult`. This class provides a few convenient methods for creating responses.
