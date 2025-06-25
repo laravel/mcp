@@ -2,7 +2,9 @@
 
 namespace Laravel\Mcp\Tools;
 
-class ToolNotification
+use Illuminate\Contracts\Support\Arrayable;
+
+class ToolNotification implements Arrayable
 {
     /**
      * Create a new tool notification response.

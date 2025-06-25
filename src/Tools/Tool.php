@@ -28,7 +28,7 @@ abstract class Tool
     /**
      * Execute the tool call.
      *
-     * @return ToolResponse|Generator<ToolNotification|ToolResponse>
+     * @return ToolResult|Generator<ToolNotification|ToolResult>
      */
-    abstract public function handle(array $arguments): ToolResponse|Generator;
+    abstract public function handle(array $arguments): ToolResult|Generator;
 }

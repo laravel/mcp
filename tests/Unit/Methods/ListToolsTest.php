@@ -16,12 +16,12 @@ if (! class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
             namespace Tests\\Unit\\Methods;
             use Generator;
             use Laravel\\Mcp\\Tools\\Tool;
-            use Laravel\\Mcp\\Tools\\ToolResponse;
+            use Laravel\\Mcp\\Tools\\ToolResult;
             use Laravel\\Mcp\\Tools\\ToolInputSchema;
             class DummyTool{$i} extends Tool {
                 public function description(): string { return 'Description for dummy tool {$i}'; }
                 public function schema(ToolInputSchema \$schema): ToolInputSchema { return \$schema; }
-                public function handle(array \$arguments): ToolResponse|Generator { return []; }
+                public function handle(array \$arguments): ToolResult|Generator { return []; }
             }
         ");
     }

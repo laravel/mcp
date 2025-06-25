@@ -2,6 +2,8 @@
 
 namespace Laravel\Mcp\Transport;
 
+use Illuminate\Contracts\Support\Arrayable;
+
 class JsonRpcNotification
 {
     /**
@@ -12,11 +14,11 @@ class JsonRpcNotification
     /**
      * Create a new JSON-RPC notification response.
      */
-    public static function create(string $method, array $params): JsonRpcNotification
+    public static function create(string $method, array|Arrayable $params): JsonRpcNotification
     {
         return new static(
             method: $method,
-            params: $params,
+            params: is_array($params) ? $params : $params->toArray(),
         );
     }
 

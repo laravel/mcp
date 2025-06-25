@@ -2,6 +2,8 @@
 
 namespace Laravel\Mcp\Transport;
 
+use Illuminate\Contracts\Support\Arrayable;
+
 class JsonRpcResponse
 {
     /**
@@ -10,16 +12,17 @@ class JsonRpcResponse
     public function __construct(
         public int $id,
         public array $result,
-    ) {}
+    ) {
+    }
 
     /**
      * Create a new JSON-RPC response.
      */
-    public static function create(int $id, array $result): JsonRpcResponse
+    public static function create(int $id, array|Arrayable $result): JsonRpcResponse
     {
         return new static(
             id: $id,
-            result: $result,
+            result: is_array($result) ? $result : $result->toArray(),
         );
     }
 
