@@ -23,7 +23,7 @@ class ListTools implements Method
         $perPage = min($requestedPerPage, $maxPerPage);
 
         $tools = collect($context->tools)->values()
-            ->map(fn ($toolClass) => is_string($toolClass) ? new $toolClass : $toolClass)
+            ->map(fn ($toolClass) => is_string($toolClass) ? app($toolClass) : $toolClass)
             ->map(function ($tool, $index) {
                 return [
                     'id' => $index + 1,

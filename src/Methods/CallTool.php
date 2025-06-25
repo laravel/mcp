@@ -24,7 +24,7 @@ class CallTool implements Method
     {
         try {
             $tool = collect($context->tools)
-                ->map(fn ($tool) => is_string($tool) ? new $tool : $tool)
+                ->map(fn ($tool) => is_string($tool) ? app($tool) : $tool)
                 ->firstOrFail(fn ($tool) => $tool->name() === $request->params['name']);
         } catch (ItemNotFoundException $e) {
             return JsonRpcResponse::create(
