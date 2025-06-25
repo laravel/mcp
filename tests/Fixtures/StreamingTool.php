@@ -6,7 +6,7 @@ use Generator;
 use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolNotification;
-use Laravel\Mcp\Tools\ToolResponse;
+use Laravel\Mcp\Tools\ToolResult;
 
 class StreamingTool extends Tool
 {
@@ -30,6 +30,6 @@ class StreamingTool extends Tool
             yield new ToolNotification('stream/progress', ['progress' => $i / $count * 100, 'message' => "Processing item {$i} of {$count}"]);
         }
 
-        yield new ToolResponse("Finished streaming {$count} messages.");
+        yield ToolResult::text("Finished streaming {$count} messages.");
     }
 }

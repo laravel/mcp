@@ -8,7 +8,7 @@ use Illuminate\Support\MessageBag;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
-use Laravel\Mcp\Tools\ToolResponse;
+use Laravel\Mcp\Tools\ToolResult;
 use Mockery;
 
 class ExampleTool extends Tool
@@ -23,7 +23,7 @@ class ExampleTool extends Tool
         return $schema->string('name')->description('The name of the person to greet')->required();
     }
 
-    public function handle(array $arguments): ToolResponse|Generator
+    public function handle(array $arguments): ToolResult|Generator
     {
         if (empty($arguments['name'])) {
             $validator = Mockery::mock(Validator::class);
@@ -35,6 +35,6 @@ class ExampleTool extends Tool
             throw new ValidationException($validator);
         }
 
-        return new ToolResponse('Hello, '.$arguments['name'].'!');
+        return ToolResult::text('Hello, '.$arguments['name'].'!');
     }
 }

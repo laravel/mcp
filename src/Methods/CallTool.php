@@ -8,7 +8,7 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Tools\ToolNotification;
-use Laravel\Mcp\Tools\ToolResponse;
+use Laravel\Mcp\Tools\ToolResult;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -29,7 +29,8 @@ class CallTool implements Method
         } catch (ItemNotFoundException $e) {
             return JsonRpcResponse::create(
                 $request->id,
-                (new ToolResponse('Tool not found', true))->toArray()
+                // CAST THIS TO ARRAY AUTOMATICALLY
+                ToolResult::error('Tool not found')->toArray()
             );
         }
 
@@ -38,7 +39,7 @@ class CallTool implements Method
         } catch (ValidationException $e) {
             return JsonRpcResponse::create(
                 $request->id,
-                (new ToolResponse($e->getMessage(), true))->toArray()
+                ToolResult::error($e->getMessage())->toArray()
             );
         }
 
@@ -75,7 +76,7 @@ class CallTool implements Method
                     yield $this->toResponse($request->id, $response->toArray());
                 }
             } catch (ValidationException $e) {
-                yield $this->toResponse($request->id, (new ToolResponse($e->getMessage(), true))->toArray());
+                yield $this->toResponse($request->id, ToolResult::error($e->getMessage())->toArray());
             }
         })();
     }
