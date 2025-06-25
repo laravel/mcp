@@ -101,6 +101,14 @@ class ToolInputSchema
     }
 
     /**
+     * Mark the current property as optional.
+     */
+    public function optional(): self
+    {
+        return $this;
+    }
+
+    /**
      * Convert the schema to an array.
      */
     public function toArray(): array

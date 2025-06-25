@@ -169,4 +169,22 @@ class ToolInputSchemaTest extends TestCase
 
         $this->assertEquals('{"type":"object","properties":{}}', json_encode($schema->toArray()));
     }
+
+    #[Test]
+    public function properties_can_be_marked_optional()
+    {
+        $schema = new ToolInputSchema;
+
+        $schema->string('name')->optional();
+        $schema->integer('age')->required();
+
+        $this->assertSame([
+            'type' => 'object',
+            'properties' => [
+                'name' => ['type' => ToolInputSchema::TYPE_STRING],
+                'age' => ['type' => ToolInputSchema::TYPE_INTEGER],
+            ],
+            'required' => ['age'],
+        ], $schema->toArray());
+    }
 }
