@@ -122,6 +122,7 @@ class MyExampleTool extends Tool
         return ToolResult::text($result);
     }
 }
+```
 
 ### Tool Results
 
