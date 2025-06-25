@@ -10,6 +10,7 @@ This Laravel package helps you build MCP-compliant servers within your Laravel a
   - [Publishing Routes](#publishing-routes)
 - [Creating a Server](#creating-a-server)
 - [Creating Tools](#creating-tools)
+  - [Tool Annotations](#tool-annotations)
   - [Tool Results](#tool-results)
 - [Registering Servers](#registering-servers)
   - [Web Servers](#web-servers)
