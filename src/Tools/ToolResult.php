@@ -2,9 +2,10 @@
 
 namespace Laravel\Mcp\Tools;
 
+use Illuminate\Contracts\Support\Arrayable;
 use Laravel\Mcp\Contracts\Tools\Content;
 
-class ToolResult
+class ToolResult implements Arrayable
 {
     /**
      * Create a new tool response.
@@ -13,7 +14,6 @@ class ToolResult
      */
     private function __construct(public readonly array $content, public readonly bool $isError = false)
     {
-        //
     }
 
     /**

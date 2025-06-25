@@ -3,6 +3,7 @@
 namespace Laravel\Mcp\Methods;
 
 use Generator;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\ItemNotFoundException;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Contracts\Methods\Method;
@@ -29,8 +30,7 @@ class CallTool implements Method
         } catch (ItemNotFoundException $e) {
             return JsonRpcResponse::create(
                 $request->id,
-                // CAST THIS TO ARRAY AUTOMATICALLY
-                ToolResult::error('Tool not found')->toArray()
+                ToolResult::error('Tool not found')
             );
         }
 
@@ -39,19 +39,19 @@ class CallTool implements Method
         } catch (ValidationException $e) {
             return JsonRpcResponse::create(
                 $request->id,
-                ToolResult::error($e->getMessage())->toArray()
+                ToolResult::error($e->getMessage())
             );
         }
 
         return $result instanceof Generator
             ? $this->toStream($request, $result)
-            : $this->toResponse($request->id, $result->toArray());
+            : $this->toResponse($request->id, $result);
     }
 
     /**
      * Convert the result to a JSON-RPC response.
      */
-    private function toResponse(string $id, array $result): JsonRpcResponse
+    private function toResponse(string $id, array|Arrayable $result): JsonRpcResponse
     {
         return JsonRpcResponse::create($id, $result);
     }
@@ -67,16 +67,16 @@ class CallTool implements Method
                     if ($response instanceof ToolNotification) {
                         yield JsonRpcNotification::create(
                             $response->getMethod(),
-                            $response->toArray()
+                            $response
                         );
 
                         continue;
                     }
 
-                    yield $this->toResponse($request->id, $response->toArray());
+                    yield $this->toResponse($request->id, $response);
                 }
             } catch (ValidationException $e) {
-                yield $this->toResponse($request->id, ToolResult::error($e->getMessage())->toArray());
+                yield $this->toResponse($request->id, ToolResult::error($e->getMessage()));
             }
         })();
     }

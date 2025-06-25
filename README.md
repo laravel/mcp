@@ -10,6 +10,7 @@ This Laravel package helps you build MCP-compliant servers within your Laravel a
   - [Publishing Routes](#publishing-routes)
 - [Creating a Server](#creating-a-server)
 - [Creating Tools](#creating-tools)
+  - [Tool Results](#tool-results)
 - [Registering Servers](#registering-servers)
   - [Web Servers](#web-servers)
   - [Local Servers](#local-servers)
@@ -88,7 +89,7 @@ namespace App\Mcp\Tools;
 
 use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
-use Laravel\Mcp\Tools\ToolResponse;
+use Laravel\Mcp\Tools\ToolResult;
 
 class MyExampleTool extends Tool
 {
@@ -109,7 +110,7 @@ class MyExampleTool extends Tool
         return $schema;
     }
 
-    public function handle(array $arguments): ToolResponse
+    public function handle(array $arguments): ToolResult
     {
         // Your tool logic here
         $param1 = $arguments['param1'] ?? 'default';
@@ -118,10 +119,42 @@ class MyExampleTool extends Tool
         // Perform some action
         $result = "Processed {$param1} and {$param2}.";
 
-        return new ToolResponse($result);
+        return ToolResult::text($result);
     }
 }
 
+### Tool Results
+
+The `handle` method of a tool must return an instance of `Laravel\Mcp\Tools\ToolResult`. This class provides a few convenient methods for creating responses.
+
+#### Plain Text Response
+
+For a simple text response, you can use the `text()` method:
+
+```php
+$response = ToolResult::text('This is a test response.');
+```
+
+#### Error Response
+
+To indicate that the tool execution resulted in an error, use the `error()` method:
+
+```php
+$response = ToolResult::error('This is a test error response.');
+```
+
+#### Multiple Content Items
+
+A tool result can contain multiple content items. The `items()` method allows you to construct a result from different content objects, like `TextContent`.
+
+```php
+$plainText = 'This is the plain text version.';
+$markdown = 'This is the **markdown** version.';
+
+$response = ToolResult::items(
+    new TextContent($plainText),
+    new TextContent($markdown)
+);
 ```
 
 ## Registering Servers
@@ -192,7 +225,7 @@ npx @modelcontextprotocol/inspector
 
 For tools that need to send multiple updates to the client before completing, or that produce a large amount of data, you can return a generator from the `handle` method. For web-based servers, this will automatically open an SSE stream to the client.
 
-Within your generator, you can `yield` instances of `Laravel\Mcp\Tools\ToolNotification` for intermediate updates and finally `yield` a single `Laravel\Mcp\Tools\ToolResponse` for the main result of the tool execution.
+Within your generator, you can `yield` instances of `Laravel\Mcp\Tools\ToolNotification` for intermediate updates and finally `yield` a single `Laravel\Mcp\Tools\ToolResult` for the main result of the tool execution.
 
 This is particularly useful for long-running tasks or when you want to provide real-time feedback to the client, such as streaming tokens in a chat application.
 
@@ -205,7 +238,7 @@ use Generator;
 use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolNotification;
-use Laravel\Mcp\Tools\ToolResponse;
+use Laravel\Mcp\Tools\ToolResult;
 
 class ChatStreamingTool extends Tool
 {
@@ -230,7 +263,7 @@ class ChatStreamingTool extends Tool
             usleep(100000);
         }
 
-        yield new ToolResponse("Message streamed successfully.");
+        yield ToolResult::text("Message streamed successfully.");
     }
 }
 ```
@@ -257,9 +290,9 @@ public function boot(): void
             return $schema;
         }
 
-        public function handle(array $arguments): ToolResponse
+        public function handle(array $arguments): ToolResult
         {
-            return new ToolResponse('Dynamic tool was called!');
+            return ToolResult::text('Dynamic tool was called!');
         }
     });
 }
