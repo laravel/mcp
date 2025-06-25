@@ -5,7 +5,7 @@ namespace {{ namespace }};
 use Generator;
 use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
-use Laravel\Mcp\Tools\ToolResponse;
+use Laravel\Mcp\Tools\ToolResult;
 
 class {{ class }} extends Tool
 {
@@ -40,12 +40,12 @@ class {{ class }} extends Tool
     /**
      * Execute the tool call.
      *
-     * @return ToolResponse|Generator
+     * @return ToolResult|Generator
      */
-    public function handle(array $arguments): ToolResponse|Generator
+    public function handle(array $arguments): ToolResult|Generator
     {
         // Implement tool logic here
 
-        return new ToolResponse('Tool executed successfully.');
+        return ToolResult::text('Tool executed successfully.');
     }
 }
