@@ -3,10 +3,10 @@
 namespace Laravel\Mcp\Tests\Unit;
 
 use Laravel\Mcp\Tests\Fixtures\ArrayTransport;
-use Laravel\Mcp\Tests\Fixtures\ExampleServer;
 use Laravel\Mcp\Tests\Fixtures\CustomMethodHandler;
-use PHPUnit\Framework\Attributes\Test;
+use Laravel\Mcp\Tests\Fixtures\ExampleServer;
 use Laravel\Mcp\Tests\TestCase;
+use PHPUnit\Framework\Attributes\Test;
 
 class ServerTest extends TestCase
 {
@@ -302,6 +302,13 @@ class ServerTest extends TestCase
                             ],
                             'required' => ['name'],
                         ],
+                        'annotations' => [
+                            'title' => 'Example Tool',
+                            'readOnlyHint' => false,
+                            'destructiveHint' => true,
+                            'idempotentHint' => false,
+                            'openWorldHint' => true,
+                        ],
                         'id' => 1,
                     ],
                     [
@@ -316,6 +323,13 @@ class ServerTest extends TestCase
                                 ],
                             ],
                             'required' => ['count'],
+                        ],
+                        'annotations' => [
+                            'title' => 'Streaming Tool',
+                            'readOnlyHint' => false,
+                            'destructiveHint' => true,
+                            'idempotentHint' => false,
+                            'openWorldHint' => true,
                         ],
                         'id' => 2,
                     ],

@@ -32,7 +32,7 @@ class Registrar
     {
         $this->localServers[$handle] = fn () => $this->bootServer(
             $serverClass,
-            fn () => new StdioTransport()
+            fn () => new StdioTransport
         );
     }
 

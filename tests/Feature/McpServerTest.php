@@ -241,6 +241,13 @@ class McpServerTest extends TestCase
                             ],
                             'required' => ['name'],
                         ],
+                        'annotations' => [
+                            'title' => 'Example Tool',
+                            'readOnlyHint' => false,
+                            'destructiveHint' => true,
+                            'idempotentHint' => false,
+                            'openWorldHint' => true,
+                        ],
                         'id' => 1,
                     ],
                     [
@@ -255,6 +262,13 @@ class McpServerTest extends TestCase
                                 ],
                             ],
                             'required' => ['count'],
+                        ],
+                        'annotations' => [
+                            'title' => 'Streaming Tool',
+                            'readOnlyHint' => false,
+                            'destructiveHint' => true,
+                            'idempotentHint' => false,
+                            'openWorldHint' => true,
                         ],
                         'id' => 2,
                     ],

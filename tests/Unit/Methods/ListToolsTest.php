@@ -71,6 +71,13 @@ class ListToolsTest extends TestCase
                         ],
                         'required' => ['name'],
                     ],
+                    'annotations' => [
+                        'title' => 'Example Tool',
+                        'readOnlyHint' => false,
+                        'destructiveHint' => true,
+                        'idempotentHint' => false,
+                        'openWorldHint' => true,
+                    ],
                     'id' => 1,
                 ],
             ],
