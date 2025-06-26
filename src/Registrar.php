@@ -44,6 +44,27 @@ class Registrar
         return $this->localServers[$handle] ?? null;
     }
 
+    public function oauthDiscoveryRoutes($oauthPrefix = 'oauth') {
+        Router::get('/.well-known/oauth-protected-resource', function () {
+            return response()->json([
+                'resource' => config('app.url'),
+                'authorization_server' => url('/.well-known/oauth-authorization-server'),
+            ]);
+        });
+
+        Router::get('/.well-known/oauth-authorization-server', function () use ($oauthPrefix) {
+            return response()->json([
+                'issuer' => config('app.url'),
+                'authorization_endpoint' => url($oauthPrefix . '/authorize'),
+                'token_endpoint' => url($oauthPrefix . '/token'),
+                'registration_endpoint' => url($oauthPrefix . '/register'),
+                'response_types_supported' => ['code'],
+                'code_challenge_methods_supported' => ['S256'],
+                'grant_types_supported' => ['authorization_code'],
+            ]);
+        });
+    }
+
     /**
      * Boot the MCP server.
      */
