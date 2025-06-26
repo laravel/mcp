@@ -201,7 +201,7 @@ class McpServerTest extends TestCase
             'jsonrpc' => '2.0',
             'id' => 456,
             'result' => [
-                'protocolVersion' => '2025-03-26',
+                'protocolVersion' => '2025-06-18',
                 'capabilities' => $server->capabilities,
                 'serverInfo' => [
                     'name' => $server->serverName,

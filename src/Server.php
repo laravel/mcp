@@ -18,6 +18,7 @@ abstract class Server
      * The versions of the MCP specification supported by the server.
      */
     public array $supportedProtocolVersion = [
+        '2025-06-18',
         '2025-03-26',
     ];
 
