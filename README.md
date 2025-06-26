@@ -230,14 +230,24 @@ php artisan mcp:start demo
 
 ## Authentication
 
-For web servers, you can easily add authentication using Laravel Sanctum. Just append the `auth:sanctum` middleware to your server registration in the `routes/ai.php` file:
+Web servers can be protected using Laravel Passport, turning your MCP server into an OAuth2 protected resource.
+
+First, add the `Mcp::oauthRoutes()` helper to your `routes/web.php` file. This registers the required OAuth2 discovery and client registration endpoints. The method accepts an optional prefix, which defaults to `oauth`.
+
+```php
+use Laravel\Mcp\Facades\Mcp;
+
+Mcp::oauthRoutes();
+```
+
+Then, apply the `auth:api` middleware to your server registration in `routes/ai.php`:
 
 ```php
 use App\Mcp\Servers\ExampleServer;
 use Laravel\Mcp\Facades\Mcp;
 
 Mcp::web('demo', ExampleServer::class)
-    ->middleware('auth:sanctum');
+    ->middleware('auth:api');
 ```
 
 ## Testing Servers with MCP Inspector
