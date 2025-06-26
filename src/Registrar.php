@@ -2,6 +2,7 @@
 
 namespace Laravel\Mcp;
 
+use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
 use Laravel\Mcp\Transport\HttpTransport;
@@ -44,7 +45,7 @@ class Registrar
         return $this->localServers[$handle] ?? null;
     }
 
-    public function oauthDiscoveryRoutes($oauthPrefix = 'oauth') {
+    public function oauthRoutes($oauthPrefix = 'oauth') {
         Router::get('/.well-known/oauth-protected-resource', function () {
             return response()->json([
                 'resource' => config('app.url'),
@@ -61,6 +62,24 @@ class Registrar
                 'response_types_supported' => ['code'],
                 'code_challenge_methods_supported' => ['S256'],
                 'grant_types_supported' => ['authorization_code'],
+            ]);
+        });
+
+        Router::post($oauthPrefix . '/register', function (Request $request) {
+            $clients = app("Laravel\Passport\ClientRepository");
+            $payload = $request->json()->all();
+
+            $client = $clients->createAuthorizationCodeGrantClient(
+                name: $payload['client_name'],
+                redirectUris: $payload['redirect_uris'],
+                confidential: false,
+                user: null,
+                enableDeviceFlow: true,
+            );
+
+            return response()->json([
+                'client_id' => $client->id,
+                'redirect_uris' => $client->redirect_uris,
             ]);
         });
     }
