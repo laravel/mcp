@@ -45,7 +45,8 @@ class Registrar
         return $this->localServers[$handle] ?? null;
     }
 
-    public function oauthRoutes($oauthPrefix = 'oauth') {
+    public function oauthRoutes($oauthPrefix = 'oauth')
+    {
         Router::get('/.well-known/oauth-protected-resource', function () {
             return response()->json([
                 'resource' => config('app.url'),
@@ -56,16 +57,16 @@ class Registrar
         Router::get('/.well-known/oauth-authorization-server', function () use ($oauthPrefix) {
             return response()->json([
                 'issuer' => config('app.url'),
-                'authorization_endpoint' => url($oauthPrefix . '/authorize'),
-                'token_endpoint' => url($oauthPrefix . '/token'),
-                'registration_endpoint' => url($oauthPrefix . '/register'),
+                'authorization_endpoint' => url($oauthPrefix.'/authorize'),
+                'token_endpoint' => url($oauthPrefix.'/token'),
+                'registration_endpoint' => url($oauthPrefix.'/register'),
                 'response_types_supported' => ['code'],
                 'code_challenge_methods_supported' => ['S256'],
                 'grant_types_supported' => ['authorization_code'],
             ]);
         });
 
-        Router::post($oauthPrefix . '/register', function (Request $request) {
+        Router::post($oauthPrefix.'/register', function (Request $request) {
             $clients = app("Laravel\Passport\ClientRepository");
             $payload = $request->json()->all();
 

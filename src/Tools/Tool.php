@@ -4,11 +4,6 @@ namespace Laravel\Mcp\Tools;
 
 use Generator;
 use Illuminate\Support\Str;
-use Laravel\Mcp\Tools\Annotations\IsDestructive;
-use Laravel\Mcp\Tools\Annotations\IsIdempotent;
-use Laravel\Mcp\Tools\Annotations\IsOpenWorld;
-use Laravel\Mcp\Tools\Annotations\IsReadOnly;
-use Laravel\Mcp\Tools\Annotations\Title;
 use ReflectionClass;
 
 abstract class Tool
