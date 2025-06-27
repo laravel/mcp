@@ -30,7 +30,7 @@ class ListTools implements Method
                     'name' => $tool->name(),
                     'description' => $tool->description(),
                     'inputSchema' => $tool->schema(new ToolInputSchema)->toArray(),
-                    'annotations' => $tool->annotations(),
+                    'annotations' => $tool->annotations() ?: (object) [],
                 ];
             })
             ->sortBy('id')

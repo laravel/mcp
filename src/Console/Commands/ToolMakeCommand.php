@@ -68,8 +68,12 @@ class ToolMakeCommand extends GeneratorCommand
         $stub = parent::buildClass($name);
 
         $className = class_basename($name);
-        $toolName = Str::kebab($className);
+        $title = Str::headline($className);
 
-        return str_replace('{{ toolName }}', $toolName, $stub);
+        return str_replace(
+            '{{ title }}',
+            $title,
+            $stub,
+        );
     }
 }
