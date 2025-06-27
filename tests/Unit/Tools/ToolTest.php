@@ -24,16 +24,10 @@ class ToolTest extends TestCase
     }
 
     #[Test]
-    public function it_has_default_annotations()
+    public function it_returns_no_annotations_by_default()
     {
         $tool = new TestTool;
-        $this->assertEquals([
-            'title' => 'Test Tool',
-            'readOnlyHint' => false,
-            'destructiveHint' => true,
-            'idempotentHint' => false,
-            'openWorldHint' => true,
-        ], $tool->annotations());
+        $this->assertEquals([], $tool->annotations());
     }
 
     #[Test]
@@ -49,8 +43,6 @@ class ToolTest extends TestCase
         $tool = new ReadOnlyTool;
         $annotations = $tool->annotations();
         $this->assertTrue($annotations['readOnlyHint']);
-        $this->assertFalse($annotations['destructiveHint']);
-        $this->assertFalse($annotations['idempotentHint']);
     }
 
     #[Test]
@@ -58,7 +50,7 @@ class ToolTest extends TestCase
     {
         $tool = new SafeTool;
         $annotations = $tool->annotations();
-        $this->assertFalse($annotations['readOnlyHint']);
+        $this->assertArrayNotHasKey('readOnlyHint', $annotations);
         $this->assertFalse($annotations['destructiveHint']);
         $this->assertTrue($annotations['idempotentHint']);
     }

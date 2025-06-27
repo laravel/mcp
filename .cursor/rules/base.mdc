@@ -13,3 +13,4 @@ Mcp::cli('example', ExampleServer::class);
 ## Coding principles
 
 - Always use `#[Test]` attributes instead of prefixing test methods with `test_`.
+- If you are asked to write or update a test, don't write implementation code until you have explicitly been told to.

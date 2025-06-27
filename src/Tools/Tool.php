@@ -41,23 +41,10 @@ abstract class Tool
     public function annotations(): array
     {
         $reflection = new ReflectionClass($this);
-        $attributes = collect($reflection->getAttributes())
-            ->mapWithKeys(fn ($attribute) => [
-                $attribute->getName() => $attribute->newInstance(),
-            ]);
 
-        $readOnly = $attributes->get(IsReadOnly::class)?->value ?? false;
-        $destructive = $attributes->get(IsDestructive::class)?->value ?? true;
-        $idempotent = $attributes->get(IsIdempotent::class)?->value ?? false;
-        $openWorld = $attributes->get(IsOpenWorld::class)?->value ?? true;
-        $title = $attributes->get(Title::class)?->value ?? Str::headline(class_basename($this));
-
-        return [
-            'title' => $title,
-            'readOnlyHint' => $readOnly,
-            'destructiveHint' => $readOnly ? false : $destructive,
-            'idempotentHint' => $readOnly ? false : $idempotent,
-            'openWorldHint' => $openWorld,
-        ];
+        return collect($reflection->getAttributes())
+            ->map(fn ($attributeReflection) => $attributeReflection->newInstance())
+            ->mapWithKeys(fn ($attribute) => [$attribute->key() => $attribute->value])
+            ->all();
     }
 }
