@@ -46,20 +46,54 @@ class ToolTest extends TestCase
     }
 
     #[Test]
-    public function it_can_be_idempotent_and_not_destructive()
-    {
-        $tool = new SafeTool;
-        $annotations = $tool->annotations();
-        $this->assertArrayNotHasKey('readOnlyHint', $annotations);
-        $this->assertFalse($annotations['destructiveHint']);
-        $this->assertTrue($annotations['idempotentHint']);
-    }
-
-    #[Test]
     public function it_can_be_closed_world()
     {
         $tool = new ClosedWorldTool;
         $this->assertFalse($tool->annotations()['openWorldHint']);
+    }
+
+    #[Test]
+    public function it_can_be_idempotent()
+    {
+        $tool = new IdempotentTool;
+        $annotations = $tool->annotations();
+        $this->assertTrue($annotations['idempotentHint']);
+    }
+
+    #[Test]
+    public function it_can_be_destructive()
+    {
+        $tool = new DestructiveTool;
+        $annotations = $tool->annotations();
+        $this->assertTrue($annotations['destructiveHint']);
+    }
+
+    #[Test]
+    public function it_is_not_destructive()
+    {
+        $tool = new NotDestructiveTool;
+        $annotations = $tool->annotations();
+        $this->assertFalse($annotations['destructiveHint']);
+    }
+
+    #[Test]
+    public function it_can_be_open_world()
+    {
+        $tool = new OpenWorldTool;
+        $this->assertTrue($tool->annotations()['openWorldHint']);
+    }
+
+    #[Test]
+    public function it_can_have_multiple_annotations()
+    {
+        $tool = new KitchenSinkTool;
+        $this->assertEquals([
+            'title' => 'The Kitchen Sink',
+            'readOnlyHint' => true,
+            'idempotentHint' => true,
+            'destructiveHint' => false,
+            'openWorldHint' => false,
+        ], $tool->annotations());
     }
 }
 
@@ -87,11 +121,26 @@ class CustomTitleTool extends TestTool {}
 #[IsReadOnly]
 class ReadOnlyTool extends TestTool {}
 
-#[IsIdempotent]
-#[IsDestructive(false)]
-class SafeTool extends TestTool {}
-
 #[IsOpenWorld(false)]
 class ClosedWorldTool extends TestTool {}
+
+#[IsIdempotent]
+class IdempotentTool extends TestTool {}
+
+#[IsDestructive]
+class DestructiveTool extends TestTool {}
+
+#[IsDestructive(false)]
+class NotDestructiveTool extends TestTool {}
+
+#[IsOpenWorld]
+class OpenWorldTool extends TestTool {}
+
+#[Title('The Kitchen Sink')]
+#[IsReadOnly]
+#[IsIdempotent]
+#[IsDestructive(false)]
+#[IsOpenWorld(false)]
+class KitchenSinkTool extends TestTool {}
 
 class AnotherComplexToolName extends TestTool {}
