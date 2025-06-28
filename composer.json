@@ -26,8 +26,8 @@
     ],
     "require-dev": {
         "laravel/pint": "dev-main",
-        "orchestra/testbench": "^10.4.0",
-        "phpstan/phpstan": "2.1.x-dev"
+        "orchestra/testbench": "^9.0|^10.0",
+        "phpstan/phpstan": "^2.0"
     },
     "autoload-dev": {
         "psr-4": {
