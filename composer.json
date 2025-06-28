@@ -24,7 +24,6 @@
             "email": "peter@suhm.dk"
         }
     ],
-    "minimum-stability": "stable",
     "require-dev": {
         "laravel/pint": "dev-main",
         "orchestra/testbench": "^10.4.0",
@@ -60,5 +59,7 @@
             "@build",
             "@php vendor/bin/testbench serve --ansi"
         ]
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
