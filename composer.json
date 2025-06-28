@@ -3,7 +3,12 @@
     "description": "The easiest way to add MCP servers to your Laravel app.",
     "type": "library",
     "require": {
-        "illuminate/support": "^12.0"
+        "illuminate/console": "^11.35|^12.0",
+        "illuminate/contracts": "^11.35|^12.0",
+        "illuminate/http": "^11.35|^12.0",
+        "illuminate/routing": "^11.35|^12.0",
+        "illuminate/support": "^11.35|^12.0",
+        "illuminate/validation": "^11.35|^12.0"
     },
     "license": "MIT",
     "autoload": {
@@ -19,11 +24,11 @@
             "email": "peter@suhm.dk"
         }
     ],
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "require-dev": {
-        "orchestra/testbench": "10.x-dev",
-        "phpstan/phpstan": "2.1.x-dev",
-        "laravel/pint": "dev-main"
+        "laravel/pint": "dev-main",
+        "orchestra/testbench": "^10.4.0",
+        "phpstan/phpstan": "2.1.x-dev"
     },
     "autoload-dev": {
         "psr-4": {
