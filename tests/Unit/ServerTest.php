@@ -303,7 +303,6 @@ class ServerTest extends TestCase
                             'required' => ['name'],
                         ],
                         'annotations' => [],
-                        'id' => 1,
                     ],
                     [
                         'name' => 'streaming-tool',
@@ -319,7 +318,6 @@ class ServerTest extends TestCase
                             'required' => ['count'],
                         ],
                         'annotations' => [],
-                        'id' => 2,
                     ],
                 ],
             ],

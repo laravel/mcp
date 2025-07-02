@@ -21,6 +21,7 @@ This Laravel package helps you build MCP-compliant servers within your Laravel a
   - [Streaming Responses](#streaming-responses)
   - [Dynamically Adding Tools](#dynamically-adding-tools)
   - [Dynamically Adding Methods](#dynamically-adding-methods)
+- [What's Not Included (Yet!)](#whats-not-included-yet)
 
 ## Setup
 
@@ -407,3 +408,13 @@ public function boot(): void
     $this->addCapability('customFeature.enabled', true);
 }
 ```
+
+## What's Not Included (Yet!)
+
+Some features from the MCP specification that are not yet implemented:
+
+-   **`listChanged` notifications for tools:** The server doesn't proactively notify clients when the list of available tools changes. This would require a long-lived SSE connection for HTTP-based connections.
+-   **Image and audio content for tool results:** The `ToolResult` class currently supports text content, but not yet image or audio content types from the specification.
+-   **Capability Negotiation:** The server doesn't yet have logic for negotiating these capabilities with the client during initialization. There's currently no way to know the client's capabilities in subsequent requests (would require a long-lived session).
+-   **Timeouts:** The package doesn't have built-in handling for timeouts, which should result in a specific JSON-RPC error.
+-   **Long-lived Sessions:** The server currently operates in a stateless manner and doesn't support long-lived SSE sessions for things where the server initiates requests with the client. This is only possible for local server running on STDIO currently.

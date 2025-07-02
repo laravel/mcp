@@ -2,6 +2,8 @@
 
 namespace Laravel\Mcp;
 
+use Illuminate\Support\Collection;
+
 class ServerContext
 {
     /**
@@ -13,9 +15,20 @@ class ServerContext
         public string $serverName,
         public string $serverVersion,
         public string $instructions,
-        public array $tools,
         public array $resources,
         public int $maxPaginationLength,
         public int $defaultPaginationLength,
+        private array $tools,
     ) {}
+
+    public function tools(): Collection
+    {
+        return collect($this->tools)
+            ->map(fn ($toolClass) => is_string($toolClass) ? app($toolClass) : $toolClass);
+    }
+
+    public function perPage(?int $requestedPerPage = null): int
+    {
+        return min($requestedPerPage ?? $this->defaultPaginationLength, $this->maxPaginationLength);
+    }
 }

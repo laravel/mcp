@@ -274,7 +274,6 @@ class McpServerTest extends TestCase
                             'required' => ['name'],
                         ],
                         'annotations' => [],
-                        'id' => 1,
                     ],
                     [
                         'name' => 'streaming-tool',
@@ -290,7 +289,6 @@ class McpServerTest extends TestCase
                             'required' => ['count'],
                         ],
                         'annotations' => [],
-                        'id' => 2,
                     ],
                 ],
             ],

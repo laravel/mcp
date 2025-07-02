@@ -3,10 +3,11 @@
 namespace Laravel\Mcp\Tools;
 
 use Generator;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
 use ReflectionClass;
 
-abstract class Tool
+abstract class Tool implements Arrayable
 {
     /**
      * Get the name of the tool.
@@ -41,5 +42,15 @@ abstract class Tool
             ->map(fn ($attributeReflection) => $attributeReflection->newInstance())
             ->mapWithKeys(fn ($attribute) => [$attribute->key() => $attribute->value])
             ->all();
+    }
+
+    public function toArray(): array
+    {
+        return [
+            'name' => $this->name(),
+            'description' => $this->description(),
+            'inputSchema' => $this->schema(new ToolInputSchema)->toArray(),
+            'annotations' => $this->annotations() ?: (object) [],
+        ];
     }
 }
