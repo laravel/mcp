@@ -1,9 +1,7 @@
 parameters:
   paths:
-    - config
-    - database
-    - routes
     - src
+    - tests
 
   level: 0
 
