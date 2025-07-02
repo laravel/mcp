@@ -2,15 +2,19 @@
 
 namespace Laravel\Mcp\Resources;
 
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
 
-abstract class Resource
+abstract class Resource implements Arrayable
 {
-    public string $type = 'text'; // 'text' or 'blob'. blob will be base64 encoded.
-
     abstract public function description(): string;
 
     abstract public function read(): string;
+
+    public function handle(): ResourceResult
+    {
+        return new ResourceResult($this);
+    }
 
     public function name(): string
     {
@@ -30,5 +34,16 @@ abstract class Resource
     public function mimeType(): string
     {
         return 'text/plain';
+    }
+
+    public function toArray(): array
+    {
+        return [
+            'name' => $this->name(),
+            'title' => $this->title(),
+            'description' => $this->description(),
+            'uri' => $this->uri(),
+            'mimeType' => $this->mimeType(),
+        ];
     }
 }

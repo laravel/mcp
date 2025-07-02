@@ -2,6 +2,7 @@
 
 namespace Laravel\Mcp\Tests\Unit\Resources;
 
+use Laravel\Mcp\Resources\BlobResource;
 use Laravel\Mcp\Resources\Resource;
 use Laravel\Mcp\Resources\ResourceResult;
 use PHPUnit\Framework\Attributes\Test;
@@ -54,12 +55,9 @@ class ResourceResultTest extends TestCase
     {
         $binaryData = random_bytes(10);
 
-        $resource = new class($binaryData) extends Resource
+        $resource = new class($binaryData) extends BlobResource
         {
-            public function __construct(private string $data)
-            {
-                $this->type = 'blob';
-            }
+            public function __construct(private string $data) {}
 
             public function description(): string
             {
@@ -68,12 +66,12 @@ class ResourceResultTest extends TestCase
 
             public function uri(): string
             {
-                return 'file://resources/OVERRIDEN-URI_WOO';
+                return 'file://resources/I_CAN_BE_OVERRIDDEN';
             }
 
             public function mimeType(): string
             {
-                return 'i-exist/nice';
+                return 'audio/mp3';
             }
 
             public function read(): string
@@ -87,10 +85,10 @@ class ResourceResultTest extends TestCase
         $expected = [
             'contents' => [
                 [
-                    'uri' => $resource->uri(),
+                    'uri' => 'file://resources/I_CAN_BE_OVERRIDDEN',
                     'name' => $resource->name(),
                     'title' => $resource->title(),
-                    'mimeType' => $resource->mimeType(),
+                    'mimeType' => 'audio/mp3',
                     'blob' => base64_encode($binaryData),
                 ],
             ],

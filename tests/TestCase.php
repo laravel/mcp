@@ -23,19 +23,21 @@ abstract class TestCase extends TestbenchTestCase
         ];
     }
 
-    protected function getServerContext(): ServerContext
+    protected function getServerContext(array $properties = []): ServerContext
     {
-        return new ServerContext(
-            supportedProtocolVersions: [],
-            serverCapabilities: [],
-            serverName: 'test-server',
-            serverVersion: '1.0.0',
-            instructions: 'test-instructions',
-            tools: [],
-            resources: [],
-            maxPaginationLength: 3,
-            defaultPaginationLength: 3,
-        );
+        $properties = array_merge([
+            'supportedProtocolVersions' => [],
+            'serverCapabilities' => [],
+            'serverName' => 'test-server',
+            'serverVersion' => '1.0.0',
+            'instructions' => 'test-instructions',
+            'tools' => [],
+            'resources' => [],
+            'maxPaginationLength' => 3,
+            'defaultPaginationLength' => 3,
+        ], $properties);
+
+        return new ServerContext(...$properties);
     }
 
     protected function assertMethodResult(array $expected, JsonRpcResponse $response): void

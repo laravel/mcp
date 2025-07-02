@@ -50,7 +50,6 @@ class ResourceTest extends TestCase
     {
         $resource = $this->makeResource();
 
-        $this->assertSame('text', $resource->type);
         $this->assertSame('dummy-resource', $resource->name());
         $this->assertSame('Dummy Resource', $resource->title());
         $this->assertSame('file://resources/dummy-resource', $resource->uri());

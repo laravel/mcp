@@ -2,9 +2,9 @@
 
 namespace Laravel\Mcp\Methods;
 
+use Illuminate\Support\ItemNotFoundException;
 use InvalidArgumentException;
 use Laravel\Mcp\Contracts\Methods\Method;
-use Laravel\Mcp\Resources\ResourceResult;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -13,17 +13,18 @@ class ReadResource implements Method
 {
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
-        if (empty($request->params['uri'])) {
+        if (is_null($request->get('uri'))) {
             throw new InvalidArgumentException('Missing required parameter: uri');
         }
 
-        $resource = collect($context->resources)
-            ->map(fn ($resource) => is_string($resource) ? new $resource : $resource)
-            ->firstOrFail(fn ($resource) => $resource->uri() === $request->params['uri']);
+        $resource = $context->resources()->first(fn ($resource) => $resource->uri() === $request->get('uri'));
+        if (is_null($resource)) {
+            throw new ItemNotFoundException('Resource not found');
+        }
 
         return new JsonRpcResponse(
             $request->id,
-            (new ResourceResult($resource))->toArray(),
+            $resource->handle()->toArray(),
         );
     }
 }

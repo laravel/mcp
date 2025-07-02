@@ -13,7 +13,6 @@ class LastLogLineResource extends Resource
 
     public function read(): string
     {
-        // Return dummy log line content.
         return '2025-07-02 12:00:00 Error: Something went wrong.';
     }
 }

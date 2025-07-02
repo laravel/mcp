@@ -12,6 +12,9 @@ class ResourceResult implements Arrayable
 
     public function toArray(): array
     {
+        $key = $this->resource instanceof BlobResource ? 'blob' : 'text';
+        $content = ($this->resource instanceof BlobResource) ? base64_encode($this->resource->read()) : $this->resource->read();
+
         return [
             'contents' => [
                 [
@@ -19,16 +22,9 @@ class ResourceResult implements Arrayable
                     'name' => $this->resource->name(),
                     'title' => $this->resource->title(),
                     'mimeType' => $this->resource->mimeType(),
-                    $this->resource->type => $this->wrappedRead($this->resource),
+                    $key => $content,
                 ],
             ],
         ];
-    }
-
-    private function wrappedRead(Resource $resource): string
-    {
-        return $resource->type === 'text'
-            ? $resource->read()
-            : base64_encode($resource->read());
     }
 }

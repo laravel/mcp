@@ -37,20 +37,22 @@ class ListResourcesTest extends TestCase
         $listResources = new ListResources;
         $context = $this->getServerContext();
         $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/list', params: []);
+        $result = $listResources->handle($jsonRpcRequest, $context);
 
         $this->assertMethodResult([
             'resources' => [],
-        ], $listResources->handle($jsonRpcRequest, $context));
+        ], $result);
     }
 
     #[Test]
     public function it_returns_a_valid_populated_list_resources_response(): void
     {
         $listResources = new ListResources;
-        $context = $this->getServerContext();
-        $context->resources = [
-            $this->makeResource(),
-        ];
+        $context = $this->getServerContext([
+            'resources' => [
+                $this->makeResource(),
+            ],
+        ]);
         $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/list', params: []);
 
         $this->assertMethodResult([

@@ -2,13 +2,10 @@
 
 namespace Laravel\Mcp\Tests\Fixtures;
 
-use Laravel\Mcp\Resources\Resource;
+use Laravel\Mcp\Resources\BlobResource;
 
-class RecentMeetingRecordingResource extends Resource
+class RecentMeetingRecordingResource extends BlobResource
 {
-    // This resource represents a binary (video) file, so mark the type accordingly.
-    public string $type = 'blob';
-
     public function description(): string
     {
         return 'The most recent meeting recording';
