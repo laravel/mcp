@@ -2,7 +2,6 @@
 
 namespace Laravel\Mcp\Methods;
 
-use Illuminate\Support\Collection;
 use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\Pagination\CursorPaginator;
 use Laravel\Mcp\ServerContext;

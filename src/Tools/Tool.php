@@ -3,9 +3,9 @@
 namespace Laravel\Mcp\Tools;
 
 use Generator;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
 use ReflectionClass;
-use Illuminate\Contracts\Support\Arrayable;
 
 abstract class Tool implements Arrayable
 {
