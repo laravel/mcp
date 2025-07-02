@@ -13,17 +13,14 @@ class CursorPaginator
 
     private ?string $cursor;
 
-    private string $idField;
-
     /**
      * Create a new cursor paginator.
      */
-    public function __construct(Collection $items, int $perPage = 10, ?string $cursor = null, string $idField = 'id')
+    public function __construct(Collection $items, int $perPage = 10, ?string $cursor = null)
     {
-        $this->items = $items;
+        $this->items = $items->values();
         $this->perPage = $perPage;
         $this->cursor = $cursor;
-        $this->idField = $idField;
     }
 
     /**
@@ -31,61 +28,58 @@ class CursorPaginator
      */
     public function paginate(): array
     {
-        $startId = $this->getStartIdFromCursor();
+        $startOffset = $this->getStartOffsetFromCursor();
 
-        $filteredItems = $this->items->filter(fn ($item) => $item[$this->idField] >= $startId);
+        $paginatedItems = $this->items->slice($startOffset, $this->perPage);
 
-        $paginatedItems = $filteredItems->take($this->perPage);
-
-        $hasMorePages = $filteredItems->count() > $this->perPage;
+        $hasMorePages = $this->items->count() > ($startOffset + $this->perPage);
 
         $nextCursor = null;
 
         if ($hasMorePages) {
-            $lastItem = $paginatedItems->last();
-            $nextCursor = $this->createCursor($lastItem[$this->idField]);
+            $nextCursor = $this->createCursor($startOffset + $this->perPage);
         }
 
         return [
-            'items' => $paginatedItems->values(),
+            'items' => $paginatedItems->values()->toArray(),
             'nextCursor' => $nextCursor,
         ];
     }
 
     /**
-     * Get the start ID from the cursor.
+     * Get the start offset from the cursor.
      */
-    private function getStartIdFromCursor(): int
+    private function getStartOffsetFromCursor(): int
     {
         if (! $this->cursor) {
-            return 1;
+            return 0;
         }
 
         try {
             $decodedCursor = base64_decode($this->cursor, true);
 
             if ($decodedCursor === false) {
-                return 1;
+                return 0;
             }
 
             $cursorData = json_decode($decodedCursor, true);
 
             if (! is_array($cursorData)) {
-                return 1;
+                return 0;
             }
 
-            return ($cursorData['last_id'] ?? 0) + 1;
+            return (int) ($cursorData['offset'] ?? 0);
         } catch (Throwable $e) {
-            return 1;
+            return 0;
         }
     }
 
     /**
-     * Create a cursor from the last ID.
+     * Create a cursor from the offset.
      */
-    private function createCursor(int $lastId): string
+    private function createCursor(int $offset): string
     {
-        $cursorData = ['last_id' => $lastId];
+        $cursorData = ['offset' => $offset];
 
         return base64_encode(json_encode($cursorData));
     }

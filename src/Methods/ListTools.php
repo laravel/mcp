@@ -5,7 +5,6 @@ namespace Laravel\Mcp\Methods;
 use Laravel\Mcp\Contracts\Methods\Method;
 use Laravel\Mcp\Pagination\CursorPaginator;
 use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 
@@ -16,35 +15,17 @@ class ListTools implements Method
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
-        $encodedCursor = $request->params['cursor'] ?? null;
-        $requestedPerPage = $request->params['per_page'] ?? $context->defaultPaginationLength;
-        $maxPerPage = $context->maxPaginationLength;
+        $perPage = $context->perPage($request->params['per_page'] ?? null);
+        $cursor = $request->cursor();
 
-        $perPage = min($requestedPerPage, $maxPerPage);
+        $paginator = new CursorPaginator($context->tools(), $perPage, $cursor);
 
-        $tools = collect($context->tools)->values()
-            ->map(fn ($toolClass) => is_string($toolClass) ? app($toolClass) : $toolClass)
-            ->map(function ($tool, $index) {
-                return [
-                    'id' => $index + 1,
-                    'name' => $tool->name(),
-                    'description' => $tool->description(),
-                    'inputSchema' => $tool->schema(new ToolInputSchema)->toArray(),
-                    'annotations' => $tool->annotations() ?: (object) [],
-                ];
-            })
-            ->sortBy('id')
-            ->values();
+        ['items' => $items, 'nextCursor' => $nextCursor] = $paginator->paginate();
 
-        $paginator = new CursorPaginator($tools, $perPage, $encodedCursor);
-        $paginationResult = $paginator->paginate();
+        $response = ['tools' => $items];
 
-        $response = [
-            'tools' => $paginationResult['items']->toArray(),
-        ];
-
-        if (! is_null($paginationResult['nextCursor'])) {
-            $response['nextCursor'] = $paginationResult['nextCursor'];
+        if ($nextCursor) {
+            $response['nextCursor'] = $nextCursor;
         }
 
         return JsonRpcResponse::create($request->id, $response);

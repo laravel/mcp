@@ -24,8 +24,7 @@ class CallTool implements Method
     public function handle(JsonRpcRequest $request, ServerContext $context)
     {
         try {
-            $tool = collect($context->tools)
-                ->map(fn ($tool) => is_string($tool) ? app($tool) : $tool)
+            $tool = $context->tools()
                 ->firstOrFail(fn ($tool) => $tool->name() === $request->params['name']);
         } catch (ItemNotFoundException $e) {
             return JsonRpcResponse::create(
