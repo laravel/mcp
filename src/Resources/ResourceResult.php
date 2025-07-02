@@ -19,9 +19,16 @@ class ResourceResult implements Arrayable
                     'name' => $this->resource->name(),
                     'title' => $this->resource->title(),
                     'mimeType' => $this->resource->mimeType(),
-                    $this->resource->type => ($this->resource->type === 'text') ? $this->resource->read() : base64_encode($this->resource->read()),
+                    $this->resource->type => $this->wrappedRead($this->resource),
                 ],
             ],
         ];
+    }
+
+    private function wrappedRead(Resource $resource): string
+    {
+        return $resource->type === 'text'
+            ? $resource->read()
+            : base64_encode($resource->read());
     }
 }
