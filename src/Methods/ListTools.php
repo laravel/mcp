@@ -10,24 +10,14 @@ use Laravel\Mcp\Transport\JsonRpcResponse;
 
 class ListTools implements Method
 {
-    /**
-     * Handle the JSON-RPC tool/list request.
-     */
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
-        $perPage = $context->perPage($request->params['per_page'] ?? null);
-        $cursor = $request->cursor();
+        $paginator = new CursorPaginator(
+            items: $context->tools(),
+            perPage: $context->perPage($request->get('per_page')),
+            cursor: $request->cursor(),
+        );
 
-        $paginator = new CursorPaginator($context->tools(), $perPage, $cursor);
-
-        ['items' => $items, 'nextCursor' => $nextCursor] = $paginator->paginate();
-
-        $response = ['tools' => $items];
-
-        if ($nextCursor) {
-            $response['nextCursor'] = $nextCursor;
-        }
-
-        return JsonRpcResponse::create($request->id, $response);
+        return JsonRpcResponse::create($request->id, $paginator->paginate('tools'));
     }
 }
