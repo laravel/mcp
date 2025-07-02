@@ -1,8 +1,7 @@
-# Laravel MCP (Model Context Protocol)
+# Laravel MCP
 
-[Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is an open protocol that standardizes how applications provide context to Large Language Models (LLMs). It aims to be like a USB-C port for AI applications, enabling standardized connections between AI models and various data sources or tools.
-
-This Laravel package helps you build MCP-compliant servers within your Laravel applications. These servers can then expose tools that AI agents can use. It provides a structured way to define servers and their capabilities (tools), accessible via streamed HTTP (web) or STDIO (local artisan commands).
+## Introduction
+Laravel MCP gives you everything you need to build Laravel-powered MCP servers and let AI talk to your app.
 
 ## Table of Contents
 
@@ -23,17 +22,21 @@ This Laravel package helps you build MCP-compliant servers within your Laravel a
   - [Dynamically Adding Methods](#dynamically-adding-methods)
 - [What's Not Included (Yet!)](#whats-not-included-yet)
 
-## Setup
+## Installation
 
-### Publishing Routes
+To get started, install Laravel MCP via the Composer package manager:
 
-The package offers an optional route file `routes/ai.php` to define your MCP servers. To publish this file to your application\'s `routes` directory, run the following Artisan command:
+```bash
+composer require laravel/mcp
+```
+
+Next, you can optionally publish the `routes/ai.php` file to define your MCP servers:
 
 ```bash
 php artisan vendor:publish --tag=ai-routes
 ```
 
-The package automatically loads routes defined in this file. Web routes will be prefixed with `/mcp`.
+The package will automatically register MCP server defined in this file.
 
 ## Creating a Server
 
