@@ -14,7 +14,9 @@ class ServerContext
         public string $serverVersion,
         public string $instructions,
         public array $tools,
+        public array $resources,
         public int $maxPaginationLength,
         public int $defaultPaginationLength,
-    ) {}
+    ) {
+    }
 }

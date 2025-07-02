@@ -8,8 +8,10 @@ use Laravel\Mcp\Contracts\Transport\Transport;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Methods\CallTool;
 use Laravel\Mcp\Methods\Initialize;
+use Laravel\Mcp\Methods\ListResources;
 use Laravel\Mcp\Methods\ListTools;
 use Laravel\Mcp\Methods\Ping;
+use Laravel\Mcp\Methods\ReadResource;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 
 abstract class Server
@@ -27,6 +29,9 @@ abstract class Server
      */
     public array $capabilities = [
         'tools' => [
+            'listChanged' => false,
+        ],
+        'resources' => [
             'listChanged' => false,
         ],
     ];
@@ -51,6 +56,8 @@ abstract class Server
      */
     public array $tools = [];
 
+    public array $resources = [];
+
     /**
      * The maximum pagination length for tool/list calls.
      */
@@ -71,12 +78,16 @@ abstract class Server
      */
     protected array $registeredTools = [];
 
+    protected array $registeredResources = [];
+
     /**
      * The JSON-RPC methods available to the server.
      */
     protected array $methods = [
         'tools/list' => ListTools::class,
         'tools/call' => CallTool::class,
+        'resources/list' => ListResources::class,
+        'resources/read' => ReadResource::class,
         'ping' => Ping::class,
     ];
 
@@ -86,6 +97,7 @@ abstract class Server
     public function __construct()
     {
         $this->registeredTools = $this->tools;
+        $this->registeredResources = $this->resources;
     }
 
     /**
@@ -114,6 +126,7 @@ abstract class Server
             serverVersion: $this->serverVersion,
             instructions: $this->instructions,
             tools: $this->registeredTools,
+            resources: $this->registeredResources,
             maxPaginationLength: $this->maxPaginationLength,
             defaultPaginationLength: $this->defaultPaginationLength,
         );
@@ -154,6 +167,13 @@ abstract class Server
     {
         if (! in_array($tool, $this->registeredTools)) {
             $this->registeredTools[] = $tool;
+        }
+    }
+
+    public function addResource($resource)
+    {
+        if (! in_array($resource, $this->registeredResources)) {
+            $this->registeredResources[] = $resource;
         }
     }
 

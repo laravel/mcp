@@ -46,6 +46,7 @@ class ListToolsTest extends TestCase
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
             tools: [ExampleTool::class],
+            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 5,
         );
@@ -93,6 +94,7 @@ class ListToolsTest extends TestCase
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
             tools: $toolClasses,
+            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
         );
@@ -158,6 +160,7 @@ class ListToolsTest extends TestCase
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
             tools: $toolClasses,
+            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 7,
         );
@@ -191,6 +194,7 @@ class ListToolsTest extends TestCase
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
             tools: $toolClasses,
+            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
         );
@@ -224,6 +228,7 @@ class ListToolsTest extends TestCase
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
             tools: $toolClasses,
+            resources: [],
             maxPaginationLength: 7,
             defaultPaginationLength: 7,
         );
@@ -257,6 +262,7 @@ class ListToolsTest extends TestCase
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
             tools: $toolClasses,
+            resources: [],
             maxPaginationLength: 15,
             defaultPaginationLength: 5,
         );

@@ -32,6 +32,7 @@ class CallToolTest extends TestCase
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
             tools: [ExampleTool::class],
+            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
         );
@@ -73,6 +74,7 @@ class CallToolTest extends TestCase
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
             tools: [ExampleTool::class],
+            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
         );

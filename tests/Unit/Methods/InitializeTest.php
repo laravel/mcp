@@ -29,6 +29,7 @@ class InitializeTest extends TestCase
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
             tools: [],
+            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
         );
@@ -73,6 +74,7 @@ class InitializeTest extends TestCase
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
             tools: [],
+            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
         );
@@ -111,6 +113,7 @@ class InitializeTest extends TestCase
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
             tools: [],
+            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
         );

@@ -23,6 +23,38 @@ class McpServerTest extends TestCase
     }
 
     #[Test]
+    public function it_can_list_resources_over_http()
+    {
+        $sessionId = $this->initializeHttpConnection();
+
+        $response = $this->postJson(
+            'test-mcp',
+            $this->listResourcesMessage(),
+            ['Mcp-Session-Id' => $sessionId],
+        );
+
+        $response->assertStatus(200);
+
+        $this->assertEquals($this->expectedListResourcesResponse(), $response->json());
+    }
+
+    #[Test]
+    public function it_can_read_a_resource_over_http()
+    {
+        $sessionId = $this->initializeHttpConnection();
+
+        $response = $this->postJson(
+            'test-mcp',
+            $this->readResourceMessage(),
+            ['Mcp-Session-Id' => $sessionId],
+        );
+
+        $response->assertStatus(200);
+
+        $this->assertEquals($this->expectedReadResourceResponse(), $response->json());
+    }
+
+    #[Test]
     public function it_can_list_tools_over_http()
     {
         $sessionId = $this->initializeHttpConnection();
@@ -265,6 +297,48 @@ class McpServerTest extends TestCase
         ];
     }
 
+    private function listResourcesMessage(): array
+    {
+        return [
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'resources/list',
+        ];
+    }
+
+    private function expectedListResourcesResponse(): array
+    {
+        return [
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'result' => [
+                'resources' => [
+                    [
+                        'name' => 'last-log-line-resource',
+                        'title' => 'Last Log Line Resource',
+                        'description' => 'The last line of the log file',
+                        'uri' => 'file://resources/last-log-line-resource',
+                        'mimeType' => 'text/plain',
+                    ],
+                    [
+                        'name' => 'daily-plan-resource',
+                        'title' => 'Daily Plan Resource',
+                        'description' => 'The plan for the day',
+                        'uri' => 'file://resources/daily-plan.md',
+                        'mimeType' => 'text/markdown',
+                    ],
+                    [
+                        'name' => 'recent-meeting-recording-resource',
+                        'title' => 'Recent Meeting Recording Resource',
+                        'description' => 'The most recent meeting recording',
+                        'uri' => 'file://resources/recent-meeting-recording.mp4',
+                        'mimeType' => 'video/mp4',
+                    ],
+                ],
+            ],
+        ];
+    }
+
     private function callToolMessage(): array
     {
         return [
@@ -276,6 +350,35 @@ class McpServerTest extends TestCase
                 'arguments' => [
                     'name' => 'John Doe',
                 ],
+            ],
+        ];
+    }
+
+    private function readResourceMessage(): array
+    {
+        return [
+            'jsonrpc' => '2.0',
+            'id' => 123,
+            'method' => 'resources/read',
+            'params' => [
+                'uri' => 'file://resources/last-log-line-resource',
+            ],
+        ];
+    }
+
+    private function expectedReadResourceResponse(): array
+    {
+        return [
+            'jsonrpc' => '2.0',
+            'id' => 123,
+            'result' => [
+                'contents' => [[
+                    'text' => '2025-07-02 12:00:00 Error: Something went wrong.',
+                    'uri' => 'file://resources/last-log-line-resource',
+                    'title' => 'Last Log Line Resource',
+                    'mimeType' => 'text/plain',
+                    'name' => 'last-log-line-resource',
+                ]],
             ],
         ];
     }

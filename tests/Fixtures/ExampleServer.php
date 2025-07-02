@@ -10,4 +10,10 @@ class ExampleServer extends Server
         ExampleTool::class,
         StreamingTool::class,
     ];
+
+    public array $resources = [
+        LastLogLineResource::class,
+        DailyPlanResource::class,
+        RecentMeetingRecordingResource::class,
+    ];
 }
