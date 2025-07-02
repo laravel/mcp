@@ -116,31 +116,49 @@ class TestTool extends Tool
 }
 
 #[Title('Custom Title Tool')]
-class CustomTitleTool extends TestTool {}
+class CustomTitleTool extends TestTool
+{
+}
 
 #[IsReadOnly]
-class ReadOnlyTool extends TestTool {}
+class ReadOnlyTool extends TestTool
+{
+}
 
 #[IsOpenWorld(false)]
-class ClosedWorldTool extends TestTool {}
+class ClosedWorldTool extends TestTool
+{
+}
 
 #[IsIdempotent]
-class IdempotentTool extends TestTool {}
+class IdempotentTool extends TestTool
+{
+}
 
 #[IsDestructive]
-class DestructiveTool extends TestTool {}
+class DestructiveTool extends TestTool
+{
+}
 
 #[IsDestructive(false)]
-class NotDestructiveTool extends TestTool {}
+class NotDestructiveTool extends TestTool
+{
+}
 
 #[IsOpenWorld]
-class OpenWorldTool extends TestTool {}
+class OpenWorldTool extends TestTool
+{
+}
 
 #[Title('The Kitchen Sink')]
 #[IsReadOnly]
 #[IsIdempotent]
 #[IsDestructive(false)]
 #[IsOpenWorld(false)]
-class KitchenSinkTool extends TestTool {}
+class KitchenSinkTool extends TestTool
+{
+}
 
-class AnotherComplexToolName extends TestTool {}
+class AnotherComplexToolName extends TestTool
+{
+}

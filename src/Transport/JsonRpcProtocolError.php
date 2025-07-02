@@ -12,7 +12,8 @@ class JsonRpcProtocolError
         public readonly string $message,
         public readonly mixed $requestId = null,
         public readonly ?array $data = null
-    ) {}
+    ) {
+    }
 
     /**
      * Convert the error response to an array.

@@ -13,7 +13,8 @@ class JsonRpcRequest
         public ?int $id,
         public string $method,
         public array $params,
-    ) {}
+    ) {
+    }
 
     /**
      * Create a new JSON-RPC request from a JSON string.
