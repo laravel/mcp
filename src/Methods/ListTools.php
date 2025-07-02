@@ -35,11 +35,9 @@ class ListTools implements Method
 
     public function toolsWithIds(Collection $tools): Collection
     {
-        return $tools
-            ->map(fn ($tool, $index) => [
-                'id' => $index + 1,
-                ...$tool->toArray(),
-            ])
-            ->sortBy('id');
+        return $tools->map(fn ($tool, $index) => [
+            'id' => $index + 1,
+            ...$tool->toArray(),
+        ]);
     }
 }
