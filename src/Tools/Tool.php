@@ -42,4 +42,14 @@ abstract class Tool
             ->mapWithKeys(fn ($attribute) => [$attribute->key() => $attribute->value])
             ->all();
     }
+
+    public function toArray(): array
+    {
+        return [
+            'name' => $this->name(),
+            'description' => $this->description(),
+            'inputSchema' => $this->schema(new ToolInputSchema)->toArray(),
+            'annotations' => $this->annotations() ?: (object) [],
+        ];
+    }
 }

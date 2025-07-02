@@ -47,7 +47,7 @@ class CursorPaginator
         }
 
         return [
-            'items' => $paginatedItems->values(),
+            'items' => $paginatedItems->values()->toArray(),
             'nextCursor' => $nextCursor,
         ];
     }

@@ -46,4 +46,9 @@ class JsonRpcRequest
             params: $data['params'] ?? []
         );
     }
+
+    public function cursor(): ?string
+    {
+        return $this->params['cursor'] ?? null;
+    }
 }
