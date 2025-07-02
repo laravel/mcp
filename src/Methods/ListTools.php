@@ -16,11 +16,10 @@ class ListTools implements Method
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
-        $tools = $this->toolsWithIds($context->tools());
         $perPage = $context->perPage($request->params['per_page'] ?? null);
         $cursor = $request->cursor();
 
-        $paginator = new CursorPaginator($tools, $perPage, $cursor);
+        $paginator = new CursorPaginator($context->tools(), $perPage, $cursor);
 
         ['items' => $items, 'nextCursor' => $nextCursor] = $paginator->paginate();
 
@@ -31,13 +30,5 @@ class ListTools implements Method
         }
 
         return JsonRpcResponse::create($request->id, $response);
-    }
-
-    public function toolsWithIds(Collection $tools): Collection
-    {
-        return $tools->map(fn ($tool, $index) => [
-            'id' => $index + 1,
-            ...$tool->toArray(),
-        ]);
     }
 }

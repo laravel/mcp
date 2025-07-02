@@ -5,8 +5,9 @@ namespace Laravel\Mcp\Tools;
 use Generator;
 use Illuminate\Support\Str;
 use ReflectionClass;
+use Illuminate\Contracts\Support\Arrayable;
 
-abstract class Tool
+abstract class Tool implements Arrayable
 {
     /**
      * Get the name of the tool.

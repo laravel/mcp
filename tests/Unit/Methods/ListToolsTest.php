@@ -72,7 +72,6 @@ class ListToolsTest extends TestCase
                         'required' => ['name'],
                     ],
                     'annotations' => (object) [],
-                    'id' => 1,
                 ],
             ],
         ], $response->result);
@@ -115,10 +114,8 @@ class ListToolsTest extends TestCase
         $this->assertNotNull($firstPageResponse->result['nextCursor']);
 
         $this->assertEquals('dummy-tool1', $firstPageResponse->result['tools'][0]['name']);
-        $this->assertEquals(1, $firstPageResponse->result['tools'][0]['id']);
 
         $this->assertEquals('dummy-tool10', $firstPageResponse->result['tools'][9]['name']);
-        $this->assertEquals(10, $firstPageResponse->result['tools'][9]['id']);
 
         $nextCursor = $firstPageResponse->result['nextCursor'];
 
@@ -137,10 +134,8 @@ class ListToolsTest extends TestCase
         $this->assertArrayNotHasKey('nextCursor', $secondPageResponse->result);
 
         $this->assertEquals('dummy-tool11', $secondPageResponse->result['tools'][0]['name']);
-        $this->assertEquals(11, $secondPageResponse->result['tools'][0]['id']);
 
         $this->assertEquals('dummy-tool12', $secondPageResponse->result['tools'][1]['name']);
-        $this->assertEquals(12, $secondPageResponse->result['tools'][1]['id']);
     }
 
     #[Test]
