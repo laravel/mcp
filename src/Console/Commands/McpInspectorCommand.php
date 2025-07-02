@@ -26,7 +26,7 @@ class McpInspectorCommand extends Command
         $command = [
             'npx',
             '@modelcontextprotocol/inspector',
-            'php',
+            PHP_BINARY,
             $currentDir.'/artisan',
             "mcp:start {$handle}",
         ];
