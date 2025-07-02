@@ -32,7 +32,7 @@ class ReadResourceTest extends TestCase
     public function it_returns_a_valid_resource_result(): void
     {
         $resource = $this->makeResource();
-        $readResource = new ReadResource();
+        $readResource = new ReadResource;
         $context = $this->getServerContext();
         $context->resources = [
             $resource,

@@ -165,14 +165,14 @@ abstract class Server
      */
     public function addTool($tool)
     {
-        if (! in_array($tool, $this->registeredTools)) {
+        if (! in_array($tool, $this->registeredTools, true)) {
             $this->registeredTools[] = $tool;
         }
     }
 
     public function addResource($resource)
     {
-        if (! in_array($resource, $this->registeredResources)) {
+        if (! in_array($resource, $this->registeredResources, true)) {
             $this->registeredResources[] = $resource;
         }
     }

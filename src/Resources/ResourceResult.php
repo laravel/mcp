@@ -8,9 +8,7 @@ use Illuminate\Contracts\Support\Arrayable;
 
 class ResourceResult implements Arrayable
 {
-    public function __construct(public readonly Resource $resource)
-    {
-    }
+    public function __construct(public readonly Resource $resource) {}
 
     public function toArray(): array
     {

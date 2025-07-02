@@ -28,13 +28,13 @@ class ListResourcesTest extends TestCase
 {
     private function makeResource(): Resource
     {
-        return new DummyResource();
+        return new DummyResource;
     }
 
     #[Test]
     public function it_returns_a_valid_empty_list_resources_response(): void
     {
-        $listResources = new ListResources();
+        $listResources = new ListResources;
         $context = $this->getServerContext();
         $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/list', params: []);
 
@@ -46,7 +46,7 @@ class ListResourcesTest extends TestCase
     #[Test]
     public function it_returns_a_valid_populated_list_resources_response(): void
     {
-        $listResources = new ListResources();
+        $listResources = new ListResources;
         $context = $this->getServerContext();
         $context->resources = [
             $this->makeResource(),

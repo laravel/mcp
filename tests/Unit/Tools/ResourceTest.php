@@ -24,7 +24,7 @@ class ResourceTest extends TestCase
 {
     private function makeResource(): Resource
     {
-        return new DummyResource();
+        return new DummyResource;
     }
 
     private function makeBlobResource(): Resource
@@ -32,6 +32,7 @@ class ResourceTest extends TestCase
         return new class extends Resource
         {
             public string $type = 'blob';
+
             public function description(): string
             {
                 return 'A test resource';

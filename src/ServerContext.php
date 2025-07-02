@@ -17,6 +17,5 @@ class ServerContext
         public array $resources,
         public int $maxPaginationLength,
         public int $defaultPaginationLength,
-    ) {
-    }
+    ) {}
 }

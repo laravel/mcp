@@ -12,8 +12,7 @@ class JsonRpcResponse
     public function __construct(
         public int $id,
         public array $result,
-    ) {
-    }
+    ) {}
 
     /**
      * Create a new JSON-RPC response.
