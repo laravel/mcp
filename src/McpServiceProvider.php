@@ -8,6 +8,7 @@ use Laravel\Mcp\Console\Commands\McpInspectorCommand;
 use Laravel\Mcp\Console\Commands\ServerMakeCommand;
 use Laravel\Mcp\Console\Commands\StartServerCommand;
 use Laravel\Mcp\Console\Commands\ToolMakeCommand;
+use Laravel\Mcp\Console\Commands\ResourceMakeCommand;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -25,6 +26,7 @@ class McpServiceProvider extends ServiceProvider
                 StartServerCommand::class,
                 ServerMakeCommand::class,
                 ToolMakeCommand::class,
+                ResourceMakeCommand::class,
                 McpInspectorCommand::class,
             ]);
         }
