@@ -8,6 +8,8 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Process\Process;
 
+use function Illuminate\Support\php_binary;
+
 #[AsCommand(
     name: 'mcp:inspector',
     description: 'Open the MCP inspector tool to debug and test MCP servers'
@@ -27,7 +29,7 @@ class McpInspectorCommand extends Command
         $command = [
             'npx',
             '@modelcontextprotocol/inspector',
-            PHP_BINARY,
+            php_binary(),
             $currentDir.'/artisan',
             "mcp:start {$handle}",
         ];
