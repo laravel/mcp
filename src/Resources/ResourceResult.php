@@ -5,26 +5,45 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Resources;
 
 use Illuminate\Contracts\Support\Arrayable;
+use Laravel\Mcp\Contracts\Resources\Content;
+use Laravel\Mcp\Resources\Results\Blob;
+use Laravel\Mcp\Resources\Results\Text;
 
 class ResourceResult implements Arrayable
 {
+    /** @var array<\Laravel\Mcp\Contracts\Resources\Content> */
+    private array $contents = [];
+
     public function __construct(public readonly Resource $resource) {}
+
+    public function content(Content $content): self
+    {
+        $this->contents[] = $content;
+
+        return $this;
+    }
+
+    public function blob(string $content): self
+    {
+        return $this->content(new Blob($content));
+    }
+
+    public function text(string $content): self
+    {
+        return $this->content(new Text($content));
+    }
 
     public function toArray(): array
     {
-        $key = $this->resource instanceof BlobResource ? 'blob' : 'text';
-        $content = ($this->resource instanceof BlobResource) ? base64_encode($this->resource->read()) : $this->resource->read();
-
         return [
-            'contents' => [
-                [
+            'contents' => collect($this->contents)
+                ->map(fn (Content $item) => array_merge([
                     'uri' => $this->resource->uri(),
                     'name' => $this->resource->name(),
                     'title' => $this->resource->title(),
                     'mimeType' => $this->resource->mimeType(),
-                    $key => $content,
-                ],
-            ],
+                ], $item->toArray()))
+                ->all(),
         ];
     }
 }

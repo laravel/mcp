@@ -2,7 +2,9 @@
 
 namespace Laravel\Mcp\Tests;
 
+use Laravel\Mcp\Contracts\Resources\Content;
 use Laravel\Mcp\McpServiceProvider;
+use Laravel\Mcp\Resources\Resource;
 use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Orchestra\Testbench\TestCase as TestbenchTestCase;
@@ -71,5 +73,51 @@ abstract class TestCase extends TestbenchTestCase
                 $this->assertEquals($value, $actual[$key]);
             }
         }
+    }
+
+    protected function makeResource(
+        string|Content $content = 'resource-content',
+        string $description = 'A test resource',
+        array $overrides = [],
+    ): Resource {
+        return new class($content, $description, $overrides) extends Resource
+        {
+            public function __construct(
+                private string|Content $contentValue,
+                private string $desc,
+                private array $overrides,
+            ) {}
+
+            public function description(): string
+            {
+                return $this->desc;
+            }
+
+            public function read(): string|Content
+            {
+                return $this->contentValue;
+            }
+
+            public function uri(): string
+            {
+                return $this->overrides['uri'] ?? parent::uri();
+            }
+
+            public function mimeType(): string
+            {
+                return $this->overrides['mimeType'] ?? parent::mimeType();
+            }
+        };
+    }
+
+    protected function makeBinaryResource(
+        string $filePath,
+        string $description = 'A binary resource',
+        array $overrides = [],
+    ): Resource {
+        $content = file_get_contents($filePath);
+        $overrides['mimeType'] = $overrides['mimeType'] ?? mime_content_type($filePath) ?? 'application/octet-stream';
+
+        return $this->makeResource($content, $description, $overrides);
     }
 }

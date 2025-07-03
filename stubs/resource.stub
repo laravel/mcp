@@ -19,8 +19,6 @@ class {{ class }} extends Resource
      */
     public function read(): string
     {
-        // Implement resource retrieval logic here
-
-        return '';
+        return 'Implement resource retrieval logic here';
     }
 }

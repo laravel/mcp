@@ -2,9 +2,9 @@
 
 namespace Laravel\Mcp\Tests\Fixtures;
 
-use Laravel\Mcp\Resources\BlobResource;
+use Laravel\Mcp\Resources\Resource;
 
-class RecentMeetingRecordingResource extends BlobResource
+class RecentMeetingRecordingResource extends Resource
 {
     public function description(): string
     {
@@ -13,8 +13,7 @@ class RecentMeetingRecordingResource extends BlobResource
 
     public function read(): string
     {
-        // Return dummy binary data for the video as a string (not base64-encoded here; encoding handled in ResourceResult).
-        return 'dummy-binary-data';
+        return "This is a test resource.\0dummy-binary-data";
     }
 
     public function uri(): string
