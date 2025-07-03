@@ -5,10 +5,10 @@ namespace Laravel\Mcp;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Console\Commands\McpInspectorCommand;
+use Laravel\Mcp\Console\Commands\ResourceMakeCommand;
 use Laravel\Mcp\Console\Commands\ServerMakeCommand;
 use Laravel\Mcp\Console\Commands\StartServerCommand;
 use Laravel\Mcp\Console\Commands\ToolMakeCommand;
-use Laravel\Mcp\Console\Commands\ResourceMakeCommand;
 
 class McpServiceProvider extends ServiceProvider
 {
