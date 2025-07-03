@@ -23,10 +23,14 @@ abstract class Resource implements Arrayable
             return $result->content($this->content);
         }
 
-        // If binary is detected, return a blob
-        return strpos($this->content, "\0") !== false
+        return $this->isBinary($this->content)
             ? $result->blob($this->content)
             : $result->text($this->content);
+    }
+
+    private function isBinary(string $content): bool
+    {
+        return strpos($content, "\0") !== false;
     }
 
     private function content(): string|Content
