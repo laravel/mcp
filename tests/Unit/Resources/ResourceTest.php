@@ -172,4 +172,20 @@ class ResourceTest extends TestCase
 
         $this->assertSame('This is a test resource.', $result->toArray()['contents'][0]['text']);
     }
+
+    #[Test]
+    public function description_property_works_as_expected(): void
+    {
+        $resource = new class extends Resource
+        {
+            protected string $description = 'A test resource.';
+
+            public function read(): string
+            {
+                return 'This is a test resource.';
+            }
+        };
+
+        $this->assertSame('A test resource.', $resource->description());
+    }
 }

@@ -8,11 +8,16 @@ use Laravel\Mcp\Contracts\Resources\Content;
 
 abstract class Resource implements Arrayable
 {
+    protected string $description = '';
+
     protected $content;
 
-    abstract public function description(): string;
-
     abstract public function read(): string|Content;
+
+    public function description(): string
+    {
+        return $this->description;
+    }
 
     public function handle(): ResourceResult
     {

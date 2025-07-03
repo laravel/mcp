@@ -6,19 +6,17 @@ use Laravel\Mcp\Resources\Resource;
 
 class {{ class }} extends Resource
 {
-    /**
-     * A description of the resource's contents.
-     */
-    public function description(): string
-    {
-        return 'A description of what this resource contains.';
-    }
+    protected string $description = 'A description of what this resource contains.';
 
     /**
      * Return the resource contents.
      */
     public function read(): string
     {
+        ResourceResult::text('Howdy');
+        ResourceResult::binary('Howdy');
+        ResourceResult::blob('Howdy');
+
         return 'Implement resource retrieval logic here';
     }
 }
