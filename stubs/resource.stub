@@ -1,0 +1,18 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravel\Mcp\Resources\Resource;
+
+class {{ class }} extends Resource
+{
+    protected string $description = 'A description of what this resource contains.';
+
+    /**
+     * Return the resource contents.
+     */
+    public function read(): string
+    {
+        return 'Implement resource retrieval logic here';
+    }
+}

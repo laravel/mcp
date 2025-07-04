@@ -1,0 +1,17 @@
+{
+    "preset": "laravel",
+    "rules": {
+        "global_namespace_import": {
+            "import_classes": true,
+            "import_constants": true
+        },
+        "combine_consecutive_issets": true,
+        "combine_consecutive_unsets": true,
+        "explicit_string_variable": true,
+        "method_chaining_indentation": true,
+        "no_binary_string": false,
+        "strict_comparison": true,
+        "strict_param": true,
+        "ternary_to_null_coalescing": true
+    }
+}

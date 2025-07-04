@@ -93,7 +93,7 @@ class ToolInputSchema
      */
     public function required(): self
     {
-        if ($this->currentProperty && ! in_array($this->currentProperty, $this->requiredProperties)) {
+        if ($this->currentProperty && ! in_array($this->currentProperty, $this->requiredProperties, true)) {
             $this->requiredProperties[] = $this->currentProperty;
         }
 

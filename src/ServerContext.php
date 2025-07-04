@@ -18,12 +18,25 @@ class ServerContext
         public int $maxPaginationLength,
         public int $defaultPaginationLength,
         private array $tools,
+        private array $resources,
     ) {}
 
+    /**
+     * @return Collection<int, \Laravel\Mcp\Tools\Tool>
+     */
     public function tools(): Collection
     {
         return collect($this->tools)
             ->map(fn ($toolClass) => is_string($toolClass) ? app($toolClass) : $toolClass);
+    }
+
+    /**
+     * @return Collection<int, \Laravel\Mcp\Resources\Resource>
+     */
+    public function resources(): Collection
+    {
+        return collect($this->resources)
+            ->map(fn ($resourceClass) => is_string($resourceClass) ? app($resourceClass) : $resourceClass);
     }
 
     public function perPage(?int $requestedPerPage = null): int

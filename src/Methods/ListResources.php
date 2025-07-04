@@ -8,16 +8,16 @@ use Laravel\Mcp\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 
-class ListTools implements Method
+class ListResources implements Method
 {
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
         $paginator = new CursorPaginator(
-            items: $context->tools(),
+            items: $context->resources(),
             perPage: $context->perPage($request->get('per_page')),
             cursor: $request->cursor(),
         );
 
-        return JsonRpcResponse::create($request->id, $paginator->paginate('tools'));
+        return JsonRpcResponse::create($request->id, $paginator->paginate('resources'));
     }
 }

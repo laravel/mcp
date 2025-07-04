@@ -67,7 +67,7 @@ class CursorPaginatorTest extends TestCase
         $result = $paginator->paginate();
 
         $this->assertCount(3, $result['items']);
-        $this->assertNull($result['nextCursor']);
+        $this->assertArrayNotHasKey('nextCursor', $result);
     }
 
     #[Test]

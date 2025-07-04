@@ -2,10 +2,13 @@
 
 namespace Laravel\Mcp\Console\Commands;
 
+use Exception;
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Process\Process;
+
+use function Illuminate\Support\php_binary;
 
 #[AsCommand(
     name: 'mcp:inspector',
@@ -26,7 +29,7 @@ class McpInspectorCommand extends Command
         $command = [
             'npx',
             '@modelcontextprotocol/inspector',
-            'php',
+            php_binary(),
             $currentDir.'/artisan',
             "mcp:start {$handle}",
         ];
@@ -40,7 +43,7 @@ class McpInspectorCommand extends Command
             $process->mustRun(function ($type, $buffer) {
                 echo $buffer;
             });
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error('Failed to start MCP Inspector: '.$e->getMessage());
 
             return Command::FAILURE;

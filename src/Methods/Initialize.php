@@ -17,7 +17,7 @@ class Initialize implements Method
     {
         $requestedVersion = $request->params['protocolVersion'] ?? null;
 
-        if (! is_null($requestedVersion) && ! in_array($requestedVersion, $context->supportedProtocolVersions)) {
+        if (! is_null($requestedVersion) && ! in_array($requestedVersion, $context->supportedProtocolVersions, true)) {
             throw new JsonRpcException(
                 message: 'Unsupported protocol version',
                 code: -32602,

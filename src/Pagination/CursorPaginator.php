@@ -26,7 +26,7 @@ class CursorPaginator
     /**
      * Paginate the items using a cursor.
      */
-    public function paginate(): array
+    public function paginate(string $key = 'items'): array
     {
         $startOffset = $this->getStartOffsetFromCursor();
 
@@ -34,16 +34,13 @@ class CursorPaginator
 
         $hasMorePages = $this->items->count() > ($startOffset + $this->perPage);
 
-        $nextCursor = null;
+        $result = [$key => $paginatedItems->values()->toArray()];
 
         if ($hasMorePages) {
-            $nextCursor = $this->createCursor($startOffset + $this->perPage);
+            $result['nextCursor'] = $this->createCursor($startOffset + $this->perPage);
         }
 
-        return [
-            'items' => $paginatedItems->values()->toArray(),
-            'nextCursor' => $nextCursor,
-        ];
+        return $result;
     }
 
     /**
