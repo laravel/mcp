@@ -456,13 +456,11 @@ class ChatStreamingTool extends Tool
 }
 ```
 
-### Dynamically Adding Tools
+## Programmatically Adding Tools
 
-In addition to registering tools via the `$tools` property on your server, you can also add them dynamically within the `boot()` method. This is useful when the availability of a tool depends on runtime conditions, such as application configuration.
+In addition to registering tools via the `$tools` property on your server, you can also add them programmatically by overriding the `boot()` method.
 
-The `addTool()` method accepts an instance of a class that extends `Laravel\Mcp\Tools\Tool`. You can pass a pre-existing tool class instance or define one on-the-fly with an anonymous class.
-
-Here's how you can add a tool using an anonymous class inside your server's `boot()` method:
+The `addTool()` method accepts an instance of a class that extends `Laravel\Mcp\Tools\Tool`. You can pass a class name or define one on-the-fly with an anonymous class:
 
 ```php
 public function boot(): void
