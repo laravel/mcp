@@ -423,15 +423,13 @@ For web-based servers, the inspector must be started and configured manually:
 npx @modelcontextprotocol/inspector
 ```
 
-## Advanced
+## Streaming Tool Responses
 
-### Streaming Responses
+For tools that send multiple updates or stream large amounts of data, you can return a generator from the `handle()` method. For web-based servers, this automatically opens an SSE stream and sends an event for each message the generator yields.
 
-For tools that need to send multiple updates to the client before completing, or that produce a large amount of data, you can return a generator from the `handle` method. For web-based servers, this will automatically open an SSE stream to the client.
+Within your generator, you can yield any number of `Laravel\Mcp\Tools\ToolNotification` instances to send intermediate updates to the client. When you're done, yield a single `Laravel\Mcp\Tools\ToolResult` to complete the execution.
 
-Within your generator, you can `yield` instances of `Laravel\Mcp\Tools\ToolNotification` for intermediate updates and finally `yield` a single `Laravel\Mcp\Tools\ToolResult` for the main result of the tool execution.
-
-This is particularly useful for long-running tasks or when you want to provide real-time feedback to the client, such as streaming tokens in a chat application.
+This is particularly useful for long-running tasks or when you want to provide real-time feedback to the client, such as streaming tokens in a chat application:
 
 ```php
 <?php
@@ -440,31 +438,17 @@ namespace App\Mcp\Tools;
 
 use Generator;
 use Laravel\Mcp\Tools\Tool;
-use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolNotification;
 use Laravel\Mcp\Tools\ToolResult;
 
 class ChatStreamingTool extends Tool
 {
-    public function description(): string
-    {
-        return 'A tool that streams a chat response.';
-    }
-
-    public function schema(ToolInputSchema $schema): ToolInputSchema
-    {
-        return $schema->string('message')->description('The message to stream back.');
-    }
-
     public function handle(array $arguments): Generator
     {
-        $message = $arguments['message'] ?? "Here's a message from the chat bot.";
-        $tokens = explode(' ', $message);
+        $tokens = explode(' ', $arguments['message']);
 
         foreach ($tokens as $token) {
             yield new ToolNotification('chat/token', ['token' => $token . ' ']);
-
-            usleep(100000);
         }
 
         yield ToolResult::text("Message streamed successfully.");
