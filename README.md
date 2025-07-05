@@ -1,7 +1,7 @@
-# Laravel MCP
+# 🤖 Laravel MCP
 
 ## Introduction
-Laravel MCP gives you everything you need to build Laravel-powered MCP servers and let AI talk to your app.
+Laravel MCP gives you everything you need to build Laravel-powered MCP servers and let AI talk to your apps.
 
 ## Installation
 
@@ -21,13 +21,13 @@ The package will automatically register MCP server defined in this file.
 
 ## Quickstart
 
-First, create a new server class using the `mcp:server` Artisan command:
+First, create a new MCP server using the `mcp:server` Artisan command:
 
 ```bash
 php artisan mcp:server DemoServer
 ```
 
-Next, create a "hello" tool:
+Next, create a tool for the MCP server:
 
 ```bash
 php artisan mcp:tool HelloTool
@@ -35,7 +35,7 @@ php artisan mcp:tool HelloTool
 
 This will create two files: `app/Mcp/Servers/DemoServer.php` and `app/Mcp/Tools/HelloTool.php`.
 
-Open `app/Mcp/Tools/HelloTool.php` and replace its contents with the following code to create a simple tool that greets a user:
+Open `app/Mcp/Tools/HelloTool.php` and replace its contents with the following code to create a simple tool that greets the user:
 
 ```php
 <?php
@@ -60,14 +60,17 @@ class HelloTool extends Tool
 
     public function schema(ToolInputSchema $schema): ToolInputSchema
     {
-        $schema->string('name')->description('The name to greet.');
+        $schema
+            ->string('name')
+            ->description('The name to greet.')
+            ->required();
 
         return $schema;
     }
 
     public function handle(array $arguments): ToolResult
     {
-        $name = $arguments['name'] ?? 'World';
+        $name = $arguments['name'];
 
         return ToolResult::text("Hello, {$name}!");
     }
@@ -101,7 +104,7 @@ use Laravel\Mcp\Facades\Mcp;
 Mcp::local('demo', DemoServer::class);
 ```
 
-Finally, you can run your server and explore it with the MCP Inspector:
+Finally, you can run your server and explore it with the MCP Inspector tool:
 
 ```bash
 php artisan mcp:inspector demo
