@@ -407,7 +407,7 @@ Mcp::web('demo', ExampleServer::class)
 
 Your MCP server is now protected using OAuth.
 
-## Testing Servers with MCP Inspector
+## Testing Servers With the MCP Inspector Tool
 
 The [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an interactive tool for testing and debugging your MCP servers. You can use it to connect to your server, verify authentication, and try out tools, resources, and other parts of the protocol.
 
