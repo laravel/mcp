@@ -238,7 +238,7 @@ class ExampleTool extends Tool
 
 The `handle` method of a tool must return an instance of `Laravel\Mcp\Tools\ToolResult`. This class provides a few convenient methods for creating responses.
 
-#### Plain Text Response
+#### Plain Text Result
 
 For a simple text response, you can use the `text()` method:
 
@@ -246,7 +246,7 @@ For a simple text response, you can use the `text()` method:
 $response = ToolResult::text('This is a test response.');
 ```
 
-#### Error Response
+#### Error Result
 
 To indicate that the tool execution resulted in an error, use the `error()` method:
 
