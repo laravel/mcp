@@ -351,11 +351,11 @@ public function read(): Content
 
 ## Registering Servers
 
-Servers are registered in the `routes/ai.php` file using the `Mcp` facade (or in a different routes file). You can register a server to be accessible via the web (HTTP) or locally (as an Artisan command).
+The easiest way to register MCP servers is by publishing the routes/ai.php file included with the package. If this file exists, the package will automatically load any servers registered via the Mcp facade. You can expose a server over HTTP or make it available locally as an Artisan command.
 
 ### Web Servers
 
-To register a server that can be accessed via an HTTP POST request:
+To register a web-based MCP server that can be accessed via HTTP POST requests:
 
 ```php
 use App\Mcp\Servers\ExampleServer;
@@ -365,11 +365,11 @@ Mcp::web('demo', ExampleServer::class);
 ```
 This will make `ExampleServer` available at the `/mcp/demo` endpoint.
 
-> **Security Note:** Exposing a local development server via `Mcp::web()` can make your application vulnerable to DNS rebinding attacks. If you must expose a local server, it is critical to validate the `Host` and `Origin` headers on incoming requests to ensure they are coming from a trusted source.
+> **Security Note:** Exposing a local development server via `Mcp::web()` can make your application vulnerable to DNS rebinding attacks. If you must expose a local MCP server over HTTP, it is critical to validate the `Host` and `Origin` headers on incoming requests to ensure they are coming from a trusted source.
 
 ### Local Servers
 
-To register a server that can be run as an Artisan command:
+To register a local MCP server that can be run as an Artisan command:
 
 ```php
 use App\Mcp\Servers\ExampleServer;
