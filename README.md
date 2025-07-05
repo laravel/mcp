@@ -385,9 +385,9 @@ php artisan mcp:start demo
 
 ## Authentication
 
-Web servers can be protected using Laravel Passport, turning your MCP server into an OAuth2 protected resource.
+Web-based MCP servers can be protected using [Laravel Passport](laravel.com/docs/passport), turning your MCP server into an OAuth2 protected resource.
 
-First, add the `Mcp::oauthRoutes()` helper to your `routes/web.php` file. This registers the required OAuth2 discovery and client registration endpoints. The method accepts an optional prefix, which defaults to `oauth`.
+If you already have Passport set up for your app, all you need to do is add the `Mcp::oauthRoutes()` helper to your `routes/web.php` file. This registers the required OAuth2 discovery and client registration endpoints. The method accepts an optional route prefix, which defaults to `oauth`.
 
 ```php
 use Laravel\Mcp\Facades\Mcp;
@@ -404,6 +404,8 @@ use Laravel\Mcp\Facades\Mcp;
 Mcp::web('demo', ExampleServer::class)
     ->middleware('auth:api');
 ```
+
+Your MCP server is now protected using OAuth.
 
 ## Testing Servers with MCP Inspector
 
