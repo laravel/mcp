@@ -484,9 +484,9 @@ public function boot(): void
 }
 ```
 
-### Dynamically Adding Methods
+## Extending Server Capabilities
 
-If you want to add you own JSON-RPC methods to the server to support other MCP features, you can use the `boot()` method to register them. This is helpful if you want your MCP server to support methods that still aren't supported by this package, such as [Resources](https://modelcontextprotocol.io/specification/2025-03-26/server/resources) and [Prompts](https://modelcontextprotocol.io/specification/2025-03-26/server/prompts).
+If you want to add you own JSON-RPC methods to the server to support other MCP features, you can override the `boot()` method to register them.
 
 Here's a simple example of how to support the [Ping](https://modelcontextprotocol.io/specification/2025-03-26/basic/utilities/ping) method, the simplest method in the MCP protocol:
 
@@ -538,7 +538,7 @@ Now, your server will be able to handle `ping` requests.
 
 ### Dynamically Adding Capabilities
 
-You can add custom capabilities to your server in the `boot()` method. This is useful for advertising support for non-standard features to the client during the `initialize` handshake. The client can then check for these capabilities and adjust its behavior accordingly.
+Once you’ve added a custom method to your server, you may want to let the client know about it during the initialize handshake. You can do this by adding custom capabilities in the boot() method:
 
 ```php
 public function boot(): void
@@ -547,12 +547,18 @@ public function boot(): void
 }
 ```
 
-## What's Not Included (Yet!)
+## Contributing
 
-Some features from the MCP specification that are not yet implemented:
+Thank you for considering contributing to Laravel MCP! You can read the contribution guide [here](.github/CONTRIBUTING.md).
 
--   **`listChanged` notifications for tools:** The server doesn't proactively notify clients when the list of available tools changes. This would require a long-lived SSE connection for HTTP-based connections.
--   **Image and audio content for tool results:** The `ToolResult` class currently supports text content, but not yet image or audio content types from the specification.
--   **Capability Negotiation:** The server doesn't yet have logic for negotiating these capabilities with the client during initialization. There's currently no way to know the client's capabilities in subsequent requests (would require a long-lived session).
--   **Timeouts:** The package doesn't have built-in handling for timeouts, which should result in a specific JSON-RPC error.
--   **Long-lived Sessions:** The server currently operates in a stateless manner and doesn't support long-lived SSE sessions for things where the server initiates requests with the client. This is only possible for local server running on STDIO currently.
+## Code of Conduct
+
+In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+
+## Security Vulnerabilities
+
+Please review [our security policy](https://github.com/laravel/mcp/security/policy) on how to report security vulnerabilities.
+
+## License
+
+Laravel MCP is open-sourced software licensed under the [MIT license](LICENSE.md).
