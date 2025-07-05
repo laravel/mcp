@@ -536,7 +536,7 @@ class ExampleServer extends Server
 
 Now, your server will be able to handle `ping` requests.
 
-### Dynamically Adding Capabilities
+### Registering Capabilities
 
 Once you’ve added a custom method to your server, you may want to let the client know about it during the initialize handshake. You can do this by adding custom capabilities in the boot() method:
 
