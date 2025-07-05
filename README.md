@@ -3,25 +3,6 @@
 ## Introduction
 Laravel MCP gives you everything you need to build Laravel-powered MCP servers and let AI talk to your app.
 
-## Table of Contents
-
-- [Setup](#setup)
-  - [Publishing Routes](#publishing-routes)
-- [Creating a Server](#creating-a-server)
-- [Creating Tools](#creating-tools)
-  - [Tool Annotations](#tool-annotations)
-  - [Tool Results](#tool-results)
-- [Registering Servers](#registering-servers)
-  - [Web Servers](#web-servers)
-  - [Local Servers](#local-servers)
-- [Authentication](#authentication)
-- [Testing Servers with MCP Inspector](#testing-servers-with-mcp-inspector)
-- [Advanced](#advanced)
-  - [Streaming Responses](#streaming-responses)
-  - [Dynamically Adding Tools](#dynamically-adding-tools)
-  - [Dynamically Adding Methods](#dynamically-adding-methods)
-- [What's Not Included (Yet!)](#whats-not-included-yet)
-
 ## Installation
 
 To get started, install Laravel MCP via the Composer package manager:
@@ -196,6 +177,99 @@ $response = ToolResult::items(
     new TextContent($plainText),
     new TextContent($markdown)
 );
+```
+
+## Creating Resources
+
+Resources provide a way for the client to access data from the server. A resource must extend the `Laravel\Mcp\Resources\Resource` abstract class. You can use the `mcp:resource` Artisan command to generate a resource class:
+
+```bash
+php artisan mcp:resource ExampleResource
+```
+
+This will create a new resource class in `app/Mcp/Resources/ExampleResource.php`. Here's what a basic resource class looks like:
+
+```php
+<?php
+
+namespace App\Mcp\Resources;
+
+use Laravel\Mcp\Resources\Resource;
+
+class ExampleResource extends Resource
+{
+    protected string $description = 'A description of what this resource contains.';
+
+    /**
+     * Return the resource contents.
+     */
+    public function read(): string
+    {
+        return 'Implement resource retrieval logic here';
+    }
+}
+```
+
+To make a resource available to clients, you must register it on your server. You can do this by adding the resource's class name to the `$resources` property of your server class:
+
+```php
+<?php
+
+namespace App\Mcp\Servers;
+
+use App\Mcp\Resources\ExampleResource;
+use Laravel\Mcp\Server;
+
+class ExampleServer extends Server
+{
+    // ...
+
+    public array $resources = [
+        ExampleResource::class,
+    ];
+}
+```
+
+### Resource Results
+
+The `read` method of a resource must return its content. By default, you can return a string, and the package will intelligently determine if it's plain text or binary data.
+
+```php
+// Return plain text
+public function read(): string
+{
+    return 'This is the content of the resource.';
+}
+
+// Return binary data
+public function read(): string
+{
+    return file_get_contents('/path/to/image.png');
+}
+```
+
+For more explicit control, you can instead return a `Laravel\Mcp\Resources\Results\Text` or `Laravel\Mcp\Resources\Results\Blob` object. This ensures the content type is handled exactly as you intend.
+
+```php
+// Explicitly return a Text object
+use Laravel\Mcp\Contracts\Resources\Content;
+use Laravel\Mcp\Resources\Results\Text;
+
+public function read(): Content
+{
+    return new Text('This is the content of the resource.');
+}
+```
+
+```php
+// Explicitly return a Blob object
+use Laravel\Mcp\Contracts\Resources\Content;
+use Laravel\Mcp\Resources\Results\Blob;
+
+public function read(): Content
+{
+    return new Blob(file_get_contents('/path/to/image.png'));
+}
 ```
 
 ## Registering Servers
