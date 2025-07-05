@@ -151,7 +151,7 @@ The `Server` class has a few other properties you can override to customize its 
 
 ## Creating Tools
 
-Tools are a core building block of MCP. They let your server expose functionality that clients can call, and that language models can use to perform actions, run code, or interact with external systems. Each tool must extend the `Laravel\Mcp\Tools\Tool` abstract class. You can also use the `mcp:tool` Artisan command to generate a tool class:
+Tools let your server expose functionality that clients can call, and that language models can use to perform actions, run code, or interact with external systems. Each tool must extend the `Laravel\Mcp\Tools\Tool` abstract class. You can also use the `mcp:tool` Artisan command to generate a tool class:
 
 ```bash
 php artisan mcp:tool ExampleTool
@@ -270,7 +270,7 @@ $response = ToolResult::items(
 
 ## Creating Resources
 
-Resources are one of the core building blocks of MCP. They let your server expose data and content that clients can read and use as context when interacting with language models. A resource must extend the `Laravel\Mcp\Resources\Resource` abstract class. You can use the `mcp:resource` Artisan command to generate a resource class:
+Resources let your server expose data and content that clients can read and use as context when interacting with language models. A resource must extend the `Laravel\Mcp\Resources\Resource` abstract class. You can use the `mcp:resource` Artisan command to generate a resource class:
 
 ```bash
 php artisan mcp:resource ExampleResource
