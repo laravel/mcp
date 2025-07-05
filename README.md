@@ -110,9 +110,9 @@ Finally, you can run your server and explore it with the MCP Inspector tool:
 php artisan mcp:inspector demo
 ```
 
-## Creating a Server
+## Creating Servers
 
-A server is the central point that handles communication and exposes tools. To create a server, you can extend the `Laravel\Mcp\Server` base class or use the `mcp:server` Artisan command to generate a server class:
+A server is the central point that handles communication and exposes MCP methods, like tools and resources. To create a server, extend the `Laravel\Mcp\Server` base class or use the `mcp:server` Artisan command to generate a server class:
 
 ```bash
 php artisan mcp:server ExampleServer
@@ -130,34 +130,34 @@ use App\Mcp\Tools\MyExampleTool;
 
 class ExampleServer extends Server
 {
-    public string $serverName = 'My Custom MCP Server';
+    public string $serverName = 'Example MCP Server';
 
     public string $serverVersion = '1.0.0';
 
-    public string $instructions = 'Welcome! This server provides tools for X, Y, and Z.';
+    public string $instructions = 'This server provides tools for X, Y, and Z.';
 
     public array $tools = [
-        MyExampleTool::class,
+        ExampleTool::class,
     ];
 }
 ```
 
-The tool's name is automatically determined from its class name. For example, `MyExampleTool` will be exposed to clients as `my-example-tool`. The tool name can also be overwritten by adding a `name()` method to the tool.
+The tool's name is automatically determined from its class name. For example, `ExampleTool` will be exposed to clients as `example-tool`. The tool name can also be overwritten by adding a `name()` method to the tool.
 
 The `Server` class has a few other properties you can override to customize its behavior:
 
--   `$defaultPaginationLength`: Controls the default number of tools returned by the `tools/list` method if the client doesn't specify a limit (defaults to `15`).
--   `$maxPaginationLength`: Sets the maximum number of tools a client can request via `tools/list` in a single call (defaults to `50`).
+-   `$defaultPaginationLength`: Controls the default number of tools returned to the client when listing available tools (defaults to 15).
+-   `$maxPaginationLength`: Sets the maximum number of tools a client can request at a time when listing tools (defaults to 50).
 
 ## Creating Tools
 
 Tools are individual units of functionality that your server exposes. Each tool must extend the `Laravel\Mcp\Tools\Tool` abstract class. You can also use the `mcp:tool` Artisan command to generate a tool class:
 
 ```bash
-php artisan mcp:tool MyExampleTool
+php artisan mcp:tool ExampleTool
 ```
 
-This will create a new tool class in `app/Mcp/Tools/MyExampleTool.php`. Here's what a basic tool class looks like:
+This will create a new tool class in `app/Mcp/Tools/ExampleTool.php`. Here's what a basic tool class looks like:
 
 ```php
 <?php
@@ -168,7 +168,7 @@ use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolResult;
 
-class MyExampleTool extends Tool
+class ExampleTool extends Tool
 {
     public function description(): string
     {
@@ -190,7 +190,7 @@ class MyExampleTool extends Tool
     public function handle(array $arguments): ToolResult
     {
         // Your tool logic here
-        $param1 = $arguments['param1'] ?? 'default';
+        $param1 = $arguments['param1'];
         $param2 = $arguments['param2'] ?? 0;
 
         // Perform some action
@@ -201,17 +201,19 @@ class MyExampleTool extends Tool
 }
 ```
 
-### Tool Annotations
+MCP clients use the schema to construct the tool call before calling the tool. The result is what is returned to the MCP client after the tool call has been executed.
 
-You can add annotations to your tools to provide hints to the client about their behavior. This is done using PHP attributes on your tool class. These annotations are optional, and the package provides sensible defaults.
+### Annotating Tools
 
-| Annotation        | Type    | Default      | Description                                                                                                                           |
-| ----------------- | ------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `#[Title]`        | string  | Class name   | A human-readable title for the tool. Defaults to a "headline" version of the class name (e.g., `MyExampleTool` becomes "My Example Tool"). |
-| `#[IsReadOnly]`   | boolean | `false`      | If `true`, indicates the tool does not modify its environment.                                                                        |
-| `#[IsDestructive]`| boolean | `true`       | If `true`, the tool may perform destructive updates (only meaningful when `IsReadOnly` is `false`).                                       |
-| `#[IsIdempotent]` | boolean | `false`      | If `true`, calling the tool repeatedly with the same arguments has no additional effect (only meaningful when `IsReadOnly` is `false`).  |
-| `#[IsOpenWorld]`  | boolean | `true`       | If `true`, the tool may interact with an "open world" of external entities.                                                           |
+You can add annotations to your tools to provide hints to the MCP client about their behavior. This is done using PHP attributes on your tool class. Adding annotations to your tools is optional.
+
+| Annotation        | Type    | Description                                                                                                           |
+| ----------------- | ------- | --------------------------------------------------------------------------------------------------------------------- |
+| `#[Title]`        | string  | A human-readable title for the tool.                                                                                  |
+| `#[IsReadOnly]`   | boolean | Indicates the tool does not modify its environment.                                                                   |
+| `#[IsDestructive]`| boolean | Indicates the tool may perform destructive updates. This is only meaningful when the tool is not read-only.             |
+| `#[IsIdempotent]` | boolean | Indicates that calling the tool repeatedly with the same arguments has no additional effect. This is only meaningful when the tool is not read-only. |
+| `#[IsOpenWorld]`  | boolean | Indicates the tool may interact with an "open world" of external entities.                                            |
 
 Here's an example of how to apply these annotations to a tool:
 
@@ -221,16 +223,12 @@ Here's an example of how to apply these annotations to a tool:
 namespace App\Mcp\Tools;
 
 use Laravel\Mcp\Tools\Annotations\IsReadOnly;
-use Laravel\Mcp\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Tools\Annotations\Title;
 use Laravel\Mcp\Tools\Tool;
-use Laravel\Mcp\Tools\ToolInputSchema;
-use Laravel\Mcp\Tools\ToolResult;
 
-#[Title('A Safe Example Tool')]
+#[Title('A read-only tool')]
 #[IsReadOnly]
-#[IsDestructive(false)]
-class MyExampleTool extends Tool
+class ExampleTool extends Tool
 {
     // ...
 }
