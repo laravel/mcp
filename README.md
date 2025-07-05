@@ -215,7 +215,7 @@ You can add annotations to your tools to provide hints to the MCP client about t
 | `#[IsIdempotent]` | boolean | Indicates that calling the tool repeatedly with the same arguments has no additional effect. This is only meaningful when the tool is not read-only. |
 | `#[IsOpenWorld]`  | boolean | Indicates the tool may interact with an "open world" of external entities.                                            |
 
-Here's an example of how to apply these annotations to a tool:
+Here's an example of how to add annotations to a tool:
 
 ```php
 <?php
