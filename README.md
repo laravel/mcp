@@ -19,6 +19,94 @@ php artisan vendor:publish --tag=ai-routes
 
 The package will automatically register MCP server defined in this file.
 
+## Quickstart
+
+First, create a new server class using the `mcp:server` Artisan command:
+
+```bash
+php artisan mcp:server DemoServer
+```
+
+Next, create a "hello" tool:
+
+```bash
+php artisan mcp:tool HelloTool
+```
+
+This will create two files: `app/Mcp/Servers/DemoServer.php` and `app/Mcp/Tools/HelloTool.php`.
+
+Open `app/Mcp/Tools/HelloTool.php` and replace its contents with the following code to create a simple tool that greets a user:
+
+```php
+<?php
+
+namespace App\Mcp\Tools;
+
+use Laravel\Mcp\Tools\Tool;
+use Laravel\Mcp\Tools\ToolInputSchema;
+use Laravel\Mcp\Tools\ToolResult;
+
+class HelloTool extends Tool
+{
+    public function name(): string
+    {
+        return 'hello';
+    }
+
+    public function description(): string
+    {
+        return 'A friendly tool that says hello.';
+    }
+
+    public function schema(ToolInputSchema $schema): ToolInputSchema
+    {
+        $schema->string('name')->description('The name to greet.');
+
+        return $schema;
+    }
+
+    public function handle(array $arguments): ToolResult
+    {
+        $name = $arguments['name'] ?? 'World';
+
+        return ToolResult::text("Hello, {$name}!");
+    }
+}
+```
+
+Now, open `app/Mcp/Servers/DemoServer.php` and add your new tool to the `$tools` property:
+
+```php
+<?php
+
+namespace App\Mcp\Servers;
+
+use App\Mcp\Tools\HelloTool;
+use Laravel\Mcp\Server;
+
+class DemoServer extends Server
+{
+    public array $tools = [
+        HelloTool::class,
+    ];
+}
+```
+
+Next, register your server in `routes/ai.php`:
+
+```php
+use App\Mcp\Servers\DemoServer;
+use Laravel\Mcp\Facades\Mcp;
+
+Mcp::local('demo', DemoServer::class);
+```
+
+Finally, you can run your server and explore it with the MCP Inspector:
+
+```bash
+php artisan mcp:inspector demo
+```
+
 ## Creating a Server
 
 A server is the central point that handles communication and exposes tools. To create a server, you can extend the `Laravel\Mcp\Server` base class or use the `mcp:server` Artisan command to generate a server class:
