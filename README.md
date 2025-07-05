@@ -251,10 +251,10 @@ $response = ToolResult::text('This is a test response.');
 To indicate that the tool execution resulted in an error, use the `error()` method:
 
 ```php
-$response = ToolResult::error('This is a test error response.');
+$response = ToolResult::error('This is an error response.');
 ```
 
-#### Multiple Content Items
+#### Result with Multiple Content Items
 
 A tool result can contain multiple content items. The `items()` method allows you to construct a result from different content objects, like `TextContent`.
 
