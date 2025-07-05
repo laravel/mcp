@@ -151,7 +151,7 @@ The `Server` class has a few other properties you can override to customize its 
 
 ## Creating Tools
 
-Tools are individual units of functionality that your server exposes. Each tool must extend the `Laravel\Mcp\Tools\Tool` abstract class. You can also use the `mcp:tool` Artisan command to generate a tool class:
+Tools are a core building block of MCP. They let your server expose functionality that clients can call, and that language models can use to perform actions, run code, or interact with external systems. Each tool must extend the `Laravel\Mcp\Tools\Tool` abstract class. You can also use the `mcp:tool` Artisan command to generate a tool class:
 
 ```bash
 php artisan mcp:tool ExampleTool
@@ -270,7 +270,7 @@ $response = ToolResult::items(
 
 ## Creating Resources
 
-Resources provide a way for the client to access data from the server. A resource must extend the `Laravel\Mcp\Resources\Resource` abstract class. You can use the `mcp:resource` Artisan command to generate a resource class:
+Resources are one of the core building blocks of MCP. They let your server expose data and content that clients can read and use as context when interacting with language models. A resource must extend the `Laravel\Mcp\Resources\Resource` abstract class. You can use the `mcp:resource` Artisan command to generate a resource class:
 
 ```bash
 php artisan mcp:resource ExampleResource
@@ -321,7 +321,7 @@ class ExampleServer extends Server
 
 ### Resource Results
 
-The `read` method of a resource must return its content. By default, you can return a string, and the package will intelligently determine if it's plain text or binary data.
+A resource class defines a `read()` method that returns its content. By default, you can return a simple string, and the package will try to determine if it's plain text or binary data. Binary data is automatically `base64` encoded before being returned to the client.
 
 ```php
 // Return plain text
@@ -337,21 +337,9 @@ public function read(): string
 }
 ```
 
-For more explicit control, you can instead return a `Laravel\Mcp\Resources\Results\Text` or `Laravel\Mcp\Resources\Results\Blob` object. This ensures the content type is handled exactly as you intend.
+For more explicit control, you can return a `Laravel\Mcp\Resources\Results\Text` or `Laravel\Mcp\Resources\Results\Blob` object. This ensures the content type is handled exactly as you intend.
 
 ```php
-// Explicitly return a Text object
-use Laravel\Mcp\Contracts\Resources\Content;
-use Laravel\Mcp\Resources\Results\Text;
-
-public function read(): Content
-{
-    return new Text('This is the content of the resource.');
-}
-```
-
-```php
-// Explicitly return a Blob object
 use Laravel\Mcp\Contracts\Resources\Content;
 use Laravel\Mcp\Resources\Results\Blob;
 
