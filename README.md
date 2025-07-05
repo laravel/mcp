@@ -351,7 +351,7 @@ public function read(): Content
 
 ## Registering Servers
 
-The easiest way to register MCP servers is by publishing the routes/ai.php file included with the package. If this file exists, the package will automatically load any servers registered via the Mcp facade. You can expose a server over HTTP or make it available locally as an Artisan command.
+The easiest way to register MCP servers is by publishing the `routes/ai.php` file included with the package. If this file exists, the package will automatically load any servers registered via the Mcp facade. You can expose a server over HTTP or make it available locally as an Artisan command.
 
 ### Web Servers
 
