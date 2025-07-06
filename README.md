@@ -17,7 +17,7 @@ Next, you can optionally publish the `routes/ai.php` file to define your MCP ser
 php artisan vendor:publish --tag=ai-routes
 ```
 
-The package will automatically register MCP server defined in this file.
+The package will automatically register MCP servers defined in this file.
 
 ## Quickstart
 
