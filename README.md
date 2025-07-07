@@ -1,43 +1,118 @@
-# Laravel MCP (Model Context Protocol)
+# 🤖 Laravel MCP
 
-[Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is an open protocol that standardizes how applications provide context to Large Language Models (LLMs). It aims to be like a USB-C port for AI applications, enabling standardized connections between AI models and various data sources or tools.
+## Introduction
+Laravel MCP gives you everything you need to build Laravel-powered MCP servers and let AI talk to your apps.
 
-This Laravel package helps you build MCP-compliant servers within your Laravel applications. These servers can then expose tools that AI agents can use. It provides a structured way to define servers and their capabilities (tools), accessible via streamed HTTP (web) or STDIO (local artisan commands).
+## Installation
 
-## Table of Contents
+To get started, install Laravel MCP via the Composer package manager:
 
-- [Setup](#setup)
-  - [Publishing Routes](#publishing-routes)
-- [Creating a Server](#creating-a-server)
-- [Creating Tools](#creating-tools)
-  - [Tool Annotations](#tool-annotations)
-  - [Tool Results](#tool-results)
-- [Registering Servers](#registering-servers)
-  - [Web Servers](#web-servers)
-  - [Local Servers](#local-servers)
-- [Authentication](#authentication)
-- [Testing Servers with MCP Inspector](#testing-servers-with-mcp-inspector)
-- [Advanced](#advanced)
-  - [Streaming Responses](#streaming-responses)
-  - [Dynamically Adding Tools](#dynamically-adding-tools)
-  - [Dynamically Adding Methods](#dynamically-adding-methods)
-- [What's Not Included (Yet!)](#whats-not-included-yet)
+```bash
+composer require laravel/mcp
+```
 
-## Setup
-
-### Publishing Routes
-
-The package offers an optional route file `routes/ai.php` to define your MCP servers. To publish this file to your application\'s `routes` directory, run the following Artisan command:
+Next, you can optionally publish the `routes/ai.php` file to define your MCP servers:
 
 ```bash
 php artisan vendor:publish --tag=ai-routes
 ```
 
-The package automatically loads routes defined in this file. Web routes will be prefixed with `/mcp`.
+The package will automatically register MCP servers defined in this file.
 
-## Creating a Server
+## Quickstart
 
-A server is the central point that handles communication and exposes tools. To create a server, you can extend the `Laravel\Mcp\Server` base class or use the `mcp:server` Artisan command to generate a server class:
+First, create a new MCP server using the `mcp:server` Artisan command:
+
+```bash
+php artisan mcp:server DemoServer
+```
+
+Next, create a tool for the MCP server:
+
+```bash
+php artisan mcp:tool HelloTool
+```
+
+This will create two files: `app/Mcp/Servers/DemoServer.php` and `app/Mcp/Tools/HelloTool.php`.
+
+Open `app/Mcp/Tools/HelloTool.php` and replace its contents with the following code to create a simple tool that greets the user:
+
+```php
+<?php
+
+namespace App\Mcp\Tools;
+
+use Laravel\Mcp\Tools\Tool;
+use Laravel\Mcp\Tools\ToolInputSchema;
+use Laravel\Mcp\Tools\ToolResult;
+
+class HelloTool extends Tool
+{
+    public function name(): string
+    {
+        return 'hello';
+    }
+
+    public function description(): string
+    {
+        return 'A friendly tool that says hello.';
+    }
+
+    public function schema(ToolInputSchema $schema): ToolInputSchema
+    {
+        $schema
+            ->string('name')
+            ->description('The name to greet.')
+            ->required();
+
+        return $schema;
+    }
+
+    public function handle(array $arguments): ToolResult
+    {
+        $name = $arguments['name'];
+
+        return ToolResult::text("Hello, {$name}!");
+    }
+}
+```
+
+Now, open `app/Mcp/Servers/DemoServer.php` and add your new tool to the `$tools` property:
+
+```php
+<?php
+
+namespace App\Mcp\Servers;
+
+use App\Mcp\Tools\HelloTool;
+use Laravel\Mcp\Server;
+
+class DemoServer extends Server
+{
+    public array $tools = [
+        HelloTool::class,
+    ];
+}
+```
+
+Next, register your server in `routes/ai.php`:
+
+```php
+use App\Mcp\Servers\DemoServer;
+use Laravel\Mcp\Facades\Mcp;
+
+Mcp::local('demo', DemoServer::class);
+```
+
+Finally, you can run your server and explore it with the MCP Inspector tool:
+
+```bash
+php artisan mcp:inspector demo
+```
+
+## Creating Servers
+
+A server is the central point that handles communication and exposes MCP methods, like tools and resources. To create a server, extend the `Laravel\Mcp\Server` base class or use the `mcp:server` Artisan command to generate a server class:
 
 ```bash
 php artisan mcp:server ExampleServer
@@ -55,34 +130,34 @@ use App\Mcp\Tools\MyExampleTool;
 
 class ExampleServer extends Server
 {
-    public string $serverName = 'My Custom MCP Server';
+    public string $serverName = 'Example MCP Server';
 
     public string $serverVersion = '1.0.0';
 
-    public string $instructions = 'Welcome! This server provides tools for X, Y, and Z.';
+    public string $instructions = 'This server provides tools for X, Y, and Z.';
 
     public array $tools = [
-        MyExampleTool::class,
+        ExampleTool::class,
     ];
 }
 ```
 
-The tool's name is automatically determined from its class name. For example, `MyExampleTool` will be exposed to clients as `my-example-tool`. The tool name can also be overwritten by adding a `name()` method to the tool.
+The tool's name is automatically determined from its class name. For example, `ExampleTool` will be exposed to clients as `example-tool`. The tool name can also be overwritten by adding a `name()` method to the tool.
 
 The `Server` class has a few other properties you can override to customize its behavior:
 
--   `$defaultPaginationLength`: Controls the default number of tools returned by the `tools/list` method if the client doesn't specify a limit (defaults to `15`).
--   `$maxPaginationLength`: Sets the maximum number of tools a client can request via `tools/list` in a single call (defaults to `50`).
+-   `$defaultPaginationLength`: Controls the default number of tools returned to the client when listing available tools (defaults to 15).
+-   `$maxPaginationLength`: Sets the maximum number of tools a client can request at a time when listing tools (defaults to 50).
 
 ## Creating Tools
 
-Tools are individual units of functionality that your server exposes. Each tool must extend the `Laravel\Mcp\Tools\Tool` abstract class. You can also use the `mcp:tool` Artisan command to generate a tool class:
+Tools let your server expose functionality that clients can call, and that language models can use to perform actions, run code, or interact with external systems. Each tool must extend the `Laravel\Mcp\Tools\Tool` abstract class. You can also use the `mcp:tool` Artisan command to generate a tool class:
 
 ```bash
-php artisan mcp:tool MyExampleTool
+php artisan mcp:tool ExampleTool
 ```
 
-This will create a new tool class in `app/Mcp/Tools/MyExampleTool.php`. Here's what a basic tool class looks like:
+This will create a new tool class in `app/Mcp/Tools/ExampleTool.php`. Here's what a basic tool class looks like:
 
 ```php
 <?php
@@ -93,7 +168,7 @@ use Laravel\Mcp\Tools\Tool;
 use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolResult;
 
-class MyExampleTool extends Tool
+class ExampleTool extends Tool
 {
     public function description(): string
     {
@@ -115,7 +190,7 @@ class MyExampleTool extends Tool
     public function handle(array $arguments): ToolResult
     {
         // Your tool logic here
-        $param1 = $arguments['param1'] ?? 'default';
+        $param1 = $arguments['param1'];
         $param2 = $arguments['param2'] ?? 0;
 
         // Perform some action
@@ -126,19 +201,21 @@ class MyExampleTool extends Tool
 }
 ```
 
-### Tool Annotations
+MCP clients use the schema to construct the tool call before calling the tool. The result is what is returned to the MCP client after the tool call has been executed.
 
-You can add annotations to your tools to provide hints to the client about their behavior. This is done using PHP attributes on your tool class. These annotations are optional, and the package provides sensible defaults.
+### Annotating Tools
 
-| Annotation        | Type    | Default      | Description                                                                                                                           |
-| ----------------- | ------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `#[Title]`        | string  | Class name   | A human-readable title for the tool. Defaults to a "headline" version of the class name (e.g., `MyExampleTool` becomes "My Example Tool"). |
-| `#[IsReadOnly]`   | boolean | `false`      | If `true`, indicates the tool does not modify its environment.                                                                        |
-| `#[IsDestructive]`| boolean | `true`       | If `true`, the tool may perform destructive updates (only meaningful when `IsReadOnly` is `false`).                                       |
-| `#[IsIdempotent]` | boolean | `false`      | If `true`, calling the tool repeatedly with the same arguments has no additional effect (only meaningful when `IsReadOnly` is `false`).  |
-| `#[IsOpenWorld]`  | boolean | `true`       | If `true`, the tool may interact with an "open world" of external entities.                                                           |
+You can add annotations to your tools to provide hints to the MCP client about their behavior. This is done using PHP attributes on your tool class. Adding annotations to your tools is optional.
 
-Here's an example of how to apply these annotations to a tool:
+| Annotation        | Type    | Description                                                                                                           |
+| ----------------- | ------- | --------------------------------------------------------------------------------------------------------------------- |
+| `#[Title]`        | string  | A human-readable title for the tool.                                                                                  |
+| `#[IsReadOnly]`   | boolean | Indicates the tool does not modify its environment.                                                                   |
+| `#[IsDestructive]`| boolean | Indicates the tool may perform destructive updates. This is only meaningful when the tool is not read-only.             |
+| `#[IsIdempotent]` | boolean | Indicates that calling the tool repeatedly with the same arguments has no additional effect. This is only meaningful when the tool is not read-only. |
+| `#[IsOpenWorld]`  | boolean | Indicates the tool may interact with an "open world" of external entities.                                            |
+
+Here's an example of how to add annotations to a tool:
 
 ```php
 <?php
@@ -146,16 +223,12 @@ Here's an example of how to apply these annotations to a tool:
 namespace App\Mcp\Tools;
 
 use Laravel\Mcp\Tools\Annotations\IsReadOnly;
-use Laravel\Mcp\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Tools\Annotations\Title;
 use Laravel\Mcp\Tools\Tool;
-use Laravel\Mcp\Tools\ToolInputSchema;
-use Laravel\Mcp\Tools\ToolResult;
 
-#[Title('A Safe Example Tool')]
+#[Title('A read-only tool')]
 #[IsReadOnly]
-#[IsDestructive(false)]
-class MyExampleTool extends Tool
+class ExampleTool extends Tool
 {
     // ...
 }
@@ -165,7 +238,7 @@ class MyExampleTool extends Tool
 
 The `handle` method of a tool must return an instance of `Laravel\Mcp\Tools\ToolResult`. This class provides a few convenient methods for creating responses.
 
-#### Plain Text Response
+#### Plain Text Result
 
 For a simple text response, you can use the `text()` method:
 
@@ -173,15 +246,15 @@ For a simple text response, you can use the `text()` method:
 $response = ToolResult::text('This is a test response.');
 ```
 
-#### Error Response
+#### Error Result
 
 To indicate that the tool execution resulted in an error, use the `error()` method:
 
 ```php
-$response = ToolResult::error('This is a test error response.');
+$response = ToolResult::error('This is an error response.');
 ```
 
-#### Multiple Content Items
+#### Result with Multiple Content Items
 
 A tool result can contain multiple content items. The `items()` method allows you to construct a result from different content objects, like `TextContent`.
 
@@ -195,13 +268,94 @@ $response = ToolResult::items(
 );
 ```
 
+## Creating Resources
+
+Resources let your server expose data and content that clients can read and use as context when interacting with language models. A resource must extend the `Laravel\Mcp\Resources\Resource` abstract class. You can use the `mcp:resource` Artisan command to generate a resource class:
+
+```bash
+php artisan mcp:resource ExampleResource
+```
+
+This will create a new resource class in `app/Mcp/Resources/ExampleResource.php`. Here's what a basic resource class looks like:
+
+```php
+<?php
+
+namespace App\Mcp\Resources;
+
+use Laravel\Mcp\Resources\Resource;
+
+class ExampleResource extends Resource
+{
+    protected string $description = 'A description of what this resource contains.';
+
+    /**
+     * Return the resource contents.
+     */
+    public function read(): string
+    {
+        return 'Implement resource retrieval logic here';
+    }
+}
+```
+
+To make a resource available to clients, you must register it on your server. You can do this by adding the resource's class name to the `$resources` property of your server class:
+
+```php
+<?php
+
+namespace App\Mcp\Servers;
+
+use App\Mcp\Resources\ExampleResource;
+use Laravel\Mcp\Server;
+
+class ExampleServer extends Server
+{
+    // ...
+
+    public array $resources = [
+        ExampleResource::class,
+    ];
+}
+```
+
+### Resource Results
+
+A resource class defines a `read()` method that returns its content. By default, you can return a simple string, and the package will try to determine if it's plain text or binary data. Binary data is automatically `base64` encoded before being returned to the client.
+
+```php
+// Return plain text
+public function read(): string
+{
+    return 'This is the content of the resource.';
+}
+
+// Return binary data
+public function read(): string
+{
+    return file_get_contents('/path/to/image.png');
+}
+```
+
+For more explicit control, you can return a `Laravel\Mcp\Resources\Results\Text` or `Laravel\Mcp\Resources\Results\Blob` object. This ensures the content type is handled exactly as you intend.
+
+```php
+use Laravel\Mcp\Contracts\Resources\Content;
+use Laravel\Mcp\Resources\Results\Blob;
+
+public function read(): Content
+{
+    return new Blob(file_get_contents('/path/to/image.png'));
+}
+```
+
 ## Registering Servers
 
-Servers are registered in the `routes/ai.php` file using the `Mcp` facade (or in a different routes file). You can register a server to be accessible via the web (HTTP) or locally (as an Artisan command).
+The easiest way to register MCP servers is by publishing the `routes/ai.php` file included with the package. If this file exists, the package will automatically load any servers registered via the `Mcp` facade. You can expose a server over HTTP or make it available locally as an Artisan command.
 
 ### Web Servers
 
-To register a server that can be accessed via an HTTP POST request:
+To register a web-based MCP server that can be accessed via HTTP POST requests:
 
 ```php
 use App\Mcp\Servers\ExampleServer;
@@ -211,11 +365,11 @@ Mcp::web('demo', ExampleServer::class);
 ```
 This will make `ExampleServer` available at the `/mcp/demo` endpoint.
 
-> **Security Note:** Exposing a local development server via `Mcp::web()` can make your application vulnerable to DNS rebinding attacks. If you must expose a local server, it is critical to validate the `Host` and `Origin` headers on incoming requests to ensure they are coming from a trusted source.
+> **Security Note:** Exposing a local development server via `Mcp::web()` can make your application vulnerable to DNS rebinding attacks. If you must expose a local MCP server over HTTP, it is critical to validate the `Host` and `Origin` headers on incoming requests to ensure they are coming from a trusted source.
 
 ### Local Servers
 
-To register a server that can be run as an Artisan command:
+To register a local MCP server that can be run as an Artisan command:
 
 ```php
 use App\Mcp\Servers\ExampleServer;
@@ -231,9 +385,9 @@ php artisan mcp:start demo
 
 ## Authentication
 
-Web servers can be protected using Laravel Passport, turning your MCP server into an OAuth2 protected resource.
+Web-based MCP servers can be protected using [Laravel Passport](laravel.com/docs/passport), turning your MCP server into an OAuth2 protected resource.
 
-First, add the `Mcp::oauthRoutes()` helper to your `routes/web.php` file. This registers the required OAuth2 discovery and client registration endpoints. The method accepts an optional prefix, which defaults to `oauth`.
+If you already have Passport set up for your app, all you need to do is add the `Mcp::oauthRoutes()` helper to your `routes/web.php` file. This registers the required OAuth2 discovery and client registration endpoints. The method accepts an optional route prefix, which defaults to `oauth`.
 
 ```php
 use Laravel\Mcp\Facades\Mcp;
@@ -251,11 +405,13 @@ Mcp::web('demo', ExampleServer::class)
     ->middleware('auth:api');
 ```
 
-## Testing Servers with MCP Inspector
+Your MCP server is now protected using OAuth.
 
-The [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an interactive tool for testing and debugging MCP servers. It allows you to connect to your server, inspect tools, and test them with custom inputs.
+## Testing Servers With the MCP Inspector Tool
 
-For local servers, you can start the inspector pre-configured for your server by using the `mcp:inspector` Artisan command. For example, if your server handle is `dev-assistant`, you would run:
+The [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an interactive tool for testing and debugging your MCP servers. You can use it to connect to your server, verify authentication, and try out tools, resources, and other parts of the protocol.
+
+For local servers, you can start the inspector pre-configured for your server by using the `mcp:inspector` Artisan command:
 
 ```bash
 php artisan mcp:inspector dev-assistant
@@ -267,15 +423,13 @@ For web-based servers, the inspector must be started and configured manually:
 npx @modelcontextprotocol/inspector
 ```
 
-## Advanced
+## Streaming Tool Responses
 
-### Streaming Responses
+For tools that send multiple updates or stream large amounts of data, you can return a generator from the `handle()` method. For web-based servers, this automatically opens an SSE stream and sends an event for each message the generator yields.
 
-For tools that need to send multiple updates to the client before completing, or that produce a large amount of data, you can return a generator from the `handle` method. For web-based servers, this will automatically open an SSE stream to the client.
+Within your generator, you can yield any number of `Laravel\Mcp\Tools\ToolNotification` instances to send intermediate updates to the client. When you're done, yield a single `Laravel\Mcp\Tools\ToolResult` to complete the execution.
 
-Within your generator, you can `yield` instances of `Laravel\Mcp\Tools\ToolNotification` for intermediate updates and finally `yield` a single `Laravel\Mcp\Tools\ToolResult` for the main result of the tool execution.
-
-This is particularly useful for long-running tasks or when you want to provide real-time feedback to the client, such as streaming tokens in a chat application.
+This is particularly useful for long-running tasks or when you want to provide real-time feedback to the client, such as streaming tokens in a chat application:
 
 ```php
 <?php
@@ -284,31 +438,17 @@ namespace App\Mcp\Tools;
 
 use Generator;
 use Laravel\Mcp\Tools\Tool;
-use Laravel\Mcp\Tools\ToolInputSchema;
 use Laravel\Mcp\Tools\ToolNotification;
 use Laravel\Mcp\Tools\ToolResult;
 
 class ChatStreamingTool extends Tool
 {
-    public function description(): string
-    {
-        return 'A tool that streams a chat response.';
-    }
-
-    public function schema(ToolInputSchema $schema): ToolInputSchema
-    {
-        return $schema->string('message')->description('The message to stream back.');
-    }
-
     public function handle(array $arguments): Generator
     {
-        $message = $arguments['message'] ?? "Here's a message from the chat bot.";
-        $tokens = explode(' ', $message);
+        $tokens = explode(' ', $arguments['message']);
 
         foreach ($tokens as $token) {
             yield new ToolNotification('chat/token', ['token' => $token . ' ']);
-
-            usleep(100000);
         }
 
         yield ToolResult::text("Message streamed successfully.");
@@ -316,13 +456,11 @@ class ChatStreamingTool extends Tool
 }
 ```
 
-### Dynamically Adding Tools
+## Programmatically Adding Tools
 
-In addition to registering tools via the `$tools` property on your server, you can also add them dynamically within the `boot()` method. This is useful when the availability of a tool depends on runtime conditions, such as application configuration.
+In addition to registering tools via the `$tools` property on your server, you can also add them programmatically by overriding the `boot()` method.
 
-The `addTool()` method accepts an instance of a class that extends `Laravel\Mcp\Tools\Tool`. You can pass a pre-existing tool class instance or define one on-the-fly with an anonymous class.
-
-Here's how you can add a tool using an anonymous class inside your server's `boot()` method:
+The `addTool()` method accepts an instance of a class that extends `Laravel\Mcp\Tools\Tool`. You can pass a class name or define one on-the-fly with an anonymous class:
 
 ```php
 public function boot(): void
@@ -346,9 +484,9 @@ public function boot(): void
 }
 ```
 
-### Dynamically Adding Methods
+## Extending Server Capabilities
 
-If you want to add you own JSON-RPC methods to the server to support other MCP features, you can use the `boot()` method to register them. This is helpful if you want your MCP server to support methods that still aren't supported by this package, such as [Resources](https://modelcontextprotocol.io/specification/2025-03-26/server/resources) and [Prompts](https://modelcontextprotocol.io/specification/2025-03-26/server/prompts).
+If you want to add you own JSON-RPC methods to the server to support other MCP features, you can override the `boot()` method to register them.
 
 Here's a simple example of how to support the [Ping](https://modelcontextprotocol.io/specification/2025-03-26/basic/utilities/ping) method, the simplest method in the MCP protocol:
 
@@ -398,9 +536,9 @@ class ExampleServer extends Server
 
 Now, your server will be able to handle `ping` requests.
 
-### Dynamically Adding Capabilities
+### Registering Capabilities
 
-You can add custom capabilities to your server in the `boot()` method. This is useful for advertising support for non-standard features to the client during the `initialize` handshake. The client can then check for these capabilities and adjust its behavior accordingly.
+Once you’ve added a custom method to your server, you may want to let the client know about it during the initialize handshake. You can do this by adding custom capabilities in the boot() method:
 
 ```php
 public function boot(): void
@@ -409,12 +547,18 @@ public function boot(): void
 }
 ```
 
-## What's Not Included (Yet!)
+## Contributing
 
-Some features from the MCP specification that are not yet implemented:
+Thank you for considering contributing to Laravel MCP! You can read the contribution guide [here](.github/CONTRIBUTING.md).
 
--   **`listChanged` notifications for tools:** The server doesn't proactively notify clients when the list of available tools changes. This would require a long-lived SSE connection for HTTP-based connections.
--   **Image and audio content for tool results:** The `ToolResult` class currently supports text content, but not yet image or audio content types from the specification.
--   **Capability Negotiation:** The server doesn't yet have logic for negotiating these capabilities with the client during initialization. There's currently no way to know the client's capabilities in subsequent requests (would require a long-lived session).
--   **Timeouts:** The package doesn't have built-in handling for timeouts, which should result in a specific JSON-RPC error.
--   **Long-lived Sessions:** The server currently operates in a stateless manner and doesn't support long-lived SSE sessions for things where the server initiates requests with the client. This is only possible for local server running on STDIO currently.
+## Code of Conduct
+
+In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+
+## Security Vulnerabilities
+
+Please review [our security policy](https://github.com/laravel/mcp/security/policy) on how to report security vulnerabilities.
+
+## License
+
+Laravel MCP is open-sourced software licensed under the [MIT license](LICENSE.md).
