@@ -2,7 +2,7 @@
 
 namespace Laravel\Mcp\Tests\Unit\Tools;
 
-use Laravel\Mcp\Resources\Resource;
+use Laravel\Mcp\Server\Resource;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

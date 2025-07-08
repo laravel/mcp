@@ -2,7 +2,7 @@
 
 namespace Laravel\Mcp\Tests\Fixtures;
 
-use Laravel\Mcp\Resources\Resource;
+use Laravel\Mcp\Server\Resource;
 
 class DailyPlanResource extends Resource
 {

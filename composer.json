@@ -25,6 +25,7 @@
     "autoload": {
         "psr-4": {
             "Laravel\\Mcp\\": "src/",
+            "Laravel\\Mcp\\Server\\": "src/Server/",
             "Laravel\\Mcp\\Tests\\": "tests/",
             "Workbench\\App\\": "workbench/app/"
         }
@@ -50,10 +51,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Laravel\\Mcp\\McpServiceProvider"
+                "Laravel\\Mcp\\Server\\McpServiceProvider"
             ],
             "aliases": {
-                "Mcp": "Laravel\\Mcp\\Facades\\Mcp"
+                "Mcp": "Laravel\\Mcp\\Server\\Facades\\Mcp"
             }
         }
     },

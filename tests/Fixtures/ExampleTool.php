@@ -6,9 +6,9 @@ use Generator;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Support\MessageBag;
 use Illuminate\Validation\ValidationException;
-use Laravel\Mcp\Tools\Tool;
-use Laravel\Mcp\Tools\ToolInputSchema;
-use Laravel\Mcp\Tools\ToolResult;
+use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Tools\ToolInputSchema;
+use Laravel\Mcp\Server\Tools\ToolResult;
 use Mockery;
 
 class ExampleTool extends Tool

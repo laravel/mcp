@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Methods;
 
-use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\Methods\Initialize;
-use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\Transport\JsonRpcRequest;
-use Laravel\Mcp\Transport\JsonRpcResponse;
+use Laravel\Mcp\Server\Exceptions\JsonRpcException;
+use Laravel\Mcp\Server\Methods\Initialize;
+use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -28,10 +28,11 @@ class InitializeTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: [],
-            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
+            tools: [],
+            resources: [],
+            prompts: [],
         );
 
         $method = new Initialize;
@@ -73,10 +74,11 @@ class InitializeTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: [],
-            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
+            tools: [],
+            resources: [],
+            prompts: [],
         );
 
         $method = new Initialize;
@@ -112,10 +114,11 @@ class InitializeTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: [],
-            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
+            tools: [],
+            resources: [],
+            prompts: [],
         );
 
         $method = new Initialize;

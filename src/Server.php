@@ -4,15 +4,18 @@ namespace Laravel\Mcp;
 
 use Generator;
 use Illuminate\Support\Str;
-use Laravel\Mcp\Contracts\Transport\Transport;
-use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\Methods\CallTool;
-use Laravel\Mcp\Methods\Initialize;
-use Laravel\Mcp\Methods\ListResources;
-use Laravel\Mcp\Methods\ListTools;
-use Laravel\Mcp\Methods\Ping;
-use Laravel\Mcp\Methods\ReadResource;
-use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Contracts\Transport\Transport;
+use Laravel\Mcp\Server\Exceptions\JsonRpcException;
+use Laravel\Mcp\Server\Methods\CallTool;
+use Laravel\Mcp\Server\Methods\GetPrompt;
+use Laravel\Mcp\Server\Methods\Initialize;
+use Laravel\Mcp\Server\Methods\ListPrompts;
+use Laravel\Mcp\Server\Methods\ListResources;
+use Laravel\Mcp\Server\Methods\ListTools;
+use Laravel\Mcp\Server\Methods\Ping;
+use Laravel\Mcp\Server\Methods\ReadResource;
+use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 
 abstract class Server
 {
@@ -32,6 +35,9 @@ abstract class Server
             'listChanged' => false,
         ],
         'resources' => [
+            'listChanged' => false,
+        ],
+        'prompts' => [
             'listChanged' => false,
         ],
     ];
@@ -58,6 +64,8 @@ abstract class Server
 
     public array $resources = [];
 
+    public array $prompts = [];
+
     /**
      * The maximum pagination length for tool/list calls.
      */
@@ -80,6 +88,8 @@ abstract class Server
 
     protected array $registeredResources = [];
 
+    protected array $registeredPrompts = [];
+
     /**
      * The JSON-RPC methods available to the server.
      */
@@ -88,6 +98,8 @@ abstract class Server
         'tools/call' => CallTool::class,
         'resources/list' => ListResources::class,
         'resources/read' => ReadResource::class,
+        'prompts/list' => ListPrompts::class,
+        'prompts/get' => GetPrompt::class,
         'ping' => Ping::class,
     ];
 
@@ -98,6 +110,7 @@ abstract class Server
     {
         $this->registeredTools = $this->tools;
         $this->registeredResources = $this->resources;
+        $this->registeredPrompts = $this->prompts;
     }
 
     /**
@@ -129,6 +142,7 @@ abstract class Server
             resources: $this->registeredResources,
             maxPaginationLength: $this->maxPaginationLength,
             defaultPaginationLength: $this->defaultPaginationLength,
+            prompts: $this->registeredPrompts,
         );
 
         try {
@@ -174,6 +188,13 @@ abstract class Server
     {
         if (! in_array($resource, $this->registeredResources, true)) {
             $this->registeredResources[] = $resource;
+        }
+    }
+
+    public function addPrompt($prompt)
+    {
+        if (! in_array($prompt, $this->registeredPrompts, true)) {
+            $this->registeredPrompts[] = $prompt;
         }
     }
 

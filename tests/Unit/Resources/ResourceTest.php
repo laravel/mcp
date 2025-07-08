@@ -2,9 +2,9 @@
 
 namespace Laravel\Mcp\Tests\Unit\Resources;
 
-use Laravel\Mcp\Resources\Resource;
-use Laravel\Mcp\Resources\Results\Blob;
-use Laravel\Mcp\Resources\Results\Text;
+use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Server\Resources\Results\Blob;
+use Laravel\Mcp\Server\Resources\Results\Text;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

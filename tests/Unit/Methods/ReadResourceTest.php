@@ -6,9 +6,9 @@ namespace Laravel\Mcp\Tests\Unit\Methods;
 
 use Illuminate\Support\ItemNotFoundException;
 use InvalidArgumentException;
-use Laravel\Mcp\Methods\ReadResource;
+use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Tests\TestCase;
-use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use PHPUnit\Framework\Attributes\Test;
 
 class ReadResourceTest extends TestCase
