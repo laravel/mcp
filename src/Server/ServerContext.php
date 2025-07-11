@@ -28,7 +28,8 @@ class ServerContext
     public function tools(): Collection
     {
         return collect($this->tools)
-            ->map(fn ($toolClass) => is_string($toolClass) ? app($toolClass) : $toolClass);
+            ->map(fn ($toolClass) => is_string($toolClass) ? app($toolClass) : $toolClass)
+            ->filter(fn ($tool) => $tool->shouldRegister());
     }
 
     /**

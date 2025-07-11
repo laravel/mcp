@@ -91,10 +91,27 @@ class ToolInputSchema
     /**
      * Mark the current property as required.
      */
-    public function required(): self
+    public function required(bool $required = true): self
     {
-        if ($this->currentProperty && ! in_array($this->currentProperty, $this->requiredProperties, true)) {
+        if (! $this->currentProperty) {
+            return $this;
+        }
+
+        $currentlyRequired = in_array($this->currentProperty, $this->requiredProperties, true);
+        if ($required && $currentlyRequired) {
+            return $this;
+        }
+
+        if ($required && ! $currentlyRequired) {
             $this->requiredProperties[] = $this->currentProperty;
+
+            return $this;
+        }
+
+        if (! $required && $currentlyRequired) {
+            $this->requiredProperties = array_filter($this->requiredProperties, function ($property) {
+                return $property !== $this->currentProperty;
+            });
         }
 
         return $this;

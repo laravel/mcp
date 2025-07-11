@@ -55,4 +55,9 @@ abstract class Tool implements Arrayable
             'annotations' => $this->annotations() ?: (object) [],
         ];
     }
+
+    public function shouldRegister(): bool
+    {
+        return true;
+    }
 }

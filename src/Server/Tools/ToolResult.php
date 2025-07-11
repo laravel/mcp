@@ -22,6 +22,16 @@ class ToolResult implements Arrayable
         return new self([new TextContent($text)]);
     }
 
+    public static function json(array $data): self
+    {
+        $json = json_encode($data, JSON_PRETTY_PRINT);
+        if ($json === false) {
+            return self::error(sprintf('Failed to encode data: %s', json_last_error_msg()));
+        }
+
+        return self::text($json);
+    }
+
     /**
      * Create a new error response.
      */
