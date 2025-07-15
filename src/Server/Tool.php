@@ -6,8 +6,8 @@ use Generator;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Tools\ToolInputSchema;
-use Laravel\Mcp\Server\Tools\ToolResult;
 use Laravel\Mcp\Server\Tools\ToolNotification;
+use Laravel\Mcp\Server\Tools\ToolResult;
 use ReflectionClass;
 
 abstract class Tool implements Arrayable
