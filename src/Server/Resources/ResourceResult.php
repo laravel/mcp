@@ -7,8 +7,8 @@ namespace Laravel\Mcp\Server\Resources;
 use Illuminate\Contracts\Support\Arrayable;
 use Laravel\Mcp\Server\Contracts\Resources\Content;
 use Laravel\Mcp\Server\Resource;
-use Laravel\Mcp\Server\Resources\Results\Blob;
-use Laravel\Mcp\Server\Resources\Results\Text;
+use Laravel\Mcp\Server\Resources\Content\Blob;
+use Laravel\Mcp\Server\Resources\Content\Text;
 
 class ResourceResult implements Arrayable
 {

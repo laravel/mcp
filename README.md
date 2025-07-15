@@ -340,11 +340,11 @@ public function read(): string
 }
 ```
 
-For more explicit control, you can return a `Laravel\Mcp\Server\Resources\Results\Text` or `Laravel\Mcp\Server\Resources\Results\Blob` object. This ensures the content type is handled exactly as you intend.
+For more explicit control, you can return a `Laravel\Mcp\Server\Resources\Content\Text` or `Laravel\Mcp\Server\Resources\Content\Blob` object. This ensures the content type is handled exactly as you intend.
 
 ```php
 use Laravel\Mcp\Server\Contracts\Resources\Content;
-use Laravel\Mcp\Server\Resources\Results\Blob;
+use Laravel\Mcp\Server\Resources\Content\Blob;
 
 public function read(): Content
 {

@@ -58,10 +58,13 @@ abstract class Server
     public string $instructions = 'This MCP server lets AI agents interact with our Laravel application.';
 
     /**
-     * The available tools.
+     * @var array<string>
      */
     public array $tools = [];
 
+    /**
+     * @var array<string>
+     */
     public array $resources = [];
 
     public array $prompts = [];
