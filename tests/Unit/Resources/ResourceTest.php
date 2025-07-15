@@ -100,7 +100,7 @@ class ResourceTest extends TestCase
 
             public function read(): Text
             {
-                return new Text('This is a test resource.', $this);
+                return new Text('This is a test resource.');
             }
         };
 
@@ -133,7 +133,7 @@ class ResourceTest extends TestCase
 
             public function read(): Blob
             {
-                return new Blob('This is a test resource.', $this);
+                return new Blob('This is a test resource.');
             }
         };
 

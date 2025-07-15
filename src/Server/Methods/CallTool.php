@@ -50,7 +50,7 @@ class CallTool implements Method
     /**
      * Convert the result to a JSON-RPC response.
      */
-    private function toResponse(string $id, array|Arrayable $result): JsonRpcResponse
+    private function toResponse(?int $id, array|Arrayable $result): JsonRpcResponse
     {
         return JsonRpcResponse::create($id, $result);
     }

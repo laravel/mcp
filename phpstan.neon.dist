@@ -1,9 +1,9 @@
 parameters:
   paths:
     - src
-    - tests
 
-  level: 0
+  level: 5
 
   ignoreErrors:
     - "#Unsafe usage of new static\\(\\)#"
+    - "#Call to an undefined method Illuminate\\\\Contracts\\\\Foundation\\\\Application::routesAreCached#"

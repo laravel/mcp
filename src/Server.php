@@ -141,10 +141,10 @@ abstract class Server
             serverName: $this->serverName,
             serverVersion: $this->serverVersion,
             instructions: $this->instructions,
-            tools: $this->registeredTools,
-            resources: $this->registeredResources,
             maxPaginationLength: $this->maxPaginationLength,
             defaultPaginationLength: $this->defaultPaginationLength,
+            tools: $this->registeredTools,
+            resources: $this->registeredResources,
             prompts: $this->registeredPrompts,
         );
 
@@ -155,7 +155,7 @@ abstract class Server
                 return $this->handleInitializeMessage($sessionId, $request, $context);
             }
 
-            if (! isset($request->id) || $request->id === null) {
+            if (! isset($request->id)) {
                 return; // JSON-RPC notification, no response needed
             }
 
@@ -165,7 +165,7 @@ abstract class Server
 
             $this->handleMessage($sessionId, $request, $context);
         } catch (JsonRpcException $e) {
-            $this->transport->send(json_encode($e->toJsonRpcError()), $sessionId);
+            $this->transport->send(json_encode($e->toJsonRpcError()));
         }
     }
 
@@ -222,23 +222,23 @@ abstract class Server
     /**
      * Handle a JSON-RPC message.
      */
-    private function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context)
+    private function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
     {
         $methodClass = $this->methods[$request->method];
 
         $response = app($methodClass)->handle($request, $context);
 
         if ($response instanceof Generator) {
-            $this->transport->stream(function () use ($response, $sessionId) {
+            $this->transport->stream(function () use ($response) {
                 foreach ($response as $message) {
-                    $this->transport->send($message->toJson(), $sessionId);
+                    $this->transport->send($message->toJson());
                 }
             });
 
             return;
         }
 
-        return $this->transport->send($response->toJson(), $sessionId);
+        $this->transport->send($response->toJson());
     }
 
     /**
@@ -248,6 +248,6 @@ abstract class Server
     {
         $response = (new Initialize)->handle($request, $context);
 
-        $this->transport->send($response->toJson(), $sessionId);
+        $this->transport->send($response->toJson());
     }
 }

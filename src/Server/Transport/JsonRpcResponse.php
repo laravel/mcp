@@ -7,7 +7,8 @@ use Illuminate\Contracts\Support\Arrayable;
 class JsonRpcResponse
 {
     /**
-     * Create a new JSON-RPC response.
+     * @param int $id
+     * @param array<mixed> $result
      */
     public function __construct(
         public int $id,

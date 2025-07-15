@@ -27,24 +27,6 @@ class ResourceTest extends TestCase
         return new DummyResource;
     }
 
-    private function makeBlobResource(): Resource
-    {
-        return new class extends Resource
-        {
-            public string $type = 'blob';
-
-            public function description(): string
-            {
-                return 'A test resource';
-            }
-
-            public function read(): string
-            {
-                return 'resource-content';
-            }
-        };
-    }
-
     #[Test]
     public function it_has_expected_default_values(): void
     {

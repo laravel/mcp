@@ -24,7 +24,7 @@ class GetPrompt implements Method
 
         return new JsonRpcResponse(
             $request->id,
-            $prompt->handle()->toArray(),
+            $prompt->handle($request->get('arguments', []))->toArray(),
         );
     }
 }

@@ -117,7 +117,7 @@ abstract class TestCase extends TestbenchTestCase
         array $overrides = [],
     ): Resource {
         $content = file_get_contents($filePath);
-        $overrides['mimeType'] = $overrides['mimeType'] ?? mime_content_type($filePath) ?? 'application/octet-stream';
+        $overrides['mimeType'] = isset($overrides['mimeType']) ? $overrides['mimeType'] : (mime_content_type($filePath) ?: 'application/octet-stream');
 
         return $this->makeResource($content, $description, $overrides);
     }

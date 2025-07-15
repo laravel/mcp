@@ -10,6 +10,8 @@ class StdioTransport implements Transport
 {
     /**
      * The server handler responsible for handling the request.
+     *
+     * @var callable
      */
     private $handler;
 

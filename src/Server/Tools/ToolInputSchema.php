@@ -102,13 +102,13 @@ class ToolInputSchema
             return $this;
         }
 
-        if ($required && ! $currentlyRequired) {
+        if ($required) {
             $this->requiredProperties[] = $this->currentProperty;
 
             return $this;
         }
 
-        if (! $required && $currentlyRequired) {
+        if ($currentlyRequired) {
             $this->requiredProperties = array_filter($this->requiredProperties, function ($property) {
                 return $property !== $this->currentProperty;
             });

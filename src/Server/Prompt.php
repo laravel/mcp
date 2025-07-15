@@ -4,21 +4,29 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Prompts\Argument;
 use Laravel\Mcp\Server\Prompts\Arguments;
 use Laravel\Mcp\Server\Prompts\PromptResult;
 
-abstract class Prompt
+abstract class Prompt implements Arrayable
 {
     protected string $description;
 
-    abstract public function handle(Arguments $arguments): PromptResult;
+    protected array $arguments;
+
+    abstract public function handle(array $arguments): PromptResult;
 
     public function arguments(): Arguments
     {
-        return [
-            ['name' => 'best_cheese', 'description' => 'The best cheese', 'required' => false],
-        ];
+        return (new Arguments)->add(
+            new Argument(
+                name: 'best_cheese',
+                description: 'The best cheese',
+                required: false,
+            ),
+        );
     }
 
     public function description(): string
@@ -36,5 +44,16 @@ abstract class Prompt
         return Str::headline(class_basename($this));
     }
 
-    protected array $arguments;
+    /**
+     * Returned in ListPrompts
+     */
+    public function toArray(): array
+    {
+        return [
+            'name' => $this->name(),
+            'title' => $this->title(),
+            'description' => $this->description(),
+            'arguments' => $this->arguments()->toArray(),
+        ];
+    }
 }
