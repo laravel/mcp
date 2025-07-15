@@ -3,7 +3,7 @@
 namespace Workbench\App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Laravel\Mcp\Facades\Mcp;
+use Laravel\Mcp\Server\Facades\Mcp;
 use Laravel\Mcp\Tests\Fixtures\ExampleServer;
 use Laravel\Mcp\Tests\Fixtures\ServerWithDynamicTools;
 

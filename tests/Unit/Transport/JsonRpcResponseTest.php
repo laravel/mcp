@@ -2,7 +2,7 @@
 
 namespace Laravel\Mcp\Tests\Unit\Transport;
 
-use Laravel\Mcp\Transport\JsonRpcResponse;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

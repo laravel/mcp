@@ -2,7 +2,7 @@
 
 namespace Laravel\Mcp\Tests\Unit\Pagination;
 
-use Laravel\Mcp\Pagination\CursorPaginator;
+use Laravel\Mcp\Server\Pagination\CursorPaginator;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

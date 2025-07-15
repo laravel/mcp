@@ -2,10 +2,10 @@
 
 namespace Laravel\Mcp\Tests\Fixtures;
 
-use Laravel\Mcp\Contracts\Methods\Method;
-use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\Transport\JsonRpcRequest;
-use Laravel\Mcp\Transport\JsonRpcResponse;
+use Laravel\Mcp\Server\Contracts\Methods\Method;
+use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
 class CustomMethodHandler implements Method
 {

@@ -2,7 +2,7 @@
 
 namespace Laravel\Mcp\Tests\Unit\Tools;
 
-use Laravel\Mcp\Resources\Resource;
+use Laravel\Mcp\Server\Resource;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -25,24 +25,6 @@ class ResourceTest extends TestCase
     private function makeResource(): Resource
     {
         return new DummyResource;
-    }
-
-    private function makeBlobResource(): Resource
-    {
-        return new class extends Resource
-        {
-            public string $type = 'blob';
-
-            public function description(): string
-            {
-                return 'A test resource';
-            }
-
-            public function read(): string
-            {
-                return 'resource-content';
-            }
-        };
     }
 
     #[Test]

@@ -2,11 +2,11 @@
 
 namespace Laravel\Mcp\Tests;
 
-use Laravel\Mcp\Contracts\Resources\Content;
-use Laravel\Mcp\McpServiceProvider;
-use Laravel\Mcp\Resources\Resource;
-use Laravel\Mcp\ServerContext;
-use Laravel\Mcp\Transport\JsonRpcResponse;
+use Laravel\Mcp\Server\Contracts\Resources\Content;
+use Laravel\Mcp\Server\McpServiceProvider;
+use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Orchestra\Testbench\TestCase as TestbenchTestCase;
 use Workbench\App\Providers\WorkbenchServiceProvider;
 
@@ -33,10 +33,11 @@ abstract class TestCase extends TestbenchTestCase
             'serverName' => 'test-server',
             'serverVersion' => '1.0.0',
             'instructions' => 'test-instructions',
-            'tools' => [],
-            'resources' => [],
             'maxPaginationLength' => 3,
             'defaultPaginationLength' => 3,
+            'tools' => [],
+            'resources' => [],
+            'prompts' => [],
         ], $properties);
 
         return new ServerContext(...$properties);
@@ -116,7 +117,7 @@ abstract class TestCase extends TestbenchTestCase
         array $overrides = [],
     ): Resource {
         $content = file_get_contents($filePath);
-        $overrides['mimeType'] = $overrides['mimeType'] ?? mime_content_type($filePath) ?? 'application/octet-stream';
+        $overrides['mimeType'] = $overrides['mimeType'] ?? (mime_content_type($filePath) ?: 'application/octet-stream');
 
         return $this->makeResource($content, $description, $overrides);
     }

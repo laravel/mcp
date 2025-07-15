@@ -3,14 +3,14 @@
 namespace Laravel\Mcp\Tests\Unit\Tools;
 
 use Generator;
-use Laravel\Mcp\Tools\Annotations\IsDestructive;
-use Laravel\Mcp\Tools\Annotations\IsIdempotent;
-use Laravel\Mcp\Tools\Annotations\IsOpenWorld;
-use Laravel\Mcp\Tools\Annotations\IsReadOnly;
-use Laravel\Mcp\Tools\Annotations\Title;
-use Laravel\Mcp\Tools\Tool;
-use Laravel\Mcp\Tools\ToolInputSchema;
-use Laravel\Mcp\Tools\ToolResult;
+use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
+use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
+use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
+use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
+use Laravel\Mcp\Server\Tools\Annotations\Title;
+use Laravel\Mcp\Server\Tools\ToolInputSchema;
+use Laravel\Mcp\Server\Tools\ToolResult;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Tests\Unit\Methods;
 
-use Laravel\Mcp\Methods\ListResources;
+use Laravel\Mcp\Server\Methods\ListResources;
+use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Tests\TestCase;
-use Laravel\Mcp\Transport\JsonRpcRequest;
 use PHPUnit\Framework\Attributes\Test;
 
 class ListResourcesTest extends TestCase

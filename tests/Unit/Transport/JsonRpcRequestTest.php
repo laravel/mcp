@@ -2,8 +2,8 @@
 
 namespace Laravel\Mcp\Tests\Unit\Transport;
 
-use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Exceptions\JsonRpcException;
+use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

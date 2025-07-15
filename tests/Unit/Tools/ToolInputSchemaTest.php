@@ -2,7 +2,7 @@
 
 namespace Laravel\Mcp\Tests\Unit\Tools;
 
-use Laravel\Mcp\Tools\ToolInputSchema;
+use Laravel\Mcp\Server\Tools\ToolInputSchema;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 

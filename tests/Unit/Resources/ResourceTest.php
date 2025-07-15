@@ -2,9 +2,9 @@
 
 namespace Laravel\Mcp\Tests\Unit\Resources;
 
-use Laravel\Mcp\Resources\Resource;
-use Laravel\Mcp\Resources\Results\Blob;
-use Laravel\Mcp\Resources\Results\Text;
+use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Server\Resources\Content\Blob;
+use Laravel\Mcp\Server\Resources\Content\Text;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -100,7 +100,7 @@ class ResourceTest extends TestCase
 
             public function read(): Text
             {
-                return new Text('This is a test resource.', $this);
+                return new Text('This is a test resource.');
             }
         };
 
@@ -133,7 +133,7 @@ class ResourceTest extends TestCase
 
             public function read(): Blob
             {
-                return new Blob('This is a test resource.', $this);
+                return new Blob('This is a test resource.');
             }
         };
 

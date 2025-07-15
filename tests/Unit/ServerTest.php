@@ -217,7 +217,6 @@ class ServerTest extends TestCase
 
             public function boot()
             {
-                parent::boot();
                 $this->bootCalled = true;
             }
         };

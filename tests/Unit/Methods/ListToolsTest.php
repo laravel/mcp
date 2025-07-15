@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Methods;
 
-use Laravel\Mcp\Methods\ListTools;
-use Laravel\Mcp\ServerContext;
+use Laravel\Mcp\Server\Methods\ListTools;
+use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Laravel\Mcp\Tests\Fixtures\ExampleTool;
-use Laravel\Mcp\Transport\JsonRpcRequest;
-use Laravel\Mcp\Transport\JsonRpcResponse;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -15,9 +15,9 @@ if (! class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
         eval("
             namespace Tests\\Unit\\Methods;
             use Generator;
-            use Laravel\\Mcp\\Tools\\Tool;
-            use Laravel\\Mcp\\Tools\\ToolResult;
-            use Laravel\\Mcp\\Tools\\ToolInputSchema;
+            use Laravel\\Mcp\\Server\\Tool;
+            use Laravel\\Mcp\\Server\\Tools\\ToolResult;
+            use Laravel\\Mcp\\Server\\Tools\\ToolInputSchema;
             class DummyTool{$i} extends Tool {
                 public function description(): string { return 'Description for dummy tool {$i}'; }
                 public function schema(ToolInputSchema \$schema): ToolInputSchema { return \$schema; }
@@ -45,10 +45,11 @@ class ListToolsTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: [ExampleTool::class],
-            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 5,
+            tools: [ExampleTool::class],
+            resources: [],
+            prompts: [],
         );
 
         $listTools = new ListTools;
@@ -92,10 +93,11 @@ class ListToolsTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: $toolClasses,
-            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
+            tools: $toolClasses,
+            resources: [],
+            prompts: [],
         );
 
         $listTools = new ListTools;
@@ -154,10 +156,11 @@ class ListToolsTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: $toolClasses,
-            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 7,
+            tools: $toolClasses,
+            resources: [],
+            prompts: [],
         );
 
         $request = JsonRpcRequest::fromJson(json_encode([
@@ -188,10 +191,11 @@ class ListToolsTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: $toolClasses,
-            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
+            tools: $toolClasses,
+            resources: [],
+            prompts: [],
         );
 
         $request = JsonRpcRequest::fromJson(json_encode([
@@ -222,10 +226,11 @@ class ListToolsTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: $toolClasses,
-            resources: [],
             maxPaginationLength: 7,
             defaultPaginationLength: 7,
+            tools: $toolClasses,
+            resources: [],
+            prompts: [],
         );
 
         $request = JsonRpcRequest::fromJson(json_encode([
@@ -256,10 +261,11 @@ class ListToolsTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: $toolClasses,
-            resources: [],
             maxPaginationLength: 15,
             defaultPaginationLength: 5,
+            tools: $toolClasses,
+            resources: [],
+            prompts: [],
         );
 
         $request = JsonRpcRequest::fromJson(json_encode([

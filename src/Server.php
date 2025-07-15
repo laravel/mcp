@@ -4,15 +4,18 @@ namespace Laravel\Mcp;
 
 use Generator;
 use Illuminate\Support\Str;
-use Laravel\Mcp\Contracts\Transport\Transport;
-use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\Methods\CallTool;
-use Laravel\Mcp\Methods\Initialize;
-use Laravel\Mcp\Methods\ListResources;
-use Laravel\Mcp\Methods\ListTools;
-use Laravel\Mcp\Methods\Ping;
-use Laravel\Mcp\Methods\ReadResource;
-use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Contracts\Transport\Transport;
+use Laravel\Mcp\Server\Exceptions\JsonRpcException;
+use Laravel\Mcp\Server\Methods\CallTool;
+use Laravel\Mcp\Server\Methods\GetPrompt;
+use Laravel\Mcp\Server\Methods\Initialize;
+use Laravel\Mcp\Server\Methods\ListPrompts;
+use Laravel\Mcp\Server\Methods\ListResources;
+use Laravel\Mcp\Server\Methods\ListTools;
+use Laravel\Mcp\Server\Methods\Ping;
+use Laravel\Mcp\Server\Methods\ReadResource;
+use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 
 abstract class Server
 {
@@ -34,6 +37,9 @@ abstract class Server
         'resources' => [
             'listChanged' => false,
         ],
+        'prompts' => [
+            'listChanged' => false,
+        ],
     ];
 
     /**
@@ -52,11 +58,16 @@ abstract class Server
     public string $instructions = 'This MCP server lets AI agents interact with our Laravel application.';
 
     /**
-     * The available tools.
+     * @var array<string>
      */
     public array $tools = [];
 
+    /**
+     * @var array<string>
+     */
     public array $resources = [];
+
+    public array $prompts = [];
 
     /**
      * The maximum pagination length for tool/list calls.
@@ -80,6 +91,8 @@ abstract class Server
 
     protected array $registeredResources = [];
 
+    protected array $registeredPrompts = [];
+
     /**
      * The JSON-RPC methods available to the server.
      */
@@ -88,6 +101,8 @@ abstract class Server
         'tools/call' => CallTool::class,
         'resources/list' => ListResources::class,
         'resources/read' => ReadResource::class,
+        'prompts/list' => ListPrompts::class,
+        'prompts/get' => GetPrompt::class,
         'ping' => Ping::class,
     ];
 
@@ -98,6 +113,7 @@ abstract class Server
     {
         $this->registeredTools = $this->tools;
         $this->registeredResources = $this->resources;
+        $this->registeredPrompts = $this->prompts;
     }
 
     /**
@@ -125,10 +141,11 @@ abstract class Server
             serverName: $this->serverName,
             serverVersion: $this->serverVersion,
             instructions: $this->instructions,
-            tools: $this->registeredTools,
-            resources: $this->registeredResources,
             maxPaginationLength: $this->maxPaginationLength,
             defaultPaginationLength: $this->defaultPaginationLength,
+            tools: $this->registeredTools,
+            resources: $this->registeredResources,
+            prompts: $this->registeredPrompts,
         );
 
         try {
@@ -138,7 +155,7 @@ abstract class Server
                 return $this->handleInitializeMessage($sessionId, $request, $context);
             }
 
-            if (! isset($request->id) || $request->id === null) {
+            if (! isset($request->id)) {
                 return; // JSON-RPC notification, no response needed
             }
 
@@ -148,7 +165,7 @@ abstract class Server
 
             $this->handleMessage($sessionId, $request, $context);
         } catch (JsonRpcException $e) {
-            $this->transport->send(json_encode($e->toJsonRpcError()), $sessionId);
+            $this->transport->send(json_encode($e->toJsonRpcError()));
         }
     }
 
@@ -177,6 +194,13 @@ abstract class Server
         }
     }
 
+    public function addPrompt($prompt)
+    {
+        if (! in_array($prompt, $this->registeredPrompts, true)) {
+            $this->registeredPrompts[] = $prompt;
+        }
+    }
+
     /**
      * Add a JSON-RPC method dynamically to the server.
      */
@@ -198,23 +222,23 @@ abstract class Server
     /**
      * Handle a JSON-RPC message.
      */
-    private function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context)
+    private function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
     {
         $methodClass = $this->methods[$request->method];
 
         $response = app($methodClass)->handle($request, $context);
 
         if ($response instanceof Generator) {
-            $this->transport->stream(function () use ($response, $sessionId) {
+            $this->transport->stream(function () use ($response) {
                 foreach ($response as $message) {
-                    $this->transport->send($message->toJson(), $sessionId);
+                    $this->transport->send($message->toJson());
                 }
             });
 
             return;
         }
 
-        return $this->transport->send($response->toJson(), $sessionId);
+        $this->transport->send($response->toJson());
     }
 
     /**
@@ -224,6 +248,6 @@ abstract class Server
     {
         $response = (new Initialize)->handle($request, $context);
 
-        $this->transport->send($response->toJson(), $sessionId);
+        $this->transport->send($response->toJson());
     }
 }

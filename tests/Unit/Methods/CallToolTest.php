@@ -2,11 +2,11 @@
 
 namespace Tests\Unit\Methods;
 
-use Laravel\Mcp\Methods\CallTool;
-use Laravel\Mcp\ServerContext;
+use Laravel\Mcp\Server\Methods\CallTool;
+use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Laravel\Mcp\Tests\Fixtures\ExampleTool;
-use Laravel\Mcp\Transport\JsonRpcRequest;
-use Laravel\Mcp\Transport\JsonRpcResponse;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -31,10 +31,11 @@ class CallToolTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: [ExampleTool::class],
-            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
+            tools: [ExampleTool::class],
+            resources: [],
+            prompts: [],
         );
 
         $method = new CallTool;
@@ -73,10 +74,11 @@ class CallToolTest extends TestCase
             serverName: 'Test Server',
             serverVersion: '1.0.0',
             instructions: 'Test instructions',
-            tools: [ExampleTool::class],
-            resources: [],
             maxPaginationLength: 50,
             defaultPaginationLength: 10,
+            tools: [ExampleTool::class],
+            resources: [],
+            prompts: [],
         );
 
         $method = new CallTool;
