@@ -33,6 +33,7 @@ class McpInspectorCommand extends Command
 
         if (is_null($localServer) && is_null($webServer)) {
             $this->error('Please pass a valid MCP handle');
+
             return self::FAILURE;
         }
 
