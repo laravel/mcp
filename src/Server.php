@@ -15,7 +15,9 @@ use Laravel\Mcp\Server\Methods\ListTools;
 use Laravel\Mcp\Server\Methods\Ping;
 use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Transport\JsonRpcProtocolError;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Throwable;
 
 abstract class Server
 {
@@ -166,6 +168,14 @@ abstract class Server
             $this->handleMessage($sessionId, $request, $context);
         } catch (JsonRpcException $e) {
             $this->transport->send(json_encode($e->toJsonRpcError()));
+        } catch (Throwable $e) {
+            $jsonRpcError = (new JsonRpcProtocolError(
+                code: $e->getCode(),
+                message: $e->getMessage(),
+                requestId: $request->id ?? null,
+                data: null,
+            ))->toArray();
+            $this->transport->send(json_encode($jsonRpcError));
         }
     }
 
