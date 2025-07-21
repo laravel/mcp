@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Laravel\Mcp\Server\Tools;
 
 use Illuminate\Contracts\Support\Arrayable;

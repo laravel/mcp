@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Laravel\Mcp;
 
 use Generator;
@@ -14,7 +16,10 @@ use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Methods\ListTools;
 use Laravel\Mcp\Server\Methods\Ping;
 use Laravel\Mcp\Server\Methods\ReadResource;
+use Laravel\Mcp\Server\Prompt;
+use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\JsonRpcProtocolError;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Throwable;
@@ -190,56 +195,65 @@ abstract class Server
         // Override this method to dynamically add tools, custom methods, etc., when the server boots.
     }
 
-    /**
-     * Add a tool dynamically to the server.
-     */
-    public function addTool($tool)
+    public function addTool(Tool|string $tool): self
     {
         if (! in_array($tool, $this->registeredTools, true)) {
             $this->registeredTools[] = $tool;
         }
+
+        return $this;
     }
 
-    public function addResource($resource)
+    public function addResource(Resource|string $resource): self
     {
         if (! in_array($resource, $this->registeredResources, true)) {
             $this->registeredResources[] = $resource;
         }
+
+        return $this;
     }
 
-    public function addPrompt($prompt)
+    public function addPrompt(Prompt|string $prompt): self
     {
         if (! in_array($prompt, $this->registeredPrompts, true)) {
             $this->registeredPrompts[] = $prompt;
         }
+
+        return $this;
     }
 
     /**
      * Add a JSON-RPC method dynamically to the server.
      */
-    public function addMethod(string $name, string $handlerClass)
+    public function addMethod(string $name, string $handlerClass): self
     {
         $this->methods[$name] = $handlerClass;
+
+        return $this;
     }
 
     /**
      * Add a capability dynamically to the server.
      */
-    public function addCapability(string $key, mixed $value = null)
+    public function addCapability(string $key, mixed $value = null): self
     {
         $value = $value ?? (object) [];
 
         data_set($this->capabilities, $key, $value);
+
+        return $this;
     }
 
     /**
      * Handle a JSON-RPC message.
+     * @throws \Laravel\Mcp\Server\Exceptions\JsonRpcException
      */
     private function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
     {
-        $methodClass = $this->methods[$request->method];
+        /** @var \Laravel\Mcp\Server\Contracts\Methods\Method $methodClass */
+        $methodClass = app($this->methods[$request->method]);
 
-        $response = app($methodClass)->handle($request, $context);
+        $response = $methodClass->handle($request, $context);
 
         if ($response instanceof Generator) {
             $this->transport->stream(function () use ($response) {
