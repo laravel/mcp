@@ -246,6 +246,7 @@ abstract class Server
 
     /**
      * Handle a JSON-RPC message.
+     *
      * @throws \Laravel\Mcp\Server\Exceptions\JsonRpcException
      */
     private function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
