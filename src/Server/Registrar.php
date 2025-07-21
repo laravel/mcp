@@ -15,15 +15,19 @@ class Registrar
      */
     private array $localServers = [];
 
+    protected array $registeredWebServers = [];
+
     /**
      * Register an web-based MCP server running over HTTP.
      */
     public function web(string $handle, string $serverClass): Route
     {
+        $this->registeredWebServers[$handle] = $serverClass;
+
         return Router::post($handle, fn () => $this->bootServer(
             $serverClass,
             fn () => new HttpTransport(request())
-        ));
+        ))->name('mcp-server.'.$handle);
     }
 
     /**
@@ -43,6 +47,11 @@ class Registrar
     public function getLocalServer(string $handle): ?callable
     {
         return $this->localServers[$handle] ?? null;
+    }
+
+    public function getWebServer(string $handle): ?string
+    {
+        return $this->registeredWebServers[$handle] ?? null;
     }
 
     public function oauthRoutes($oauthPrefix = 'oauth')

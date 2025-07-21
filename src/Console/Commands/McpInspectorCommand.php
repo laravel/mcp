@@ -22,26 +22,60 @@ class McpInspectorCommand extends Command
     public function handle()
     {
         $handle = $this->argument('handle');
+        /** @var \Laravel\Mcp\Server\Registrar $registrar */
+        $registrar = app('mcp');
 
         $this->info("Starting the MCP Inspector for server: {$handle}");
 
-        $currentDir = getcwd();
-        $command = [
-            'npx',
-            '@modelcontextprotocol/inspector',
-            php_binary(),
-            $currentDir.'/artisan',
-            "mcp:start {$handle}",
-        ];
+        // Check if this is a local server
+        $localServer = $registrar->getLocalServer($handle);
+        $webServer = $registrar->getWebServer($handle);
 
-        $mcpCommand = php_binary();
-        $mcpArguments = $currentDir.'/artisan '.'mcp:start '.$handle;
+        if (is_null($localServer) && is_null($webServer)) {
+            $this->error('Please pass a valid MCP handle');
+            return self::FAILURE;
+        }
+
+        if ($localServer) {
+            // Local server - use STDIO transport
+            $currentDir = getcwd();
+            $command = [
+                'npx',
+                '@modelcontextprotocol/inspector',
+                php_binary(),
+                $currentDir.'/artisan',
+                "mcp:start {$handle}",
+            ];
+
+            $guidance = [
+                'Transport Type' => 'STDIO',
+                'Command' => php_binary(),
+                'Arguments' => implode(' ', [$currentDir.'/artisan', 'mcp:start', $handle]),
+            ];
+        } else {
+            // It's a web MCP
+            $serverUrl = route('mcp-server.'.$handle);
+
+            $command = [
+                'npx',
+                '@modelcontextprotocol/inspector',
+                $serverUrl,
+            ];
+
+            $guidance = [
+                'Transport Type' => 'Streamable HTTP',
+                'URL' => $serverUrl,
+            ];
+        }
 
         $process = new Process($command);
         $process->setTimeout(null);
 
         try {
-            $this->info(sprintf('Command: %s%sArguments: %s%s%s', $mcpCommand, PHP_EOL, $mcpArguments, PHP_EOL, PHP_EOL));
+            foreach ($guidance as $guidanceKey => $guidanceValue) {
+                $this->info(sprintf('%s => %s', $guidanceKey, $guidanceValue));
+            }
+            $this->newLine();
             $process->mustRun(function ($type, $buffer) {
                 echo $buffer;
             });
