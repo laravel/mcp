@@ -3,10 +3,10 @@
 namespace {{ namespace }};
 
 use Generator;
-use Laravel\Mcp\Tools\Annotations\Title;
-use Laravel\Mcp\Tools\Tool;
-use Laravel\Mcp\Tools\ToolInputSchema;
-use Laravel\Mcp\Tools\ToolResult;
+use Laravel\Mcp\Server\Tools\Annotations\Title;
+use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Tools\ToolInputSchema;
+use Laravel\Mcp\Server\Tools\ToolResult;
 
 #[Title('{{ title }}')]
 class {{ class }} extends Tool

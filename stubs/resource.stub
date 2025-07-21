@@ -2,7 +2,7 @@
 
 namespace {{ namespace }};
 
-use Laravel\Mcp\Resources\Resource;
+use Laravel\Mcp\Server\Resource;
 
 class {{ class }} extends Resource
 {

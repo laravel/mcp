@@ -1,8 +1,8 @@
-# 🤖 Laravel MCP
+# Laravel MCP
 
 ## Introduction
 
-Laravel MCP gives you everything you need to build Laravel-powered MCP servers and let AI talk to your apps.
+Laravel MCP makes it easy to add MCP servers to your project and let AI talk to your apps.
 
 ## Installation
 
@@ -12,7 +12,7 @@ To get started, install Laravel MCP via the Composer package manager:
 composer require laravel/mcp
 ```
 
-Next, you can optionally publish the `routes/ai.php` file to define your MCP servers:
+Next, publish the `routes/ai.php` file to define your MCP servers:
 
 ```bash
 php artisan vendor:publish --tag=ai-routes
@@ -20,65 +20,31 @@ php artisan vendor:publish --tag=ai-routes
 
 The package will automatically register MCP servers defined in this file.
 
+
+
 ## Quickstart
+
+**Create the server & tool**
 
 First, create a new MCP server using the `mcp:server` Artisan command:
 
 ```bash
-php artisan mcp:server DemoServer
+php artisan make:mcp-server DemoServer
 ```
 
 Next, create a tool for the MCP server:
 
 ```bash
-php artisan mcp:tool HelloTool
+php artisan make:mcp-tool HelloTool
 ```
 
 This will create two files: `app/Mcp/Servers/DemoServer.php` and `app/Mcp/Tools/HelloTool.php`.
 
-Open `app/Mcp/Tools/HelloTool.php` and replace its contents with the following code to create a simple tool that greets the user:
 
-```php
-<?php
 
-namespace App\Mcp\Tools;
+**Add the tool to the server**
 
-use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\ToolInputSchema;
-use Laravel\Mcp\Server\Tools\ToolResult;
-
-class HelloTool extends Tool
-{
-    public function name(): string
-    {
-        return 'hello';
-    }
-
-    public function description(): string
-    {
-        return 'A friendly tool that says hello.';
-    }
-
-    public function schema(ToolInputSchema $schema): ToolInputSchema
-    {
-        $schema
-            ->string('name')
-            ->description('The name to greet.')
-            ->required();
-
-        return $schema;
-    }
-
-    public function handle(array $arguments): ToolResult
-    {
-        $name = $arguments['name'];
-
-        return ToolResult::text("Hello, {$name}!");
-    }
-}
-```
-
-Now, open `app/Mcp/Servers/DemoServer.php` and add your new tool to the `$tools` property:
+Open `app/Mcp/Servers/DemoServer.php` and add your new tool to the `$tools` property:
 
 ```php
 <?php
@@ -111,12 +77,14 @@ Finally, you can run your server and explore it with the MCP Inspector tool:
 php artisan mcp:inspector demo
 ```
 
+
+
 ## Creating Servers
 
 A server is the central point that handles communication and exposes MCP methods, like tools and resources. To create a server, extend the `Laravel\Mcp\Server` base class or use the `mcp:server` Artisan command to generate a server class:
 
 ```bash
-php artisan mcp:server ExampleServer
+php artisan make:mcp-server ExampleServer
 ```
 
 This will create a new server class in `app/Mcp/Servers/ExampleServer.php`. Here's what a basic server class looks like:
@@ -155,7 +123,7 @@ The `Server` class has a few other properties you can override to customize its 
 Tools let your server expose functionality that clients can call, and that language models can use to perform actions, run code, or interact with external systems. Each tool must extend the `Laravel\Mcp\Server\Tool` abstract class. You can also use the `mcp:tool` Artisan command to generate a tool class:
 
 ```bash
-php artisan mcp:tool ExampleTool
+php artisan make:mcp-tool ExampleTool
 ```
 
 This will create a new tool class in `app/Mcp/Tools/ExampleTool.php`. Here's what a basic tool class looks like:
@@ -276,7 +244,7 @@ $response = ToolResult::items(
 Resources let your server expose data and content that clients can read and use as context when interacting with language models. A resource must extend the `Laravel\Mcp\Server\Resource` abstract class. You can use the `mcp:resource` Artisan command to generate a resource class:
 
 ```bash
-php artisan mcp:resource ExampleResource
+php artisan make:mcp-resource ExampleResource
 ```
 
 This will create a new resource class in `app/Mcp/Resources/ExampleResource.php`. Here's what a basic resource class looks like:
@@ -340,17 +308,7 @@ public function read(): string
 }
 ```
 
-For more explicit control, you can return a `Laravel\Mcp\Server\Resources\Content\Text` or `Laravel\Mcp\Server\Resources\Content\Blob` object. This ensures the content type is handled exactly as you intend.
 
-```php
-use Laravel\Mcp\Server\Contracts\Resources\Content;
-use Laravel\Mcp\Server\Resources\Content\Blob;
-
-public function read(): Content
-{
-    return new Blob(file_get_contents('/path/to/image.png'));
-}
-```
 
 ## Registering Servers
 
@@ -387,6 +345,8 @@ This makes the server available via the `mcp:start` Artisan command:
 ```bash
 php artisan mcp:start demo
 ```
+
+
 
 ## Authentication
 
@@ -428,6 +388,8 @@ For web-based servers, the inspector must be started and configured manually:
 npx @modelcontextprotocol/inspector
 ```
 
+
+
 ## Streaming Tool Responses
 
 For tools that send multiple updates or stream large amounts of data, you can return a generator from the `handle()` method. For web-based servers, this automatically opens an SSE stream and sends an event for each message the generator yields.
@@ -461,96 +423,7 @@ class ChatStreamingTool extends Tool
 }
 ```
 
-## Programmatically Adding Tools
 
-In addition to registering tools via the `$tools` property on your server, you can also add them programmatically by overriding the `boot()` method.
-
-The `addTool()` method accepts an instance of a class that extends `Laravel\Mcp\Server\Tool`. You can pass a class name or define one on-the-fly with an anonymous class:
-
-```php
-public function boot(): void
-{
-    $this->addTool(new class extends Tool {
-        public function description(): string
-        {
-            return 'A dynamically registered tool.';
-        }
-
-        public function schema(ToolInputSchema $schema): ToolInputSchema
-        {
-            return $schema;
-        }
-
-        public function handle(array $arguments): ToolResult
-        {
-            return ToolResult::text('Dynamic tool was called!');
-        }
-    });
-}
-```
-
-## Extending Server Capabilities
-
-If you want to add you own JSON-RPC methods to the server to support other MCP features, you can override the `boot()` method to register them.
-
-Here's a simple example of how to support the [Ping](https://modelcontextprotocol.io/specification/2025-03-26/basic/utilities/ping) method, the simplest method in the MCP protocol:
-
-First, define your method handler. This class must implement the `Laravel\Mcp\Server\Contracts\Methods\Method` interface:
-
-```php
-<?php
-
-namespace App\Mcp\Methods;
-
-use Laravel\Mcp\Server\Contracts\Methods\Method;
-use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Laravel\Mcp\Server\Transport\JsonRpcMessage;
-
-class PingMethod implements Method
-{
-    public function handle(JsonRpcMessage $request, ServerContext $context): JsonRpcResponse
-    {
-        // For a ping, we just return an empty result
-        return new JsonRpcResponse(
-            id: $request->id,
-            result: []
-        );
-    }
-}
-```
-
-Then, in your server class, override the `boot()` method and use `addMethod()` to register your custom method:
-
-```php
-<?php
-
-namespace App\Mcp\Servers;
-
-use Laravel\Mcp\Server;
-use App\Mcp\Methods\PingMethod;
-
-class ExampleServer extends Server
-{
-    public function boot(): void
-    {
-        $this->addMethod('ping', PingMethod::class);
-    }
-}
-```
-
-Now, your server will be able to handle `ping` requests.
-
-### Registering Capabilities
-
-Once you’ve added a custom method to your server, you may want to let the client know about it during the initialize handshake. You can do this by adding custom capabilities in the boot() method:
-
-```php
-public function boot(): void
-{
-    $this->addCapability('customFeature.enabled', true);
-}
-```
 
 ## Contributing
 

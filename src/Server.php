@@ -69,6 +69,9 @@ abstract class Server
      */
     public array $resources = [];
 
+    /**
+     * @var array<string>
+     */
     public array $prompts = [];
 
     /**
