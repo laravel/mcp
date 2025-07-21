@@ -69,7 +69,7 @@ class PromptTest extends TestCase
         $prompt = $this->makePrompt();
         $result = $prompt->handle(['test' => 'value']);
 
-        $this->assertInstanceOf(PromptResult::class, $result);
+        $this->assertEquals($result->toArray()['description'], 'Test description');
     }
 
     #[Test]
@@ -81,6 +81,7 @@ class PromptTest extends TestCase
         $this->assertSame('Review My Code Prompt', $prompt->title());
 
         $result = $prompt->handle([]);
-        $this->assertInstanceOf(PromptResult::class, $result);
+        $this->assertEquals($result->toArray()['description'], 'Instructions for how to review my code');
+        $this->assertCount(1, $result->toArray()['messages']);
     }
 }
