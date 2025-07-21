@@ -64,6 +64,11 @@
             "Composer\\Config::disableProcessTimeout",
             "@build",
             "@php vendor/bin/testbench serve --ansi"
+        ],
+        "check": [
+            "vendor/bin/pint",
+            "vendor/bin/phpstan",
+            "vendor/bin/phpunit"
         ]
     },
     "minimum-stability": "dev",
