@@ -6,25 +6,21 @@ use Laravel\Mcp\Server;
 
 class {{ class }} extends Server
 {
-    /**
-     * The server's display name.
-     */
     public string $serverName = '{{ serverDisplayName }}';
 
-    /**
-     * The server version.
-     */
     public string $serverVersion = '0.0.1';
 
-    /**
-     * The instructions for the AI.
-     */
     public string $instructions = 'Example instructions for LLMs connecting to this MCP server.';
 
-    /**
-     * The available tools.
-     */
     public array $tools = [
         // ExampleTool::class,
+    ];
+
+    public array $resources = [
+        // ExampleResource::class,
+    ];
+
+    public array $prompts = [
+        // ExamplePrompt::class,
     ];
 }
