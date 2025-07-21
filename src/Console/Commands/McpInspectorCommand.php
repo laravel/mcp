@@ -34,12 +34,14 @@ class McpInspectorCommand extends Command
             "mcp:start {$handle}",
         ];
 
-        $this->line('Running: '.implode(' ', $command));
+        $mcpCommand = php_binary();
+        $mcpArguments = $currentDir.'/artisan'.'mcp:start '.$handle;
 
         $process = new Process($command);
         $process->setTimeout(null);
 
         try {
+            $this->info(sprintf('Command: %s%sArguments:%s%s%s', $mcpCommand, PHP_EOL, $mcpArguments, PHP_EOL, PHP_EOL));
             $process->mustRun(function ($type, $buffer) {
                 echo $buffer;
             });
