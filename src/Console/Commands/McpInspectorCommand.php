@@ -33,6 +33,7 @@ class McpInspectorCommand extends Command
 
         if (is_null($localServer) && is_null($webServer)) {
             $this->error('Please pass a valid MCP handle');
+
             return self::FAILURE;
         }
 
@@ -54,7 +55,7 @@ class McpInspectorCommand extends Command
             ];
         } else {
             // It's a web MCP
-            $serverUrl = route('mcp-server.'.$handle);
+            $serverUrl = str_replace('https://', 'http://', route('mcp-server.'.$handle));
 
             $command = [
                 'npx',
@@ -65,6 +66,7 @@ class McpInspectorCommand extends Command
             $guidance = [
                 'Transport Type' => 'Streamable HTTP',
                 'URL' => $serverUrl,
+                'Secure' => 'Your project must be accessible on HTTP for this to work due to how node manages SSL trust',
             ];
         }
 
