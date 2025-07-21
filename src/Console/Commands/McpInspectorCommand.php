@@ -22,6 +22,12 @@ class McpInspectorCommand extends Command
     public function handle()
     {
         $handle = $this->argument('handle');
+        if (! is_string($handle)) {
+            $this->error('Please pass a valid MCP server handle');
+
+            return self::FAILURE;
+        }
+
         /** @var \Laravel\Mcp\Server\Registrar $registrar */
         $registrar = app('mcp');
 
@@ -51,7 +57,7 @@ class McpInspectorCommand extends Command
             $guidance = [
                 'Transport Type' => 'STDIO',
                 'Command' => php_binary(),
-                'Arguments' => implode(' ', [$currentDir.'/artisan', 'mcp:start', $handle]),
+                'Arguments' => implode(' ', [base_path('/artisan'), 'mcp:start', $handle]),
             ];
         } else {
             // It's a web MCP
