@@ -7,7 +7,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
 
 #[AsCommand(
-    name: 'mcp:resource',
+    name: 'make:mcp-resource',
     description: 'Create a new MCP resource class'
 )]
 class ResourceMakeCommand extends GeneratorCommand

@@ -7,7 +7,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
 
 #[AsCommand(
-    name: 'mcp:server',
+    name: 'make:mcp-server',
     description: 'Create a new MCP server class'
 )]
 class ServerMakeCommand extends GeneratorCommand

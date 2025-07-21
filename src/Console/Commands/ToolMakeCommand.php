@@ -8,7 +8,7 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
 
 #[AsCommand(
-    name: 'mcp:tool',
+    name: 'make:mcp-tool',
     description: 'Create a new MCP tool class'
 )]
 class ToolMakeCommand extends GeneratorCommand
