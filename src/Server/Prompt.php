@@ -14,8 +14,6 @@ abstract class Prompt implements Arrayable
 {
     protected string $description;
 
-    protected array $arguments;
-
     abstract public function handle(array $arguments): PromptResult;
 
     public function arguments(): Arguments

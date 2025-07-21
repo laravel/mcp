@@ -1,0 +1,36 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravel\Mcp\Server\Prompt;
+use Laravel\Mcp\Server\Prompts\Argument;
+use Laravel\Mcp\Server\Prompts\Arguments;
+use Laravel\Mcp\Server\Prompts\PromptResult;
+
+class {{ class }} extends Prompt
+{
+    protected string $description = 'Instructions for how to review my code';
+
+    public function arguments(): Arguments
+    {
+        return (new Arguments)->add(
+            new Argument(
+                name: 'language',
+                description: 'The language the code is in',
+                required: true,
+            ),
+        );
+    }
+
+    public function handle(array $arguments): PromptResult
+    {
+        $instructions = match($arguments['language']) {
+            'php' => 'Review the code carefully',
+            null => 'Don\'t worry about it',
+        };
+        return new PromptResult(
+            content: $instructions,
+            description: $this->description()
+        );
+    }
+}
