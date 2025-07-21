@@ -62,6 +62,8 @@ class DemoServer extends Server
 }
 ```
 
+
+
 Next, register your server in `routes/ai.php`:
 
 ```php
@@ -71,7 +73,9 @@ use Laravel\Mcp\Server\Facades\Mcp;
 Mcp::local('demo', DemoServer::class);
 ```
 
-Finally, you can run your server and explore it with the MCP Inspector tool:
+
+
+Finally, you can test it with the MCP Inspector tool:
 
 ```bash
 php artisan mcp:inspector demo
@@ -81,96 +85,44 @@ php artisan mcp:inspector demo
 
 ## Creating Servers
 
-A server is the central point that handles communication and exposes MCP methods, like tools and resources. To create a server, extend the `Laravel\Mcp\Server` base class or use the `mcp:server` Artisan command to generate a server class:
+A server is the central point that handles communication and exposes MCP methods, like tools and resources. Create a server with the `make:mcp-server` Artisan command:
 
 ```bash
 php artisan make:mcp-server ExampleServer
 ```
 
-This will create a new server class in `app/Mcp/Servers/ExampleServer.php`. Here's what a basic server class looks like:
 
-```php
-<?php
-
-namespace App\Mcp\Servers;
-
-use Laravel\Mcp\Server;
-use App\Mcp\Tools\MyExampleTool;
-
-class ExampleServer extends Server
-{
-    public string $serverName = 'Example MCP Server';
-
-    public string $serverVersion = '1.0.0';
-
-    public string $instructions = 'This server provides tools for X, Y, and Z.';
-
-    public array $tools = [
-        ExampleTool::class,
-    ];
-}
-```
-
-The tool's name is automatically determined from its class name. For example, `ExampleTool` will be exposed to clients as `example-tool`. The tool name can also be overwritten by adding a `name()` method to the tool.
-
-The `Server` class has a few other properties you can override to customize its behavior:
-
--   `$defaultPaginationLength`: Controls the default number of tools returned to the client when listing available tools (defaults to 15).
--   `$maxPaginationLength`: Sets the maximum number of tools a client can request at a time when listing tools (defaults to 50).
 
 ## Creating Tools
 
-Tools let your server expose functionality that clients can call, and that language models can use to perform actions, run code, or interact with external systems. Each tool must extend the `Laravel\Mcp\Server\Tool` abstract class. You can also use the `mcp:tool` Artisan command to generate a tool class:
+[Tools](https://modelcontextprotocol.io/docs/concepts/tools) let your server expose functionality that clients can call, and that language models can use to perform actions, run code, or interact with external systems.
+
+
+
+Use the `mcp:tool` Artisan command to generate a tool class:
 
 ```bash
 php artisan make:mcp-tool ExampleTool
 ```
 
-This will create a new tool class in `app/Mcp/Tools/ExampleTool.php`. Here's what a basic tool class looks like:
+
+
+### Tool Inputs
+
+Your tools can request arguments from the MCP client using a tool input schema:
 
 ```php
-<?php
-
-namespace App\Mcp\Tools;
-
-use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\ToolInputSchema;
-use Laravel\Mcp\Server\Tools\ToolResult;
-
-class ExampleTool extends Tool
+public function schema(ToolInputSchema $schema): ToolInputSchema
 {
-    public function description(): string
-    {
-        return 'This is an example tool that performs a sample action.';
-    }
+    $schema->string('iso_country_code')
+        ->description('2 character country code')
+        ->required();
 
-    public function schema(ToolInputSchema $schema): ToolInputSchema
-    {
-        $schema->string('param1')
-            ->description('The first parameter for this tool.')
-            ->required();
-
-        $schema->integer('param2')
-            ->description('The second parameter, an integer.');
-
-        return $schema;
-    }
-
-    public function handle(array $arguments): ToolResult
-    {
-        // Your tool logic here
-        $param1 = $arguments['param1'];
-        $param2 = $arguments['param2'] ?? 0;
-
-        // Perform some action
-        $result = "Processed {$param1} and {$param2}.";
-
-        return ToolResult::text($result);
-    }
+    return $schema;
 }
 ```
 
-MCP clients use the schema to construct the tool call before calling the tool. The result is what is returned to the MCP client after the tool call has been executed.
+
 
 ### Annotating Tools
 
@@ -202,6 +154,8 @@ class ExampleTool extends Tool
     // ...
 }
 ```
+
+
 
 ### Tool Results
 
@@ -239,74 +193,82 @@ $response = ToolResult::items(
 );
 ```
 
+
+
+
+
+## Streaming Tool Responses
+
+For tools that send multiple updates or stream large amounts of data, you can return a generator from the `handle()` method. For web-based servers, this automatically opens an SSE stream and sends an event for each message the generator yields.
+
+Within your generator, you can yield any number of `Laravel\Mcp\Server\Tools\ToolNotification` instances to send intermediate updates to the client. When you're done, yield a single `Laravel\Mcp\Server\Tools\ToolResult` to complete the execution.
+
+This is particularly useful for long-running tasks or when you want to provide real-time feedback to the client, such as streaming tokens in a chat application:
+
+```php
+<?php
+
+namespace App\Mcp\Tools;
+
+use Generator;
+use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Tools\ToolNotification;
+use Laravel\Mcp\Server\Tools\ToolResult;
+
+class ChatStreamingTool extends Tool
+{
+    public function handle(array $arguments): Generator
+    {
+        $tokens = explode(' ', $arguments['message']);
+
+        foreach ($tokens as $token) {
+            yield new ToolNotification('chat/token', ['token' => $token . ' ']);
+        }
+
+        yield ToolResult::text("Message streamed successfully.");
+    }
+}
+```
+
+
+
+
+
 ## Creating Resources
 
-Resources let your server expose data and content that clients can read and use as context when interacting with language models. A resource must extend the `Laravel\Mcp\Server\Resource` abstract class. You can use the `mcp:resource` Artisan command to generate a resource class:
+[Resources](https://modelcontextprotocol.io/docs/concepts/resources) let your server expose data and content that clients can read and use as context when interacting with language models.
+
+
+
+Use the `make:mcp-resource` Artisan command to generate a resource class:
 
 ```bash
 php artisan make:mcp-resource ExampleResource
 ```
 
-This will create a new resource class in `app/Mcp/Resources/ExampleResource.php`. Here's what a basic resource class looks like:
 
-```php
-<?php
 
-namespace App\Mcp\Resources;
+To make a resource available to clients, you must register it in your server class in the `$resources` property.
 
-use Laravel\Mcp\Server\Resource;
 
-class ExampleResource extends Resource
-{
-    protected string $description = 'A description of what this resource contains.';
 
-    /**
-     * Return the resource contents.
-     */
-    public function read(): string
-    {
-        return 'Implement resource retrieval logic here';
-    }
-}
+
+
+## Creating Prompts
+
+[Prompts](https://modelcontextprotocol.io/docs/concepts/prompts) let your server share reusable prompts that clients can use to prompt the LLM.
+
+
+
+Use the `make:mcp-prompt` Artisan command to generate a prompt class:
+
+```bash
+php artisan make:mcp-prompt ExamplePrompt
 ```
 
-To make a resource available to clients, you must register it on your server. You can do this by adding the resource's class name to the `$resources` property of your server class:
 
-```php
-<?php
 
-namespace App\Mcp\Servers;
-
-use App\Mcp\Resources\ExampleResource;
-use Laravel\Mcp\Server;
-
-class ExampleServer extends Server
-{
-    // ...
-
-    public array $resources = [
-        ExampleResource::class,
-    ];
-}
-```
-
-### Resource Results
-
-A resource class defines a `read()` method that returns its content. By default, you can return a simple string, and the package will try to determine if it's plain text or binary data. Binary data is automatically `base64` encoded before being returned to the client.
-
-```php
-// Return plain text
-public function read(): string
-{
-    return 'This is the content of the resource.';
-}
-
-// Return binary data
-public function read(): string
-{
-    return file_get_contents('/path/to/image.png');
-}
-```
+To make a prompt available to clients, you must register it in your server class in the `$prompts` property.
 
 
 
@@ -376,52 +338,15 @@ Your MCP server is now protected using OAuth.
 
 The [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an interactive tool for testing and debugging your MCP servers. You can use it to connect to your server, verify authentication, and try out tools, resources, and other parts of the protocol.
 
-For local servers, you can start the inspector pre-configured for your server by using the `mcp:inspector` Artisan command:
+
+
+Run mcp:inspector to test your server:
 
 ```bash
-php artisan mcp:inspector dev-assistant
+php artisan mcp:inspector demo
 ```
 
-For web-based servers, the inspector must be started and configured manually:
-
-```bash
-npx @modelcontextprotocol/inspector
-```
-
-
-
-## Streaming Tool Responses
-
-For tools that send multiple updates or stream large amounts of data, you can return a generator from the `handle()` method. For web-based servers, this automatically opens an SSE stream and sends an event for each message the generator yields.
-
-Within your generator, you can yield any number of `Laravel\Mcp\Server\Tools\ToolNotification` instances to send intermediate updates to the client. When you're done, yield a single `Laravel\Mcp\Server\Tools\ToolResult` to complete the execution.
-
-This is particularly useful for long-running tasks or when you want to provide real-time feedback to the client, such as streaming tokens in a chat application:
-
-```php
-<?php
-
-namespace App\Mcp\Tools;
-
-use Generator;
-use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\ToolNotification;
-use Laravel\Mcp\Server\Tools\ToolResult;
-
-class ChatStreamingTool extends Tool
-{
-    public function handle(array $arguments): Generator
-    {
-        $tokens = explode(' ', $arguments['message']);
-
-        foreach ($tokens as $token) {
-            yield new ToolNotification('chat/token', ['token' => $token . ' ']);
-        }
-
-        yield ToolResult::text("Message streamed successfully.");
-    }
-}
-```
+This will run the MCP inspector and provide settings you can input to ensure it's setup correctly.
 
 
 
