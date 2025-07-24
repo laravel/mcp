@@ -187,4 +187,93 @@ class ToolInputSchemaTest extends TestCase
             'required' => ['age'],
         ], $schema->toArray());
     }
+
+    #[Test]
+    public function raw_property_with_complex_schema()
+    {
+        $schema = new ToolInputSchema;
+
+        $schema->raw('packages', [
+            'type' => 'array',
+            'items' => [
+                'type' => 'object',
+                'properties' => [
+                    'name' => [
+                        'type' => 'string',
+                        'description' => "The composer package name (e.g., 'symfony/console')",
+                    ],
+                    'version' => [
+                        'type' => 'string',
+                        'description' => "The package version (e.g., '^6.0', '~5.4.0', 'dev-main')",
+                    ],
+                ],
+                'required' => ['name', 'version'],
+                'additionalProperties' => false,
+            ],
+            'description' => 'List of Composer packages with their versions',
+        ]);
+
+        $this->assertSame([
+            'type' => 'object',
+            'properties' => [
+                'packages' => [
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'name' => [
+                                'type' => 'string',
+                                'description' => "The composer package name (e.g., 'symfony/console')",
+                            ],
+                            'version' => [
+                                'type' => 'string',
+                                'description' => "The package version (e.g., '^6.0', '~5.4.0', 'dev-main')",
+                            ],
+                        ],
+                        'required' => ['name', 'version'],
+                        'additionalProperties' => false,
+                    ],
+                    'description' => 'List of Composer packages with their versions',
+                ],
+            ],
+        ], $schema->toArray());
+    }
+
+    #[Test]
+    public function raw_property_works_with_other_methods()
+    {
+        $schema = new ToolInputSchema;
+
+        $schema->string('name')->description('User name')->required();
+        $schema->raw('packages', [
+            'type' => 'array',
+            'items' => [
+                'type' => 'object',
+                'properties' => [
+                    'name' => ['type' => 'string'],
+                    'version' => ['type' => 'string'],
+                ],
+            ],
+        ])->required();
+        $schema->boolean('active');
+
+        $this->assertSame([
+            'type' => 'object',
+            'properties' => [
+                'name' => ['type' => ToolInputSchema::TYPE_STRING, 'description' => 'User name'],
+                'packages' => [
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'name' => ['type' => 'string'],
+                            'version' => ['type' => 'string'],
+                        ],
+                    ],
+                ],
+                'active' => ['type' => ToolInputSchema::TYPE_BOOLEAN],
+            ],
+            'required' => ['name', 'packages'],
+        ], $schema->toArray());
+    }
 }

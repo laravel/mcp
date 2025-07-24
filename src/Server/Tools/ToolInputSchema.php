@@ -128,6 +128,17 @@ class ToolInputSchema
     }
 
     /**
+     * Add a raw property with custom schema definition.
+     */
+    public function raw(string $name, array $schema): self
+    {
+        $this->properties[$name] = $schema;
+        $this->currentProperty = $name;
+
+        return $this;
+    }
+
+    /**
      * Convert the schema to an array.
      */
     public function toArray(): array
