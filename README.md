@@ -1,13 +1,9 @@
-# Laravel MCP
+# Laravel MCP Server SDK
 
 > [!IMPORTANT]
-> We don't recommend using this package yet. This package is only for [Boost](https://github.com/laravel/boost) use currently. A full release of the Laravel MCP server package will be released soon.
-
-
+> This package is still in development and not recommended for public usage. This package is currently only intended to power [Boost](https://github.com/laravel/boost).
 
 ---
-
-
 
 ## Introduction
 
@@ -29,11 +25,9 @@ php artisan vendor:publish --tag=ai-routes
 
 The package will automatically register MCP servers defined in this file.
 
-
-
 ## Quickstart
 
-**Create the server & tool**
+**Create the Server and Tool**
 
 First, create a new MCP server using the `mcp:server` Artisan command:
 
@@ -49,9 +43,7 @@ php artisan make:mcp-tool HelloTool
 
 This will create two files: `app/Mcp/Servers/DemoServer.php` and `app/Mcp/Tools/HelloTool.php`.
 
-
-
-**Add the tool to the server**
+**Add the Tool to the Server**
 
 Open `app/Mcp/Servers/DemoServer.php` and add your new tool to the `$tools` property:
 
@@ -71,8 +63,6 @@ class DemoServer extends Server
 }
 ```
 
-
-
 Next, register your server in `routes/ai.php`:
 
 ```php
@@ -82,15 +72,11 @@ use Laravel\Mcp\Server\Facades\Mcp;
 Mcp::local('demo', DemoServer::class);
 ```
 
-
-
 Finally, you can test it with the MCP Inspector tool:
 
 ```bash
 php artisan mcp:inspector demo
 ```
-
-
 
 ## Creating Servers
 
@@ -100,21 +86,15 @@ A server is the central point that handles communication and exposes MCP methods
 php artisan make:mcp-server ExampleServer
 ```
 
-
-
 ## Creating Tools
 
 [Tools](https://modelcontextprotocol.io/docs/concepts/tools) let your server expose functionality that clients can call, and that language models can use to perform actions, run code, or interact with external systems.
-
-
 
 Use the `mcp:tool` Artisan command to generate a tool class:
 
 ```bash
 php artisan make:mcp-tool ExampleTool
 ```
-
-
 
 ### Tool Inputs
 
@@ -130,8 +110,6 @@ public function schema(ToolInputSchema $schema): ToolInputSchema
     return $schema;
 }
 ```
-
-
 
 ### Annotating Tools
 
@@ -163,8 +141,6 @@ class ExampleTool extends Tool
     // ...
 }
 ```
-
-
 
 ### Tool Results
 
@@ -202,10 +178,6 @@ $response = ToolResult::items(
 );
 ```
 
-
-
-
-
 ## Streaming Tool Responses
 
 For tools that send multiple updates or stream large amounts of data, you can return a generator from the `handle()` method. For web-based servers, this automatically opens an SSE stream and sends an event for each message the generator yields.
@@ -239,15 +211,9 @@ class ChatStreamingTool extends Tool
 }
 ```
 
-
-
-
-
 ## Creating Resources
 
 [Resources](https://modelcontextprotocol.io/docs/concepts/resources) let your server expose data and content that clients can read and use as context when interacting with language models.
-
-
 
 Use the `make:mcp-resource` Artisan command to generate a resource class:
 
@@ -255,19 +221,11 @@ Use the `make:mcp-resource` Artisan command to generate a resource class:
 php artisan make:mcp-resource ExampleResource
 ```
 
-
-
 To make a resource available to clients, you must register it in your server class in the `$resources` property.
-
-
-
-
 
 ## Creating Prompts
 
 [Prompts](https://modelcontextprotocol.io/docs/concepts/prompts) let your server share reusable prompts that clients can use to prompt the LLM.
-
-
 
 Use the `make:mcp-prompt` Artisan command to generate a prompt class:
 
@@ -275,11 +233,7 @@ Use the `make:mcp-prompt` Artisan command to generate a prompt class:
 php artisan make:mcp-prompt ExamplePrompt
 ```
 
-
-
 To make a prompt available to clients, you must register it in your server class in the `$prompts` property.
-
-
 
 ## Registering Servers
 
@@ -287,7 +241,7 @@ The easiest way to register MCP servers is by publishing the `routes/ai.php` fil
 
 ### Web Servers
 
-To register a web-based MCP server that can be accessed via HTTP POST requests:
+To register a web-based MCP server that can be accessed via HTTP POST requests, you should use the `web` method:
 
 ```php
 use App\Mcp\Servers\ExampleServer;
@@ -317,8 +271,6 @@ This makes the server available via the `mcp:start` Artisan command:
 php artisan mcp:start demo
 ```
 
-
-
 ## Authentication
 
 Web-based MCP servers can be protected using [Laravel Passport](laravel.com/docs/passport), turning your MCP server into an OAuth2 protected resource.
@@ -347,8 +299,6 @@ Your MCP server is now protected using OAuth.
 
 The [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an interactive tool for testing and debugging your MCP servers. You can use it to connect to your server, verify authentication, and try out tools, resources, and other parts of the protocol.
 
-
-
 Run mcp:inspector to test your server:
 
 ```bash
@@ -356,8 +306,6 @@ php artisan mcp:inspector demo
 ```
 
 This will run the MCP inspector and provide settings you can input to ensure it's setup correctly.
-
-
 
 ## Contributing
 
