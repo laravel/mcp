@@ -1,5 +1,14 @@
 # Laravel MCP
 
+> [!IMPORTANT]
+> We don't recommend using this package yet. This package is only for [Boost](https://github.com/laravel/boost) use currently. A full release of the Laravel MCP server package will be released soon.
+
+
+
+---
+
+
+
 ## Introduction
 
 Laravel MCP makes it easy to add MCP servers to your project and let AI talk to your apps.
