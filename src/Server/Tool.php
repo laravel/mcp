@@ -35,8 +35,6 @@ abstract class Tool implements Arrayable
      */
     abstract public function description(): string;
 
-
-
     /**
      * Execute the tool call.
      *
