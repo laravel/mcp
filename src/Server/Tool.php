@@ -23,14 +23,19 @@ abstract class Tool implements Arrayable
     }
 
     /**
+     * Get the tool input schema.
+     */
+    public function schema(ToolInputSchema $schema): ToolInputSchema
+    {
+        return $schema;
+    }
+
+    /**
      * Get the description of the tool.
      */
     abstract public function description(): string;
 
-    /**
-     * Get the tool input schema.
-     */
-    abstract public function schema(ToolInputSchema $schema): ToolInputSchema;
+
 
     /**
      * Execute the tool call.
