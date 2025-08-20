@@ -6,9 +6,13 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Events\Dispatcher;
 use Illuminate\Support\ItemNotFoundException;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Server\Contracts\Methods\Method;
+use Laravel\Mcp\Server\Events\ToolCallFailed;
+use Laravel\Mcp\Server\Events\ToolCallFinished;
+use Laravel\Mcp\Server\Events\ToolCallStarting;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Tools\ToolNotification;
 use Laravel\Mcp\Server\Tools\ToolResult;
@@ -35,9 +39,17 @@ class CallTool implements Method
             );
         }
 
+        $events = app(Dispatcher::class);
+
         try {
+            $events->dispatch(new ToolCallStarting($request->params['name'], $request->params['arguments']));
+
             $result = $tool->handle($request->params['arguments']);
+
+            $events->dispatch(new ToolCallFinished($request->params['name'], $request->params['arguments']));
         } catch (ValidationException $e) {
+            $events->dispatch(new ToolCallFailed($request->params['name'], $request->params['arguments'], $e));
+
             return JsonRpcResponse::create(
                 $request->id,
                 ToolResult::error($e->getMessage())
