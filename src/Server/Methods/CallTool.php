@@ -7,10 +7,14 @@ namespace Laravel\Mcp\Server\Methods;
 use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Events\Dispatcher;
 use Illuminate\Support\ItemNotFoundException;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\Events\ToolCallFailed;
+use Laravel\Mcp\Server\Events\ToolCallFinished;
+use Laravel\Mcp\Server\Events\ToolCallStarting;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Tools\ToolNotification;
 use Laravel\Mcp\Server\Tools\ToolResult;
@@ -36,13 +40,21 @@ class CallTool implements Method
             );
         }
 
+        $events = app(Dispatcher::class);
+
         try {
+            $events->dispatch(new ToolCallStarting($request->params['name'], $request->params['arguments']));
+
             $result = Container::getInstance()->call([$tool, 'handle'], [
                 'request' => new Request(
                     $request->params['arguments'],
                 ),
             ]);
+
+            $events->dispatch(new ToolCallFinished($request->params['name'], $request->params['arguments']));
         } catch (ValidationException $e) {
+            $events->dispatch(new ToolCallFailed($request->params['name'], $request->params['arguments'], $e));
+
             $result = ToolResult::error(ValidationMessages::from($e));
         }
 
