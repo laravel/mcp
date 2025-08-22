@@ -6,20 +6,44 @@ use Laravel\Mcp\Server;
 
 class {{ class }} extends Server
 {
+    /**
+     * The name of the MCP server.
+     */
     public string $serverName = '{{ serverDisplayName }}';
 
+    /**
+     * The MCP server version.
+     */
     public string $serverVersion = '0.0.1';
 
+    /**
+     * Instructions for LLMs connecting to this MCP server.
+     */
     public string $instructions = 'Example instructions for LLMs connecting to this MCP server.';
 
+    /**
+     * The tools registered with this MCP server.
+     *
+     * See: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
+     */
     public array $tools = [
         // ExampleTool::class,
     ];
 
+    /**
+     * The resources registered with this MCP server.
+     *
+     * See: https://modelcontextprotocol.io/specification/2025-06-18/server/resources
+     */
     public array $resources = [
         // ExampleResource::class,
     ];
 
+    /**
+     * The prompts registered with this MCP server.
+     *
+     * See: https://modelcontextprotocol.io/specification/2025-06-18/server/prompts
+     */
     public array $prompts = [
         // ExamplePrompt::class,
     ];
