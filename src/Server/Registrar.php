@@ -73,7 +73,7 @@ class Registrar
                 'registration_endpoint' => url($oauthPrefix.'/register'),
                 'response_types_supported' => ['code'],
                 'code_challenge_methods_supported' => ['S256'],
-                'grant_types_supported' => ['authorization_code'],
+                'grant_types_supported' => ['authorization_code', 'refresh_token'],
             ]);
         });
 
@@ -86,7 +86,7 @@ class Registrar
                 redirectUris: $payload['redirect_uris'],
                 confidential: false,
                 user: null,
-                enableDeviceFlow: true,
+                enableDeviceFlow: false,
             );
 
             return response()->json([
