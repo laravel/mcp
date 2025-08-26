@@ -91,6 +91,18 @@ class ToolInputSchema
     }
 
     /**
+     * Add a default value to the current property.
+     */
+    public function default(string $default): self
+    {
+        if ($this->currentProperty) {
+            $this->properties[$this->currentProperty]['default'] = $default;
+        }
+
+        return $this;
+    }
+
+    /**
      * Mark the current property as required.
      */
     public function required(bool $required = true): self
