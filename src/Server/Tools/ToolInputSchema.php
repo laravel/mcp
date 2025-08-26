@@ -93,7 +93,7 @@ class ToolInputSchema
     /**
      * Add a default value to the current property.
      */
-    public function default(string $default): self
+    public function default(string|int|float|bool $default): self
     {
         if ($this->currentProperty) {
             $this->properties[$this->currentProperty]['default'] = $default;
