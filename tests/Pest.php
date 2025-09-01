@@ -2,7 +2,7 @@
 
 use Laravel\Mcp\Tests\Fixtures\ExampleServer;
 
-pest()->extend(Laravel\Mcp\Tests\TestCase::class)
+uses(Laravel\Mcp\Tests\TestCase::class)
  // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature');
 
