@@ -73,6 +73,6 @@ class McpServiceProvider extends ServiceProvider
             return;
         }
 
-        Route::prefix('mcp')->group($path);
+        Route::group([], $path);
     }
 }

@@ -247,12 +247,10 @@ To register a web-based MCP server that can be accessed via HTTP POST requests, 
 use App\Mcp\Servers\ExampleServer;
 use Laravel\Mcp\Facades\Mcp;
 
-Mcp::web('demo', ExampleServer::class);
+Mcp::web('/mcp/demo', ExampleServer::class);
 ```
 
 This will make `ExampleServer` available at the `/mcp/demo` endpoint.
-
-> **Security Note:** Exposing a local development server via `Mcp::web()` can make your application vulnerable to DNS rebinding attacks. If you must expose a local MCP server over HTTP, it is critical to validate the `Host` and `Origin` headers on incoming requests to ensure they are coming from a trusted source.
 
 ### Local Servers
 
@@ -289,7 +287,7 @@ Then, apply the `auth:api` middleware to your server registration in `routes/ai.
 use App\Mcp\Servers\ExampleServer;
 use Laravel\Mcp\Facades\Mcp;
 
-Mcp::web('demo', ExampleServer::class)
+Mcp::web('/mcp/demo', ExampleServer::class)
     ->middleware('auth:api');
 ```
 
