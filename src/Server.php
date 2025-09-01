@@ -51,6 +51,7 @@ abstract class Server
     ];
 
     public string $name = 'Laravel MCP Server';
+
     public string $version = '0.0.1';
 
     /**
