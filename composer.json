@@ -24,7 +24,7 @@
         "laravel/pint": "^1.24",
         "orchestra/testbench": "^8.22.0|^9.0|^10.0",
         "phpstan/phpstan": "^2.0",
-        "pestphp/pest": "^3.8"
+        "pestphp/pest": "^2.36.0|^3.8.4"
     },
     "license": "MIT",
     "autoload": {
