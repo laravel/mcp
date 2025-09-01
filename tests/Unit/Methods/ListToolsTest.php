@@ -4,7 +4,7 @@ use Laravel\Mcp\Server\Methods\ListTools;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Laravel\Mcp\Tests\Fixtures\ExampleTool;
+use Tests\Fixtures\ExampleTool;
 
 if (! class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
     for ($i = 1; $i <= 12; $i++) {

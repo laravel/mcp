@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\Mcp\Tests;
+namespace Tests;
 
 use Laravel\Mcp\Server\Contracts\Resources\Content;
 use Laravel\Mcp\Server\McpServiceProvider;

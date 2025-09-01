@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-uses(\Laravel\Mcp\Tests\TestCase::class);
+uses(\Tests\TestCase::class);
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 

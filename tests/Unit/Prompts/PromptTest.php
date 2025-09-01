@@ -3,7 +3,7 @@
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\Arguments;
 use Laravel\Mcp\Server\Prompts\PromptResult;
-use Laravel\Mcp\Tests\Fixtures\ReviewMyCodePrompt;
+use Tests\Fixtures\ReviewMyCodePrompt;
 
 // A concrete implementation of the abstract Prompt class for test purposes.
 class DummyPrompt extends Prompt

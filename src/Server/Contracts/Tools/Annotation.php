@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Server\Tools\Annotations;
+namespace Laravel\Mcp\Server\Contracts\Tools;
 
 interface Annotation
 {

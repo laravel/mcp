@@ -1,8 +1,9 @@
 <?php
 
-use Laravel\Mcp\Tests\Fixtures\ExampleServer;
+use Tests\Fixtures\ExampleServer;
+use Tests\TestCase;
 
-uses(Laravel\Mcp\Tests\TestCase::class)
+uses(TestCase::class)
  // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature');
 

@@ -4,7 +4,7 @@ use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Laravel\Mcp\Tests\Fixtures\ExampleTool;
+use Tests\Fixtures\ExampleTool;
 
 it('returns a valid call tool response', function () {
     $request = JsonRpcRequest::fromJson(json_encode([

@@ -30,16 +30,13 @@
     "autoload": {
         "psr-4": {
             "Laravel\\Mcp\\": "src/",
-            "Laravel\\Mcp\\Server\\": "src/Server/",
-            "Laravel\\Mcp\\Tests\\": "tests/",
-            "Workbench\\App\\": "workbench/app/"
+            "Laravel\\Mcp\\Server\\": "src/Server/"
         }
     },
     "autoload-dev": {
         "psr-4": {
             "Workbench\\App\\": "workbench/app/",
-            "Workbench\\Database\\Factories\\": "workbench/database/factories/",
-            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
+            "Tests\\": "tests/"
         }
     },
     "extra": {

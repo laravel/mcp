@@ -1,9 +1,9 @@
 <?php
 
-uses(\Laravel\Mcp\Tests\TestCase::class);
-use Laravel\Mcp\Tests\Fixtures\ArrayTransport;
-use Laravel\Mcp\Tests\Fixtures\CustomMethodHandler;
-use Laravel\Mcp\Tests\Fixtures\ExampleServer;
+uses(\Tests\TestCase::class);
+use Tests\Fixtures\ArrayTransport;
+use Tests\Fixtures\CustomMethodHandler;
+use Tests\Fixtures\ExampleServer;
 
 it('can handle an initialize message', function () {
     $transport = new ArrayTransport;

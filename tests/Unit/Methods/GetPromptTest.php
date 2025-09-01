@@ -5,7 +5,7 @@ use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Laravel\Mcp\Tests\Fixtures\ReviewMyCodePrompt;
+use Tests\Fixtures\ReviewMyCodePrompt;
 
 it('returns a valid get prompt response', function () {
     $request = JsonRpcRequest::fromJson(json_encode([
