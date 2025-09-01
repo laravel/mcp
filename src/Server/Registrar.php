@@ -96,9 +96,6 @@ class Registrar
         });
     }
 
-    /**
-     * Boot the MCP server.
-     */
     private function bootServer(string $serverClass, callable $transportFactory)
     {
         $transport = $transportFactory();

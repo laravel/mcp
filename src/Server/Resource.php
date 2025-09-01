@@ -13,7 +13,7 @@ abstract class Resource implements Arrayable
 {
     protected string $description = '';
 
-    protected $content;
+    protected string|Content $content;
 
     abstract public function read(): string|Content;
 

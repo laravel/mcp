@@ -40,7 +40,6 @@ it('returns a valid initialize response', function () {
             'name' => 'Test Server',
             'version' => '1.0.0',
         ],
-        'instructions' => 'Test instructions',
     ]);
 });
 

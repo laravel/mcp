@@ -18,13 +18,13 @@ abstract class Prompt implements Arrayable
 
     public function arguments(): Arguments
     {
-        return (new Arguments)->add(
+        return new Arguments([
             new Argument(
                 name: 'best_cheese',
                 description: 'The best cheese',
                 required: false,
             ),
-        );
+        ]);
     }
 
     public function description(): string

@@ -54,8 +54,8 @@ function expectedInitializeResponse(): array
             'protocolVersion' => '2025-06-18',
             'capabilities' => $server->capabilities,
             'serverInfo' => [
-                'name' => $server->serverName,
-                'version' => $server->serverVersion,
+                'name' => $server->name,
+                'version' => $server->version,
             ],
             'instructions' => $server->instructions,
         ],

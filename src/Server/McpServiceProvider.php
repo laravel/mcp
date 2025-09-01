@@ -14,12 +14,7 @@ use Laravel\Mcp\Console\Commands\ToolMakeCommand;
 
 class McpServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     *
-     * @return void
-     */
-    public function register()
+    public function register(): void
     {
         $this->app->singleton('mcp', fn () => new Registrar);
 
@@ -34,12 +29,7 @@ class McpServiceProvider extends ServiceProvider
         }
     }
 
-    /**
-     * Bootstrap any application services.
-     *
-     * @return void
-     */
-    public function boot()
+    public function boot(): void
     {
         if ($this->app->runningInConsole()) {
             $this->offerPublishing();
@@ -48,9 +38,6 @@ class McpServiceProvider extends ServiceProvider
         $this->loadAiRoutes();
     }
 
-    /**
-     * Register the migrations and publishing for the package.
-     */
     protected function offerPublishing(): void
     {
         $this->publishes([
@@ -58,9 +45,6 @@ class McpServiceProvider extends ServiceProvider
         ], 'ai-routes');
     }
 
-    /**
-     * Load the AI routes file if it exists.
-     */
     protected function loadAiRoutes(): void
     {
         $path = base_path('routes/ai.php');

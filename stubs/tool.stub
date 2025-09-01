@@ -11,13 +11,7 @@ use Laravel\Mcp\Server\Tools\ToolResult;
 #[Title('{{ title }}')]
 class {{ class }} extends Tool
 {
-    /**
-     * Get the tool's description.
-     */
-    public function description(): string
-    {
-        return 'A description of what this tool does.';
-    }
+    protected string $description = 'A description of what this tool does.';
 
     /**
      * Handle the tool call.
