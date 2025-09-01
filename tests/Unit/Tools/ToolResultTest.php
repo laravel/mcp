@@ -1,77 +1,64 @@
 <?php
 
-namespace Laravel\Mcp\Tests\Unit\Tools;
-
 use Laravel\Mcp\Server\Tools\TextContent;
 use Laravel\Mcp\Server\Tools\ToolResult;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-class ToolResultTest extends TestCase
-{
-    #[Test]
-    public function it_returns_a_valid_tool_result(): void
-    {
-        $responseText = 'This is a test response.';
-        $response = ToolResult::text($responseText);
+it('returns a valid tool result', function () {
+    $responseText = 'This is a test response.';
+    $response = ToolResult::text($responseText);
 
-        $expectedArray = [
-            'content' => [
-                [
-                    'type' => 'text',
-                    'text' => $responseText,
-                ],
+    $expectedArray = [
+        'content' => [
+            [
+                'type' => 'text',
+                'text' => $responseText,
             ],
-            'isError' => false,
-        ];
+        ],
+        'isError' => false,
+    ];
 
-        $this->assertSame($expectedArray, $response->toArray());
-    }
+    expect($response->toArray())->toBe($expectedArray);
+});
 
-    #[Test]
-    public function it_returns_a_valid_error_tool_result(): void
-    {
-        $responseText = 'This is a test error response.';
-        $response = ToolResult::error($responseText);
+it('returns a valid error tool result', function () {
+    $responseText = 'This is a test error response.';
+    $response = ToolResult::error($responseText);
 
-        $expectedArray = [
-            'content' => [
-                [
-                    'type' => 'text',
-                    'text' => $responseText,
-                ],
+    $expectedArray = [
+        'content' => [
+            [
+                'type' => 'text',
+                'text' => $responseText,
             ],
-            'isError' => true,
-        ];
+        ],
+        'isError' => true,
+    ];
 
-        $this->assertSame($expectedArray, $response->toArray());
-    }
+    expect($response->toArray())->toBe($expectedArray);
+});
 
-    #[Test]
-    public function it_can_handle_multiple_content_items(): void
-    {
-        $plainText = 'This is the plain text version.';
-        $markdown = 'This is the **markdown** version.';
+it('can handle multiple content items', function () {
+    $plainText = 'This is the plain text version.';
+    $markdown = 'This is the **markdown** version.';
 
-        $response = ToolResult::items(
-            new TextContent($plainText),
-            new TextContent($markdown)
-        );
+    $response = ToolResult::items(
+        new TextContent($plainText),
+        new TextContent($markdown)
+    );
 
-        $expectedArray = [
-            'content' => [
-                [
-                    'type' => 'text',
-                    'text' => $plainText,
-                ],
-                [
-                    'type' => 'text',
-                    'text' => $markdown,
-                ],
+    $expectedArray = [
+        'content' => [
+            [
+                'type' => 'text',
+                'text' => $plainText,
             ],
-            'isError' => false,
-        ];
+            [
+                'type' => 'text',
+                'text' => $markdown,
+            ],
+        ],
+        'isError' => false,
+    ];
 
-        $this->assertSame($expectedArray, $response->toArray());
-    }
-}
+    expect($response->toArray())->toBe($expectedArray);
+});
