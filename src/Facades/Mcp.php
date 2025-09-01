@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Server\Facades;
+namespace Laravel\Mcp\Facades;
 
 use Illuminate\Support\Facades\Facade;
 
