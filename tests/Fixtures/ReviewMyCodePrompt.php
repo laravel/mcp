@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Tests\Fixtures;
+namespace Tests\Fixtures;
 
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\PromptResult;

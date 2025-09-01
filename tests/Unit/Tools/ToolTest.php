@@ -1,8 +1,5 @@
 <?php
 
-namespace Laravel\Mcp\Tests\Unit\Tools;
-
-use Generator;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
@@ -11,91 +8,66 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use Laravel\Mcp\Server\Tools\Annotations\Title;
 use Laravel\Mcp\Server\Tools\ToolInputSchema;
 use Laravel\Mcp\Server\Tools\ToolResult;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-class ToolTest extends TestCase
-{
-    #[Test]
-    public function the_default_name_is_in_kebab_case()
-    {
-        $tool = new AnotherComplexToolName;
-        $this->assertSame('another-complex-tool-name', $tool->name());
-    }
+test('the default name is in kebab case', function () {
+    $tool = new AnotherComplexToolName;
+    expect($tool->name())->toBe('another-complex-tool-name');
+});
 
-    #[Test]
-    public function it_returns_no_annotations_by_default()
-    {
-        $tool = new TestTool;
-        $this->assertEquals([], $tool->annotations());
-    }
+it('returns no annotations by default', function () {
+    $tool = new TestTool;
+    expect($tool->annotations())->toEqual([]);
+});
 
-    #[Test]
-    public function it_can_have_a_custom_title()
-    {
-        $tool = new CustomTitleTool;
-        $this->assertSame('Custom Title Tool', $tool->annotations()['title']);
-    }
+it('can have a custom title', function () {
+    $tool = new CustomTitleTool;
+    expect($tool->annotations()['title'])->toBe('Custom Title Tool');
+});
 
-    #[Test]
-    public function it_can_be_read_only()
-    {
-        $tool = new ReadOnlyTool;
-        $annotations = $tool->annotations();
-        $this->assertTrue($annotations['readOnlyHint']);
-    }
+it('can be read only', function () {
+    $tool = new ReadOnlyTool;
+    $annotations = $tool->annotations();
+    expect($annotations['readOnlyHint'])->toBeTrue();
+});
 
-    #[Test]
-    public function it_can_be_closed_world()
-    {
-        $tool = new ClosedWorldTool;
-        $this->assertFalse($tool->annotations()['openWorldHint']);
-    }
+it('can be closed world', function () {
+    $tool = new ClosedWorldTool;
+    expect($tool->annotations()['openWorldHint'])->toBeFalse();
+});
 
-    #[Test]
-    public function it_can_be_idempotent()
-    {
-        $tool = new IdempotentTool;
-        $annotations = $tool->annotations();
-        $this->assertTrue($annotations['idempotentHint']);
-    }
+it('can be idempotent', function () {
+    $tool = new IdempotentTool;
+    $annotations = $tool->annotations();
+    expect($annotations['idempotentHint'])->toBeTrue();
+});
 
-    #[Test]
-    public function it_can_be_destructive()
-    {
-        $tool = new DestructiveTool;
-        $annotations = $tool->annotations();
-        $this->assertTrue($annotations['destructiveHint']);
-    }
+it('can be destructive', function () {
+    $tool = new DestructiveTool;
+    $annotations = $tool->annotations();
+    expect($annotations['destructiveHint'])->toBeTrue();
+});
 
-    #[Test]
-    public function it_is_not_destructive()
-    {
-        $tool = new NotDestructiveTool;
-        $annotations = $tool->annotations();
-        $this->assertFalse($annotations['destructiveHint']);
-    }
+it('is not destructive', function () {
+    $tool = new NotDestructiveTool;
+    $annotations = $tool->annotations();
+    expect($annotations['destructiveHint'])->toBeFalse();
+});
 
-    #[Test]
-    public function it_can_be_open_world()
-    {
-        $tool = new OpenWorldTool;
-        $this->assertTrue($tool->annotations()['openWorldHint']);
-    }
+it('can be open world', function () {
+    $tool = new OpenWorldTool;
+    expect($tool->annotations()['openWorldHint'])->toBeTrue();
+});
 
-    #[Test]
-    public function it_can_have_multiple_annotations()
-    {
-        $tool = new KitchenSinkTool;
-        $this->assertEquals([
-            'title' => 'The Kitchen Sink',
-            'readOnlyHint' => true,
-            'idempotentHint' => true,
-            'destructiveHint' => false,
-            'openWorldHint' => false,
-        ], $tool->annotations());
-    }
-}
+it('can have multiple annotations', function () {
+    $tool = new KitchenSinkTool;
+    expect($tool->annotations())->toEqual([
+        'title' => 'The Kitchen Sink',
+        'readOnlyHint' => true,
+        'idempotentHint' => true,
+        'destructiveHint' => false,
+        'openWorldHint' => false,
+    ]);
+});
 
 class TestTool extends Tool
 {

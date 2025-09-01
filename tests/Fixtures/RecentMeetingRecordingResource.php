@@ -1,6 +1,6 @@
 <?php
 
-namespace Laravel\Mcp\Tests\Fixtures;
+namespace Tests\Fixtures;
 
 use Laravel\Mcp\Server\Resource;
 

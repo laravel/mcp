@@ -2,7 +2,6 @@
     "name": "laravel/mcp",
     "description": "The easiest way to add MCP servers to your Laravel app.",
     "keywords": [
-        "dev",
         "mcp",
         "laravel"
     ],
@@ -22,24 +21,22 @@
         "illuminate/validation": "^10.0|^11.0|^12.0"
     },
     "require-dev": {
-        "laravel/pint": "^1.14",
+        "laravel/pint": "^1.20",
         "orchestra/testbench": "^8.22.0|^9.0|^10.0",
-        "phpstan/phpstan": "^2.0"
+        "phpstan/phpstan": "^2.0",
+        "pestphp/pest": "^2.36.0|^3.0"
     },
     "license": "MIT",
     "autoload": {
         "psr-4": {
             "Laravel\\Mcp\\": "src/",
-            "Laravel\\Mcp\\Server\\": "src/Server/",
-            "Laravel\\Mcp\\Tests\\": "tests/",
-            "Workbench\\App\\": "workbench/app/"
+            "Laravel\\Mcp\\Server\\": "src/Server/"
         }
     },
     "autoload-dev": {
         "psr-4": {
             "Workbench\\App\\": "workbench/app/",
-            "Workbench\\Database\\Factories\\": "workbench/database/factories/",
-            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
+            "Tests\\": "tests/"
         }
     },
     "extra": {
@@ -68,9 +65,14 @@
         "check": [
             "vendor/bin/pint",
             "vendor/bin/phpstan",
-            "vendor/bin/phpunit"
+            "vendor/bin/pest"
         ]
     },
     "minimum-stability": "dev",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    }
 }

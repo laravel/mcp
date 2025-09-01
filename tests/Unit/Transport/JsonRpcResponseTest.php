@@ -1,52 +1,39 @@
 <?php
 
-namespace Laravel\Mcp\Tests\Unit\Transport;
-
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use PHPUnit\Framework\Attributes\Test;
-use PHPUnit\Framework\TestCase;
 
-class JsonRpcResponseTest extends TestCase
-{
-    #[Test]
-    public function it_can_return_response_as_array()
-    {
-        $response = JsonRpcResponse::create(1, ['foo' => 'bar']);
+it('can return response as array', function () {
+    $response = JsonRpcResponse::create(1, ['foo' => 'bar']);
 
-        $expectedArray = [
-            'jsonrpc' => '2.0',
-            'id' => 1,
-            'result' => ['foo' => 'bar'],
-        ];
+    $expectedArray = [
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => ['foo' => 'bar'],
+    ];
 
-        $this->assertEquals($expectedArray, $response->toArray());
-    }
+    expect($response->toArray())->toEqual($expectedArray);
+});
 
-    #[Test]
-    public function it_can_return_response_as_json()
-    {
-        $response = JsonRpcResponse::create(1, ['foo' => 'bar']);
+it('can return response as json', function () {
+    $response = JsonRpcResponse::create(1, ['foo' => 'bar']);
 
-        $expectedJson = json_encode([
-            'jsonrpc' => '2.0',
-            'id' => 1,
-            'result' => ['foo' => 'bar'],
-        ]);
+    $expectedJson = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => ['foo' => 'bar'],
+    ]);
 
-        $this->assertEquals($expectedJson, $response->toJson());
-    }
+    expect($response->toJson())->toEqual($expectedJson);
+});
 
-    #[Test]
-    public function it_converts_empty_array_result_to_object()
-    {
-        $response = JsonRpcResponse::create(1, []);
+it('converts empty array result to object', function () {
+    $response = JsonRpcResponse::create(1, []);
 
-        $expectedJson = json_encode([
-            'jsonrpc' => '2.0',
-            'id' => 1,
-            'result' => (object) [],
-        ]);
+    $expectedJson = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => (object) [],
+    ]);
 
-        $this->assertEquals($expectedJson, $response->toJson());
-    }
-}
+    expect($response->toJson())->toEqual($expectedJson);
+});
