@@ -6,8 +6,8 @@ use Generator;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Support\MessageBag;
 use Illuminate\Validation\ValidationException;
+use Laravel\Essence\JsonSchema;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\ToolInputSchema;
 use Laravel\Mcp\Server\Tools\ToolResult;
 use Mockery;
 
@@ -18,9 +18,13 @@ class ExampleTool extends Tool
         return 'This tool says hello to a person';
     }
 
-    public function schema(ToolInputSchema $schema): ToolInputSchema
+    public function schema(): JsonSchema
     {
-        return $schema->string('name')->description('The name of the person to greet')->required();
+        return JsonSchema::object(fn (JsonSchema $schema) => [
+            'name' => $schema->string()
+                ->description('The name of the person to greet')
+                ->required(),
+        ]);
     }
 
     public function handle(array $arguments): ToolResult|Generator

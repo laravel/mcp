@@ -3,8 +3,8 @@
 namespace Tests\Fixtures;
 
 use Generator;
+use Laravel\Essence\JsonSchema;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\ToolInputSchema;
 use Laravel\Mcp\Server\Tools\ToolNotification;
 use Laravel\Mcp\Server\Tools\ToolResult;
 
@@ -15,11 +15,13 @@ class StreamingTool extends Tool
         return 'A tool that streams multiple responses.';
     }
 
-    public function schema(ToolInputSchema $schema): ToolInputSchema
+    public function schema(): JsonSchema
     {
-        return $schema->integer('count')
-            ->description('Number of messages to stream.')
-            ->required();
+        return JsonSchema::object(fn (JsonSchema $schema) => [
+            'count' => $schema->integer()
+                ->description('Number of messages to stream.')
+                ->required(),
+        ]);
     }
 
     public function handle(array $arguments): Generator

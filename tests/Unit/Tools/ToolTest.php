@@ -6,7 +6,6 @@ use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use Laravel\Mcp\Server\Tools\Annotations\Title;
-use Laravel\Mcp\Server\Tools\ToolInputSchema;
 use Laravel\Mcp\Server\Tools\ToolResult;
 
 test('the default name is in kebab case', function () {
@@ -74,11 +73,6 @@ class TestTool extends Tool
     public function description(): string
     {
         return 'A test tool';
-    }
-
-    public function schema(ToolInputSchema $schema): ToolInputSchema
-    {
-        return $schema;
     }
 
     public function handle(array $arguments): ToolResult|Generator
