@@ -72,9 +72,11 @@ use Laravel\Mcp\Server\Facades\Mcp;
 Mcp::local('demo', DemoServer::class);
 ```
 
-Finally, you can test it with the MCP Inspector tool:
+Finally, you can test it after installing the NPM package `@modelcontextprotocol/inspector` and running the MCP Inspector tool:
 
 ```bash
+npm install @modelcontextprotocol/inspector
+
 php artisan mcp:inspector demo
 ```
 
