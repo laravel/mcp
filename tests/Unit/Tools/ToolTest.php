@@ -1,11 +1,6 @@
 <?php
 
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
-use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
-use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
-use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
-use Laravel\Mcp\Server\Tools\Annotations\Title;
 use Laravel\Mcp\Server\Tools\ToolInputSchema;
 use Laravel\Mcp\Server\Tools\ToolResult;
 
@@ -19,53 +14,12 @@ it('returns no annotations by default', function () {
     expect($tool->annotations())->toEqual([]);
 });
 
-it('can have a custom title', function () {
-    $tool = new CustomTitleTool;
-    expect($tool->annotations()['title'])->toBe('Custom Title Tool');
-});
-
-it('can be read only', function () {
-    $tool = new ReadOnlyTool;
-    $annotations = $tool->annotations();
-    expect($annotations['readOnlyHint'])->toBeTrue();
-});
-
-it('can be closed world', function () {
-    $tool = new ClosedWorldTool;
-    expect($tool->annotations()['openWorldHint'])->toBeFalse();
-});
-
-it('can be idempotent', function () {
-    $tool = new IdempotentTool;
-    $annotations = $tool->annotations();
-    expect($annotations['idempotentHint'])->toBeTrue();
-});
-
-it('can be destructive', function () {
-    $tool = new DestructiveTool;
-    $annotations = $tool->annotations();
-    expect($annotations['destructiveHint'])->toBeTrue();
-});
-
-it('is not destructive', function () {
-    $tool = new NotDestructiveTool;
-    $annotations = $tool->annotations();
-    expect($annotations['destructiveHint'])->toBeFalse();
-});
-
-it('can be open world', function () {
-    $tool = new OpenWorldTool;
-    expect($tool->annotations()['openWorldHint'])->toBeTrue();
-});
-
 it('can have multiple annotations', function () {
     $tool = new KitchenSinkTool;
     expect($tool->annotations())->toEqual([
         'title' => 'The Kitchen Sink',
         'readOnlyHint' => true,
         'idempotentHint' => true,
-        'destructiveHint' => false,
-        'openWorldHint' => false,
     ]);
 });
 
@@ -87,32 +41,48 @@ class TestTool extends Tool
     }
 }
 
-#[Title('Custom Title Tool')]
-class CustomTitleTool extends TestTool {}
+class CustomTitleTool extends TestTool
+{
+    protected string $title = 'Custom Title Tool';
+}
 
-#[IsReadOnly]
-class ReadOnlyTool extends TestTool {}
+class ReadOnlyTool extends TestTool
+{
+    protected bool $readonly = true;
+}
 
-#[IsOpenWorld(false)]
-class ClosedWorldTool extends TestTool {}
+class ClosedWorldTool extends TestTool
+{
+    protected bool $openWorld = false;
+}
 
-#[IsIdempotent]
-class IdempotentTool extends TestTool {}
+class IdempotentTool extends TestTool
+{
+    protected bool $idempotent = true;
+}
 
-#[IsDestructive]
-class DestructiveTool extends TestTool {}
+class DestructiveTool extends TestTool
+{
+    protected bool $destructive = true;
+}
 
-#[IsDestructive(false)]
-class NotDestructiveTool extends TestTool {}
+class NotDestructiveTool extends TestTool
+{
+    protected bool $destructive = false;
+}
 
-#[IsOpenWorld]
-class OpenWorldTool extends TestTool {}
+class OpenWorldTool extends TestTool
+{
+    protected bool $openWorld = true;
+}
 
-#[Title('The Kitchen Sink')]
-#[IsReadOnly]
-#[IsIdempotent]
-#[IsDestructive(false)]
-#[IsOpenWorld(false)]
-class KitchenSinkTool extends TestTool {}
+class KitchenSinkTool extends TestTool
+{
+    protected string $title = 'The Kitchen Sink';
+
+    protected bool $readonly = true;
+
+    protected bool $idempotent = true;
+}
 
 class AnotherComplexToolName extends TestTool {}

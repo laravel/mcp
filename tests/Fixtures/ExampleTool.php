@@ -13,10 +13,7 @@ use Mockery;
 
 class ExampleTool extends Tool
 {
-    public function description(): string
-    {
-        return 'This tool says hello to a person';
-    }
+    protected string $description = 'This tool says hello to a person';
 
     public function schema(ToolInputSchema $schema): ToolInputSchema
     {
