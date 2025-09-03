@@ -15,13 +15,13 @@ class StreamingTool extends Tool
         return 'A tool that streams multiple responses.';
     }
 
-    public function schema(): JsonSchema
+    public function schema(JsonSchema $schema): array
     {
-        return JsonSchema::object(fn (JsonSchema $schema) => [
+        return [
             'count' => $schema->integer()
                 ->description('Number of messages to stream.')
                 ->required(),
-        ]);
+        ];
     }
 
     public function handle(array $arguments): Generator

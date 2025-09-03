@@ -103,13 +103,13 @@ Your tools can request arguments from the MCP client using a tool input schema:
 ```php
 use Illuminate\JsonSchema\JsonSchema;
 
-public function schema(): JsonSchema
+public function schema(JsonSchema $schema): array
 {
-    return JsonSchema::object(fn (JsonSchema $schema) => [
+    return [
         'name' => $schema->string()
             ->description('The name of the user')
             ->required(),
-    ]);
+    ];
 }
 ```
 

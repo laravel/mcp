@@ -18,13 +18,13 @@ class ExampleTool extends Tool
         return 'This tool says hello to a person';
     }
 
-    public function schema(): JsonSchema
+    public function schema(JsonSchema $schema): array
     {
-        return JsonSchema::object(fn (JsonSchema $schema) => [
+        return [
             'name' => $schema->string()
                 ->description('The name of the person to greet')
                 ->required(),
-        ]);
+        ];
     }
 
     public function handle(array $arguments): ToolResult|Generator

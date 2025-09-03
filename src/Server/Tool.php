@@ -23,11 +23,11 @@ abstract class Tool implements Arrayable
     }
 
     /**
-     * Get the tool input schema.
+     `* Get the tool input schema.
      */
-    public function schema(): JsonSchema
+    public function schema(JsonSchema $schema): array
     {
-        return JsonSchema::object();
+        return [];
     }
 
     /**
@@ -57,8 +57,9 @@ abstract class Tool implements Arrayable
         return [
             'name' => $this->name(),
             'description' => $this->description(),
-            // @phpstan-ignore-next-line
-            'inputSchema' => $this->schema()->toArray(),
+            'inputSchema' => JsonSchema::object(
+                fn (JsonSchema $schema) => $this->schema($schema),
+            )->toArray(),
             'annotations' => $this->annotations() ?: (object) [],
         ];
     }

@@ -16,7 +16,6 @@ if (! class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
             use Laravel\\Mcp\\Server\\Tools\\ToolResult;
             class DummyTool{$i} extends Tool {
                 public function description(): string { return 'Description for dummy tool {$i}'; }
-                public function schema(): JsonSchema { return JsonSchema::object(); }
                 public function handle(array \$arguments): ToolResult|Generator { return []; }
             }
         ");

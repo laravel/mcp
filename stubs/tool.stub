@@ -32,12 +32,12 @@ class {{ class }} extends Tool
     /**
      * Get the tool's input schema.
      */
-    public function schema(): JsonSchema
+    public function schema(JsonSchema $schema): array
     {
-        return JsonSchema::object(fn (JsonSchema $schema) => [
+        return [
             'example' => $schema->string()
                 ->description('An example input description.')
                 ->required(),
-        ]);
+        ];
     }
 }
