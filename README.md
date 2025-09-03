@@ -101,7 +101,7 @@ php artisan make:mcp-tool ExampleTool
 Your tools can request arguments from the MCP client using a tool input schema:
 
 ```php
-use Laravel\Essence\JsonSchema;
+use Illuminate\JsonSchema\JsonSchema;
 
 public function schema(): JsonSchema
 {

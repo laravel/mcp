@@ -19,7 +19,7 @@
         "illuminate/routing": "^10.0|^11.0|^12.0",
         "illuminate/support": "^10.0|^11.0|^12.0",
         "illuminate/validation": "^10.0|^11.0|^12.0",
-        "laravel/essence": "dev-main"
+        "illuminate/json-schema": "^12.0"
     },
     "repositories": [
         {

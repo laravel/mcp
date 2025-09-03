@@ -3,7 +3,7 @@
 namespace Tests\Fixtures;
 
 use Generator;
-use Laravel\Essence\JsonSchema;
+use Illuminate\JsonSchema\JsonSchema;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\ToolNotification;
 use Laravel\Mcp\Server\Tools\ToolResult;

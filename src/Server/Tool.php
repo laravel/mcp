@@ -6,8 +6,8 @@ namespace Laravel\Mcp\Server;
 
 use Generator;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\JsonSchema\JsonSchema;
 use Illuminate\Support\Str;
-use Laravel\Essence\JsonSchema;
 use Laravel\Mcp\Server\Tools\ToolNotification;
 use Laravel\Mcp\Server\Tools\ToolResult;
 use ReflectionClass;

@@ -4,9 +4,9 @@ namespace Tests\Fixtures;
 
 use Generator;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\JsonSchema\JsonSchema;
 use Illuminate\Support\MessageBag;
 use Illuminate\Validation\ValidationException;
-use Laravel\Essence\JsonSchema;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\ToolResult;
 use Mockery;
