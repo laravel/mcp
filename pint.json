@@ -5,6 +5,7 @@
             "import_classes": true,
             "import_constants": true
         },
+        "phpdoc_types": false,
         "combine_consecutive_issets": true,
         "combine_consecutive_unsets": true,
         "explicit_string_variable": true,

@@ -84,7 +84,7 @@ abstract class Server
     protected array $registeredTools = [];
 
     /**
-     * @var array<int, resource|string>
+     * @var array<int, Resource|string>
      */
     protected array $registeredResources = [];
 

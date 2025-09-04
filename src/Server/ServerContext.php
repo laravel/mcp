@@ -12,7 +12,7 @@ class ServerContext
      * @param  array<int, string>  $supportedProtocolVersions
      * @param  array<string, mixed>  $serverCapabilities
      * @param  array<int, Tool|string>  $tools
-     * @param  array<int, resource|string>  $resources
+     * @param  array<int, Resource|string>  $resources
      * @param  array<int, Prompt|string>  $prompts
      */
     public function __construct(
