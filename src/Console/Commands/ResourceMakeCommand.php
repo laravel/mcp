@@ -41,6 +41,8 @@ class ResourceMakeCommand extends GeneratorCommand
 
     /**
      * Get the console command options.
+     *
+     * @return array<int, array<int, string|int>>
      */
     protected function getOptions(): array
     {

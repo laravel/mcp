@@ -23,10 +23,8 @@ class ServerMakeCommand extends GeneratorCommand
 
     /**
      * Get the stub file for the generator.
-     *
-     * @return string
      */
-    protected function getStub()
+    protected function getStub(): string
     {
         return file_exists($customPath = $this->laravel->basePath('stubs/server.stub'))
             ? $customPath
@@ -37,9 +35,8 @@ class ServerMakeCommand extends GeneratorCommand
      * Get the default namespace for the class.
      *
      * @param  string  $rootNamespace
-     * @return string
      */
-    protected function getDefaultNamespace($rootNamespace)
+    protected function getDefaultNamespace($rootNamespace): string
     {
         return "{$rootNamespace}\\Mcp\\Servers";
     }
@@ -47,9 +44,9 @@ class ServerMakeCommand extends GeneratorCommand
     /**
      * Get the console command options.
      *
-     * @return array
+     * @return array<int, array<int, string|int>>
      */
-    protected function getOptions()
+    protected function getOptions(): array
     {
         return [
             ['force', 'f', InputOption::VALUE_NONE, 'Create the class even if the server already exists'],
@@ -60,11 +57,10 @@ class ServerMakeCommand extends GeneratorCommand
      * Build the class with the given name.
      *
      * @param  string  $name
-     * @return string
      *
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
      */
-    protected function buildClass($name)
+    protected function buildClass($name): string
     {
         $stub = parent::buildClass($name);
 

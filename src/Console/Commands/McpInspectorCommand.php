@@ -21,7 +21,7 @@ class McpInspectorCommand extends Command
     /**
      * Start the MCP Inspector tool.
      */
-    public function handle()
+    public function handle(): int
     {
         $handle = $this->argument('handle');
         if (! is_string($handle)) {
@@ -101,9 +101,9 @@ class McpInspectorCommand extends Command
     /**
      * Get the console command arguments.
      *
-     * @return array
+     * @return array<int, array<int, string|int>>
      */
-    protected function getArguments()
+    protected function getArguments(): array
     {
         return [
             ['handle', InputArgument::REQUIRED, 'The handle of the MCP server to inspect.'],

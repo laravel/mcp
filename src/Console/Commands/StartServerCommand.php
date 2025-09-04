@@ -17,7 +17,7 @@ class StartServerCommand extends Command
     /**
      * Start the MCP server for a given handle.
      */
-    public function handle()
+    public function handle(): int
     {
         $registrar = app('mcp');
         $handle = $this->argument('handle');
@@ -26,18 +26,20 @@ class StartServerCommand extends Command
         if (! $server) {
             $this->error("MCP server with handle '{$handle}' not found.");
 
-            return Command::FAILURE;
+            return static::FAILURE;
         }
 
         $server();
+
+        return static::SUCCESS;
     }
 
     /**
      * Get the console command arguments.
      *
-     * @return array
+     * @return array<int, array<int, string|int>>
      */
-    protected function getArguments()
+    protected function getArguments(): array
     {
         return [
             ['handle', InputArgument::REQUIRED, 'The handle of the MCP server to start.'],
