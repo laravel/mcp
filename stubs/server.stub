@@ -6,8 +6,19 @@ use Laravel\Mcp\Server;
 
 class {{ class }} extends Server
 {
+    /**
+     * The name of the MCP server.
+     */
     public string $name = '{{ serverDisplayName }}';
+
+   /**
+     * The MCP server version.
+     */
     public string $version = '0.0.1';
+
+    /**
+     * Instructions for LLMs connecting to this MCP server.
+     */
     public string $instructions = 'Instructions describing how to use the server and its features. This may be used by clients to improve the LLM\'s understanding of the server\'s capabilities. It can be thought of as a "hint" to the LLM.';
 
     /**
