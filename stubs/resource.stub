@@ -6,10 +6,13 @@ use Laravel\Mcp\Server\Resource;
 
 class {{ class }} extends Resource
 {
+    /**
+     * The resource's description.
+     /*
     protected string $description = 'A description of what this resource contains.';
 
     /**
-     * Return the resource contents.
+     * Get the resource's content.
      */
     public function read(): string
     {

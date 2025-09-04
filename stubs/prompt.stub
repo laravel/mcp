@@ -9,8 +9,14 @@ use Laravel\Mcp\Server\Prompts\PromptResult;
 
 class {{ class }} extends Prompt
 {
+    /**
+     * The prompt's description.
+     */
     protected string $description = 'Instructions for how to review my code';
 
+    /**
+     * Get the prompt's arguments.
+     */
     public function arguments(): Arguments
     {
         return (new Arguments)->add(
@@ -22,6 +28,9 @@ class {{ class }} extends Prompt
         );
     }
 
+    /**
+     * Handle the prompt and return the result.
+     */
     public function handle(array $arguments): PromptResult
     {
         $instructions = match($arguments['language']) {
