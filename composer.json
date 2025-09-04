@@ -68,10 +68,14 @@
             "@build",
             "@php vendor/bin/testbench serve --ansi"
         ],
-        "check": [
-            "vendor/bin/pint",
-            "vendor/bin/phpstan",
-            "vendor/bin/pest"
+        "lint": "pint",
+        "test:lint": "pint --test",
+        "test:unit": "pest --ci",
+        "test:types": "phpstan",
+        "test": [
+            "@test:lint",
+            "@test:unit",
+            "@test:types"
         ]
     },
     "config": {
