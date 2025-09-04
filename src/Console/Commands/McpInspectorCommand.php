@@ -27,7 +27,7 @@ class McpInspectorCommand extends Command
         if (! is_string($handle)) {
             $this->error('Please pass a valid MCP server handle');
 
-            return self::FAILURE;
+            return static::FAILURE;
         }
 
         /** @var \Laravel\Mcp\Server\Registrar $registrar */
@@ -42,7 +42,7 @@ class McpInspectorCommand extends Command
         if (is_null($localServer) && is_null($webServer)) {
             $this->error('Please pass a valid MCP handle');
 
-            return self::FAILURE;
+            return static::FAILURE;
         }
 
         if ($localServer) {
@@ -92,10 +92,10 @@ class McpInspectorCommand extends Command
         } catch (Exception $e) {
             $this->error('Failed to start MCP Inspector: '.$e->getMessage());
 
-            return Command::FAILURE;
+            return static::FAILURE;
         }
 
-        return Command::SUCCESS;
+        return static::SUCCESS;
     }
 
     /**
