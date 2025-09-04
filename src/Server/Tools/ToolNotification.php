@@ -14,7 +14,10 @@ class ToolNotification implements Arrayable
     /**
      * @param  array<string, mixed>  $params
      */
-    public function __construct(protected string $method, protected array $params) {}
+    public function __construct(protected string $method, protected array $params)
+    {
+        //
+    }
 
     public function getMethod(): string
     {

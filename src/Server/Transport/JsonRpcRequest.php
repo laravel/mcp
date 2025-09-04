@@ -15,7 +15,9 @@ class JsonRpcRequest
         public ?int $id,
         public string $method,
         public array $params,
-    ) {}
+    ) {
+        //
+    }
 
     public static function fromJson(string $jsonString): static
     {

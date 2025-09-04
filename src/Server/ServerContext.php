@@ -26,7 +26,9 @@ class ServerContext
         protected array $tools,
         protected array $resources,
         protected array $prompts,
-    ) {}
+    ) {
+        //
+    }
 
     /**
      * @return Collection<int, \Laravel\Mcp\Server\Tool>

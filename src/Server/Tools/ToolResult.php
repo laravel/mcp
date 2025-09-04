@@ -15,7 +15,10 @@ class ToolResult implements Arrayable
     /**
      * @param  array<int, Content>  $content
      */
-    protected function __construct(public array $content, public bool $isError = false) {}
+    protected function __construct(public array $content, public bool $isError = false)
+    {
+        //
+    }
 
     public static function text(string $text): static
     {

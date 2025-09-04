@@ -82,7 +82,9 @@ abstract class TestCase extends TestbenchTestCase
                 private string|Content $contentValue,
                 private string $desc,
                 private array $overrides,
-            ) {}
+            ) {
+                //
+            }
 
             public function description(): string
             {

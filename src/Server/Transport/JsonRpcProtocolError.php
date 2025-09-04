@@ -14,7 +14,9 @@ class JsonRpcProtocolError
         public string $message,
         public mixed $requestId = null,
         public ?array $data = null
-    ) {}
+    ) {
+        //
+    }
 
     /**
      * @return array<string, mixed>

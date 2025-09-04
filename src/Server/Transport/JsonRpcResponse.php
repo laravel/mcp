@@ -15,7 +15,9 @@ class JsonRpcResponse
         public int $id,
         /** @var array<string, mixed> $result */
         public array $result,
-    ) {}
+    ) {
+        //
+    }
 
     /**
      * @param  array<string, mixed>|Arrayable<string, mixed>  $result

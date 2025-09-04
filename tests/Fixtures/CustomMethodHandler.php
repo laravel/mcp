@@ -9,7 +9,10 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
 class CustomMethodHandler implements Method
 {
-    public function __construct(private string $customDependency) {}
+    public function __construct(private string $customDependency)
+    {
+        //
+    }
 
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
