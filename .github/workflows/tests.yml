@@ -42,7 +42,7 @@ jobs:
            composer update --prefer-dist --no-interaction --no-progress --with="illuminate/contracts:^${{ matrix.laravel }}"
 
       - name: Execute tests
-        run: vendor/bin/pest
+        run: composer test
   test-l10:
     runs-on: ubuntu-22.04
 
@@ -72,4 +72,4 @@ jobs:
           composer update --prefer-dist --no-interaction --no-progress --with="illuminate/contracts:^${{ matrix.laravel }}"
 
       - name: Execute tests
-        run: vendor/bin/pest
+        run: composer test
