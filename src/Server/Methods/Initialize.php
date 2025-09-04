@@ -31,16 +31,21 @@ class Initialize implements Method
             );
         }
 
-        $protocol = $requestedVersion ?? $context->supportedProtocolVersions[0];
-
-        return JsonRpcResponse::create($request->id, [
-            'protocolVersion' => $protocol,
+        $protocolVersion = $requestedVersion ?? $context->supportedProtocolVersions[0];
+        $initResult = [
+            'protocolVersion' => $protocolVersion,
             'capabilities' => $context->serverCapabilities,
             'serverInfo' => [
                 'name' => $context->serverName,
                 'version' => $context->serverVersion,
             ],
             'instructions' => $context->instructions,
-        ]);
+        ];
+
+        if (in_array($protocolVersion, ['2024-11-05', '2025-03-26'], true)) {
+            unset($initResult['instructions']);
+        }
+
+        return JsonRpcResponse::create($request->id, $initResult);
     }
 }

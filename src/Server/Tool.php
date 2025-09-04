@@ -14,26 +14,22 @@ use ReflectionClass;
 
 abstract class Tool implements Arrayable
 {
-    /**
-     * Get the name of the tool.
-     */
+    protected string $description;
+
     public function name(): string
     {
         return Str::kebab(class_basename($this));
     }
 
-    /**
-     * Get the tool input schema.
-     */
     public function schema(ToolInputSchema $schema): ToolInputSchema
     {
         return $schema;
     }
 
-    /**
-     * Get the description of the tool.
-     */
-    abstract public function description(): string;
+    public function description(): string
+    {
+        return $this->description;
+    }
 
     /**
      * Execute the tool call.

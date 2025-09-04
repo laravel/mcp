@@ -20,16 +20,16 @@ class Registrar
     protected array $registeredWebServers = [];
 
     /**
-     * Register an web-based MCP server running over HTTP.
+     * Register a web-based MCP server running over HTTP.
      */
-    public function web(string $handle, string $serverClass): Route
+    public function web(string $route, string $serverClass): Route
     {
-        $this->registeredWebServers[$handle] = $serverClass;
+        $this->registeredWebServers[$route] = $serverClass;
 
-        return Router::post($handle, fn () => $this->bootServer(
+        return Router::post($route, fn () => $this->bootServer(
             $serverClass,
             fn () => new HttpTransport(request())
-        ))->name('mcp-server.'.$handle);
+        ))->name('mcp-server.'.$route);
     }
 
     /**
@@ -96,9 +96,6 @@ class Registrar
         });
     }
 
-    /**
-     * Boot the MCP server.
-     */
     private function bootServer(string $serverClass, callable $transportFactory)
     {
         $transport = $transportFactory();
