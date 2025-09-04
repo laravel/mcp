@@ -154,7 +154,7 @@ abstract class Server
         // Override this method to dynamically add tools, custom methods, etc., when the server boots.
     }
 
-    public function addTool(Tool|string $tool): self
+    public function addTool(Tool|string $tool): static
     {
         if (! in_array($tool, $this->registeredTools, true)) {
             $this->registeredTools[] = $tool;
@@ -163,7 +163,7 @@ abstract class Server
         return $this;
     }
 
-    public function addResource(Resource|string $resource): self
+    public function addResource(Resource|string $resource): static
     {
         if (! in_array($resource, $this->registeredResources, true)) {
             $this->registeredResources[] = $resource;
@@ -172,7 +172,7 @@ abstract class Server
         return $this;
     }
 
-    public function addPrompt(Prompt|string $prompt): self
+    public function addPrompt(Prompt|string $prompt): static
     {
         if (! in_array($prompt, $this->registeredPrompts, true)) {
             $this->registeredPrompts[] = $prompt;
@@ -181,14 +181,14 @@ abstract class Server
         return $this;
     }
 
-    public function addMethod(string $name, string $handlerClass): self
+    public function addMethod(string $name, string $handlerClass): static
     {
         $this->methods[$name] = $handlerClass;
 
         return $this;
     }
 
-    public function addCapability(string $key, mixed $value = null): self
+    public function addCapability(string $key, mixed $value = null): static
     {
         $value = $value ?? (object) [];
 

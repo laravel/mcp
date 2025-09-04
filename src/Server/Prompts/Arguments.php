@@ -16,7 +16,7 @@ class Arguments implements Arrayable
         $this->arguments = collect($arguments);
     }
 
-    public function add(Argument $argument): self
+    public function add(Argument $argument): static
     {
         $this->arguments->push($argument);
 

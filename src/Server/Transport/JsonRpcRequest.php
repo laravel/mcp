@@ -20,7 +20,7 @@ class JsonRpcRequest
     /**
      * Create a new JSON-RPC request from a JSON string.
      */
-    public static function fromJson(string $jsonString): self
+    public static function fromJson(string $jsonString): static
     {
         $data = json_decode($jsonString, true);
 
