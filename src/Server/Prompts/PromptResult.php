@@ -11,10 +11,7 @@ use Illuminate\Contracts\Support\Arrayable;
  */
 class PromptResult implements Arrayable
 {
-    public function __construct(protected string $content, protected string $description)
-    {
-
-    }
+    public function __construct(protected string $content, protected string $description) {}
 
     /**
      * @return array<string, mixed>
