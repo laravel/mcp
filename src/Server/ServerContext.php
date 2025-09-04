@@ -31,7 +31,7 @@ class ServerContext
     }
 
     /**
-     * @return Collection<int, \Laravel\Mcp\Server\Tool>
+     * @return Collection<int, Tool>
      */
     public function tools(): Collection
     {
@@ -41,7 +41,7 @@ class ServerContext
     }
 
     /**
-     * @return Collection<int, \Laravel\Mcp\Server\Resource>
+     * @return Collection<int, Resource>
      */
     public function resources(): Collection
     {
@@ -50,7 +50,7 @@ class ServerContext
     }
 
     /**
-     * @return Collection<int, \Laravel\Mcp\Server\Prompt>
+     * @return Collection<int, Prompt>
      */
     public function prompts(): Collection
     {

@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Facades;
 
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Facade;
+use Laravel\Mcp\Server\Registrar;
 
 /**
  * @method static void local(string $handle, string $serverClass)
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static callable|null getLocalServer(string $handle)
  * @method static string|null getWebServer(string $handle)
  *
- * @see \Laravel\Mcp\Server\Registrar
+ * @see Registrar
  */
 class Mcp extends Facade
 {
