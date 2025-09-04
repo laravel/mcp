@@ -15,8 +15,13 @@ class Argument implements Arrayable
         public string $name,
         public string $description,
         public bool $required = false,
-    ) {}
+    ) {
+        //
+    }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         return [

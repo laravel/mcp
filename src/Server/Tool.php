@@ -25,9 +25,6 @@ abstract class Tool implements Arrayable
     }
 
     /**
-     `* Get the tool input schema.
-     */
-    /**
      * @return array<string, mixed>
      */
     public function schema(JsonSchema $schema): array
@@ -40,11 +37,6 @@ abstract class Tool implements Arrayable
         return $this->description;
     }
 
-    /**
-     * Execute the tool call.
-     *
-     * @return ToolResult|Generator<ToolNotification|ToolResult>
-     */
     /**
      * @param  array<string, mixed>  $arguments
      * @return ToolResult|Generator<ToolNotification|ToolResult>

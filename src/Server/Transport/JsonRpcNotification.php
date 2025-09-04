@@ -25,9 +25,6 @@ class JsonRpcNotification
     }
 
     /**
-     * Convert the notification response to an array.
-     */
-    /**
      * @return array<string, mixed>
      */
     public function toArray(): array

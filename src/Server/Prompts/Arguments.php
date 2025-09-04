@@ -30,6 +30,9 @@ class Arguments implements Arrayable
         return $this;
     }
 
+    /**
+     * @return array<int, mixed>
+     */
     public function toArray(): array
     {
         return $this->arguments->toArray();

@@ -20,7 +20,10 @@ class ResourceResult implements Arrayable
      */
     private array $contents = [];
 
-    public function __construct(public Resource $resource) {}
+    public function __construct(public Resource $resource)
+    {
+        //
+    }
 
     public function content(Content $content): static
     {
