@@ -7,23 +7,24 @@ namespace Laravel\Mcp\Server\Tools;
 use Illuminate\Contracts\Support\Arrayable;
 use Laravel\Mcp\Server\Contracts\Tools\Content;
 
+/**
+ * @implements Arrayable<string, mixed>
+ */
 class ToolResult implements Arrayable
 {
     /**
-     * Create a new tool response.
-     *
-     * @param  array<Content>  $content
+     * @param  array<int, Content>  $content
      */
     protected function __construct(public array $content, public bool $isError = false) {}
 
-    /**
-     * Create a new text response.
-     */
     public static function text(string $text): static
     {
         return new static([new TextContent($text)]);
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public static function json(array $data): static
     {
         $json = json_encode($data, JSON_PRETTY_PRINT);
@@ -34,25 +35,16 @@ class ToolResult implements Arrayable
         return static::text($json);
     }
 
-    /**
-     * Create a new error response.
-     */
     public static function error(string $text): static
     {
         return new static([new TextContent($text)], true);
     }
 
-    /**
-     * Create a new response from a list of content items.
-     */
     public static function items(Content ...$items): static
     {
         return new static($items);
     }
 
-    /**
-     * Convert the response to an array.
-     */
     public function toArray(): array
     {
         return [

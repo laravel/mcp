@@ -14,8 +14,6 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 interface Method
 {
     /**
-     * Implement the JSON-RPC method.
-     *
      * @return JsonRpcResponse|Generator<JsonRpcNotification|JsonRpcResponse>
      *
      * @throws JsonRpcException

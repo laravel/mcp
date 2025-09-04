@@ -9,15 +9,16 @@ use Illuminate\Contracts\Support\Arrayable;
 class JsonRpcResponse
 {
     /**
-     * @param  array<mixed>  $result
+     * @param  array<string, mixed>  $result
      */
     public function __construct(
         public int $id,
+        /** @var array<string, mixed> $result */
         public array $result,
     ) {}
 
     /**
-     * Create a new JSON-RPC response.
+     * @param  array<string, mixed>|Arrayable<string, mixed>  $result
      */
     public static function create(int $id, array|Arrayable $result): JsonRpcResponse
     {
@@ -28,7 +29,7 @@ class JsonRpcResponse
     }
 
     /**
-     * Convert the response to an array.
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {
@@ -39,9 +40,6 @@ class JsonRpcResponse
         ];
     }
 
-    /**
-     * Convert the response to a JSON string.
-     */
     public function toJson(): string
     {
         return json_encode($this->toArray());

@@ -9,12 +9,12 @@ use Illuminate\Contracts\Support\Arrayable;
 class JsonRpcNotification
 {
     /**
-     * Create a new JSON-RPC notification response.
+     * @param  array<string, mixed>  $params
      */
     public function __construct(private string $method, private array $params) {}
 
     /**
-     * Create a new JSON-RPC notification response.
+     * @param  array<string, mixed>|Arrayable<string, mixed>  $params
      */
     public static function create(string $method, array|Arrayable $params): JsonRpcNotification
     {
@@ -26,6 +26,9 @@ class JsonRpcNotification
 
     /**
      * Convert the notification response to an array.
+     */
+    /**
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {

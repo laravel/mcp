@@ -12,8 +12,10 @@ use Laravel\Mcp\Server\Transport\StdioTransport;
 
 class Registrar
 {
+    /** @var array<string, callable> */
     private array $localServers = [];
 
+    /** @var array<string, string> */
     protected array $registeredWebServers = [];
 
     public function web(string $route, string $serverClass): Route
@@ -50,7 +52,7 @@ class Registrar
         return $this->registeredWebServers[$handle] ?? null;
     }
 
-    public function oauthRoutes($oauthPrefix = 'oauth')
+    public function oauthRoutes(string $oauthPrefix = 'oauth'): void
     {
         Router::get('/.well-known/oauth-protected-resource', function () {
             return response()->json([
@@ -90,7 +92,7 @@ class Registrar
         });
     }
 
-    protected function bootServer(string $serverClass, callable $transportFactory)
+    protected function bootServer(string $serverClass, callable $transportFactory): mixed
     {
         $transport = $transportFactory();
 

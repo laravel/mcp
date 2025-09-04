@@ -6,11 +6,17 @@ namespace Laravel\Mcp\Server\Prompts;
 
 use Illuminate\Contracts\Support\Arrayable;
 
+/**
+ * @implements Arrayable<string, mixed>
+ */
 class PromptResult implements Arrayable
 {
     public function __construct(protected string $content, protected string $description) {}
 
-    public function toArray()
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
     {
         return [
             'description' => $this->description,

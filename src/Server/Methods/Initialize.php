@@ -12,9 +12,6 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
 class Initialize implements Method
 {
-    /**
-     * Handle the JSON-RPC initialize request.
-     */
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
         $requestedVersion = $request->params['protocolVersion'] ?? null;

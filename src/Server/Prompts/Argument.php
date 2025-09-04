@@ -6,6 +6,9 @@ namespace Laravel\Mcp\Server\Prompts;
 
 use Illuminate\Contracts\Support\Arrayable;
 
+/**
+ * @implements Arrayable<string, mixed>
+ */
 class Argument implements Arrayable
 {
     public function __construct(

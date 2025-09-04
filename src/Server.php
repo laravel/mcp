@@ -27,12 +27,18 @@ use Throwable;
 
 abstract class Server
 {
+    /**
+     * @var array<int, string>
+     */
     public array $supportedProtocolVersion = [
         '2025-06-18',
         '2025-03-26',
         '2024-11-05',
     ];
 
+    /**
+     * @var array<string, mixed>
+     */
     public array $capabilities = [
         'tools' => [
             'listChanged' => false,
@@ -52,17 +58,17 @@ abstract class Server
     public string $instructions = 'This MCP server lets AI agents interact with our Laravel application.';
 
     /**
-     * @var array<string>
+     * @var array<int, string>
      */
     public array $tools = [];
 
     /**
-     * @var array<string>
+     * @var array<int, string>
      */
     public array $resources = [];
 
     /**
-     * @var array<string>
+     * @var array<int, string>
      */
     public array $prompts = [];
 
@@ -72,12 +78,24 @@ abstract class Server
 
     protected Transport $transport;
 
+    /**
+     * @var array<int, Tool|string>
+     */
     protected array $registeredTools = [];
 
+    /**
+     * @var array<int, resource|string>
+     */
     protected array $registeredResources = [];
 
+    /**
+     * @var array<int, Prompt|string>
+     */
     protected array $registeredPrompts = [];
 
+    /**
+     * @var array<string, class-string<Method>>
+     */
     protected array $methods = [
         'tools/list' => ListTools::class,
         'tools/call' => CallTool::class,
@@ -95,7 +113,7 @@ abstract class Server
         $this->registeredPrompts = $this->prompts;
     }
 
-    public function connect(Transport $transport)
+    public function connect(Transport $transport): void
     {
         $this->transport = $transport;
 
@@ -104,7 +122,7 @@ abstract class Server
         $this->transport->onReceive(fn ($message) => $this->handle($message));
     }
 
-    public function handle(string $rawMessage)
+    public function handle(string $rawMessage): void
     {
         $sessionId = $this->transport->sessionId() ?? Str::uuid()->toString();
 
@@ -125,7 +143,9 @@ abstract class Server
             $request = JsonRpcRequest::fromJson($rawMessage);
 
             if ($request->method === 'initialize') {
-                return $this->handleInitializeMessage($sessionId, $request, $context);
+                $this->handleInitializeMessage($sessionId, $request, $context);
+
+                return;
             }
 
             if (! isset($request->id)) {
@@ -150,7 +170,7 @@ abstract class Server
         }
     }
 
-    public function boot()
+    public function boot(): void
     {
         // Override this method to dynamically add tools, custom methods, etc., when the server boots.
     }
@@ -221,7 +241,7 @@ abstract class Server
         $this->transport->send($response->toJson());
     }
 
-    protected function handleInitializeMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context)
+    protected function handleInitializeMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
     {
         $response = (new Initialize)->handle($request, $context);
 

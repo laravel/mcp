@@ -7,7 +7,7 @@ namespace Laravel\Mcp\Server\Transport;
 class JsonRpcProtocolError
 {
     /**
-     * Create a new JSON-RPC protocol error response.
+     * @param  array<string, mixed>|null  $data
      */
     public function __construct(
         public int $code,
@@ -17,7 +17,7 @@ class JsonRpcProtocolError
     ) {}
 
     /**
-     * Convert the error response to an array.
+     * @return array<string, mixed>
      */
     public function toArray(): array
     {
@@ -37,9 +37,6 @@ class JsonRpcProtocolError
         ];
     }
 
-    /**
-     * Convert the error response to a JSON string.
-     */
     public function toJson(): string
     {
         return json_encode($this->toArray());

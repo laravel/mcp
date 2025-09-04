@@ -189,7 +189,7 @@ it('calls boot method on connect', function () {
 
     $server = new class extends \Laravel\Mcp\Server
     {
-        public function boot()
+        public function boot(): void
         {
             $this->bootCalled = true;
         }

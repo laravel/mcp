@@ -12,6 +12,9 @@ use Laravel\Mcp\Server\Tools\ToolNotification;
 use Laravel\Mcp\Server\Tools\ToolResult;
 use ReflectionClass;
 
+/**
+ * @implements Arrayable<string, mixed>
+ */
 abstract class Tool implements Arrayable
 {
     protected string $description;
@@ -23,6 +26,9 @@ abstract class Tool implements Arrayable
 
     /**
      `* Get the tool input schema.
+     */
+    /**
+     * @return array<string, mixed>
      */
     public function schema(JsonSchema $schema): array
     {
@@ -39,15 +45,22 @@ abstract class Tool implements Arrayable
      *
      * @return ToolResult|Generator<ToolNotification|ToolResult>
      */
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return ToolResult|Generator<ToolNotification|ToolResult>
+     */
     abstract public function handle(array $arguments): ToolResult|Generator;
 
+    /**
+     * @return array<string, mixed>
+     */
     public function annotations(): array
     {
         $reflection = new ReflectionClass($this);
 
         return collect($reflection->getAttributes())
             ->map(fn ($attributeReflection) => $attributeReflection->newInstance())
-            ->mapWithKeys(fn ($attribute) => [$attribute->key() => $attribute->value])
+            ->mapWithKeys(fn ($attribute): array => [$attribute->key() => $attribute->value])
             ->all();
     }
 

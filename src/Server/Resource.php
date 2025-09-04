@@ -9,6 +9,9 @@ use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Contracts\Resources\Content;
 use Laravel\Mcp\Server\Resources\ResourceResult;
 
+/**
+ * @implements Arrayable<string, mixed>
+ */
 abstract class Resource implements Arrayable
 {
     protected string $description = '';

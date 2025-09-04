@@ -16,7 +16,7 @@ interface Transport
     /**
      * Run the transport and process the request.
      */
-    public function run();
+    public function run(); // @phpstan-ignore-line
 
     /**
      * Send a message to the transport.

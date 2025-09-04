@@ -19,8 +19,6 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 class CallTool implements Method
 {
     /**
-     * Handle the JSON-RPC tool/call request.
-     *
      * @return JsonRpcResponse|Generator<JsonRpcNotification|JsonRpcResponse>
      */
     public function handle(JsonRpcRequest $request, ServerContext $context)
@@ -50,16 +48,13 @@ class CallTool implements Method
     }
 
     /**
-     * Convert the result to a JSON-RPC response.
+     * @param  array<string, mixed>|Arrayable<string, mixed>  $result
      */
     protected function toResponse(?int $id, array|Arrayable $result): JsonRpcResponse
     {
         return JsonRpcResponse::create($id, $result);
     }
 
-    /**
-     * Convert the result to a JSON-RPC stream.
-     */
     protected function toStream(JsonRpcRequest $request, Generator $result): Generator
     {
         return (function () use ($result, $request) {

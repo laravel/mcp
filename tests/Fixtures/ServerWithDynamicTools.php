@@ -10,7 +10,7 @@ class ServerWithDynamicTools extends Server
         //
     ];
 
-    public function boot($clientCapabilities = [])
+    public function boot($clientCapabilities = []): void
     {
         $this->addTool(ExampleTool::class);
         $this->addTool(StreamingTool::class);

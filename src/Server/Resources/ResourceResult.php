@@ -10,9 +10,14 @@ use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Resources\Content\Blob;
 use Laravel\Mcp\Server\Resources\Content\Text;
 
+/**
+ * @implements Arrayable<string, mixed>
+ */
 class ResourceResult implements Arrayable
 {
-    /** @var array<int, Content> */
+    /**
+     * @var array<int, Content>
+     */
     private array $contents = [];
 
     public function __construct(public Resource $resource) {}

@@ -11,10 +11,16 @@ class JsonRpcException extends Exception
 {
     protected mixed $requestId;
 
+    /**
+     * @var array<string, mixed>|null
+     */
     protected ?array $data;
 
     /**
      * Create a new JSON-RPC exception.
+     */
+    /**
+     * @param  array<string, mixed>|null  $data
      */
     public function __construct(string $message, int $code, mixed $requestId = null, ?array $data = null)
     {
@@ -35,6 +41,9 @@ class JsonRpcException extends Exception
     /**
      * Get the exception data.
      */
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getData(): ?array
     {
         return $this->data;
@@ -42,6 +51,9 @@ class JsonRpcException extends Exception
 
     /**
      * Convert the exception to a JSON-RPC protocol error.
+     */
+    /**
+     * @return array<string, mixed>
      */
     public function toJsonRpcError(): array
     {
