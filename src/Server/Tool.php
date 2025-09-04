@@ -14,9 +14,8 @@ use ReflectionClass;
 
 abstract class Tool implements Arrayable
 {
-    /**
-     * Get the name of the tool.
-     */
+    protected string $description;
+
     public function name(): string
     {
         return Str::kebab(class_basename($this));
@@ -30,10 +29,10 @@ abstract class Tool implements Arrayable
         return [];
     }
 
-    /**
-     * Get the description of the tool.
-     */
-    abstract public function description(): string;
+    public function description(): string
+    {
+        return $this->description;
+    }
 
     /**
      * Execute the tool call.

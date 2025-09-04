@@ -50,18 +50,16 @@ abstract class Server
         ],
     ];
 
-    /**
-     * The name of the MCP server.
-     */
-    public string $serverName = 'Laravel MCP Server';
+    public string $name = 'Laravel MCP Server';
+
+    public string $version = '0.0.1';
 
     /**
-     * The version of the MCP server.
-     */
-    public string $serverVersion = '0.0.1';
-
-    /**
-     * The instructions for the AI.
+     * Instructions describing how to use the server and its features.
+     *
+     * This can be used by clients to improve the LLM’s understanding of available tools, resources, etc.
+     * It can be thought of like a "hint" to the model.
+     * For example, this information MAY be added to the system prompt.
      */
     public string $instructions = 'This MCP server lets AI agents interact with our Laravel application.';
 
@@ -149,8 +147,8 @@ abstract class Server
         $context = new ServerContext(
             supportedProtocolVersions: $this->supportedProtocolVersion,
             serverCapabilities: $this->capabilities,
-            serverName: $this->serverName,
-            serverVersion: $this->serverVersion,
+            serverName: $this->name,
+            serverVersion: $this->version,
             instructions: $this->instructions,
             maxPaginationLength: $this->maxPaginationLength,
             defaultPaginationLength: $this->defaultPaginationLength,
