@@ -13,7 +13,7 @@ use Laravel\Mcp\Server\Transport\StdioTransport;
 class Registrar
 {
     /** @var array<string, callable> */
-    private array $localServers = [];
+    protected array $localServers = [];
 
     /** @var array<string, string> */
     protected array $registeredWebServers = [];

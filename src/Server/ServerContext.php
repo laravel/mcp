@@ -23,9 +23,9 @@ class ServerContext
         public string $instructions,
         public int $maxPaginationLength,
         public int $defaultPaginationLength,
-        private array $tools,
-        private array $resources,
-        private array $prompts,
+        protected array $tools,
+        protected array $resources,
+        protected array $prompts,
     ) {}
 
     /**

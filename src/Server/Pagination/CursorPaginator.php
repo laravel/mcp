@@ -12,11 +12,11 @@ class CursorPaginator
     /**
      * @var Collection<int, mixed>
      */
-    private Collection $items;
+    protected Collection $items;
 
-    private int $perPage;
+    protected int $perPage;
 
-    private ?string $cursor;
+    protected ?string $cursor;
 
     /**
      * @param  Collection<int, mixed>  $items

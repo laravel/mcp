@@ -15,12 +15,12 @@ class StdioTransport implements Transport
      *
      * @var callable
      */
-    private $handler;
+    protected $handler;
 
     /**
      * The session ID of the request.
      */
-    private string $sessionId;
+    protected string $sessionId;
 
     /**
      * Create a new STDIO transport.

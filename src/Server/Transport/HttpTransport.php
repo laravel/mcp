@@ -15,17 +15,17 @@ class HttpTransport implements Transport
     /**
      * @var callable(string): void
      */
-    private $handler;
+    protected $handler;
 
-    private ?string $reply = null;
+    protected ?string $reply = null;
 
-    private Request $request;
+    protected Request $request;
 
-    private ?string $sessionId = null;
+    protected ?string $sessionId = null;
 
-    private ?string $replySessionId = null;
+    protected ?string $replySessionId = null;
 
-    private ?Closure $stream = null;
+    protected ?Closure $stream = null;
 
     public function __construct(Request $request)
     {

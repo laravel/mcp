@@ -18,7 +18,7 @@ class ResourceResult implements Arrayable
     /**
      * @var array<int, Content>
      */
-    private array $contents = [];
+    protected array $contents = [];
 
     public function __construct(public Resource $resource)
     {

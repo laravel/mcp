@@ -11,7 +11,7 @@ class JsonRpcNotification
     /**
      * @param  array<string, mixed>  $params
      */
-    public function __construct(private string $method, private array $params) {}
+    public function __construct(protected string $method, protected array $params) {}
 
     /**
      * @param  array<string, mixed>|Arrayable<string, mixed>  $params
