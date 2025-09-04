@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Console\Commands;
 
 use Illuminate\Console\GeneratorCommand;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
 
@@ -35,8 +36,6 @@ class ServerMakeCommand extends GeneratorCommand
     }
 
     /**
-     * Get the console command options.
-     *
      * @return array<int, array<int, string|int>>
      */
     protected function getOptions(): array
@@ -49,7 +48,7 @@ class ServerMakeCommand extends GeneratorCommand
     /**
      * @param  string  $name
      *
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     * @throws FileNotFoundException
      */
     protected function buildClass($name): string
     {
@@ -57,7 +56,6 @@ class ServerMakeCommand extends GeneratorCommand
 
         $className = class_basename($name);
 
-        // Add a space before capital letters, except for the first one.
         $serverDisplayName = trim(preg_replace('/(?<!^)([A-Z])/', ' $1', $className));
 
         return str_replace('{{ serverDisplayName }}', $serverDisplayName, $stub);

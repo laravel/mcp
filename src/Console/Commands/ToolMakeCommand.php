@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Console\Commands;
 
 use Illuminate\Console\GeneratorCommand;
+use Illuminate\Contracts\Filesystem\FileNotFoundException;
 use Illuminate\Support\Str;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
@@ -36,8 +37,6 @@ class ToolMakeCommand extends GeneratorCommand
     }
 
     /**
-     * Get the console command options.
-     *
      * @return array<int, array<int, string|int>>
      */
     protected function getOptions(): array
@@ -50,7 +49,7 @@ class ToolMakeCommand extends GeneratorCommand
     /**
      * @param  string  $name
      *
-     * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+     * @throws FileNotFoundException
      */
     protected function buildClass($name): string
     {

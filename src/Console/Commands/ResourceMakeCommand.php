@@ -26,17 +26,12 @@ class ResourceMakeCommand extends GeneratorCommand
             : __DIR__.'/../../../stubs/resource.stub';
     }
 
-    /**
-     * Get the default namespace for the class.
-     */
     protected function getDefaultNamespace($rootNamespace): string
     {
         return "{$rootNamespace}\\Mcp\\Resources";
     }
 
     /**
-     * Get the console command options.
-     *
      * @return array<int, array<int, string|int>>
      */
     protected function getOptions(): array

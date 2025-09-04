@@ -6,6 +6,7 @@ namespace Laravel\Mcp;
 
 use Generator;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\CallTool;
@@ -198,11 +199,11 @@ abstract class Server
     }
 
     /**
-     * @throws \Laravel\Mcp\Server\Exceptions\JsonRpcException
+     * @throws JsonRpcException
      */
     protected function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
     {
-        /** @var \Laravel\Mcp\Server\Contracts\Method $methodClass */
+        /** @var Method $methodClass */
         $methodClass = app($this->methods[$request->method]);
 
         $response = $methodClass->handle($request, $context);

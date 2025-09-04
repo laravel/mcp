@@ -32,8 +32,6 @@ class StartServerCommand extends Command
     }
 
     /**
-     * Get the console command arguments.
-     *
      * @return array<int, array<int, string|int>>
      */
     protected function getArguments(): array
