@@ -48,7 +48,7 @@ class CursorPaginator
     /**
      * Get the start offset from the cursor.
      */
-    private function getStartOffsetFromCursor(): int
+    protected function getStartOffsetFromCursor(): int
     {
         if (! $this->cursor) {
             return 0;
@@ -76,7 +76,7 @@ class CursorPaginator
     /**
      * Create a cursor from the offset.
      */
-    private function createCursor(int $offset): string
+    protected function createCursor(int $offset): string
     {
         $cursorData = ['offset' => $offset];
 

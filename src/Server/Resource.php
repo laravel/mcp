@@ -36,12 +36,12 @@ abstract class Resource implements Arrayable
             : $result->text($this->content);
     }
 
-    private function isBinary(string $content): bool
+    protected function isBinary(string $content): bool
     {
         return strpos($content, "\0") !== false;
     }
 
-    private function content(): string|Content
+    protected function content(): string|Content
     {
         if (! isset($this->content)) {
             $this->content = $this->read();

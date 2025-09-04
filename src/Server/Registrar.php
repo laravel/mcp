@@ -96,7 +96,7 @@ class Registrar
         });
     }
 
-    private function bootServer(string $serverClass, callable $transportFactory)
+    protected function bootServer(string $serverClass, callable $transportFactory)
     {
         $transport = $transportFactory();
 

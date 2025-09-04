@@ -248,7 +248,7 @@ abstract class Server
      *
      * @throws \Laravel\Mcp\Server\Exceptions\JsonRpcException
      */
-    private function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
+    protected function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
     {
         /** @var \Laravel\Mcp\Server\Contracts\Methods\Method $methodClass */
         $methodClass = app($this->methods[$request->method]);
@@ -271,7 +271,7 @@ abstract class Server
     /**
      * Handle the JSON-RPC initialize message.
      */
-    private function handleInitializeMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context)
+    protected function handleInitializeMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context)
     {
         $response = (new Initialize)->handle($request, $context);
 

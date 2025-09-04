@@ -105,7 +105,7 @@ class HttpTransport implements Transport
     /**
      * Stream a message to the client.
      */
-    private function sendStreamMessage(string $message): void
+    protected function sendStreamMessage(string $message): void
     {
         echo 'data: '.$message."\n\n";
 
@@ -119,7 +119,7 @@ class HttpTransport implements Transport
     /**
      * Get the headers for the response.
      */
-    private function getHeaders(): array
+    protected function getHeaders(): array
     {
         $headers = [
             'Content-Type' => $this->stream ? 'text/event-stream' : 'application/json',

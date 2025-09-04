@@ -52,7 +52,7 @@ class CallTool implements Method
     /**
      * Convert the result to a JSON-RPC response.
      */
-    private function toResponse(?int $id, array|Arrayable $result): JsonRpcResponse
+    protected function toResponse(?int $id, array|Arrayable $result): JsonRpcResponse
     {
         return JsonRpcResponse::create($id, $result);
     }
@@ -60,7 +60,7 @@ class CallTool implements Method
     /**
      * Convert the result to a JSON-RPC stream.
      */
-    private function toStream(JsonRpcRequest $request, Generator $result): Generator
+    protected function toStream(JsonRpcRequest $request, Generator $result): Generator
     {
         return (function () use ($result, $request) {
             try {
