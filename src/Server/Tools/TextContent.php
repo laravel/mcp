@@ -11,7 +11,7 @@ class TextContent implements Content
     /**
      * Create a new text content item.
      */
-    public function __construct(public readonly string $text)
+    public function __construct(public string $text)
     {
         //
     }

@@ -15,15 +15,10 @@ use Symfony\Component\Console\Input\InputOption;
 class PromptMakeCommand extends GeneratorCommand
 {
     /**
-     * The type of class being generated.
-     *
      * @var string
      */
     protected $type = 'Prompt';
 
-    /**
-     * Get the stub file for the generator.
-     */
     protected function getStub(): string
     {
         return file_exists($customPath = $this->laravel->basePath('stubs/prompt.stub'))
@@ -31,17 +26,12 @@ class PromptMakeCommand extends GeneratorCommand
             : __DIR__.'/../../../stubs/prompt.stub';
     }
 
-    /**
-     * Get the default namespace for the class.
-     */
     protected function getDefaultNamespace($rootNamespace): string
     {
         return "{$rootNamespace}\\Mcp\\Prompts";
     }
 
     /**
-     * Get the console command options.
-     *
      * @return array<int, array<int, string|int>>
      */
     protected function getOptions(): array

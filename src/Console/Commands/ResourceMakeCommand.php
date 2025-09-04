@@ -15,15 +15,10 @@ use Symfony\Component\Console\Input\InputOption;
 class ResourceMakeCommand extends GeneratorCommand
 {
     /**
-     * The type of class being generated.
-     *
      * @var string
      */
     protected $type = 'Resource';
 
-    /**
-     * Get the stub file for the generator.
-     */
     protected function getStub(): string
     {
         return file_exists($customPath = $this->laravel->basePath('stubs/resource.stub'))

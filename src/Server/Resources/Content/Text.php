@@ -8,7 +8,10 @@ use Laravel\Mcp\Server\Contracts\Resources\Content;
 
 class Text implements Content
 {
-    public function __construct(public readonly string $content) {}
+    public function __construct(public string $content)
+    {
+        //
+    }
 
     public function toArray(): array
     {

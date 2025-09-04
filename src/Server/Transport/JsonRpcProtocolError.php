@@ -10,10 +10,10 @@ class JsonRpcProtocolError
      * Create a new JSON-RPC protocol error response.
      */
     public function __construct(
-        public readonly int $code,
-        public readonly string $message,
-        public readonly mixed $requestId = null,
-        public readonly ?array $data = null
+        public int $code,
+        public string $message,
+        public mixed $requestId = null,
+        public ?array $data = null
     ) {}
 
     /**

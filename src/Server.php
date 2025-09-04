@@ -26,18 +26,12 @@ use Throwable;
 
 abstract class Server
 {
-    /**
-     * The versions of the MCP specification supported by the server.
-     */
     public array $supportedProtocolVersion = [
         '2025-06-18',
         '2025-03-26',
         '2024-11-05',
     ];
 
-    /**
-     * The capabilities of the server.
-     */
     public array $capabilities = [
         'tools' => [
             'listChanged' => false,
@@ -54,13 +48,6 @@ abstract class Server
 
     public string $version = '0.0.1';
 
-    /**
-     * Instructions describing how to use the server and its features.
-     *
-     * This can be used by clients to improve the LLM’s understanding of available tools, resources, etc.
-     * It can be thought of like a "hint" to the model.
-     * For example, this information MAY be added to the system prompt.
-     */
     public string $instructions = 'This MCP server lets AI agents interact with our Laravel application.';
 
     /**
@@ -78,33 +65,18 @@ abstract class Server
      */
     public array $prompts = [];
 
-    /**
-     * The maximum pagination length for tool/list calls.
-     */
     public int $maxPaginationLength = 50;
 
-    /**
-     * The default pagination length for tool/list calls.
-     */
     public int $defaultPaginationLength = 15;
 
-    /**
-     * The transport used to communicate with the client.
-     */
     protected Transport $transport;
 
-    /**
-     * All registered tools once the server is booted (both statically and dynamically added).
-     */
     protected array $registeredTools = [];
 
     protected array $registeredResources = [];
 
     protected array $registeredPrompts = [];
 
-    /**
-     * The JSON-RPC methods available to the server.
-     */
     protected array $methods = [
         'tools/list' => ListTools::class,
         'tools/call' => CallTool::class,
@@ -115,9 +87,6 @@ abstract class Server
         'ping' => Ping::class,
     ];
 
-    /**
-     * Create a new MCP server instance.
-     */
     public function __construct()
     {
         $this->registeredTools = $this->tools;
@@ -125,9 +94,6 @@ abstract class Server
         $this->registeredPrompts = $this->prompts;
     }
 
-    /**
-     * Connect the server to the transport.
-     */
     public function connect(Transport $transport)
     {
         $this->transport = $transport;
@@ -137,9 +103,6 @@ abstract class Server
         $this->transport->onReceive(fn ($message) => $this->handle($message));
     }
 
-    /**
-     * Process a message from the transport.
-     */
     public function handle(string $rawMessage)
     {
         $sessionId = $this->transport->sessionId() ?? Str::uuid()->toString();
@@ -186,9 +149,6 @@ abstract class Server
         }
     }
 
-    /**
-     * Boot the server.
-     */
     public function boot()
     {
         // Override this method to dynamically add tools, custom methods, etc., when the server boots.
@@ -221,9 +181,6 @@ abstract class Server
         return $this;
     }
 
-    /**
-     * Add a JSON-RPC method dynamically to the server.
-     */
     public function addMethod(string $name, string $handlerClass): self
     {
         $this->methods[$name] = $handlerClass;
@@ -231,9 +188,6 @@ abstract class Server
         return $this;
     }
 
-    /**
-     * Add a capability dynamically to the server.
-     */
     public function addCapability(string $key, mixed $value = null): self
     {
         $value = $value ?? (object) [];
@@ -244,8 +198,6 @@ abstract class Server
     }
 
     /**
-     * Handle a JSON-RPC message.
-     *
      * @throws \Laravel\Mcp\Server\Exceptions\JsonRpcException
      */
     protected function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
@@ -268,9 +220,6 @@ abstract class Server
         $this->transport->send($response->toJson());
     }
 
-    /**
-     * Handle the JSON-RPC initialize message.
-     */
     protected function handleInitializeMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context)
     {
         $response = (new Initialize)->handle($request, $context);

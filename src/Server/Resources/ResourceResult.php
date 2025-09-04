@@ -12,24 +12,24 @@ use Laravel\Mcp\Server\Resources\Content\Text;
 
 class ResourceResult implements Arrayable
 {
-    /** @var array<\Laravel\Mcp\Server\Contracts\Resources\Content> */
+    /** @var array<int, Content> */
     private array $contents = [];
 
-    public function __construct(public readonly Resource $resource) {}
+    public function __construct(public Resource $resource) {}
 
-    public function content(Content $content): self
+    public function content(Content $content): static
     {
         $this->contents[] = $content;
 
         return $this;
     }
 
-    public function blob(string $content): self
+    public function blob(string $content): static
     {
         return $this->content(new Blob($content));
     }
 
-    public function text(string $content): self
+    public function text(string $content): static
     {
         return $this->content(new Text($content));
     }

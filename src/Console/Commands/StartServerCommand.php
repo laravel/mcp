@@ -14,9 +14,6 @@ use Symfony\Component\Console\Input\InputArgument;
 )]
 class StartServerCommand extends Command
 {
-    /**
-     * Start the MCP server for a given handle.
-     */
     public function handle(): int
     {
         $registrar = app('mcp');

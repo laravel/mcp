@@ -16,15 +16,10 @@ use Symfony\Component\Console\Input\InputOption;
 class ToolMakeCommand extends GeneratorCommand
 {
     /**
-     * The type of class being generated.
-     *
      * @var string
      */
     protected $type = 'Tool';
 
-    /**
-     * Get the stub file for the generator.
-     */
     protected function getStub(): string
     {
         return file_exists($customPath = $this->laravel->basePath('stubs/tool.stub'))
@@ -33,8 +28,6 @@ class ToolMakeCommand extends GeneratorCommand
     }
 
     /**
-     * Get the default namespace for the class.
-     *
      * @param  string  $rootNamespace
      */
     protected function getDefaultNamespace($rootNamespace): string
@@ -55,8 +48,6 @@ class ToolMakeCommand extends GeneratorCommand
     }
 
     /**
-     * Build the class with the given name.
-     *
      * @param  string  $name
      *
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException

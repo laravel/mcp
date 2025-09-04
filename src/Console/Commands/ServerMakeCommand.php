@@ -15,15 +15,10 @@ use Symfony\Component\Console\Input\InputOption;
 class ServerMakeCommand extends GeneratorCommand
 {
     /**
-     * The type of class being generated.
-     *
      * @var string
      */
     protected $type = 'Server';
 
-    /**
-     * Get the stub file for the generator.
-     */
     protected function getStub(): string
     {
         return file_exists($customPath = $this->laravel->basePath('stubs/server.stub'))
@@ -32,8 +27,6 @@ class ServerMakeCommand extends GeneratorCommand
     }
 
     /**
-     * Get the default namespace for the class.
-     *
      * @param  string  $rootNamespace
      */
     protected function getDefaultNamespace($rootNamespace): string
@@ -54,8 +47,6 @@ class ServerMakeCommand extends GeneratorCommand
     }
 
     /**
-     * Build the class with the given name.
-     *
      * @param  string  $name
      *
      * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException

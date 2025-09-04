@@ -14,7 +14,7 @@ class ToolResult implements Arrayable
      *
      * @param  array<Content>  $content
      */
-    protected function __construct(public readonly array $content, public readonly bool $isError = false) {}
+    protected function __construct(public array $content, public bool $isError = false) {}
 
     /**
      * Create a new text response.

@@ -12,16 +12,10 @@ use Laravel\Mcp\Server\Transport\StdioTransport;
 
 class Registrar
 {
-    /**
-     * The registered local servers running over STDIO.
-     */
     private array $localServers = [];
 
     protected array $registeredWebServers = [];
 
-    /**
-     * Register a web-based MCP server running over HTTP.
-     */
     public function web(string $route, string $serverClass): Route
     {
         $this->registeredWebServers[$route] = $serverClass;

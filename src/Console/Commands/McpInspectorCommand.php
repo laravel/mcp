@@ -18,9 +18,6 @@ use function Illuminate\Support\php_binary;
 )]
 class McpInspectorCommand extends Command
 {
-    /**
-     * Start the MCP Inspector tool.
-     */
     public function handle(): int
     {
         $handle = $this->argument('handle');
@@ -35,7 +32,6 @@ class McpInspectorCommand extends Command
 
         $this->info("Starting the MCP Inspector for server: {$handle}");
 
-        // Check if this is a local server
         $localServer = $registrar->getLocalServer($handle);
         $webServer = $registrar->getWebServer($handle);
 
@@ -46,7 +42,6 @@ class McpInspectorCommand extends Command
         }
 
         if ($localServer) {
-            // Local server - use STDIO transport
             $currentDir = getcwd();
             $command = [
                 'npx',
@@ -62,7 +57,6 @@ class McpInspectorCommand extends Command
                 'Arguments' => implode(' ', [base_path('/artisan'), 'mcp:start', $handle]),
             ];
         } else {
-            // It's a web MCP
             $serverUrl = str_replace('https://', 'http://', route('mcp-server.'.$handle));
 
             $command = [
@@ -99,8 +93,6 @@ class McpInspectorCommand extends Command
     }
 
     /**
-     * Get the console command arguments.
-     *
      * @return array<int, array<int, string|int>>
      */
     protected function getArguments(): array

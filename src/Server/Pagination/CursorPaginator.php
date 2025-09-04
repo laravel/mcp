@@ -15,9 +15,6 @@ class CursorPaginator
 
     private ?string $cursor;
 
-    /**
-     * Create a new cursor paginator.
-     */
     public function __construct(Collection $items, int $perPage = 10, ?string $cursor = null)
     {
         $this->items = $items->values();

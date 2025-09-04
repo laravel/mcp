@@ -19,6 +19,7 @@ class JsonRpcException extends Exception
     public function __construct(string $message, int $code, mixed $requestId = null, ?array $data = null)
     {
         parent::__construct($message, $code);
+
         $this->requestId = $requestId;
         $this->data = $data;
     }
