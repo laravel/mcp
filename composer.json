@@ -6,11 +6,17 @@
         "laravel"
     ],
     "homepage": "https://github.com/laravel/mcp",
+    "license": "MIT",
     "support": {
         "issues": "https://github.com/laravel/mcp/issues",
         "source": "https://github.com/laravel/mcp"
     },
-    "type": "library",
+    "authors": [
+        {
+            "name": "Taylor Otwell",
+            "email": "taylor@laravel.com"
+        }
+    ],
     "require": {
         "php": "^8.1",
         "illuminate/console": "^10.0|^11.0|^12.0",
@@ -24,9 +30,8 @@
         "laravel/pint": "^1.20",
         "orchestra/testbench": "^8.22.0|^9.0|^10.0",
         "phpstan/phpstan": "^2.0",
-        "pestphp/pest": "^2.36.0|^3.0"
+        "pestphp/pest": "^2.36.0|^3.0|^4.0"
     },
-    "license": "MIT",
     "autoload": {
         "psr-4": {
             "Laravel\\Mcp\\": "src/",
@@ -68,11 +73,12 @@
             "vendor/bin/pest"
         ]
     },
-    "minimum-stability": "dev",
-    "prefer-stable": true,
     "config": {
+        "sort-packages": true,
         "allow-plugins": {
             "pestphp/pest-plugin": true
         }
-    }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }
