@@ -8,9 +8,8 @@ use Exception;
 use Illuminate\Console\Command;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Process\PhpExecutableFinder;
 use Symfony\Component\Process\Process;
-
-use function Illuminate\Support\php_binary;
 
 #[AsCommand(
     name: 'mcp:inspector',
@@ -46,14 +45,14 @@ class McpInspectorCommand extends Command
             $command = [
                 'npx',
                 '@modelcontextprotocol/inspector',
-                php_binary(),
+                $this->phpBinary(),
                 $currentDir.'/artisan',
                 "mcp:start {$handle}",
             ];
 
             $guidance = [
                 'Transport Type' => 'STDIO',
-                'Command' => php_binary(),
+                'Command' => $this->phpBinary(),
                 'Arguments' => implode(' ', [base_path('/artisan'), 'mcp:start', $handle]),
             ];
         } else {
@@ -100,5 +99,10 @@ class McpInspectorCommand extends Command
         return [
             ['handle', InputArgument::REQUIRED, 'The handle of the MCP server to inspect.'],
         ];
+    }
+
+    protected function phpBinary(): string
+    {
+        return (new PhpExecutableFinder)->find(false) ?: 'php';
     }
 }
