@@ -6,8 +6,8 @@ namespace Laravel\Mcp\Server;
 
 use Generator;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\JsonSchema\JsonSchema;
 use Illuminate\Support\Str;
-use Laravel\Mcp\Server\Tools\ToolInputSchema;
 use Laravel\Mcp\Server\Tools\ToolNotification;
 use Laravel\Mcp\Server\Tools\ToolResult;
 use ReflectionClass;
@@ -21,9 +21,12 @@ abstract class Tool implements Arrayable
         return Str::kebab(class_basename($this));
     }
 
-    public function schema(ToolInputSchema $schema): ToolInputSchema
+    /**
+     `* Get the tool input schema.
+     */
+    public function schema(JsonSchema $schema): array
     {
-        return $schema;
+        return [];
     }
 
     public function description(): string
@@ -53,7 +56,9 @@ abstract class Tool implements Arrayable
         return [
             'name' => $this->name(),
             'description' => $this->description(),
-            'inputSchema' => $this->schema(new ToolInputSchema)->toArray(),
+            'inputSchema' => JsonSchema::object(
+                fn (JsonSchema $schema) => $this->schema($schema),
+            )->toArray(),
             'annotations' => $this->annotations() ?: (object) [],
         ];
     }

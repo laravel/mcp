@@ -3,9 +3,9 @@
 namespace {{ namespace }};
 
 use Generator;
+use Illuminate\JsonSchema\JsonSchema;
 use Laravel\Mcp\Server\Tools\Annotations\Title;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\ToolInputSchema;
 use Laravel\Mcp\Server\Tools\ToolResult;
 
 #[Title('{{ title }}')]
@@ -27,12 +27,12 @@ class {{ class }} extends Tool
     /**
      * Get the tool's input schema.
      */
-    public function schema(ToolInputSchema $schema): ToolInputSchema
+    public function schema(JsonSchema $schema): array
     {
-        $schema->string('example')
-            ->description('An example input description.')
-            ->required();
-
-        return $schema;
+        return [
+            'example' => $schema->string()
+                ->description('An example input description.')
+                ->required(),
+        ];
     }
 }

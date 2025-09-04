@@ -4,10 +4,10 @@ namespace Tests\Fixtures;
 
 use Generator;
 use Illuminate\Contracts\Validation\Validator;
+use Illuminate\JsonSchema\JsonSchema;
 use Illuminate\Support\MessageBag;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\ToolInputSchema;
 use Laravel\Mcp\Server\Tools\ToolResult;
 use Mockery;
 
@@ -15,9 +15,13 @@ class ExampleTool extends Tool
 {
     protected string $description = 'This tool says hello to a person';
 
-    public function schema(ToolInputSchema $schema): ToolInputSchema
+    public function schema(JsonSchema $schema): array
     {
-        return $schema->string('name')->description('The name of the person to greet')->required();
+        return [
+            'name' => $schema->string()
+                ->description('The name of the person to greet')
+                ->required(),
+        ];
     }
 
     public function handle(array $arguments): ToolResult|Generator
