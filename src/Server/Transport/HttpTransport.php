@@ -7,7 +7,7 @@ namespace Laravel\Mcp\Server\Transport;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
-use Laravel\Mcp\Server\Contracts\Transport\Transport;
+use Laravel\Mcp\Server\Contracts\Transport;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HttpTransport implements Transport

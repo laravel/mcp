@@ -7,7 +7,7 @@ arch('Strict and safe')
 
 arch('MCP methods extend base class')
     ->expect('Laravel\Mcp\Server\Methods')
-    ->toOnlyImplement('Laravel\Mcp\Server\Contracts\Methods\Method');
+    ->toOnlyImplement('Laravel\Mcp\Server\Contracts\Method');
 
 arch('Tool annotations implement annotation interface')
     ->expect('Laravel\Mcp\Server\Tools\Annotations')

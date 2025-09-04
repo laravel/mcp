@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Server\Contracts\Methods;
+namespace Laravel\Mcp\Server\Contracts;
 
 use Generator;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;

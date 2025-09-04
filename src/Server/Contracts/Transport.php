@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Server\Contracts\Transport;
+namespace Laravel\Mcp\Server\Contracts;
 
 use Closure;
 

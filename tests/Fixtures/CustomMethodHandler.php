@@ -2,7 +2,7 @@
 
 namespace Tests\Fixtures;
 
-use Laravel\Mcp\Server\Contracts\Methods\Method;
+use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;

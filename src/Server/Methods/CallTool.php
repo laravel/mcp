@@ -8,7 +8,7 @@ use Generator;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\ItemNotFoundException;
 use Illuminate\Validation\ValidationException;
-use Laravel\Mcp\Server\Contracts\Methods\Method;
+use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Tools\ToolNotification;
 use Laravel\Mcp\Server\Tools\ToolResult;

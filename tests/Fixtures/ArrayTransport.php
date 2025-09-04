@@ -4,7 +4,7 @@ namespace Tests\Fixtures;
 
 use Closure;
 use Illuminate\Support\Str;
-use Laravel\Mcp\Server\Contracts\Transport\Transport;
+use Laravel\Mcp\Server\Contracts\Transport;
 
 class ArrayTransport implements Transport
 {

@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server\Transport;
 
 use Closure;
 use Illuminate\Support\Str;
-use Laravel\Mcp\Server\Contracts\Transport\Transport;
+use Laravel\Mcp\Server\Contracts\Transport;
 
 class StdioTransport implements Transport
 {

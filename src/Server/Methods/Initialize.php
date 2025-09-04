@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Methods;
 
-use Laravel\Mcp\Server\Contracts\Methods\Method;
+use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;

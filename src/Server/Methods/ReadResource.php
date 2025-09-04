@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Illuminate\Support\ItemNotFoundException;
 use InvalidArgumentException;
-use Laravel\Mcp\Server\Contracts\Methods\Method;
+use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
