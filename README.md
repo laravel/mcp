@@ -111,35 +111,54 @@ public function schema(ToolInputSchema $schema): ToolInputSchema
 }
 ```
 
-### Annotating Tools
+### Configuring Tool Annotations
 
-You can add annotations to your tools to provide hints to the MCP client about their behavior. This is done using PHP attributes on your tool class. Adding annotations to your tools is optional.
+#### `title`
 
-| Annotation         | Type    | Description                                                                                                                                          |
-| ------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#[Title]`         | string  | A human-readable title for the tool.                                                                                                                 |
-| `#[IsReadOnly]`    | boolean | Indicates the tool does not modify its environment.                                                                                                  |
-| `#[IsDestructive]` | boolean | Indicates the tool may perform destructive updates. This is only meaningful when the tool is not read-only.                                          |
-| `#[IsIdempotent]`  | boolean | Indicates that calling the tool repeatedly with the same arguments has no additional effect. This is only meaningful when the tool is not read-only. |
-| `#[IsOpenWorld]`   | boolean | Indicates the tool may interact with an "open world" of external entities.                                                                           |
-
-Here's an example of how to add annotations to a tool:
+You may attribute an optional human-readable title to your tool using the `$title` property.
 
 ```php
-<?php
+protected string $title = 'A human-readable title for the tool';
+```
 
-namespace App\Mcp\Tools;
+#### `description`
 
-use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
-use Laravel\Mcp\Server\Tools\Annotations\Title;
-use Laravel\Mcp\Server\Tool;
+You may attribute an optional human-readable description to your tool using the `$description` property.
 
-#[Title('A read-only tool')]
-#[IsReadOnly]
-class ExampleTool extends Tool
-{
-    // ...
-}
+```php
+protected ?string $description = 'A human-readable description of the tool';
+```
+
+#### `readonly`
+
+You may indicate that your tool does not modify its environment by setting the `$readonly` property to `true`. This is useful for tools that only read data or perform calculations without side effects.
+
+```php
+protected bool $readonly = true;
+```
+
+#### `destructive`
+
+You may indicate that your tool may perform destructive updates by setting the `$destructive` property to `true`. This is only meaningful when the tool is not read-only.
+
+```php
+protected bool $destructive = true;
+```
+
+#### `idempotent`
+
+You may indicate that calling the tool repeatedly with the same arguments has no additional effect by setting the `$idempotent` property to `true`. This is only meaningful when the tool is not read-only.
+
+```php
+protected bool $idempotent = true;
+```
+
+#### `openWorld`
+
+You may indicate that your tool may interact with an "open world" of external entities by setting the `$openWorld` property to `true`. This is useful for tools that make network requests or interact with external systems.
+
+```php
+protected bool $openWorld = true;
 ```
 
 ### Tool Results

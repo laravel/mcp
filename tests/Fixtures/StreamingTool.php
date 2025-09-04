@@ -10,10 +10,7 @@ use Laravel\Mcp\Server\Tools\ToolResult;
 
 class StreamingTool extends Tool
 {
-    public function description(): string
-    {
-        return 'A tool that streams multiple responses.';
-    }
+    protected string $description = 'A tool that streams multiple responses.';
 
     public function schema(ToolInputSchema $schema): ToolInputSchema
     {

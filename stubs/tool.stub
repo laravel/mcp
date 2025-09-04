@@ -3,26 +3,24 @@
 namespace {{ namespace }};
 
 use Generator;
-use Laravel\Mcp\Server\Tools\Annotations\Title;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\ToolInputSchema;
 use Laravel\Mcp\Server\Tools\ToolResult;
 
-#[Title('{{ title }}')]
 class {{ class }} extends Tool
 {
     /**
-     * Get the tool's description.
+     * The tool's title.
      */
-    public function description(): string
-    {
-        return 'A description of what this tool does.';
-    }
+    protected string $title = '{{ title }}';
+
+    /**
+     * The tool's description.
+     */
+    protected string $description = 'A description of what this tool does.';
 
     /**
      * Handle the tool call.
-     *
-     * @return ToolResult|Generator
      */
     public function handle(array $arguments): ToolResult|Generator
     {

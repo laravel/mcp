@@ -10,10 +10,39 @@ use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Tools\ToolInputSchema;
 use Laravel\Mcp\Server\Tools\ToolNotification;
 use Laravel\Mcp\Server\Tools\ToolResult;
-use ReflectionClass;
 
 abstract class Tool implements Arrayable
 {
+    /**
+     * The tool's title.
+     */
+    protected string $title = '';
+
+    /**
+     * The tool's description.
+     */
+    protected string $description = '';
+
+    /**
+     * Whether the tool is destructive.
+     */
+    protected bool $destructive = false;
+
+    /**
+     * Whether the tool is idempotent.
+     */
+    protected bool $idempotent = false;
+
+    /**
+     * Whether the tool is read-only.
+     */
+    protected bool $readonly = false;
+
+    /**
+     * Whether the tool is open-world.
+     */
+    protected bool $openWorld = false;
+
     /**
      * Get the name of the tool.
      */
@@ -31,11 +60,6 @@ abstract class Tool implements Arrayable
     }
 
     /**
-     * Get the description of the tool.
-     */
-    abstract public function description(): string;
-
-    /**
      * Execute the tool call.
      *
      * @return ToolResult|Generator<ToolNotification|ToolResult>
@@ -44,11 +68,15 @@ abstract class Tool implements Arrayable
 
     public function annotations(): array
     {
-        $reflection = new ReflectionClass($this);
-
-        return collect($reflection->getAttributes())
-            ->map(fn ($attributeReflection) => $attributeReflection->newInstance())
-            ->mapWithKeys(fn ($attribute) => [$attribute->key() => $attribute->value])
+        return collect([
+            'title' => 'title',
+            'readonly' => 'readOnlyHint',
+            'destructive' => 'destructiveHint',
+            'idempotent' => 'idempotentHint',
+            'openWorld' => 'openWorldHint',
+        ])->filter(fn (string $annotation, string $property) => property_exists($this, $property))
+            ->mapWithKeys(fn (string $annotation, string $property) => [$annotation => $this->$property])
+            ->reject(fn ($value) => $value === '' || $value === false)
             ->all();
     }
 
@@ -56,7 +84,7 @@ abstract class Tool implements Arrayable
     {
         return [
             'name' => $this->name(),
-            'description' => $this->description(),
+            'description' => $this->description,
             'inputSchema' => $this->schema(new ToolInputSchema)->toArray(),
             'annotations' => $this->annotations() ?: (object) [],
         ];
