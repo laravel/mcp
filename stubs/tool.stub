@@ -11,12 +11,13 @@ use Laravel\Mcp\Server\Tools\ToolResult;
 #[Title('{{ title }}')]
 class {{ class }} extends Tool
 {
+    /**
+     * The tool's description.
+     */
     protected string $description = 'A description of what this tool does.';
 
     /**
      * Handle the tool call.
-     *
-     * @return ToolResult|Generator
      */
     public function handle(array $arguments): ToolResult|Generator
     {
