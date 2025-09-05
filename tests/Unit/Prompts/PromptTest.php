@@ -5,7 +5,6 @@ use Laravel\Mcp\Server\Prompts\Arguments;
 use Laravel\Mcp\Server\Prompts\PromptResult;
 use Tests\Fixtures\ReviewMyCodePrompt;
 
-// A concrete implementation of the abstract Prompt class for test purposes.
 class DummyPrompt extends Prompt
 {
     protected string $description = 'A test prompt';

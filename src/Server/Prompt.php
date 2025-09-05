@@ -8,7 +8,6 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Prompts\Argument;
 use Laravel\Mcp\Server\Prompts\Arguments;
-use Laravel\Mcp\Server\Prompts\PromptResult;
 
 /**
  * @implements Arrayable<string, mixed>
@@ -16,11 +15,6 @@ use Laravel\Mcp\Server\Prompts\PromptResult;
 abstract class Prompt implements Arrayable
 {
     protected string $description;
-
-    /**
-     * @param  array<string, mixed>  $arguments
-     */
-    abstract public function handle(array $arguments): PromptResult;
 
     public function arguments(): Arguments
     {

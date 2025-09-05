@@ -4,12 +4,9 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
-use Generator;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\JsonSchema\JsonSchema;
 use Illuminate\Support\Str;
-use Laravel\Mcp\Server\Tools\ToolNotification;
-use Laravel\Mcp\Server\Tools\ToolResult;
 use ReflectionClass;
 
 /**
@@ -36,12 +33,6 @@ abstract class Tool implements Arrayable
     {
         return $this->description;
     }
-
-    /**
-     * @param  array<string, mixed>  $arguments
-     * @return ToolResult|Generator<ToolNotification|ToolResult>
-     */
-    abstract public function handle(array $arguments): ToolResult|Generator;
 
     /**
      * @return array<string, mixed>
