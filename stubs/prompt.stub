@@ -30,7 +30,7 @@ class {{ class }} extends Prompt
     }
 
     /**
-     * Handle the prompt and return the result.
+     * Handle the prompt.
      */
     public function handle(Request $request): PromptResult
     {
