@@ -1,4 +1,4 @@
-- Verify file by file if i am happy with the code.
 - ValidationException -> needs to return ToolError
 - test make commands at unit level + test them on mcp-demo -> plus built a feature them
+- auto-discover tools, prompts, etc...
 - 
