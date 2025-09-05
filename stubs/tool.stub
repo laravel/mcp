@@ -2,7 +2,6 @@
 
 namespace {{ namespace }};
 
-use Generator;
 use Illuminate\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Tools\Annotations\Title;
