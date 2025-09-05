@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Console\Commands;
 
 use Exception;
 use Illuminate\Console\Command;
+use Illuminate\Container\Container;
 use Laravel\Mcp\Server\Registrar;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
@@ -28,7 +29,7 @@ class McpInspectorCommand extends Command
         }
 
         /** @var Registrar $registrar */
-        $registrar = app('mcp');
+        $registrar = Container::getInstance()->make('mcp');
 
         $this->info("Starting the MCP Inspector for server: {$handle}");
 

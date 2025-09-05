@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Generator;
+use Illuminate\Container\Container;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
@@ -224,7 +225,7 @@ abstract class Server
     protected function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
     {
         /** @var Method $methodClass */
-        $methodClass = app($this->methods[$request->method]);
+        $methodClass = Container::getInstance()->make($this->methods[$request->method]);
 
         $response = $methodClass->handle($request, $context);
 

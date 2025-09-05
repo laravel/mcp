@@ -37,6 +37,7 @@ class {{ class }} extends Prompt
             'php' => 'Review the code carefully',
             null => 'Don\'t worry about it',
         };
+
         return new PromptResult(
             content: $instructions,
             description: $this->description()

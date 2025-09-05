@@ -19,7 +19,7 @@ class {{ class }} extends Tool
     /**
      * Handle the tool call.
      */
-    public function handle(array $arguments): ToolResult|Generator
+    public function handle(array $arguments): ToolResult
     {
         return ToolResult::text('Tool executed successfully.');
     }

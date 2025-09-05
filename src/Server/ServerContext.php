@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 
 class ServerContext
@@ -36,7 +37,10 @@ class ServerContext
     public function tools(): Collection
     {
         return collect($this->tools)
-            ->map(fn ($toolClass) => is_string($toolClass) ? app($toolClass) : $toolClass)
+            ->map(fn ($toolClass) => is_string($toolClass)
+                ? Container::getInstance()->make($toolClass)
+                : $toolClass
+            )
             ->filter(fn ($tool) => $tool->shouldRegister());
     }
 
@@ -46,7 +50,11 @@ class ServerContext
     public function resources(): Collection
     {
         return collect($this->resources)
-            ->map(fn ($resourceClass) => is_string($resourceClass) ? app($resourceClass) : $resourceClass);
+            ->map(
+                fn ($resourceClass) => is_string($resourceClass)
+                    ? Container::getInstance()->make($resourceClass)
+                    : $resourceClass
+            );
     }
 
     /**
@@ -55,7 +63,11 @@ class ServerContext
     public function prompts(): Collection
     {
         return collect($this->prompts)
-            ->map(fn ($promptClass) => is_string($promptClass) ? app($promptClass) : $promptClass);
+            ->map(
+                fn ($promptClass) => is_string($promptClass)
+                    ? Container::getInstance()->make($promptClass)
+                    : $promptClass
+            );
     }
 
     public function perPage(?int $requestedPerPage = null): int

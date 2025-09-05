@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Methods;
 
+use Illuminate\Container\Container;
 use Illuminate\Support\ItemNotFoundException;
 use InvalidArgumentException;
 use Laravel\Mcp\Server\Contracts\Method;
@@ -26,7 +27,12 @@ class GetPrompt implements Method
 
         return new JsonRpcResponse(
             $request->id,
-            $prompt->handle($request->get('arguments', []))->toArray(),
+            Container::getInstance()->call(
+                [$prompt, 'handle'],
+                [
+                    'arguments' => $request->get('arguments', []),
+                ],
+            )->toArray(),
         );
     }
 }

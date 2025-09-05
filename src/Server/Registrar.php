@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
@@ -74,7 +75,10 @@ class Registrar
         });
 
         Router::post($oauthPrefix.'/register', function (Request $request) {
-            $clients = app("Laravel\Passport\ClientRepository");
+            $clients = Container::getInstance()->make(
+                "Laravel\Passport\ClientRepository"
+            );
+
             $payload = $request->json()->all();
 
             $client = $clients->createAuthorizationCodeGrantClient(

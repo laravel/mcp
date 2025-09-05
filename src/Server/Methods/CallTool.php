@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
+use Illuminate\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\ItemNotFoundException;
 use Illuminate\Validation\ValidationException;
@@ -34,7 +35,9 @@ class CallTool implements Method
         }
 
         try {
-            $result = $tool->handle($request->params['arguments']);
+            $result = Container::getInstance()->call([$tool, 'handle'], [
+                'arguments' => $request->params['arguments'],
+            ]);
         } catch (ValidationException $e) {
             return JsonRpcResponse::create(
                 $request->id,
