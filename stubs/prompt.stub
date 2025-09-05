@@ -34,7 +34,7 @@ class {{ class }} extends Prompt
      */
     public function handle(Request $request): PromptResult
     {
-        $instructions = match($request->get('language')) {
+        $instructions = match ($request->get('language')) {
             'php' => 'Review the code carefully',
             null => 'Don\'t worry about it',
         };
