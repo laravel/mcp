@@ -71,7 +71,7 @@
         ],
         "lint": "pint",
         "test:lint": "pint --test",
-        "test:unit": "pest --ci --parallel --coverage --min=69.7",
+        "test:unit": "pest --ci --parallel --coverage --min=70.0",
         "test:types": "phpstan",
         "test": [
             "@test:lint",

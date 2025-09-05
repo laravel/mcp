@@ -44,3 +44,17 @@ it('interact with data', function () {
         ->and($request->string('city')->value())->toBe('Wonderland')
         ->and($request->integer('city'))->toBe(0);
 });
+
+it('may be returned as array', function () {
+    $request = new Request([
+        'name' => 'Alice',
+        'age' => 30,
+        'city' => 'Wonderland',
+    ]);
+
+    expect($request->toArray())->toBe([
+        'name' => 'Alice',
+        'age' => 30,
+        'city' => 'Wonderland',
+    ]);
+});

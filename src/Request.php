@@ -34,10 +34,10 @@ class Request implements Arrayable
     public function all(mixed $keys = null): array
     {
         if (is_null($keys)) {
-            return $this->arguments;
+            return $this->data();
         }
 
-        return array_intersect_key($this->arguments, array_flip(is_array($keys) ? $keys : func_get_args()));
+        return array_intersect_key($this->data(), array_flip(is_array($keys) ? $keys : func_get_args()));
     }
 
     /**
