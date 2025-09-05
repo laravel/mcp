@@ -17,6 +17,7 @@ use Laravel\Mcp\Server\Tools\ToolResult;
 use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Support\ValidationMessages;
 
 class CallTool implements Method
 {
@@ -42,10 +43,7 @@ class CallTool implements Method
                 ),
             ]);
         } catch (ValidationException $e) {
-            return JsonRpcResponse::create(
-                $request->id,
-                ToolResult::error($e->getMessage())
-            );
+            $result = ToolResult::error(ValidationMessages::from($e));
         }
 
         return $result instanceof Generator

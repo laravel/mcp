@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Traits\InteractsWithData;
+use Illuminate\Validation\ValidationException;
 
 /**
  * @implements Arrayable<string, mixed>
@@ -64,5 +66,20 @@ class Request implements Arrayable
     public function toArray(): array
     {
         return $this->arguments;
+    }
+
+    /**
+     * Validate the request's arguments against the given rules.
+     *
+     * @param  array<string, mixed>  $rules
+     * @param  array<string, mixed>  $messages
+     * @param  array<string, mixed>  $attributes
+     * @return array<string, mixed>
+     *
+     * @throws ValidationException
+     */
+    public function validate(array $rules, array $messages = [], array $attributes = []): array
+    {
+        return Validator::validate($this->all(), $rules, $messages, $attributes);
     }
 }

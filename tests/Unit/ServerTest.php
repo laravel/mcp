@@ -1,6 +1,5 @@
 <?php
 
-uses(\Tests\TestCase::class);
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\CustomMethodHandler;
 use Tests\Fixtures\ExampleServer;

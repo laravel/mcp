@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-uses(Tests\TestCase::class);
 use Illuminate\Support\ItemNotFoundException;
 use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;

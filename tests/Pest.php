@@ -5,7 +5,7 @@ use Tests\TestCase;
 
 uses(TestCase::class)
  // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Feature');
+    ->in('Unit', 'Feature');
 
 /*
 |--------------------------------------------------------------------------

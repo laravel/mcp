@@ -3,14 +3,10 @@
 namespace Tests\Fixtures;
 
 use Generator;
-use Illuminate\Contracts\Validation\Validator;
 use Illuminate\JsonSchema\JsonSchema;
-use Illuminate\Support\MessageBag;
-use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\ToolResult;
-use Mockery;
 
 class ExampleTool extends Tool
 {
@@ -27,17 +23,11 @@ class ExampleTool extends Tool
 
     public function handle(Request $request): ToolResult|Generator
     {
+        $request->validate([
+            'name' => 'required|string',
+        ]);
+
         $name = $request->get('name');
-
-        if (empty($name)) {
-            $validator = Mockery::mock(Validator::class);
-            $validator->shouldReceive('fails')->andReturn(true);
-            $validator->shouldReceive('errors')->andReturn(new MessageBag(
-                ['name' => ['The name field is required.']]
-            ));
-
-            throw new ValidationException($validator);
-        }
 
         return ToolResult::text('Hello, '.$name.'!');
     }

@@ -144,6 +144,25 @@ class ExampleTool extends Tool
 }
 ```
 
+### Validating Tool Arguments
+
+You may validate tool's request arguments in the `handle` method using Laravel's built-in validation features.
+
+```php
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Tools\ToolResult;
+
+public function handle(Request $request): ToolResult
+{
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
+        'age' => 'nullable|integer|min:0',
+    ]);
+
+    // Use $validated data...
+}
+```
+
 ### Tool Results
 
 The `handle` method of a tool must return an instance of `Laravel\Mcp\Server\Tools\ToolResult`. This class provides a few convenient methods for creating responses.
@@ -236,6 +255,24 @@ php artisan make:mcp-prompt ExamplePrompt
 ```
 
 To make a prompt available to clients, you must register it in your server class in the `$prompts` property.
+
+### Validating Prompt Arguments
+
+You may validate prompt's arguments in the `handle` method using Laravel's built-in validation features.
+
+```php
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Prompts\PromptResult;
+
+public function handle(Request $request): PromptResult
+{
+    $validated = $request->validate([
+        'code' => 'required|string',
+    ]);
+
+    // Use $validated data...
+}
+```
 
 ## Registering Servers
 
