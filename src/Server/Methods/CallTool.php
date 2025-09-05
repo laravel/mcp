@@ -9,6 +9,7 @@ use Illuminate\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\ItemNotFoundException;
 use Illuminate\Validation\ValidationException;
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Tools\ToolNotification;
@@ -36,7 +37,9 @@ class CallTool implements Method
 
         try {
             $result = Container::getInstance()->call([$tool, 'handle'], [
-                'arguments' => $request->params['arguments'],
+                'request' => new Request(
+                    $request->params['arguments'],
+                ),
             ]);
         } catch (ValidationException $e) {
             return JsonRpcResponse::create(

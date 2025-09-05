@@ -11,7 +11,7 @@ class ReviewMyCodePrompt extends Prompt
 {
     protected string $description = 'Instructions for how to review my code';
 
-    public function handle(array $arguments): PromptResult
+    public function handle(): PromptResult
     {
         return new PromptResult(
             content: 'Here are the instructions on how to review my code',

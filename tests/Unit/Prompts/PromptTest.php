@@ -9,7 +9,7 @@ class DummyPrompt extends Prompt
 {
     protected string $description = 'A test prompt';
 
-    public function handle(array $arguments): PromptResult
+    public function handle(): PromptResult
     {
         return new PromptResult('Test content', 'Test description');
     }

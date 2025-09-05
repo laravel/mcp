@@ -4,6 +4,7 @@ namespace {{ namespace }};
 
 use Generator;
 use Illuminate\JsonSchema\JsonSchema;
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Tools\Annotations\Title;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\ToolResult;
@@ -19,7 +20,7 @@ class {{ class }} extends Tool
     /**
      * Handle the tool call.
      */
-    public function handle(array $arguments): ToolResult
+    public function handle(Request $request): ToolResult
     {
         return ToolResult::text('Tool executed successfully.');
     }

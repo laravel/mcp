@@ -7,6 +7,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\JsonSchema\JsonSchema;
 use Illuminate\Support\MessageBag;
 use Illuminate\Validation\ValidationException;
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\ToolResult;
 use Mockery;
@@ -24,9 +25,11 @@ class ExampleTool extends Tool
         ];
     }
 
-    public function handle(array $arguments): ToolResult|Generator
+    public function handle(Request $request): ToolResult|Generator
     {
-        if (empty($arguments['name'])) {
+        $name = $request->get('name');
+
+        if (empty($name)) {
             $validator = Mockery::mock(Validator::class);
             $validator->shouldReceive('fails')->andReturn(true);
             $validator->shouldReceive('errors')->andReturn(new MessageBag(
@@ -36,6 +39,6 @@ class ExampleTool extends Tool
             throw new ValidationException($validator);
         }
 
-        return ToolResult::text('Hello, '.$arguments['name'].'!');
+        return ToolResult::text('Hello, '.$name.'!');
     }
 }

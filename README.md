@@ -200,9 +200,9 @@ use Laravel\Mcp\Server\Tools\ToolResult;
 
 class ChatStreamingTool extends Tool
 {
-    public function handle(array $arguments): Generator
+    public function handle(Request $request): Generator
     {
-        $tokens = explode(' ', $arguments['message']);
+        $tokens = $request->string('message')->explode(' ');
 
         foreach ($tokens as $token) {
             yield new ToolNotification('chat/token', ['token' => $token . ' ']);

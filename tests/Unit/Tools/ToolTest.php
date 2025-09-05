@@ -75,7 +75,7 @@ class TestTool extends Tool
         return 'A test tool';
     }
 
-    public function handle(array $arguments): ToolResult|Generator
+    public function handle(): ToolResult|Generator
     {
         return ToolResult::text('test');
     }

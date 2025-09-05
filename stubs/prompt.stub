@@ -2,6 +2,7 @@
 
 namespace {{ namespace }};
 
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\Argument;
 use Laravel\Mcp\Server\Prompts\Arguments;
@@ -31,9 +32,9 @@ class {{ class }} extends Prompt
     /**
      * Handle the prompt and return the result.
      */
-    public function handle(array $arguments): PromptResult
+    public function handle(Request $request): PromptResult
     {
-        $instructions = match($arguments['language']) {
+        $instructions = match($request->get('language')) {
             'php' => 'Review the code carefully',
             null => 'Don\'t worry about it',
         };

@@ -1,6 +1,4 @@
 - Verify file by file if i am happy with the code.
-- `handle` -> resolve from the IOC.
-- allow people to return a string from the handle method...
 - ValidationException -> needs to return ToolError
 - test make commands at unit level + test them on mcp-demo -> plus built a feature them
 - 
