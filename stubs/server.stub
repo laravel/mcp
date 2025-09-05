@@ -11,7 +11,7 @@ class {{ class }} extends Server
      */
     public string $name = '{{ serverDisplayName }}';
 
-   /**
+    /**
      * The MCP server version.
      */
     public string $version = '0.0.1';
@@ -26,7 +26,7 @@ class {{ class }} extends Server
      *
      * See: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
      *
-     * @param array<int, class-string<\Laravel\Mcp\Server\Tool>> $tools
+     * @param  array<int, class-string<\Laravel\Mcp\Server\Tool>>  $tools
      */
     public array $tools = [
         // ExampleTool::class,
@@ -37,7 +37,7 @@ class {{ class }} extends Server
      *
      * See: https://modelcontextprotocol.io/specification/2025-06-18/server/resources
      *
-     * @param array<int, class-string<\Laravel\Mcp\Server\Resource>> $resources
+     * @param  array<int, class-string<\Laravel\Mcp\Server\Resource>>  $resources
      */
     public array $resources = [
         // ExampleResource::class,
@@ -48,7 +48,7 @@ class {{ class }} extends Server
      *
      * See: https://modelcontextprotocol.io/specification/2025-06-18/server/prompts
      *
-     * @param array<int, class-string<\Laravel\Mcp\Server\Prompt>> $prompts
+     * @param  array<int, class-string<\Laravel\Mcp\Server\Prompt>>  $prompts
      */
     public array $prompts = [
         // ExamplePrompt::class,
