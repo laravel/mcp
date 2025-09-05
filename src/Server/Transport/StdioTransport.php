@@ -5,35 +5,24 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Transport;
 
 use Closure;
-use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Contracts\Transport;
 
 class StdioTransport implements Transport
 {
     /**
-     * The server handler responsible for handling the request.
-     *
-     * @var callable
+     * @param  (Closure(string): void)|null  $handler
      */
-    protected $handler;
-
-    /**
-     * The session ID of the request.
-     */
-    protected string $sessionId;
-
-    /**
-     * Create a new STDIO transport.
-     */
-    public function __construct()
-    {
-        $this->sessionId = Str::uuid()->toString();
+    public function __construct(
+        protected string $sessionId,
+        protected ?Closure $handler = null,
+    ) {
+        //
     }
 
     /**
      * Register the server handler to handle incoming messages.
      */
-    public function onReceive(callable $handler): void
+    public function onReceive(Closure $handler): void
     {
         $this->handler = $handler;
     }

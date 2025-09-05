@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
+use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Server\Transport\StdioTransport;
 
@@ -25,7 +26,14 @@ class Registrar
 
         return Router::post($route, fn () => $this->bootServer(
             $serverClass,
-            fn () => new HttpTransport(request())
+            function () {
+                $request = request();
+
+                return new HttpTransport(
+                    $request,
+                    (string) $request->header('Mcp-Session-Id')
+                );
+            },
         ))->name('mcp-server.'.$route);
     }
 
@@ -36,7 +44,9 @@ class Registrar
     {
         $this->localServers[$handle] = fn () => $this->bootServer(
             $serverClass,
-            fn () => new StdioTransport
+            fn () => new StdioTransport(
+                Str::uuid()->toString(),
+            )
         );
     }
 

@@ -19,7 +19,7 @@ class ArrayTransport implements Transport
         $this->sessionId = Str::uuid()->toString();
     }
 
-    public function onReceive(callable $handler): void
+    public function onReceive(Closure $handler): void
     {
         $this->handler = $handler;
     }

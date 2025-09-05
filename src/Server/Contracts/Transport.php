@@ -8,7 +8,7 @@ use Closure;
 
 interface Transport
 {
-    public function onReceive(callable $handler): void;
+    public function onReceive(Closure $handler): void;
 
     public function run(); // @phpstan-ignore-line
 

@@ -13,27 +13,20 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class HttpTransport implements Transport
 {
     /**
-     * @var callable(string): void
+     * @param  (Closure(string): void)|null  $handler
      */
-    protected $handler;
-
-    protected ?string $reply = null;
-
-    protected Request $request;
-
-    protected ?string $sessionId = null;
-
-    protected ?string $replySessionId = null;
-
-    protected ?Closure $stream = null;
-
-    public function __construct(Request $request)
-    {
-        $this->request = $request;
-        $this->sessionId = $request->header('Mcp-Session-Id');
+    public function __construct(
+        protected Request $request,
+        protected string $sessionId,
+        protected ?Closure $handler = null,
+        protected ?string $reply = null,
+        protected ?string $replySessionId = null,
+        protected ?Closure $stream = null,
+    ) {
+        //
     }
 
-    public function onReceive(callable $handler): void
+    public function onReceive(Closure $handler): void
     {
         $this->handler = $handler;
     }

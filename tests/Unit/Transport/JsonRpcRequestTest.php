@@ -7,20 +7,20 @@ it('can create a message from valid json', function () {
     $json = '{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "echo", "arguments": {"message": "Hello, world!"}}}';
     $request = JsonRpcRequest::fromJson($json);
 
-    expect($request)->toBeInstanceOf(JsonRpcRequest::class);
-    expect($request->id)->toEqual(1);
-    expect($request->method)->toEqual('tools/call');
-    expect($request->params)->toEqual(['name' => 'echo', 'arguments' => ['message' => 'Hello, world!']]);
+    expect($request)->toBeInstanceOf(JsonRpcRequest::class)
+        ->and($request->id)->toEqual(1)
+        ->and($request->method)->toEqual('tools/call')
+        ->and($request->params)->toEqual(['name' => 'echo', 'arguments' => ['message' => 'Hello, world!']]);
 });
 
 it('can create a notification message from valid json', function () {
     $json = '{"jsonrpc": "2.0", "method": "notifications/initialized"}';
     $request = JsonRpcRequest::fromJson($json);
 
-    expect($request)->toBeInstanceOf(JsonRpcRequest::class);
-    expect($request->id)->toBeNull();
-    expect($request->method)->toEqual('notifications/initialized');
-    expect($request->params)->toEqual([]);
+    expect($request)->toBeInstanceOf(JsonRpcRequest::class)
+        ->and($request->id)->toBeNull()
+        ->and($request->method)->toEqual('notifications/initialized')
+        ->and($request->params)->toEqual([]);
 });
 
 it('throws exception for invalid json', function () {
