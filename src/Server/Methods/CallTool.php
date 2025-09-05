@@ -53,8 +53,12 @@ class CallTool implements Method
     /**
      * @param  array<string, mixed>|Arrayable<string, mixed>  $result
      */
-    protected function toResponse(?int $id, array|Arrayable $result): JsonRpcResponse
+    protected function toResponse(?int $id, array|Arrayable|string $result): JsonRpcResponse
     {
+        if (is_string($result)) {
+            $result = ToolResult::text($result);
+        }
+
         return JsonRpcResponse::create($id, $result);
     }
 
