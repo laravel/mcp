@@ -22,6 +22,7 @@ class McpServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 StartServerCommand::class,
+                PromptMakeCommand::class,
                 ServerMakeCommand::class,
                 ToolMakeCommand::class,
                 PromptMakeCommand::class,
