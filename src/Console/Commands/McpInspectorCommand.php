@@ -43,19 +43,22 @@ class McpInspectorCommand extends Command
         }
 
         if ($localServer) {
-            $currentDir = getcwd();
+            $artisanPath = base_path('artisan');
+
+            $normalizedArtisanPath = str_replace('\\', '/', $artisanPath);
+
             $command = [
                 'npx',
                 '@modelcontextprotocol/inspector',
                 $this->phpBinary(),
-                $currentDir.'/artisan',
+                $artisanPath,
                 "mcp:start {$handle}",
             ];
 
             $guidance = [
                 'Transport Type' => 'STDIO',
                 'Command' => $this->phpBinary(),
-                'Arguments' => implode(' ', [base_path('/artisan'), 'mcp:start', $handle]),
+                'Arguments' => implode(' ', [$normalizedArtisanPath, 'mcp:start', $handle]),
             ];
         } else {
             $serverUrl = str_replace('https://', 'http://', route('mcp-server.'.$handle));
