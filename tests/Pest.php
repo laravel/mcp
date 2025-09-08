@@ -4,8 +4,6 @@ use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
 
 uses(TestCase::class)
- // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Unit', 'Feature')
     ->beforeEach(function () {
         $directory = app_path('Mcp');
         $filesystem = new Illuminate\Filesystem\Filesystem;
@@ -13,7 +11,7 @@ uses(TestCase::class)
         if ($filesystem->isDirectory($directory)) {
             $filesystem->deleteDirectory($directory);
         }
-    });
+    })->in('Unit', 'Feature');
 
 /*
 |--------------------------------------------------------------------------
