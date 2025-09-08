@@ -49,7 +49,10 @@ class HttpTransport implements Transport
             return response()->stream($this->stream, 200, $this->getHeaders());
         }
 
-        return response($this->reply, 200, $this->getHeaders());
+        // Must be 202 - https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#sending-messages-to-the-server
+        $statusCode = empty($this->reply) ? 202 : 200;
+
+        return response($this->reply, $statusCode, $this->getHeaders());
     }
 
     public function sessionId(): ?string
