@@ -18,36 +18,26 @@ class McpServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton('mcp', fn () => new Registrar);
-
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                StartCommand::class,
-                MakeServerCommand::class,
-                MakeToolCommand::class,
-                MakePromptCommand::class,
-                MakeResourceCommand::class,
-                InspectorCommand::class,
-            ]);
-        }
     }
 
     public function boot(): void
     {
-        if ($this->app->runningInConsole()) {
-            $this->offerPublishing();
-        }
+        $this->registerRoutes();
 
-        $this->loadAiRoutes();
+        if ($this->app->runningInConsole()) {
+            $this->registerCommands();
+            $this->registerPublishing();
+        }
     }
 
-    protected function offerPublishing(): void
+    protected function registerPublishing(): void
     {
         $this->publishes([
             __DIR__.'/../../routes/ai.php' => base_path('routes/ai.php'),
         ], 'ai-routes');
     }
 
-    protected function loadAiRoutes(): void
+    protected function registerRoutes(): void
     {
         $path = base_path('routes/ai.php');
 
@@ -60,5 +50,17 @@ class McpServiceProvider extends ServiceProvider
         }
 
         Route::group([], $path);
+    }
+
+    protected function registerCommands(): void
+    {
+        $this->commands([
+            StartCommand::class,
+            MakeServerCommand::class,
+            MakeToolCommand::class,
+            MakePromptCommand::class,
+            MakeResourceCommand::class,
+            InspectorCommand::class,
+        ]);
     }
 }
