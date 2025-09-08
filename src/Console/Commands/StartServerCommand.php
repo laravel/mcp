@@ -27,6 +27,7 @@ class StartServerCommand extends Command
             return static::FAILURE;
         }
 
+        set_time_limit(0);
         $server();
 
         return static::SUCCESS;
@@ -38,7 +39,7 @@ class StartServerCommand extends Command
     protected function getArguments(): array
     {
         return [
-            ['handle', InputArgument::REQUIRED, 'The handle of the MCP server to start.'],
+            ['handle', InputArgument::REQUIRED, 'The handle of the local MCP server to start.'],
         ];
     }
 }

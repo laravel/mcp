@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Route as Router;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Console\Commands\McpInspectorCommand;
 use Laravel\Mcp\Console\Commands\PromptMakeCommand;
@@ -12,9 +14,12 @@ use Laravel\Mcp\Console\Commands\ResourceMakeCommand;
 use Laravel\Mcp\Console\Commands\ServerMakeCommand;
 use Laravel\Mcp\Console\Commands\StartServerCommand;
 use Laravel\Mcp\Console\Commands\ToolMakeCommand;
+use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
 
 class McpServiceProvider extends ServiceProvider
 {
+    protected static $authRoutesLoaded = false;
+
     public function register(): void
     {
         $this->app->singleton('mcp', fn () => new Registrar);
@@ -37,6 +42,7 @@ class McpServiceProvider extends ServiceProvider
             $this->offerPublishing();
         }
 
+        $this->addRouteAuthMacro();
         $this->loadAiRoutes();
     }
 
@@ -60,5 +66,26 @@ class McpServiceProvider extends ServiceProvider
         }
 
         Route::group([], $path);
+        // Maybe here we can detect if auth is used, then loop through and add everything, so maybe this is better actually
+        $this->loadRoutesFrom(__DIR__.'/../../routes/auth.php');
+    }
+
+    private function addRouteAuthMacro()
+    {
+        \Illuminate\Routing\Route::macro('withAuth', function () {
+            // TODO: Only load the auth routes once
+            // And only if the user actually uses 'withAuth'
+
+            $this->middleware(AddWwwAuthenticateHeader::class);
+
+            // OAuth Resource Server
+            $path = sprintf('/%s/.well-known/oauth-protected-resource', $this->uri);
+            Router::get($path, function (Request $request) {
+                return response()->json([
+                    'resource' => url($this->uri),
+                    'authorization_servers' => [route('mcp.oauth.authorization-server')],
+                ]);
+            })->name('mcp.oauth.protected-resource');
+        });
     }
 }

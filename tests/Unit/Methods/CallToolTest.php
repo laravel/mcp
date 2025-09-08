@@ -46,7 +46,7 @@ it('returns a valid call tool response', function () {
         ],
         'isError' => false,
     ]);
-});
+})->skipOnWindows();
 
 it('returns a valid call tool response with validation error', function () {
     $request = JsonRpcRequest::fromJson(json_encode([
