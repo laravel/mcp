@@ -13,7 +13,7 @@ use Symfony\Component\Console\Input\InputArgument;
     name: 'mcp:start',
     description: 'Start the MCP server for a given handle'
 )]
-class StartServerCommand extends Command
+class StartCommand extends Command
 {
     public function handle(): int
     {

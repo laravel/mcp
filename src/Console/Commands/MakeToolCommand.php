@@ -14,7 +14,7 @@ use Symfony\Component\Console\Input\InputOption;
     name: 'make:mcp-tool',
     description: 'Create a new MCP tool class'
 )]
-class ToolMakeCommand extends GeneratorCommand
+class MakeToolCommand extends GeneratorCommand
 {
     /**
      * @var string

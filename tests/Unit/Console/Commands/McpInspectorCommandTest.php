@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Laravel\Mcp\Console\Commands\McpInspectorCommand;
+use Laravel\Mcp\Console\Commands\InspectorCommand;
 use Laravel\Mcp\Server\Registrar;
 
 beforeEach(function () {
@@ -11,7 +11,7 @@ beforeEach(function () {
 });
 
 it('normalizes windows paths in guidance output', function () {
-    $command = Mockery::mock(McpInspectorCommand::class)->makePartial();
+    $command = Mockery::mock(InspectorCommand::class)->makePartial();
     $this->registrar
         ->shouldReceive('getLocalServer')
         ->with('demo')

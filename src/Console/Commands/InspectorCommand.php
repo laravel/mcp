@@ -17,7 +17,7 @@ use Symfony\Component\Process\Process;
     name: 'mcp:inspector',
     description: 'Open the MCP inspector tool to debug and test MCP servers'
 )]
-class McpInspectorCommand extends Command
+class InspectorCommand extends Command
 {
     public function handle(): int
     {

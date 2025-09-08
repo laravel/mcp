@@ -13,7 +13,7 @@ use Symfony\Component\Console\Input\InputOption;
     name: 'make:mcp-server',
     description: 'Create a new MCP server class'
 )]
-class ServerMakeCommand extends GeneratorCommand
+class MakeServerCommand extends GeneratorCommand
 {
     /**
      * @var string
