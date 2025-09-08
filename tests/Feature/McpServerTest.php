@@ -104,7 +104,7 @@ it('can initialize a connection over stdio', function () {
 
     $process->run();
 
-    $output = json_decode($process->getOutput(), true);
+    $output = json_decode(dump($process->getOutput()), true);
 
     expect($output)->toEqual(expectedInitializeResponse());
 });
@@ -118,7 +118,7 @@ it('can list tools over stdio', function () {
     $output = json_decode(dump($process->getOutput()), true);
 
     expect($output)->toEqual(expectedListToolsResponse());
-})->only();
+});
 
 it('can call a tool over stdio', function () {
     $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
@@ -126,7 +126,7 @@ it('can call a tool over stdio', function () {
 
     $process->run();
 
-    $output = json_decode($process->getOutput(), true);
+    $output = json_decode(dump($process->getOutput()), true);
 
     expect($output)->toEqual(expectedCallToolResponse());
 });
@@ -137,7 +137,7 @@ it('can handle a ping over stdio', function () {
 
     $process->run();
 
-    $output = json_decode($process->getOutput(), true);
+    $output = json_decode(dump($process->getOutput()), true);
 
     expect($output)->toEqual(expectedPingResponse());
 });
@@ -148,7 +148,7 @@ it('can stream a tool response over stdio', function () {
 
     $process->run();
 
-    $output = $process->getOutput();
+    $output = dump($process->getOutput());
     $messages = parseJsonRpcMessagesFromStdout($output);
 
     expect($messages)->toEqual(expectedStreamingToolResponse());
