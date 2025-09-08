@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
-use Exception;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
 use Illuminate\Support\Str;
