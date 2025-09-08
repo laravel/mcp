@@ -104,8 +104,6 @@ it('can initialize a connection over stdio', function () {
 
     $process->run();
 
-    dd($process->getOutput());
-
     $output = json_decode($process->getOutput(), true);
 
     expect($output)->toEqual(expectedInitializeResponse());
