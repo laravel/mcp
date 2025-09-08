@@ -19,3 +19,11 @@ test('implodes all messages a single one', function () {
 
     expect($messages)->toBe('The name field is required. The email field must be a valid email address.');
 });
+
+test('returns a generic message if no messages are available', function () {
+    $exception = new ValidationException(validator([], []));
+
+    $messages = ValidationMessages::from($exception);
+
+    expect($messages)->toBe('The given data was invalid.');
+});
