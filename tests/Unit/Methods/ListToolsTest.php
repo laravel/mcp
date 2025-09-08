@@ -3,7 +3,7 @@
 use Laravel\Mcp\Server\Methods\ListTools;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Server\Transport\JsonRpcResult;
 use Tests\Fixtures\ExampleTool;
 
 if (! class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
@@ -47,7 +47,7 @@ it('returns a valid list tools response', function () {
 
     $response = $listTools->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    expect($response)->toBeInstanceOf(JsonRpcResult::class);
     expect($response->id)->toEqual(1);
     expect($response->result)->toEqual([
         'tools' => [
@@ -100,7 +100,7 @@ it('handles pagination correctly', function () {
 
     $firstPageResponse = $listTools->handle($firstListToolsRequest, $context);
 
-    expect($firstPageResponse)->toBeInstanceOf(JsonRpcResponse::class);
+    expect($firstPageResponse)->toBeInstanceOf(JsonRpcResult::class);
     expect($firstPageResponse->id)->toEqual(1);
     expect($firstPageResponse->result['tools'])->toHaveCount(10);
     expect($firstPageResponse->result)->toHaveKey('nextCursor');
@@ -121,7 +121,7 @@ it('handles pagination correctly', function () {
 
     $secondPageResponse = $listTools->handle($secondListToolsRequest, $context);
 
-    expect($secondPageResponse)->toBeInstanceOf(JsonRpcResponse::class);
+    expect($secondPageResponse)->toBeInstanceOf(JsonRpcResult::class);
     expect($secondPageResponse->id)->toEqual(2);
     expect($secondPageResponse->result['tools'])->toHaveCount(2);
     $this->assertArrayNotHasKey('nextCursor', $secondPageResponse->result);

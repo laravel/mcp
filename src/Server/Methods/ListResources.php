@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods;
 
 use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\Contracts\Transport\JsonRpcResponse;
 use Laravel\Mcp\Server\Pagination\CursorPaginator;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Server\Transport\JsonRpcResult;
 
 class ListResources implements Method
 {
@@ -20,6 +21,6 @@ class ListResources implements Method
             cursor: $request->cursor(),
         );
 
-        return JsonRpcResponse::create($request->id, $paginator->paginate('resources'));
+        return JsonRpcResult::create($request->id, $paginator->paginate('resources'));
     }
 }

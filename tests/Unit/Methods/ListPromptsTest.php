@@ -3,7 +3,7 @@
 use Laravel\Mcp\Server\Methods\ListPrompts;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Server\Transport\JsonRpcResult;
 use Tests\Fixtures\ReviewMyCodePrompt;
 
 it('returns a valid list prompts response', function () {
@@ -31,7 +31,7 @@ it('returns a valid list prompts response', function () {
 
     $response = $listPrompts->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    expect($response)->toBeInstanceOf(JsonRpcResult::class);
     expect($response->id)->toEqual(1);
     expect($response->result)->toEqual([
         'prompts' => [
@@ -76,7 +76,7 @@ it('returns empty list when no prompts registered', function () {
 
     $response = $listPrompts->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    expect($response)->toBeInstanceOf(JsonRpcResult::class);
     expect($response->id)->toEqual(1);
     expect($response->result)->toEqual([
         'prompts' => [],

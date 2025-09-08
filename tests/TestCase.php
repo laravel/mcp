@@ -3,10 +3,10 @@
 namespace Tests;
 
 use Laravel\Mcp\Server\Contracts\Resources\Content;
+use Laravel\Mcp\Server\Contracts\Transport\JsonRpcResponse;
 use Laravel\Mcp\Server\McpServiceProvider;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Orchestra\Testbench\TestCase as TestbenchTestCase;
 use Workbench\App\Providers\WorkbenchServiceProvider;
 

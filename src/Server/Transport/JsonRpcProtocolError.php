@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Transport;
 
-class JsonRpcProtocolError
+use Laravel\Mcp\Server\Contracts\Transport\JsonRpcResponse;
+
+class JsonRpcProtocolError implements JsonRpcResponse
 {
     /**
      * @param  array<string, mixed>|null  $data

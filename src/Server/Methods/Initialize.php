@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods;
 
 use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\Contracts\Transport\JsonRpcResponse;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Server\Transport\JsonRpcResult;
 
 class Initialize implements Method
 {
@@ -43,6 +44,6 @@ class Initialize implements Method
             unset($initResult['instructions']);
         }
 
-        return JsonRpcResponse::create($request->id, $initResult);
+        return JsonRpcResult::create($request->id, $initResult);
     }
 }

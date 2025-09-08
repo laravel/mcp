@@ -3,7 +3,7 @@
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Server\Transport\JsonRpcResult;
 use Tests\Fixtures\CurrentTimeTool;
 use Tests\Fixtures\ExampleTool;
 
@@ -35,7 +35,7 @@ it('returns a valid call tool response', function () {
 
     $response = $method->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    expect($response)->toBeInstanceOf(JsonRpcResult::class);
     expect($response->id)->toEqual(1);
     expect($response->result)->toEqual([
         'content' => [
@@ -76,7 +76,7 @@ it('returns a valid call tool response with validation error', function () {
 
     $response = $method->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResponse::class)
+    expect($response)->toBeInstanceOf(JsonRpcResult::class)
         ->and($response->id)->toEqual(1)
         ->and($response->result)->toEqual([
             'content' => [
@@ -119,7 +119,7 @@ it('may resolve dependencies out of the container', function () {
 
     ['type' => $type, 'text' => $text] = $response->result['content'][0];
 
-    expect($response)->toBeInstanceOf(JsonRpcResponse::class)
+    expect($response)->toBeInstanceOf(JsonRpcResult::class)
         ->and($response->id)->toEqual(1)
         ->and($type)->toEqual('text')
         ->and($text)->toContain('The current time is ');

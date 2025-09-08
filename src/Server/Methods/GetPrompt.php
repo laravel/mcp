@@ -10,15 +10,16 @@ use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\Contracts\Transport\JsonRpcResponse;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcProtocolError;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Server\Transport\JsonRpcResult;
 use Laravel\Mcp\Support\ValidationMessages;
 
 class GetPrompt implements Method
 {
-    public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse|JsonRpcProtocolError
+    public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
         if (is_null($request->get('name'))) {
             throw new InvalidArgumentException('Missing required parameter: name');
@@ -44,6 +45,6 @@ class GetPrompt implements Method
             );
         }
 
-        return new JsonRpcResponse($request->id, $result->toArray());
+        return new JsonRpcResult($request->id, $result->toArray());
     }
 }

@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Transport;
 
 use Illuminate\Contracts\Support\Arrayable;
+use Laravel\Mcp\Server\Contracts\Transport\JsonRpcResponse;
 
-class JsonRpcResponse
+class JsonRpcResult implements JsonRpcResponse
 {
     /**
      * @param  array<string, mixed>  $result
@@ -22,7 +23,7 @@ class JsonRpcResponse
     /**
      * @param  array<string, mixed>|Arrayable<string, mixed>  $result
      */
-    public static function create(int $id, array|Arrayable $result): JsonRpcResponse
+    public static function create(int $id, array|Arrayable $result): JsonRpcResult
     {
         return new static(
             id: $id,

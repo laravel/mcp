@@ -11,12 +11,13 @@ use Illuminate\Support\ItemNotFoundException;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\Contracts\Transport\JsonRpcResponse;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Tools\ToolNotification;
 use Laravel\Mcp\Server\Tools\ToolResult;
 use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Server\Transport\JsonRpcResult;
 use Laravel\Mcp\Support\ValidationMessages;
 
 class CallTool implements Method
@@ -24,13 +25,13 @@ class CallTool implements Method
     /**
      * @return JsonRpcResponse|Generator<JsonRpcNotification|JsonRpcResponse>
      */
-    public function handle(JsonRpcRequest $request, ServerContext $context)
+    public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
         try {
             $tool = $context->tools()
                 ->firstOrFail(fn ($tool) => $tool->name() === $request->params['name']);
         } catch (ItemNotFoundException $e) {
-            return JsonRpcResponse::create(
+            return JsonRpcResult::create(
                 $request->id,
                 ToolResult::error('Tool not found')
             );
@@ -54,13 +55,13 @@ class CallTool implements Method
     /**
      * @param  array<string, mixed>|Arrayable<string, mixed>  $result
      */
-    protected function toResponse(?int $id, array|Arrayable|string $result): JsonRpcResponse
+    protected function toResponse(?int $id, array|Arrayable|string $result): JsonRpcResult
     {
         if (is_string($result)) {
             $result = ToolResult::text($result);
         }
 
-        return JsonRpcResponse::create($id, $result);
+        return JsonRpcResult::create($id, $result);
     }
 
     protected function toStream(JsonRpcRequest $request, Generator $result): Generator

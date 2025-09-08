@@ -5,7 +5,7 @@ use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcProtocolError;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Server\Transport\JsonRpcResult;
 use Tests\Fixtures\GoingToFailPrompt;
 use Tests\Fixtures\ReviewMyCodePrompt;
 use Tests\Fixtures\TellMeHiPrompt;
@@ -38,7 +38,7 @@ it('returns a valid get prompt response', function () {
 
     $response = $method->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    expect($response)->toBeInstanceOf(JsonRpcResult::class);
     expect($response->id)->toEqual(1);
     expect($response->result)->toEqual([
         'description' => 'Instructions for how to review my code',
@@ -82,7 +82,7 @@ it('resolves the handle method from the IOC container', function () {
 
     $response = $method->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    expect($response)->toBeInstanceOf(JsonRpcResult::class);
     expect($response->id)->toEqual(1);
     expect($response->result)->toEqual([
         'description' => 'Instructions for how too tell me hi',
@@ -224,7 +224,7 @@ it('passes arguments to prompt handler', function () {
 
     $response = $method->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    expect($response)->toBeInstanceOf(JsonRpcResult::class);
     expect($response->id)->toEqual(1);
     expect($response->result)->toHaveKey('description');
     expect($response->result)->toHaveKey('messages');

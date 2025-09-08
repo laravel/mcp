@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Transport;
 
 use Illuminate\Contracts\Support\Arrayable;
+use Laravel\Mcp\Server\Contracts\Transport\JsonRpcResponse;
 
-class JsonRpcNotification
+class JsonRpcNotification implements JsonRpcResponse
 {
     /**
      * @param  array<string, mixed>  $params
