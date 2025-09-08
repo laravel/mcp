@@ -5,7 +5,15 @@ use Tests\TestCase;
 
 uses(TestCase::class)
  // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Unit', 'Feature');
+    ->in('Unit', 'Feature')
+    ->beforeEach(function () {
+        $directory = app_path('Mcp');
+        $filesystem = new Illuminate\Filesystem\Filesystem;
+
+        if ($filesystem->isDirectory($directory)) {
+            $filesystem->deleteDirectory($directory);
+        }
+    });
 
 /*
 |--------------------------------------------------------------------------
