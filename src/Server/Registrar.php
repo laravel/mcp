@@ -89,19 +89,20 @@ class Registrar
     {
         Router::get('/.well-known/oauth-protected-resource', function () {
             return response()->json([
-                'resource' => config('app.url'),
+                'resource' => url('/'),
                 'authorization_server' => url('/.well-known/oauth-authorization-server'),
             ]);
         })->name('mcp.oauth.protected-resource');
 
         Router::get('/.well-known/oauth-authorization-server', function () use ($oauthPrefix) {
             return response()->json([
-                'issuer' => config('app.url'),
+                'issuer' => url('/'),
                 'authorization_endpoint' => url($oauthPrefix.'/authorize'),
                 'token_endpoint' => url($oauthPrefix.'/token'),
                 'registration_endpoint' => url($oauthPrefix.'/register'),
                 'response_types_supported' => ['code'],
                 'code_challenge_methods_supported' => ['S256'],
+                'supported_scopes' => ['mcp:use'],
                 'grant_types_supported' => ['authorization_code', 'refresh_token'],
             ]);
         });
@@ -124,6 +125,7 @@ class Registrar
             return response()->json([
                 'client_id' => $client->id,
                 'redirect_uris' => $client->redirect_uris,
+                'scopes' => 'mcp:use',
             ]);
         });
     }
