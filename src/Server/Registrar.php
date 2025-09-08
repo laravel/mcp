@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
 use Laravel\Mcp\Server\Middleware\ReorderJsonAccept;
 use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Server\Transport\StdioTransport;
@@ -38,7 +39,10 @@ class Registrar
             },
         ))
             ->name($this->routeName(ltrim($route, '/')))
-            ->middleware(ReorderJsonAccept::class);
+            ->middleware([
+                ReorderJsonAccept::class,
+                AddWwwAuthenticateHeader::class,
+            ]);
 
         $this->httpServers[$route->uri()] = $route;
 
@@ -88,7 +92,7 @@ class Registrar
                 'resource' => config('app.url'),
                 'authorization_server' => url('/.well-known/oauth-authorization-server'),
             ]);
-        });
+        })->name('mcp.oauth.protected-resource');
 
         Router::get('/.well-known/oauth-authorization-server', function () use ($oauthPrefix) {
             return response()->json([

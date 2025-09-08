@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use Symfony\Component\Process\Process;
 
 it('can initialize a connection over http', function () {
@@ -173,6 +174,49 @@ it('returns 405 for GET requests to MCP web routes', function () {
 
     $response->assertStatus(405);
     $response->assertSee('');
+});
+
+it('returns OAuth WWW-Authenticate header when OAuth routes are enabled and response is 401', function () {
+    // Enable OAuth routes which registers the 'mcp.oauth.protected-resource' route
+    app('Laravel\Mcp\Server\Registrar')->oauthRoutes();
+
+    // Create a test route that returns 401 to trigger the middleware
+    Route::post('test-oauth-401', function () {
+        return response()->json(['error' => 'unauthorized'], 401);
+    })->middleware(['Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader']);
+
+    $response = $this->postJson('test-oauth-401', []);
+
+    $response->assertStatus(401);
+    $response->assertHeader('WWW-Authenticate');
+
+    $wwwAuth = $response->headers->get('WWW-Authenticate');
+    expect($wwwAuth)->toContain('Bearer realm="mcp"');
+    expect($wwwAuth)->toContain('resource_metadata="'.url('/.well-known/oauth-protected-resource').'"');
+});
+
+it('returns Sanctum WWW-Authenticate header when OAuth routes are not enabled and response is 401', function () {
+    // Create a test route that returns 401 to trigger the middleware
+    Route::post('test-sanctum-401', function () {
+        return response()->json(['error' => 'unauthorized'], 401);
+    })->middleware(['Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader']);
+
+    $response = $this->postJson('test-sanctum-401', []);
+
+    $response->assertStatus(401);
+    $response->assertHeader('WWW-Authenticate');
+
+    $wwwAuth = $response->headers->get('WWW-Authenticate');
+    expect($wwwAuth)->toBe('Bearer realm="mcp", error="invalid_token"');
+});
+
+it('does not add WWW-Authenticate header when response is not 401', function () {
+    app('Laravel\Mcp\Server\Registrar')->oauthRoutes();
+
+    $response = $this->postJson('test-mcp', initializeMessage());
+
+    $response->assertStatus(200);
+    $response->assertHeaderMissing('WWW-Authenticate');
 });
 
 function initializeHttpConnection($that, $handle = 'test-mcp')
