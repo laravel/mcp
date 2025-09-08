@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods;
 
 use Laravel\Mcp\Server\Contracts\Method;
-use Laravel\Mcp\Server\Contracts\Transport\JsonRpcResponse;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Laravel\Mcp\Server\Transport\JsonRpcResult;
 
 class Ping implements Method

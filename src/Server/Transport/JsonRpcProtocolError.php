@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Transport;
 
-use Laravel\Mcp\Server\Contracts\Transport\JsonRpcResponse;
-
-class JsonRpcProtocolError implements JsonRpcResponse
+class JsonRpcProtocolError extends JsonRpcResponse
 {
     /**
      * @param  array<string, mixed>|null  $data
@@ -39,10 +37,5 @@ class JsonRpcProtocolError implements JsonRpcResponse
             'error' => $error,
             'id' => $this->requestId,
         ];
-    }
-
-    public function toJson(): string
-    {
-        return json_encode($this->toArray());
     }
 }

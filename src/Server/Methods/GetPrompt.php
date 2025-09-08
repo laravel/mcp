@@ -10,10 +10,10 @@ use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Contracts\Method;
-use Laravel\Mcp\Server\Contracts\Transport\JsonRpcResponse;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcProtocolError;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Laravel\Mcp\Server\Transport\JsonRpcResult;
 use Laravel\Mcp\Support\ValidationMessages;
 

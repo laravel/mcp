@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Transport;
 
 use Illuminate\Contracts\Support\Arrayable;
-use Laravel\Mcp\Server\Contracts\Transport\JsonRpcResponse;
 
-class JsonRpcResult implements JsonRpcResponse
+class JsonRpcResult extends JsonRpcResponse
 {
     /**
      * @param  array<string, mixed>  $result
@@ -41,10 +40,5 @@ class JsonRpcResult implements JsonRpcResponse
             'id' => $this->id,
             'result' => empty($this->result) ? (object) [] : $this->result,
         ];
-    }
-
-    public function toJson(): string
-    {
-        return json_encode($this->toArray());
     }
 }
