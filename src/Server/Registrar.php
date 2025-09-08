@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
-use Illuminate\Container\Container;
-use Illuminate\Http\Request;
+use Exception;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Middleware\ReorderJsonAccept;
 use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Server\Transport\StdioTransport;
 
@@ -18,11 +18,12 @@ class Registrar
     protected array $localServers = [];
 
     /** @var array<string, string> */
-    protected array $registeredWebServers = [];
+    protected array $httpServers = [];
 
     public function web(string $route, string $serverClass): Route
     {
         $this->registeredWebServers[$route] = $serverClass;
+        $this->httpServers[$route] = $serverClass;
 
         return Router::post($route, fn () => $this->bootServer(
             $serverClass,
@@ -34,12 +35,11 @@ class Registrar
                     (string) $request->header('Mcp-Session-Id')
                 );
             },
-        ))->name('mcp-server.'.$route);
+        ))
+            ->name($this->routeName($route))
+            ->middleware(ReorderJsonAccept::class);
     }
 
-    /**
-     * Register a local MCP server running over STDIO.
-     */
     public function local(string $handle, string $serverClass): void
     {
         $this->localServers[$handle] = fn () => $this->bootServer(
@@ -50,9 +50,11 @@ class Registrar
         );
     }
 
-    /**
-     * Get the server class for a local MCP.
-     */
+    public function routeName(string $path): string
+    {
+        return 'mcp-server.'.Str::kebab(Str::replace('/', '-', $path));
+    }
+
     public function getLocalServer(string $handle): ?callable
     {
         return $this->localServers[$handle] ?? null;
@@ -60,7 +62,7 @@ class Registrar
 
     public function getWebServer(string $handle): ?string
     {
-        return $this->registeredWebServers[$handle] ?? null;
+        return $this->httpServers[$handle] ?? null;
     }
 
     public function oauthRoutes(string $oauthPrefix = 'oauth'): void
