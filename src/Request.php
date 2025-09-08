@@ -26,8 +26,6 @@ class Request implements Arrayable
     }
 
     /**
-     * Retrieve all data from the instance.
-     *
      * @param  array<array-key, string>|array-key|null  $keys
      * @return array<string, mixed>
      */
@@ -40,9 +38,6 @@ class Request implements Arrayable
         return array_intersect_key($this->data(), array_flip(is_array($keys) ? $keys : func_get_args()));
     }
 
-    /**
-     * Retrieve data from the instance.
-     */
     protected function data(mixed $key = null, mixed $default = null)
     {
         if (is_null($key)) {
@@ -52,9 +47,6 @@ class Request implements Arrayable
         return $this->arguments[$key] ?? $default;
     }
 
-    /**
-     * Get an argument by key.
-     */
     public function get(string $key): mixed
     {
         return $this->arguments[$key] ?? null;
@@ -69,8 +61,6 @@ class Request implements Arrayable
     }
 
     /**
-     * Validate the request's arguments against the given rules.
-     *
      * @param  array<string, mixed>  $rules
      * @param  array<string, mixed>  $messages
      * @param  array<string, mixed>  $attributes

@@ -27,9 +27,6 @@ class JsonRpcException extends Exception
         $this->data = $data;
     }
 
-    /**
-     * Get the request ID.
-     */
     public function getRequestId(): mixed
     {
         return $this->requestId;

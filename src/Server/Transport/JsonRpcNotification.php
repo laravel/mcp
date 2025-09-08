@@ -39,9 +39,6 @@ class JsonRpcNotification
         ];
     }
 
-    /**
-     * Convert the notification response to a JSON string.
-     */
     public function toJson(): string
     {
         return json_encode($this->toArray());

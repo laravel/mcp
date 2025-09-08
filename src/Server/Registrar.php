@@ -37,9 +37,6 @@ class Registrar
         ))->name('mcp-server.'.$route);
     }
 
-    /**
-     * Register a local MCP server running over STDIO.
-     */
     public function local(string $handle, string $serverClass): void
     {
         $this->localServers[$handle] = fn () => $this->bootServer(
@@ -50,9 +47,6 @@ class Registrar
         );
     }
 
-    /**
-     * Get the server class for a local MCP.
-     */
     public function getLocalServer(string $handle): ?callable
     {
         return $this->localServers[$handle] ?? null;

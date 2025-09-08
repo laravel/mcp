@@ -9,9 +9,6 @@ use Illuminate\Validation\ValidationException;
 
 class ValidationMessages
 {
-    /**
-     * Transform the given validation exception into an array of error messages.
-     */
     public static function from(ValidationException $exception): string
     {
         $messages = collect($exception->errors())->flatten()->all();
