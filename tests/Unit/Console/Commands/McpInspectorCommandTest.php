@@ -54,8 +54,8 @@ it('fails with invalid handle', function () {
         ->andReturn(null);
 
     $this->artisan('mcp:inspector', ['handle' => 'invalid'])
-        ->expectsOutput('Starting the MCP Inspector for server: invalid')
-        ->expectsOutput('Please pass a valid MCP handle')
+        ->expectsOutputToContain('Starting the MCP Inspector for server [invalid].')
+        ->expectsOutputToContain('MCP Server with handle [invalid] not found.')
         ->assertExitCode(1);
 });
 

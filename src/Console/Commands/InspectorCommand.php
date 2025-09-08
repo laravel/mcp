@@ -14,26 +14,27 @@ use Symfony\Component\Process\Process;
 
 #[AsCommand(
     name: 'mcp:inspector',
-    description: 'Open the MCP inspector tool to debug and test MCP servers'
+    description: 'Open the MCP Inspector tool to debug and test MCP Servers.'
 )]
 class InspectorCommand extends Command
 {
     public function handle(Registrar $registrar): int
     {
         $handle = $this->argument('handle');
+
         if (! is_string($handle)) {
-            $this->error('Please pass a valid MCP server handle');
+            $this->components->error('Please pass a valid MCP server handle');
 
             return static::FAILURE;
         }
 
-        $this->info("Starting the MCP Inspector for server: {$handle}");
+        $this->components->info("Starting the MCP Inspector for server [{$handle}]");
 
         $localServer = $registrar->getLocalServer($handle);
         $webServer = $registrar->getWebServer($handle);
 
         if (is_null($localServer) && is_null($webServer)) {
-            $this->error('Please pass a valid MCP handle');
+            $this->components->error("MCP Server with handle [{$handle}] not found.");
 
             return static::FAILURE;
         }
@@ -81,12 +82,14 @@ class InspectorCommand extends Command
             foreach ($guidance as $guidanceKey => $guidanceValue) {
                 $this->info(sprintf('%s => %s', $guidanceKey, $guidanceValue));
             }
+
             $this->newLine();
+
             $process->mustRun(function ($type, $buffer) {
                 echo $buffer;
             });
         } catch (Exception $e) {
-            $this->error('Failed to start MCP Inspector: '.$e->getMessage());
+            $this->components->error('Failed to start MCP Inspector: '.$e->getMessage());
 
             return static::FAILURE;
         }
