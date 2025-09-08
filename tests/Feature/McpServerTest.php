@@ -104,7 +104,9 @@ it('can initialize a connection over stdio', function () {
 
     $process->run();
 
-    $output = json_decode(dump($process->getOutput()), true);
+    dd($process->getOutput());
+
+    $output = json_decode($process->getOutput(), true);
 
     expect($output)->toEqual(expectedInitializeResponse());
 });
@@ -115,7 +117,7 @@ it('can list tools over stdio', function () {
 
     $process->run();
 
-    $output = json_decode(dump($process->getOutput()), true);
+    $output = json_decode($process->getOutput(), true);
 
     expect($output)->toEqual(expectedListToolsResponse());
 });
@@ -126,7 +128,7 @@ it('can call a tool over stdio', function () {
 
     $process->run();
 
-    $output = json_decode(dump($process->getOutput()), true);
+    $output = json_decode($process->getOutput(), true);
 
     expect($output)->toEqual(expectedCallToolResponse());
 });
@@ -137,7 +139,7 @@ it('can handle a ping over stdio', function () {
 
     $process->run();
 
-    $output = json_decode(dump($process->getOutput()), true);
+    $output = json_decode($process->getOutput(), true);
 
     expect($output)->toEqual(expectedPingResponse());
 });
@@ -148,7 +150,7 @@ it('can stream a tool response over stdio', function () {
 
     $process->run();
 
-    $output = dump($process->getOutput());
+    $output = $process->getOutput();
     $messages = parseJsonRpcMessagesFromStdout($output);
 
     expect($messages)->toEqual(expectedStreamingToolResponse());
