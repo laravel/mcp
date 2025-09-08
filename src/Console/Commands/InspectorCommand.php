@@ -6,7 +6,6 @@ namespace Laravel\Mcp\Console\Commands;
 
 use Exception;
 use Illuminate\Console\Command;
-use Illuminate\Container\Container;
 use Laravel\Mcp\Server\Registrar;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
@@ -19,7 +18,7 @@ use Symfony\Component\Process\Process;
 )]
 class InspectorCommand extends Command
 {
-    public function handle(): int
+    public function handle(Registrar $registrar): int
     {
         $handle = $this->argument('handle');
         if (! is_string($handle)) {
@@ -27,9 +26,6 @@ class InspectorCommand extends Command
 
             return static::FAILURE;
         }
-
-        /** @var Registrar $registrar */
-        $registrar = Container::getInstance()->make('mcp');
 
         $this->info("Starting the MCP Inspector for server: {$handle}");
 

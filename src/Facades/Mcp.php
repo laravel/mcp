@@ -20,6 +20,6 @@ class Mcp extends Facade
 {
     protected static function getFacadeAccessor(): string
     {
-        return 'mcp';
+        return Registrar::class;
     }
 }

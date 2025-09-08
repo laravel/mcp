@@ -7,7 +7,7 @@ use Laravel\Mcp\Server\Registrar;
 
 beforeEach(function () {
     $this->registrar = Mockery::mock(Registrar::class);
-    $this->app->instance('mcp', $this->registrar);
+    $this->app->instance(Registrar::class, $this->registrar);
 });
 
 it('normalizes windows paths in guidance output', function () {

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Container\Container;
+use Laravel\Mcp\Server\Registrar;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 
@@ -15,9 +15,8 @@ use Symfony\Component\Console\Input\InputArgument;
 )]
 class StartCommand extends Command
 {
-    public function handle(): int
+    public function handle(Registrar $registrar): int
     {
-        $registrar = Container::getInstance()->make('mcp');
         $handle = $this->argument('handle');
         $server = $registrar->getLocalServer($handle);
 
