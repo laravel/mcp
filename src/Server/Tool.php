@@ -7,6 +7,8 @@ namespace Laravel\Mcp\Server;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\JsonSchema\JsonSchema;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Contracts\Tools\Annotation;
+use ReflectionAttribute;
 use ReflectionClass;
 
 /**
@@ -41,9 +43,11 @@ abstract class Tool implements Arrayable
     {
         $reflection = new ReflectionClass($this);
 
+        // @phpstan-ignore-next-line
         return collect($reflection->getAttributes())
-            ->map(fn ($attributeReflection) => $attributeReflection->newInstance())
-            ->mapWithKeys(fn ($attribute): array => [$attribute->key() => $attribute->value])
+            ->map(fn (ReflectionAttribute $attributeReflection) => $attributeReflection->newInstance())
+            // @phpstan-ignore-next-line
+            ->mapWithKeys(fn (Annotation $attribute) => [$attribute->key() => $attribute->value])
             ->all();
     }
 

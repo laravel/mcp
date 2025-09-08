@@ -38,7 +38,7 @@ class Request implements Arrayable
         return array_intersect_key($this->data(), array_flip(is_array($keys) ? $keys : func_get_args()));
     }
 
-    protected function data(mixed $key = null, mixed $default = null)
+    protected function data(mixed $key = null, mixed $default = null): mixed
     {
         if (is_null($key)) {
             return $this->arguments;

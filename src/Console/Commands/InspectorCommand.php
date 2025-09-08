@@ -85,7 +85,7 @@ class InspectorCommand extends Command
 
             $this->newLine();
 
-            $process->mustRun(function ($type, $buffer) {
+            $process->mustRun(function (int $type, string $buffer) {
                 echo $buffer;
             });
         } catch (Exception $e) {

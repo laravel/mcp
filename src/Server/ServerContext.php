@@ -37,11 +37,11 @@ class ServerContext
     public function tools(): Collection
     {
         return collect($this->tools)
-            ->map(fn ($toolClass) => is_string($toolClass)
+            ->map(fn (Tool|string $toolClass) => is_string($toolClass)
                 ? Container::getInstance()->make($toolClass)
                 : $toolClass
             )
-            ->filter(fn ($tool) => $tool->shouldRegister());
+            ->filter(fn (Tool $tool) => $tool->shouldRegister());
     }
 
     /**
@@ -51,7 +51,7 @@ class ServerContext
     {
         return collect($this->resources)
             ->map(
-                fn ($resourceClass) => is_string($resourceClass)
+                fn (Resource|string $resourceClass) => is_string($resourceClass)
                     ? Container::getInstance()->make($resourceClass)
                     : $resourceClass
             );
