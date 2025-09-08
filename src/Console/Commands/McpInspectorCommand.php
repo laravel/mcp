@@ -7,6 +7,8 @@ namespace Laravel\Mcp\Console\Commands;
 use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Container\Container;
+use Illuminate\Routing\Route;
+use Illuminate\Support\Arr;
 use Laravel\Mcp\Server\Registrar;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
@@ -34,13 +36,32 @@ class McpInspectorCommand extends Command
         $this->info("Starting the MCP Inspector for server: {$handle}");
 
         $localServer = $registrar->getLocalServer($handle);
-        $webServer = $registrar->getWebServer($handle);
+        $route = $registrar->getWebServer($handle);
 
-        if (is_null($localServer) && is_null($webServer)) {
-            $this->error('Please pass a valid MCP handle');
+        $servers = $registrar->servers();
+        if (empty($servers)) {
+            $this->error('No MCP servers found. Please run `php artisan make:mcp-server [name]`');
 
             return static::FAILURE;
         }
+
+        // Only one server, we should just run it for them
+        if (count($servers) === 1) {
+            $server = array_shift($servers);
+            [$localServer, $route] = match (true) {
+                is_callable($server) => [$server, null],
+                get_class($server) === Route::class => [null, $server],
+                default => [null, null],
+            };
+        }
+
+        if (is_null($localServer) && is_null($route)) {
+            $this->error('Please pass a valid MCP handle or route: '.Arr::join(array_keys($servers), ', '));
+
+            return static::FAILURE;
+        }
+
+        $env = [];
 
         if ($localServer) {
             $currentDir = getcwd();
@@ -58,11 +79,17 @@ class McpInspectorCommand extends Command
                 'Arguments' => implode(' ', [base_path('/artisan'), 'mcp:start', $handle]),
             ];
         } else {
-            $serverUrl = str_replace('https://', 'http://', route('mcp-server.'.$handle));
+            $serverUrl = url($route->uri());
+            if (parse_url($serverUrl, PHP_URL_SCHEME) === 'https') {
+                $env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
+            }
 
             $command = [
                 'npx',
                 '@modelcontextprotocol/inspector',
+                '--transport',
+                'http',
+                '--server-url',
                 $serverUrl,
             ];
 
@@ -73,7 +100,7 @@ class McpInspectorCommand extends Command
             ];
         }
 
-        $process = new Process($command);
+        $process = new Process($command, null, $env);
         $process->setTimeout(null);
 
         try {
@@ -99,7 +126,7 @@ class McpInspectorCommand extends Command
     protected function getArguments(): array
     {
         return [
-            ['handle', InputArgument::REQUIRED, 'The handle of the MCP server to inspect.'],
+            ['handle', InputArgument::REQUIRED, 'The handle or route of the MCP server to inspect.'],
         ];
     }
 

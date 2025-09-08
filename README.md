@@ -310,27 +310,65 @@ php artisan mcp:start demo
 
 ## Authentication
 
-Web-based MCP servers can be protected using [Laravel Passport](https://laravel.com/docs/passport), turning your MCP server into an OAuth2 protected resource.
+## OAuth 2.1
 
-If you already have Passport set up for your app, all you need to do is add the `Mcp::oauthRoutes()` helper to your `routes/web.php` file. This registers the required OAuth2 discovery and client registration endpoints. The method accepts an optional route prefix, which defaults to `oauth`.
+The recommended way to protect your web-based MCP servers is to
+use [Laravel Passport](https://laravel.com/docs/passport), turning your MCP server into an OAuth2 protected resource.
+
+If you already have Passport set up for your app, all you need to do is add the `Mcp::oauthRoutes()` helper to your
+`routes/web.php` file. This registers the required OAuth2 discovery and client registration endpoints.
+
+To secure, apply Passport's `auth:api` middleware to your server registration in `routes/ai.php`:
 
 ```php
+use App\Mcp\Servers\ExampleServer;
 use Laravel\Mcp\Facades\Mcp;
 
-Mcp::oauthRoutes();
+Mcp::oauthRoutes('oauth');
+
+Mcp::web('/mcp/demo', ExampleServer::class)
+    ->middleware('auth:api');
 ```
 
-Then, apply the `auth:api` middleware to your server registration in `routes/ai.php`:
+## Sanctum
+
+If you'd like to protect your MCP server using Sanctum, simply add the Sanctum middleware to your server in
+`routes/ai.php`. Make sure MCP clients pass the usual `Authorization: Bearer token` header.
 
 ```php
 use App\Mcp\Servers\ExampleServer;
 use Laravel\Mcp\Facades\Mcp;
 
 Mcp::web('/mcp/demo', ExampleServer::class)
-    ->middleware('auth:api');
+    ->middleware('auth:sanctum');
 ```
 
-Your MCP server is now protected using OAuth.
+# Authorization
+
+Type hint `User` or `Authenticatable` in your primitives to check authorization.
+
+```php
+public function handle(Request $request, User $user)
+{
+  if ($user->tokenCan('server:update') === false) {
+    return ToolResult::error('Permission denied');
+  }
+  
+	...
+}
+```
+
+### Conditionally register tools
+
+You can hide tools from certain users without modifying your server config by using `shouldRegister`.
+
+```php
+/** UpdateServer tool **/
+public function shouldRegister(User $user): bool
+{
+  return $user->tokenCan('server:update');
+}
+```
 
 ## Testing Servers With the MCP Inspector Tool
 
@@ -341,8 +379,6 @@ Run mcp:inspector to test your server:
 ```bash
 php artisan mcp:inspector demo
 ```
-
-This will run the MCP inspector and provide settings you can input to ensure it's setup correctly.
 
 ## Contributing
 
