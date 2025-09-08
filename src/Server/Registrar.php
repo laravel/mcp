@@ -18,17 +18,15 @@ class Registrar
     /** @var array<string, callable> */
     protected array $localServers = [];
 
-    /** @var array<string, string> */
+    /** @var array<string, Route> */
     protected array $httpServers = [];
 
     public function web(string $route, string $serverClass): Route
     {
-        $this->httpServers[$route] = $serverClass;
-
         // https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#listening-for-messages-from-the-server
         Router::get($route, fn () => response(status: 405));
 
-        return Router::post($route, fn () => $this->bootServer(
+        $route = Router::post($route, fn () => $this->bootServer(
             $serverClass,
             function () {
                 $request = request();
@@ -39,8 +37,12 @@ class Registrar
                 );
             },
         ))
-            ->name($this->routeName($route))
+            ->name($this->routeName(ltrim($route, '/')))
             ->middleware(ReorderJsonAccept::class);
+
+        $this->httpServers[$route->uri()] = $route;
+
+        return $route;
     }
 
     public function local(string $handle, string $serverClass): void
@@ -63,9 +65,20 @@ class Registrar
         return $this->localServers[$handle] ?? null;
     }
 
-    public function getWebServer(string $handle): ?string
+    public function getWebServer(string $route): ?Route
     {
-        return $this->httpServers[$handle] ?? null;
+        return $this->httpServers[$route] ?? null;
+    }
+
+    /**
+     * @return array<string, callable|Route>
+     */
+    public function servers(): array
+    {
+        return array_merge(
+            $this->localServers,
+            $this->httpServers,
+        );
     }
 
     public function oauthRoutes(string $oauthPrefix = 'oauth'): void
