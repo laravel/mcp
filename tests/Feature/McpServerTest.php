@@ -115,10 +115,10 @@ it('can list tools over stdio', function () {
 
     $process->run();
 
-    $output = json_decode($process->getOutput(), true);
+    $output = json_decode(dump($process->getOutput()), true);
 
     expect($output)->toEqual(expectedListToolsResponse());
-});
+})->only();
 
 it('can call a tool over stdio', function () {
     $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
