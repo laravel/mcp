@@ -34,7 +34,7 @@ class InspectorCommand extends Command
         $webServer = $registrar->getWebServer($handle);
 
         if (is_null($localServer) && is_null($webServer)) {
-            $this->components->error("MCP Server with handle [{$handle}] not found.");
+            $this->components->error("MCP Server with name [{$handle}] not found. Did you register it using [Mcp::local()] or [Mcp::web()]?");
 
             return static::FAILURE;
         }
