@@ -168,6 +168,13 @@ it('can list dynamically added tools', function () {
     expect($response->json())->toEqual(expectedListToolsResponse());
 });
 
+it('returns 405 for GET requests to MCP web routes', function () {
+    $response = $this->get('test-mcp');
+
+    $response->assertStatus(405);
+    $response->assertSee('');
+});
+
 function initializeHttpConnection($that, $handle = 'test-mcp')
 {
     $response = $that->postJson($handle, initializeMessage());
