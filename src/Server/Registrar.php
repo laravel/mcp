@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Illuminate\Container\Container;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
 use Illuminate\Support\Str;
@@ -21,8 +23,10 @@ class Registrar
 
     public function web(string $route, string $serverClass): Route
     {
-        $this->registeredWebServers[$route] = $serverClass;
         $this->httpServers[$route] = $serverClass;
+
+        // https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#listening-for-messages-from-the-server
+        Router::get($route, fn () => response(status: 405));
 
         return Router::post($route, fn () => $this->bootServer(
             $serverClass,
