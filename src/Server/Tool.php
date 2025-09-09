@@ -53,13 +53,15 @@ abstract class Tool implements Arrayable
 
     public function toArray(): array
     {
+        $annotations = $this->annotations();
+
         return [
             'name' => $this->name(),
             'description' => $this->description(),
             'inputSchema' => JsonSchema::object(
                 fn (JsonSchema $schema): array => $this->schema($schema),
             )->toArray(),
-            'annotations' => $this->annotations() ?: (object) [],
+            'annotations' => $annotations === [] ? (object) [] : $annotations,
         ];
     }
 

@@ -39,7 +39,7 @@ class CursorPaginator
 
     protected function getStartOffsetFromCursor(): int
     {
-        if (! $this->cursor) {
+        if (! is_string($this->cursor)) {
             return 0;
         }
 
