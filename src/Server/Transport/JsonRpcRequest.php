@@ -19,12 +19,15 @@ class JsonRpcRequest
         //
     }
 
+    /**
+     * @throws JsonRpcException
+     */
     public static function fromJson(string $jsonString): static
     {
         $data = json_decode($jsonString, true);
 
         if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new JsonRpcException('Parse error', -32700, null);
+            throw new JsonRpcException('Parse error.', -32700, null);
         }
 
         $requestId = $data['id'] ?? null;

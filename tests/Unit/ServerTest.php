@@ -134,7 +134,7 @@ it('handles json decode errors', function () {
     expect($response['jsonrpc'])->toEqual('2.0');
     expect($response['id'])->toBeNull();
     expect($response['error']['code'])->toEqual(-32700);
-    expect($response['error']['message'])->toEqual('Parse error');
+    expect($response['error']['message'])->toEqual('Parse error.');
 });
 
 it('can handle a custom method message', function () {

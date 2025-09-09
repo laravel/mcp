@@ -285,18 +285,6 @@ function expectedStreamingToolResponse(int $count = 2): array
     return $messages;
 }
 
-function expectedDeletedSessionErrorResponse(string|int $requestId): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'id' => $requestId,
-        'error' => [
-            'code' => -32601,
-            'message' => 'Session not found or not initialized.',
-        ],
-    ];
-}
-
 function parseJsonRpcMessagesFromSseStream(string $content): array
 {
     $messages = [];
