@@ -22,7 +22,7 @@ if (! class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
     }
 }
 
-it('returns a valid list tools response', function () {
+it('returns a valid list tools response', function (): void {
     $request = JsonRpcRequest::fromJson(json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,
@@ -71,7 +71,7 @@ it('returns a valid list tools response', function () {
     ]);
 });
 
-it('handles pagination correctly', function () {
+it('handles pagination correctly', function (): void {
     $toolClasses = [];
     for ($i = 1; $i <= 12; $i++) {
         $toolClasses[] = "Tests\\Unit\\Methods\\DummyTool{$i}";
@@ -134,7 +134,7 @@ it('handles pagination correctly', function () {
     expect($secondPayload['result']['tools'][1]['name'])->toEqual('dummy-tool12');
 });
 
-it('uses default per page when not provided', function () {
+it('uses default per page when not provided', function (): void {
     $toolClasses = [];
     for ($i = 1; $i <= 12; $i++) {
         $toolClasses[] = "Tests\\Unit\\Methods\\DummyTool{$i}";
@@ -168,7 +168,7 @@ it('uses default per page when not provided', function () {
     expect($payload['result'])->toHaveKey('nextCursor');
 });
 
-it('uses requested per page when valid', function () {
+it('uses requested per page when valid', function (): void {
     $toolClasses = [];
     for ($i = 1; $i <= 12; $i++) {
         $toolClasses[] = "Tests\\Unit\\Methods\\DummyTool{$i}";
@@ -202,7 +202,7 @@ it('uses requested per page when valid', function () {
     expect($payload['result'])->toHaveKey('nextCursor');
 });
 
-it('caps per page at max pagination length', function () {
+it('caps per page at max pagination length', function (): void {
     $toolClasses = [];
     for ($i = 1; $i <= 12; $i++) {
         $toolClasses[] = "Tests\\Unit\\Methods\\DummyTool{$i}";
@@ -236,7 +236,7 @@ it('caps per page at max pagination length', function () {
     expect($payload['result'])->toHaveKey('nextCursor');
 });
 
-it('respects per page when bigger than default', function () {
+it('respects per page when bigger than default', function (): void {
     $toolClasses = [];
     for ($i = 1; $i <= 12; $i++) {
         $toolClasses[] = "Tests\\Unit\\Methods\\DummyTool{$i}";

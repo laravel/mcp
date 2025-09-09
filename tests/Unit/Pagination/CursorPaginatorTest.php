@@ -2,7 +2,7 @@
 
 use Laravel\Mcp\Server\Pagination\CursorPaginator;
 
-it('paginates collections correctly', function () {
+it('paginates collections correctly', function (): void {
     $items = collect([
         ['name' => 'Item 1'],
         ['name' => 'Item 2'],
@@ -22,7 +22,7 @@ it('paginates collections correctly', function () {
     ]);
 });
 
-it('handles cursor based pagination', function () {
+it('handles cursor based pagination', function (): void {
     $items = collect([
         ['name' => 'Item 1'],
         ['name' => 'Item 2'],
@@ -44,7 +44,7 @@ it('handles cursor based pagination', function () {
     ]);
 });
 
-it('handles last page correctly', function () {
+it('handles last page correctly', function (): void {
     $items = collect([
         ['name' => 'Item 1'],
         ['name' => 'Item 2'],
@@ -58,7 +58,7 @@ it('handles last page correctly', function () {
     $this->assertArrayNotHasKey('nextCursor', $result);
 });
 
-it('handles invalid cursor gracefully', function () {
+it('handles invalid cursor gracefully', function (): void {
     $items = collect([
         ['name' => 'Item 1'],
         ['name' => 'Item 2'],
