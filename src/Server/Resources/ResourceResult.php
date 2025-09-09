@@ -46,7 +46,7 @@ class ResourceResult implements Arrayable
     {
         return [
             'contents' => collect($this->contents)
-                ->map(fn (Content $item) => array_merge([
+                ->map(fn (Content $item): array => array_merge([
                     'uri' => $this->resource->uri(),
                     'name' => $this->resource->name(),
                     'title' => $this->resource->title(),

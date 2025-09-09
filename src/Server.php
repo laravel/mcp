@@ -226,7 +226,7 @@ abstract class Server
             return;
         }
 
-        $this->transport->stream(function () use ($response) {
+        $this->transport->stream(function () use ($response): void {
             foreach ($response as $message) {
                 $this->transport->send($message->toJson());
             }

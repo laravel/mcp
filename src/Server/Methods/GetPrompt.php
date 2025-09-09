@@ -23,7 +23,7 @@ class GetPrompt implements Method
             throw new InvalidArgumentException('Missing required parameter: name');
         }
 
-        $prompt = $context->prompts()->first(fn ($prompt) => $prompt->name() === $request->get('name'));
+        $prompt = $context->prompts()->first(fn ($prompt): bool => $prompt->name() === $request->get('name'));
         if (is_null($prompt)) {
             throw new ItemNotFoundException('Prompt not found');
         }

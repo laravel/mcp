@@ -17,7 +17,7 @@ class McpServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(Registrar::class, fn () => new Registrar);
+        $this->app->singleton(Registrar::class, fn (): Registrar => new Registrar);
     }
 
     public function boot(): void

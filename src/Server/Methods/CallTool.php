@@ -27,7 +27,7 @@ class CallTool implements Method
     {
         try {
             $tool = $context->tools()
-                ->firstOrFail(fn ($tool) => $tool->name() === $request->params['name']);
+                ->firstOrFail(fn ($tool): bool => $tool->name() === $request->params['name']);
         } catch (ItemNotFoundException) {
             return JsonRpcResponse::result(
                 $request->id,

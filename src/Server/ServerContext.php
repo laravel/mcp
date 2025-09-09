@@ -41,7 +41,7 @@ class ServerContext
                 ? Container::getInstance()->make($toolClass)
                 : $toolClass
             )
-            ->filter(fn (Tool $tool) => $tool->shouldRegister());
+            ->filter(fn (Tool $tool): bool => $tool->shouldRegister());
     }
 
     /**

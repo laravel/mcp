@@ -24,24 +24,20 @@ class Registrar
     {
         $this->registeredWebServers[$route] = $serverClass;
 
-        return Router::post($route, fn () => $this->bootServer(
+        return Router::post($route, fn (): mixed => $this->bootServer(
             $serverClass,
-            function () {
-                $request = request();
-
-                return new HttpTransport(
-                    $request,
-                    (string) $request->header('Mcp-Session-Id')
-                );
-            },
+            fn () => new HttpTransport(
+                $request = request(),
+                (string) $request->header('Mcp-Session-Id')
+            ),
         ))->name('mcp-server.'.$route);
     }
 
     public function local(string $handle, string $serverClass): void
     {
-        $this->localServers[$handle] = fn () => $this->bootServer(
+        $this->localServers[$handle] = fn (): mixed => $this->bootServer(
             $serverClass,
-            fn () => new StdioTransport(
+            fn (): StdioTransport => new StdioTransport(
                 Str::uuid()->toString(),
             )
         );

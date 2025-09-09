@@ -51,7 +51,7 @@ class ToolResult implements Arrayable
     public function toArray(): array
     {
         return [
-            'content' => collect($this->content)->map(fn (Content $item) => $item->toArray())->all(),
+            'content' => collect($this->content)->map(fn (Content $item): array => $item->toArray())->all(),
             'isError' => $this->isError,
         ];
     }

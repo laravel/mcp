@@ -20,7 +20,7 @@ class ReadResource implements Method
             throw new InvalidArgumentException('Missing required parameter: uri');
         }
 
-        $resource = $context->resources()->first(fn (Resource $resource) => $resource->uri() === $request->get('uri'));
+        $resource = $context->resources()->first(fn (Resource $resource): bool => $resource->uri() === $request->get('uri'));
         if (is_null($resource)) {
             throw new ItemNotFoundException('Resource not found');
         }
