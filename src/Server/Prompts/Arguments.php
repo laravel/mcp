@@ -5,27 +5,23 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Prompts;
 
 use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Support\Collection;
 
 /**
  * @implements Arrayable<int, mixed>
  */
 class Arguments implements Arrayable
 {
-    /** @var Collection<int, Argument> */
-    protected Collection $arguments;
-
     /**
      * @param  array<int, Argument>  $arguments
      */
-    public function __construct(array $arguments = [])
+    public function __construct(protected array $arguments = [])
     {
-        $this->arguments = collect($arguments);
+        //
     }
 
     public function add(Argument $argument): static
     {
-        $this->arguments->push($argument);
+        $this->arguments[] = $argument;
 
         return $this;
     }
@@ -35,6 +31,6 @@ class Arguments implements Arrayable
      */
     public function toArray(): array
     {
-        return $this->arguments->toArray();
+        return $this->arguments;
     }
 }

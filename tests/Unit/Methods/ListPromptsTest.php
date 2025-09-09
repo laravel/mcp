@@ -31,24 +31,20 @@ it('returns a valid list prompts response', function () {
 
     $response = $listPrompts->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResult::class);
-    expect($response->id)->toEqual(1);
-    expect($response->result)->toEqual([
-        'prompts' => [
-            [
-                'name' => 'review-my-code-prompt',
-                'title' => 'Review My Code Prompt',
-                'description' => 'Instructions for how to review my code',
-                'arguments' => [
-                    [
-                        'name' => 'best_cheese',
-                        'description' => 'The best cheese',
-                        'required' => false,
+    expect($response)->toBeInstanceOf(JsonRpcResult::class)
+        ->and($response->id)->toEqual(1)
+        ->and($response->result)->toEqual([
+            'prompts' => [
+                [
+                    'name' => 'review-my-code-prompt',
+                    'title' => 'Review My Code Prompt',
+                    'description' => 'Instructions for how to review my code',
+                    'arguments' => [
+                        //
                     ],
                 ],
             ],
-        ],
-    ]);
+        ]);
 });
 
 it('returns empty list when no prompts registered', function () {
