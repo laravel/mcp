@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 
-it('returns a valid empty list resources response', function () {
+it('returns a valid empty list resources response', function (): void {
     $listResources = new ListResources;
     $context = $this->getServerContext();
     $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/list', params: []);
@@ -15,7 +15,7 @@ it('returns a valid empty list resources response', function () {
         'resources' => [],
     ], $result);
 });
-it('returns a valid populated list resources response', function () {
+it('returns a valid populated list resources response', function (): void {
     $listResources = new ListResources;
     $resource = $this->makeResource();
 

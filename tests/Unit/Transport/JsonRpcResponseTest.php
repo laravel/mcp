@@ -2,7 +2,7 @@
 
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
-it('can return response as array', function () {
+it('can return response as array', function (): void {
     $response = JsonRpcResponse::result(1, ['foo' => 'bar']);
 
     $expectedArray = [
@@ -14,7 +14,7 @@ it('can return response as array', function () {
     expect($response->toArray())->toEqual($expectedArray);
 });
 
-it('can return response as json', function () {
+it('can return response as json', function (): void {
     $response = JsonRpcResponse::result(1, ['foo' => 'bar']);
 
     $expectedJson = json_encode([
@@ -26,7 +26,7 @@ it('can return response as json', function () {
     expect($response->toJson())->toEqual($expectedJson);
 });
 
-it('converts empty array result to object', function () {
+it('converts empty array result to object', function (): void {
     $response = JsonRpcResponse::result(1, []);
 
     $expectedJson = json_encode([

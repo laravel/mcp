@@ -6,7 +6,7 @@ use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
-it('returns a valid initialize response', function () {
+it('returns a valid initialize response', function (): void {
     $request = JsonRpcRequest::fromJson(json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,
@@ -44,7 +44,7 @@ it('returns a valid initialize response', function () {
     ]);
 });
 
-it('throws exception for unsupported protocol version', function () {
+it('throws exception for unsupported protocol version', function (): void {
     $this->expectException(JsonRpcException::class);
     $this->expectExceptionMessage('Unsupported protocol version');
     $this->expectExceptionCode(-32602);
@@ -95,7 +95,7 @@ it('throws exception for unsupported protocol version', function () {
     }
 });
 
-it('uses requested protocol version if supported', function () {
+it('uses requested protocol version if supported', function (): void {
     $requestedVersion = '2024-11-05';
     $request = JsonRpcRequest::fromJson(json_encode([
         'jsonrpc' => '2.0',

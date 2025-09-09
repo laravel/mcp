@@ -8,56 +8,56 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use Laravel\Mcp\Server\Tools\Annotations\Title;
 use Laravel\Mcp\Server\Tools\ToolResult;
 
-test('the default name is in kebab case', function () {
+test('the default name is in kebab case', function (): void {
     $tool = new AnotherComplexToolName;
     expect($tool->name())->toBe('another-complex-tool-name');
 });
 
-it('returns no annotations by default', function () {
+it('returns no annotations by default', function (): void {
     $tool = new TestTool;
     expect($tool->annotations())->toEqual([]);
 });
 
-it('can have a custom title', function () {
+it('can have a custom title', function (): void {
     $tool = new CustomTitleTool;
     expect($tool->annotations()['title'])->toBe('Custom Title Tool');
 });
 
-it('can be read only', function () {
+it('can be read only', function (): void {
     $tool = new ReadOnlyTool;
     $annotations = $tool->annotations();
     expect($annotations['readOnlyHint'])->toBeTrue();
 });
 
-it('can be closed world', function () {
+it('can be closed world', function (): void {
     $tool = new ClosedWorldTool;
     expect($tool->annotations()['openWorldHint'])->toBeFalse();
 });
 
-it('can be idempotent', function () {
+it('can be idempotent', function (): void {
     $tool = new IdempotentTool;
     $annotations = $tool->annotations();
     expect($annotations['idempotentHint'])->toBeTrue();
 });
 
-it('can be destructive', function () {
+it('can be destructive', function (): void {
     $tool = new DestructiveTool;
     $annotations = $tool->annotations();
     expect($annotations['destructiveHint'])->toBeTrue();
 });
 
-it('is not destructive', function () {
+it('is not destructive', function (): void {
     $tool = new NotDestructiveTool;
     $annotations = $tool->annotations();
     expect($annotations['destructiveHint'])->toBeFalse();
 });
 
-it('can be open world', function () {
+it('can be open world', function (): void {
     $tool = new OpenWorldTool;
     expect($tool->annotations()['openWorldHint'])->toBeTrue();
 });
 
-it('can have multiple annotations', function () {
+it('can have multiple annotations', function (): void {
     $tool = new KitchenSinkTool;
     expect($tool->annotations())->toEqual([
         'title' => 'The Kitchen Sink',

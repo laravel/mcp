@@ -1,6 +1,6 @@
 <?php
 
-it('can create a prompt class', function () {
+it('can create a prompt class', function (): void {
     $response = $this->artisan('make:mcp-prompt', [
         'name' => 'TestPrompt',
     ]);
@@ -10,7 +10,7 @@ it('can create a prompt class', function () {
     $this->assertFileExists(app_path('Mcp/Prompts/TestPrompt.php'));
 });
 
-it('may publish a custom stub', function () {
+it('may publish a custom stub', function (): void {
     $this->artisan('vendor:publish', [
         '--tag' => 'mcp-stubs',
         '--force' => true,

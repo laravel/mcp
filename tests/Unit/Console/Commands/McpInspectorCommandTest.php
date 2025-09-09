@@ -5,17 +5,17 @@ declare(strict_types=1);
 use Laravel\Mcp\Console\Commands\InspectorCommand;
 use Laravel\Mcp\Server\Registrar;
 
-beforeEach(function () {
+beforeEach(function (): void {
     $this->registrar = Mockery::mock(Registrar::class);
     $this->app->instance(Registrar::class, $this->registrar);
 });
 
-it('normalizes windows paths in guidance output', function () {
+it('normalizes windows paths in guidance output', function (): void {
     $command = Mockery::mock(InspectorCommand::class)->makePartial();
     $this->registrar
         ->shouldReceive('getLocalServer')
         ->with('demo')
-        ->andReturn(function () {});
+        ->andReturn(function (): void {});
 
     $this->registrar
         ->shouldReceive('getWebServer')
@@ -28,7 +28,7 @@ it('normalizes windows paths in guidance output', function () {
     expect($normalizedPath)->toBe('D:/Herd/cyborgfinance/artisan');
 });
 
-it('normalizes mixed paths correctly', function () {
+it('normalizes mixed paths correctly', function (): void {
     $testCases = [
         'D:\\Herd\\cyborgfinance\\artisan' => 'D:/Herd/cyborgfinance/artisan',
         '/var/www/laravel/artisan' => '/var/www/laravel/artisan',
@@ -42,7 +42,7 @@ it('normalizes mixed paths correctly', function () {
     }
 });
 
-it('fails with invalid handle', function () {
+it('fails with invalid handle', function (): void {
     $this->registrar
         ->shouldReceive('getLocalServer')
         ->with('invalid')
@@ -59,8 +59,8 @@ it('fails with invalid handle', function () {
         ->assertExitCode(1);
 });
 
-it('validates handle argument is required', function () {
-    expect(function () {
+it('validates handle argument is required', function (): void {
+    expect(function (): void {
         $this->artisan('mcp:inspector');
     })->toThrow(RuntimeException::class, 'Not enough arguments (missing: "handle")');
 });

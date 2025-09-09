@@ -1,6 +1,6 @@
 <?php
 
-it('can create a server class', function () {
+it('can create a server class', function (): void {
     $response = $this->artisan('make:mcp-server', [
         'name' => 'TestServer',
     ]);
@@ -10,7 +10,7 @@ it('can create a server class', function () {
     $this->assertFileExists(app_path('Mcp/Servers/TestServer.php'));
 });
 
-it('may publish a custom stub', function () {
+it('may publish a custom stub', function (): void {
     $this->artisan('vendor:publish', [
         '--tag' => 'mcp-stubs',
         '--force' => true,

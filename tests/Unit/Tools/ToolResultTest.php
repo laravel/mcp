@@ -3,7 +3,7 @@
 use Laravel\Mcp\Server\Tools\TextContent;
 use Laravel\Mcp\Server\Tools\ToolResult;
 
-it('returns a valid tool result', function () {
+it('returns a valid tool result', function (): void {
     $responseText = 'This is a test response.';
     $response = ToolResult::text($responseText);
 
@@ -20,7 +20,7 @@ it('returns a valid tool result', function () {
     expect($response->toArray())->toBe($expectedArray);
 });
 
-it('returns a valid error tool result', function () {
+it('returns a valid error tool result', function (): void {
     $responseText = 'This is a test error response.';
     $response = ToolResult::error($responseText);
 
@@ -37,7 +37,7 @@ it('returns a valid error tool result', function () {
     expect($response->toArray())->toBe($expectedArray);
 });
 
-it('can handle multiple content items', function () {
+it('can handle multiple content items', function (): void {
     $plainText = 'This is the plain text version.';
     $markdown = 'This is the **markdown** version.';
 

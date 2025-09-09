@@ -4,7 +4,7 @@ use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\CustomMethodHandler;
 use Tests\Fixtures\ExampleServer;
 
-it('can handle an initialize message', function () {
+it('can handle an initialize message', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer;
 
@@ -19,7 +19,7 @@ it('can handle an initialize message', function () {
     expect($response)->toEqual(expectedInitializeResponse());
 });
 
-it('can add a capability', function () {
+it('can add a capability', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer;
 
@@ -34,7 +34,7 @@ it('can add a capability', function () {
 
     $jsonResponse = $transport->sent[0];
 
-    $capabilities = (fn () => $this->capabilities)->call($server);
+    $capabilities = (fn (): array => $this->capabilities)->call($server);
 
     $expectedCapabilitiesJson = json_encode(array_merge($capabilities, [
         'customFeature' => [
@@ -46,7 +46,7 @@ it('can add a capability', function () {
     $this->assertStringContainsString($expectedCapabilitiesJson, $jsonResponse);
 });
 
-it('can handle a list tools message', function () {
+it('can handle a list tools message', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer;
 
@@ -61,7 +61,7 @@ it('can handle a list tools message', function () {
     expect($response)->toEqual(expectedListToolsResponse());
 });
 
-it('can handle a call tool message', function () {
+it('can handle a call tool message', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer;
 
@@ -76,7 +76,7 @@ it('can handle a call tool message', function () {
     expect($response)->toEqual(expectedCallToolResponse());
 });
 
-it('can handle a notification message', function () {
+it('can handle a notification message', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer;
 
@@ -92,7 +92,7 @@ it('can handle a notification message', function () {
     expect($transport->sent)->toHaveCount(0);
 });
 
-it('can handle an unknown method', function () {
+it('can handle an unknown method', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer;
 
@@ -119,7 +119,7 @@ it('can handle an unknown method', function () {
     ]);
 });
 
-it('handles json decode errors', function () {
+it('handles json decode errors', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer;
 
@@ -139,13 +139,13 @@ it('handles json decode errors', function () {
     expect($response['error']['message'])->toEqual('Parse error.');
 });
 
-it('can handle a custom method message', function () {
+it('can handle a custom method message', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer;
 
     $server->addMethod('custom/method', CustomMethodHandler::class);
 
-    $this->app->bind(CustomMethodHandler::class, fn () => new CustomMethodHandler('custom-dependency'));
+    $this->app->bind(CustomMethodHandler::class, fn (): \Tests\Fixtures\CustomMethodHandler => new CustomMethodHandler('custom-dependency'));
 
     $server->connect($transport);
 
@@ -170,7 +170,7 @@ it('can handle a custom method message', function () {
     ]);
 });
 
-it('can handle a ping message', function () {
+it('can handle a ping message', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer;
 
@@ -185,7 +185,7 @@ it('can handle a ping message', function () {
     expect($response)->toEqual(expectedPingResponse());
 });
 
-it('calls boot method on connect', function () {
+it('calls boot method on connect', function (): void {
     $transport = new ArrayTransport;
 
     $server = new class extends \Laravel\Mcp\Server
@@ -200,7 +200,7 @@ it('calls boot method on connect', function () {
     expect($server->bootCalled)->toBeTrue('The boot() method was not called on connect.');
 });
 
-it('can handle a tool streaming multiple messages', function () {
+it('can handle a tool streaming multiple messages', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer;
 
@@ -210,7 +210,7 @@ it('can handle a tool streaming multiple messages', function () {
 
     ($transport->handler)($payload);
 
-    $messages = array_map(fn ($msg) => json_decode((string) $msg, true), $transport->sent);
+    $messages = array_map(fn ($msg): mixed => json_decode((string) $msg, true), $transport->sent);
 
     expect($messages)->toEqual(expectedStreamingToolResponse());
 });

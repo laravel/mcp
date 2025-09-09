@@ -2,7 +2,7 @@
 
 use Laravel\Mcp\Request;
 
-it('may return all data', function () {
+it('may return all data', function (): void {
     $request = new Request([
         'name' => 'Alice',
         'age' => 30,
@@ -16,7 +16,7 @@ it('may return all data', function () {
     ]);
 });
 
-it('may return specific set of keys', function () {
+it('may return specific set of keys', function (): void {
     $request = new Request([
         'name' => 'Alice',
         'age' => 30,
@@ -31,7 +31,7 @@ it('may return specific set of keys', function () {
     ]);
 });
 
-it('interact with data', function () {
+it('interact with data', function (): void {
     $request = new Request([
         'name' => 'Alice',
         'age' => 30,
@@ -45,7 +45,7 @@ it('interact with data', function () {
         ->and($request->integer('city'))->toBe(0);
 });
 
-it('may be returned as array', function () {
+it('may be returned as array', function (): void {
     $request = new Request([
         'name' => 'Alice',
         'age' => 30,

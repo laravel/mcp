@@ -4,7 +4,7 @@ use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
 
 uses(TestCase::class)
-    ->beforeEach(function () {
+    ->beforeEach(function (): void {
         $directory = app_path('Mcp');
         $filesystem = new Illuminate\Filesystem\Filesystem;
 
@@ -56,7 +56,7 @@ function expectedInitializeResponse(): array
         $name,
         $version,
         $instructions,
-    ] = (fn () => [
+    ] = (fn (): array => [
         $this->capabilities,
         $this->name,
         $this->version,

@@ -7,7 +7,7 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\CurrentTimeTool;
 use Tests\Fixtures\ExampleTool;
 
-it('returns a valid call tool response', function () {
+it('returns a valid call tool response', function (): void {
     $request = JsonRpcRequest::fromJson(json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,
@@ -49,7 +49,7 @@ it('returns a valid call tool response', function () {
     ]);
 });
 
-it('returns a valid call tool response with validation error', function () {
+it('returns a valid call tool response with validation error', function (): void {
     $request = JsonRpcRequest::fromJson(json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,
@@ -91,7 +91,7 @@ it('returns a valid call tool response with validation error', function () {
         ]);
 });
 
-it('may resolve dependencies out of the container', function () {
+it('may resolve dependencies out of the container', function (): void {
     $request = JsonRpcRequest::fromJson(json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,
