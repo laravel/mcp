@@ -21,8 +21,8 @@ use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Transport\JsonRpcProtocolError;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Throwable;
 
 abstract class Server
@@ -136,16 +136,15 @@ abstract class Server
 
             $this->handleMessage($sessionId, $request, $context);
         } catch (JsonRpcException $e) {
-            $this->transport->send(json_encode($e->toJsonRpcError()));
+            $this->transport->send(json_encode($e->toJsonRpcResponse()->toArray()));
         } catch (Throwable $e) {
-            $jsonRpcError = (new JsonRpcProtocolError(
-                code: $e->getCode(),
-                message: $e->getMessage(),
-                requestId: $request->id ?? null,
-                data: null,
-            ))->toArray();
+            $jsonRpcResponse = JsonRpcResponse::error(
+                $request->id ?? null,
+                $e->getCode(),
+                $e->getMessage(),
+            );
 
-            $this->transport->send(json_encode($jsonRpcError));
+            $this->transport->send($jsonRpcResponse->toJson());
         }
     }
 

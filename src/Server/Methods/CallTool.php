@@ -14,16 +14,14 @@ use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Tools\ToolNotification;
 use Laravel\Mcp\Server\Tools\ToolResult;
-use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Laravel\Mcp\Server\Transport\JsonRpcResult;
 use Laravel\Mcp\Support\ValidationMessages;
 
 class CallTool implements Method
 {
     /**
-     * @return JsonRpcResponse|Generator<JsonRpcNotification|JsonRpcResponse>
+     * @return JsonRpcResponse|Generator<JsonRpcResponse>
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
@@ -31,7 +29,7 @@ class CallTool implements Method
             $tool = $context->tools()
                 ->firstOrFail(fn ($tool) => $tool->name() === $request->params['name']);
         } catch (ItemNotFoundException $e) {
-            return JsonRpcResult::create(
+            return JsonRpcResponse::result(
                 $request->id,
                 ToolResult::error('Tool not found')
             );
@@ -55,13 +53,13 @@ class CallTool implements Method
     /**
      * @param  array<string, mixed>|Arrayable<string, mixed>  $result
      */
-    protected function toResponse(?int $id, array|Arrayable|string $result): JsonRpcResult
+    protected function toResponse(?int $id, array|Arrayable|string $result): JsonRpcResponse
     {
         if (is_string($result)) {
             $result = ToolResult::text($result);
         }
 
-        return JsonRpcResult::create($id, $result);
+        return JsonRpcResponse::result($id, $result);
     }
 
     protected function toStream(JsonRpcRequest $request, Generator $result): Generator
@@ -70,7 +68,7 @@ class CallTool implements Method
             try {
                 foreach ($result as $response) {
                     if ($response instanceof ToolNotification) {
-                        yield JsonRpcNotification::create(
+                        yield JsonRpcResponse::notification(
                             $response->getMethod(),
                             $response
                         );

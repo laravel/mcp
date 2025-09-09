@@ -11,10 +11,8 @@ use InvalidArgumentException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Server\Transport\JsonRpcProtocolError;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Laravel\Mcp\Server\Transport\JsonRpcResult;
 use Laravel\Mcp\Support\ValidationMessages;
 
 class GetPrompt implements Method
@@ -38,13 +36,13 @@ class GetPrompt implements Method
                 )],
             );
         } catch (ValidationException $e) {
-            return new JsonRpcProtocolError(
+            return JsonRpcResponse::error(
+                id: $request->id,
                 code: -32602,
                 message: 'Invalid params: '.ValidationMessages::from($e),
-                requestId: $request->id,
             );
         }
 
-        return new JsonRpcResult($request->id, $result->toArray());
+        return JsonRpcResponse::result($request->id, $result);
     }
 }

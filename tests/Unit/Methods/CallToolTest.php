@@ -3,7 +3,7 @@
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResult;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\CurrentTimeTool;
 use Tests\Fixtures\ExampleTool;
 
@@ -35,9 +35,10 @@ it('returns a valid call tool response', function () {
 
     $response = $method->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResult::class);
-    expect($response->id)->toEqual(1);
-    expect($response->result)->toEqual([
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+    expect($payload['id'])->toEqual(1);
+    expect($payload['result'])->toEqual([
         'content' => [
             [
                 'type' => 'text',
@@ -76,9 +77,10 @@ it('returns a valid call tool response with validation error', function () {
 
     $response = $method->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResult::class)
-        ->and($response->id)->toEqual(1)
-        ->and($response->result)->toEqual([
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
             'content' => [
                 [
                     'type' => 'text',
@@ -117,10 +119,11 @@ it('may resolve dependencies out of the container', function () {
 
     $response = $method->handle($request, $context);
 
-    ['type' => $type, 'text' => $text] = $response->result['content'][0];
+    $payload = $response->toArray();
+    ['type' => $type, 'text' => $text] = $payload['result']['content'][0];
 
-    expect($response)->toBeInstanceOf(JsonRpcResult::class)
-        ->and($response->id)->toEqual(1)
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class)
+        ->and($payload['id'])->toEqual(1)
         ->and($type)->toEqual('text')
         ->and($text)->toContain('The current time is ');
 });

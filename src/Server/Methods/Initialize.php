@@ -9,7 +9,6 @@ use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Laravel\Mcp\Server\Transport\JsonRpcResult;
 
 class Initialize implements Method
 {
@@ -44,6 +43,6 @@ class Initialize implements Method
             unset($initResult['instructions']);
         }
 
-        return JsonRpcResult::create($request->id, $initResult);
+        return JsonRpcResponse::result($request->id, $initResult);
     }
 }

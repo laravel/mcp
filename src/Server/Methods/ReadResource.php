@@ -11,7 +11,6 @@ use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Laravel\Mcp\Server\Transport\JsonRpcResult;
 
 class ReadResource implements Method
 {
@@ -26,7 +25,7 @@ class ReadResource implements Method
             throw new ItemNotFoundException('Resource not found');
         }
 
-        return new JsonRpcResult(
+        return JsonRpcResponse::result(
             $request->id,
             $resource->handle()->toArray(),
         );

@@ -3,9 +3,8 @@
 use Illuminate\Support\ItemNotFoundException;
 use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Server\Transport\JsonRpcProtocolError;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResult;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\GoingToFailPrompt;
 use Tests\Fixtures\ReviewMyCodePrompt;
 use Tests\Fixtures\TellMeHiPrompt;
@@ -38,9 +37,10 @@ it('returns a valid get prompt response', function () {
 
     $response = $method->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResult::class);
-    expect($response->id)->toEqual(1);
-    expect($response->result)->toEqual([
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+    expect($payload['id'])->toEqual(1);
+    expect($payload['result'])->toEqual([
         'description' => 'Instructions for how to review my code',
         'messages' => [
             [
@@ -82,9 +82,10 @@ it('resolves the handle method from the IOC container', function () {
 
     $response = $method->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResult::class);
-    expect($response->id)->toEqual(1);
-    expect($response->result)->toEqual([
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+    expect($payload['id'])->toEqual(1);
+    expect($payload['result'])->toEqual([
         'description' => 'Instructions for how too tell me hi',
         'messages' => [
             [
@@ -126,11 +127,13 @@ it('throws validation errors as regular json rpc errors', function () {
 
     $response = $method->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcProtocolError::class)
-        ->and($response->code)->toEqual(-32602)
-        ->and($response->message)->toBe('Invalid params: The should fail field is required.')
-        ->and($response->requestId)->toEqual(1)
-        ->and($response->data)->toBeNull();
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['error'])->toEqual([
+            'code' => -32602,
+            'message' => 'Invalid params: The should fail field is required.',
+        ]);
 });
 
 it('throws exception when name parameter is missing', function () {
@@ -224,8 +227,9 @@ it('passes arguments to prompt handler', function () {
 
     $response = $method->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResult::class);
-    expect($response->id)->toEqual(1);
-    expect($response->result)->toHaveKey('description');
-    expect($response->result)->toHaveKey('messages');
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+    expect($payload['id'])->toEqual(1);
+    expect($payload['result'])->toHaveKey('description');
+    expect($payload['result'])->toHaveKey('messages');
 });

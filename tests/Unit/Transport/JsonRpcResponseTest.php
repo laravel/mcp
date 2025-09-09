@@ -1,9 +1,9 @@
 <?php
 
-use Laravel\Mcp\Server\Transport\JsonRpcResult;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
 it('can return response as array', function () {
-    $response = JsonRpcResult::create(1, ['foo' => 'bar']);
+    $response = JsonRpcResponse::result(1, ['foo' => 'bar']);
 
     $expectedArray = [
         'jsonrpc' => '2.0',
@@ -15,7 +15,7 @@ it('can return response as array', function () {
 });
 
 it('can return response as json', function () {
-    $response = JsonRpcResult::create(1, ['foo' => 'bar']);
+    $response = JsonRpcResponse::result(1, ['foo' => 'bar']);
 
     $expectedJson = json_encode([
         'jsonrpc' => '2.0',
@@ -27,7 +27,7 @@ it('can return response as json', function () {
 });
 
 it('converts empty array result to object', function () {
-    $response = JsonRpcResult::create(1, []);
+    $response = JsonRpcResponse::result(1, []);
 
     $expectedJson = json_encode([
         'jsonrpc' => '2.0',

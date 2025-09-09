@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Exceptions;
 
 use Exception;
-use Laravel\Mcp\Server\Transport\JsonRpcProtocolError;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
 class JsonRpcException extends Exception
 {
@@ -21,16 +21,13 @@ class JsonRpcException extends Exception
         parent::__construct($message, $code);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function toJsonRpcError(): array
+    public function toJsonRpcResponse(): JsonRpcResponse
     {
-        return (new JsonRpcProtocolError(
+        return JsonRpcResponse::error(
+            id: $this->requestId,
             code: $this->getCode(),
             message: $this->getMessage(),
-            requestId: $this->requestId,
             data: $this->data,
-        ))->toArray();
+        );
     }
 }
