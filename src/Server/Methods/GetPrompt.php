@@ -35,11 +35,11 @@ class GetPrompt implements Method
                     $request->get('arguments', []),
                 )],
             );
-        } catch (ValidationException $e) {
+        } catch (ValidationException $validationException) {
             return JsonRpcResponse::error(
                 id: $request->id,
                 code: -32602,
-                message: 'Invalid params: '.ValidationMessages::from($e),
+                message: 'Invalid params: '.ValidationMessages::from($validationException),
             );
         }
 

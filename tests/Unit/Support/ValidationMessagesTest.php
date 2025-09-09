@@ -11,8 +11,8 @@ test('implodes all messages a single one', function () {
             ['name' => '', 'email' => 'invalid-email'],
             ['name' => 'required', 'email' => 'required|email']
         )->validate();
-    } catch (ValidationException $e) {
-        $exception = $e;
+    } catch (ValidationException $validationException) {
+        $exception = $validationException;
     }
 
     $messages = ValidationMessages::from($exception);

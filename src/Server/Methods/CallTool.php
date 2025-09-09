@@ -28,7 +28,7 @@ class CallTool implements Method
         try {
             $tool = $context->tools()
                 ->firstOrFail(fn ($tool) => $tool->name() === $request->params['name']);
-        } catch (ItemNotFoundException $e) {
+        } catch (ItemNotFoundException) {
             return JsonRpcResponse::result(
                 $request->id,
                 ToolResult::error('Tool not found')
@@ -41,8 +41,8 @@ class CallTool implements Method
                     $request->params['arguments'],
                 ),
             ]);
-        } catch (ValidationException $e) {
-            $result = ToolResult::error(ValidationMessages::from($e));
+        } catch (ValidationException $validationException) {
+            $result = ToolResult::error(ValidationMessages::from($validationException));
         }
 
         return $result instanceof Generator
@@ -78,8 +78,8 @@ class CallTool implements Method
 
                     yield $this->toResponse($request->id, $response);
                 }
-            } catch (ValidationException $e) {
-                yield $this->toResponse($request->id, ToolResult::error($e->getMessage()));
+            } catch (ValidationException $validationException) {
+                yield $this->toResponse($request->id, ToolResult::error($validationException->getMessage()));
             }
         })();
     }

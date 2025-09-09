@@ -59,12 +59,12 @@ class Registrar
 
     public function oauthRoutes(string $oauthPrefix = 'oauth'): void
     {
-        Router::get('/.well-known/oauth-protected-resource', fn() => response()->json([
+        Router::get('/.well-known/oauth-protected-resource', fn () => response()->json([
             'resource' => config('app.url'),
             'authorization_server' => url('/.well-known/oauth-authorization-server'),
         ]));
 
-        Router::get('/.well-known/oauth-authorization-server', fn() => response()->json([
+        Router::get('/.well-known/oauth-authorization-server', fn () => response()->json([
             'issuer' => config('app.url'),
             'authorization_endpoint' => url($oauthPrefix.'/authorize'),
             'token_endpoint' => url($oauthPrefix.'/token'),

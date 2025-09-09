@@ -24,7 +24,7 @@ uses(TestCase::class)
 |
 */
 
-expect()->extend('toBeOne', fn() => $this->toBe(1));
+expect()->extend('toBeOne', fn () => $this->toBe(1));
 
 /*
 |--------------------------------------------------------------------------
@@ -322,6 +322,7 @@ function parseJsonRpcMessagesFromStdout(string $output): array
         if (empty($jsonMessage)) {
             continue;
         }
+
         $messages[] = json_decode($jsonMessage, true);
     }
 

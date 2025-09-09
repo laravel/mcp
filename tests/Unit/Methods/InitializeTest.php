@@ -75,8 +75,8 @@ it('throws exception for unsupported protocol version', function () {
 
     try {
         $method->handle($request, $context);
-    } catch (JsonRpcException $e) {
-        $error = $e->toJsonRpcResponse()->toArray();
+    } catch (JsonRpcException $jsonRpcException) {
+        $error = $jsonRpcException->toJsonRpcResponse()->toArray();
 
         expect($error)->toEqual([
             'jsonrpc' => '2.0',
@@ -91,7 +91,7 @@ it('throws exception for unsupported protocol version', function () {
             ],
         ]);
 
-        throw $e;
+        throw $jsonRpcException;
     }
 });
 
