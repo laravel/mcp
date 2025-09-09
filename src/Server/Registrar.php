@@ -26,7 +26,7 @@ class Registrar
 
         return Router::post($route, fn (): mixed => $this->bootServer(
             $serverClass,
-            fn () => new HttpTransport(
+            fn (): HttpTransport => new HttpTransport(
                 $request = request(),
                 (string) $request->header('Mcp-Session-Id')
             ),
