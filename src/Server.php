@@ -136,7 +136,7 @@ abstract class Server
 
             $this->handleMessage($sessionId, $request, $context);
         } catch (JsonRpcException $e) {
-            $this->transport->send(json_encode($e->toJsonRpcResponse()->toArray()));
+            $this->transport->send($e->toJsonRpcResponse()->toJson());
         } catch (Throwable $e) {
             $jsonRpcResponse = JsonRpcResponse::error(
                 $request->id ?? null,
