@@ -302,9 +302,12 @@ function parseJsonRpcMessagesFromSseStream(string $content): array
     $messages = [];
 
     foreach (explode("\n\n", trim($content)) as $event) {
-        if (empty($event)) {
+        $event = trim($event);
+
+        if ($event === '') {
             continue;
         }
+
         $messages[] = json_decode(trim(substr($event, strlen('data: '))), true);
     }
 
