@@ -15,11 +15,11 @@ abstract class Prompt implements Arrayable
 {
     protected string $description;
 
-    public function arguments(): Arguments
+    public function arguments(): array
     {
-        return new Arguments([
+        return [
             //
-        ]);
+        ];
     }
 
     public function description(): string
@@ -46,7 +46,7 @@ abstract class Prompt implements Arrayable
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
-            'arguments' => $this->arguments()->toArray(),
+            'arguments' => $this->arguments(),
         ];
     }
 }

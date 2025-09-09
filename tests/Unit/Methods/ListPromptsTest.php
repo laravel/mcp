@@ -75,8 +75,8 @@ it('returns empty list when no prompts registered', function (): void {
 
     expect($response)->toBeInstanceOf(JsonRpcResponse::class);
     $payload = $response->toArray();
-    expect($payload['id'])->toEqual(1);
-    expect($payload['result'])->toEqual([
-        'prompts' => [],
-    ]);
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'prompts' => [],
+        ]);
 });

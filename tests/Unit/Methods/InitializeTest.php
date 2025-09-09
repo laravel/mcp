@@ -33,15 +33,15 @@ it('returns a valid initialize response', function (): void {
 
     expect($response)->toBeInstanceOf(JsonRpcResponse::class);
     $payload = $response->toArray();
-    expect($payload['id'])->toEqual(1);
-    expect($payload['result'])->toEqual([
-        'protocolVersion' => '2025-03-26',
-        'capabilities' => ['listChanged' => false],
-        'serverInfo' => [
-            'name' => 'Test Server',
-            'version' => '1.0.0',
-        ],
-    ]);
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'protocolVersion' => '2025-03-26',
+            'capabilities' => ['listChanged' => false],
+            'serverInfo' => [
+                'name' => 'Test Server',
+                'version' => '1.0.0',
+            ],
+        ]);
 });
 
 it('throws exception for unsupported protocol version', function (): void {
@@ -124,6 +124,6 @@ it('uses requested protocol version if supported', function (): void {
 
     expect($response)->toBeInstanceOf(JsonRpcResponse::class);
     $payload = $response->toArray();
-    expect($payload['id'])->toEqual(1);
-    expect($payload['result']['protocolVersion'])->toEqual($requestedVersion);
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result']['protocolVersion'])->toEqual($requestedVersion);
 });

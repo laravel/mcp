@@ -133,10 +133,10 @@ it('handles json decode errors', function (): void {
     expect($transport->sent)->toHaveCount(1);
     $response = json_decode((string) $transport->sent[0], true);
 
-    expect($response['jsonrpc'])->toEqual('2.0');
-    expect($response['id'])->toBeNull();
-    expect($response['error']['code'])->toEqual(-32700);
-    expect($response['error']['message'])->toEqual('Parse error.');
+    expect($response['jsonrpc'])->toEqual('2.0')
+        ->and($response['id'])->toBeNull()
+        ->and($response['error']['code'])->toEqual(-32700)
+        ->and($response['error']['message'])->toEqual('Parse error.');
 });
 
 it('can handle a custom method message', function (): void {

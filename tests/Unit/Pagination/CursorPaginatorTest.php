@@ -14,12 +14,12 @@ it('paginates collections correctly', function (): void {
     $paginator = new CursorPaginator($items, 2);
     $result = $paginator->paginate();
 
-    expect($result['items'])->toHaveCount(2);
-    expect($result['nextCursor'])->not->toBeNull();
-    expect($result['items'])->toEqual([
-        ['name' => 'Item 1'],
-        ['name' => 'Item 2'],
-    ]);
+    expect($result['items'])->toHaveCount(2)
+        ->and($result['nextCursor'])->not->toBeNull()
+        ->and($result['items'])->toEqual([
+            ['name' => 'Item 1'],
+            ['name' => 'Item 2'],
+        ]);
 });
 
 it('handles cursor based pagination', function (): void {
@@ -37,11 +37,11 @@ it('handles cursor based pagination', function (): void {
     $paginator = new CursorPaginator($items, 2, $firstPage['nextCursor']);
     $secondPage = $paginator->paginate();
 
-    expect($secondPage['items'])->toHaveCount(2);
-    expect($secondPage['items'])->toEqual([
-        ['name' => 'Item 3'],
-        ['name' => 'Item 4'],
-    ]);
+    expect($secondPage['items'])->toHaveCount(2)
+        ->and($secondPage['items'])->toEqual([
+            ['name' => 'Item 3'],
+            ['name' => 'Item 4'],
+        ]);
 });
 
 it('handles last page correctly', function (): void {
@@ -54,8 +54,8 @@ it('handles last page correctly', function (): void {
     $paginator = new CursorPaginator($items, 5);
     $result = $paginator->paginate();
 
-    expect($result['items'])->toHaveCount(3);
-    $this->assertArrayNotHasKey('nextCursor', $result);
+    expect($result['items'])->toHaveCount(3)
+        ->and($result)->not->toHaveKey('nextCursor');
 });
 
 it('handles invalid cursor gracefully', function (): void {
@@ -67,9 +67,9 @@ it('handles invalid cursor gracefully', function (): void {
     $paginator = new CursorPaginator($items, 2, 'invalid-cursor');
     $result = $paginator->paginate();
 
-    expect($result['items'])->toHaveCount(2);
-    expect($result['items'])->toEqual([
-        ['name' => 'Item 1'],
-        ['name' => 'Item 2'],
-    ]);
+    expect($result['items'])->toHaveCount(2)
+        ->and($result['items'])->toEqual([
+            ['name' => 'Item 1'],
+            ['name' => 'Item 2'],
+        ]);
 });

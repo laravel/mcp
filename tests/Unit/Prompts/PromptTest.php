@@ -1,7 +1,6 @@
 <?php
 
 use Laravel\Mcp\Server\Prompt;
-use Laravel\Mcp\Server\Prompts\Arguments;
 use Laravel\Mcp\Server\Prompts\PromptResult;
 use Tests\Fixtures\ReviewMyCodePrompt;
 
@@ -32,7 +31,7 @@ it('returns arguments', function (): void {
     $prompt = makePrompt();
     $arguments = $prompt->arguments();
 
-    expect($arguments)->toBeInstanceOf(Arguments::class);
+    expect($arguments)->toBeArray();
 });
 
 it('can be converted to array', function (): void {

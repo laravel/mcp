@@ -49,26 +49,26 @@ it('returns a valid list tools response', function (): void {
 
     expect($response)->toBeInstanceOf(JsonRpcResponse::class);
     $payload = $response->toArray();
-    expect($payload['id'])->toEqual(1);
-    expect($payload['result'])->toEqual([
-        'tools' => [
-            [
-                'name' => 'example-tool',
-                'description' => 'This tool says hello to a person',
-                'inputSchema' => [
-                    'type' => 'object',
-                    'properties' => [
-                        'name' => [
-                            'type' => 'string',
-                            'description' => 'The name of the person to greet',
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'tools' => [
+                [
+                    'name' => 'example-tool',
+                    'description' => 'This tool says hello to a person',
+                    'inputSchema' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'name' => [
+                                'type' => 'string',
+                                'description' => 'The name of the person to greet',
+                            ],
                         ],
+                        'required' => ['name'],
                     ],
-                    'required' => ['name'],
+                    'annotations' => (object) [],
                 ],
-                'annotations' => (object) [],
             ],
-        ],
-    ]);
+        ]);
 });
 
 it('handles pagination correctly', function (): void {
@@ -102,15 +102,13 @@ it('handles pagination correctly', function (): void {
     $firstPageResponse = $listTools->handle($firstListToolsRequest, $context);
 
     $firstPayload = $firstPageResponse->toArray();
-    expect($firstPageResponse)->toBeInstanceOf(JsonRpcResponse::class);
-    expect($firstPayload['id'])->toEqual(1);
-    expect($firstPayload['result']['tools'])->toHaveCount(10);
-    expect($firstPayload['result'])->toHaveKey('nextCursor');
-    expect($firstPayload['result']['nextCursor'])->not->toBeNull();
-
-    expect($firstPayload['result']['tools'][0]['name'])->toEqual('dummy-tool1');
-
-    expect($firstPayload['result']['tools'][9]['name'])->toEqual('dummy-tool10');
+    expect($firstPageResponse)->toBeInstanceOf(JsonRpcResponse::class)
+        ->and($firstPayload['id'])->toEqual(1)
+        ->and($firstPayload['result']['tools'])->toHaveCount(10)
+        ->and($firstPayload['result'])->toHaveKey('nextCursor')
+        ->and($firstPayload['result']['nextCursor'])->not->toBeNull()
+        ->and($firstPayload['result']['tools'][0]['name'])->toEqual('dummy-tool1')
+        ->and($firstPayload['result']['tools'][9]['name'])->toEqual('dummy-tool10');
 
     $nextCursor = $firstPayload['result']['nextCursor'];
 
@@ -124,14 +122,12 @@ it('handles pagination correctly', function (): void {
     $secondPageResponse = $listTools->handle($secondListToolsRequest, $context);
 
     $secondPayload = $secondPageResponse->toArray();
-    expect($secondPageResponse)->toBeInstanceOf(JsonRpcResponse::class);
-    expect($secondPayload['id'])->toEqual(2);
-    expect($secondPayload['result']['tools'])->toHaveCount(2);
-    $this->assertArrayNotHasKey('nextCursor', $secondPayload['result']);
-
-    expect($secondPayload['result']['tools'][0]['name'])->toEqual('dummy-tool11');
-
-    expect($secondPayload['result']['tools'][1]['name'])->toEqual('dummy-tool12');
+    expect($secondPageResponse)->toBeInstanceOf(JsonRpcResponse::class)
+        ->and($secondPayload['id'])->toEqual(2)
+        ->and($secondPayload['result']['tools'])->toHaveCount(2)
+        ->and($secondPayload['result'])->not->toHaveKey('nextCursor')
+        ->and($secondPayload['result']['tools'][0]['name'])->toEqual('dummy-tool11')
+        ->and($secondPayload['result']['tools'][1]['name'])->toEqual('dummy-tool12');
 });
 
 it('uses default per page when not provided', function (): void {
@@ -164,8 +160,8 @@ it('uses default per page when not provided', function (): void {
     $response = $listTools->handle($request, $context);
 
     $payload = $response->toArray();
-    expect($payload['result']['tools'])->toHaveCount(7);
-    expect($payload['result'])->toHaveKey('nextCursor');
+    expect($payload['result']['tools'])->toHaveCount(7)
+        ->and($payload['result'])->toHaveKey('nextCursor');
 });
 
 it('uses requested per page when valid', function (): void {
@@ -198,8 +194,8 @@ it('uses requested per page when valid', function (): void {
     $response = $listTools->handle($request, $context);
 
     $payload = $response->toArray();
-    expect($payload['result']['tools'])->toHaveCount(5);
-    expect($payload['result'])->toHaveKey('nextCursor');
+    expect($payload['result']['tools'])->toHaveCount(5)
+        ->and($payload['result'])->toHaveKey('nextCursor');
 });
 
 it('caps per page at max pagination length', function (): void {
@@ -232,8 +228,8 @@ it('caps per page at max pagination length', function (): void {
     $response = $listTools->handle($request, $context);
 
     $payload = $response->toArray();
-    expect($payload['result']['tools'])->toHaveCount(7);
-    expect($payload['result'])->toHaveKey('nextCursor');
+    expect($payload['result']['tools'])->toHaveCount(7)
+        ->and($payload['result'])->toHaveKey('nextCursor');
 });
 
 it('respects per page when bigger than default', function (): void {
@@ -266,6 +262,6 @@ it('respects per page when bigger than default', function (): void {
     $response = $listTools->handle($request, $context);
 
     $payload = $response->toArray();
-    expect($payload['result']['tools'])->toHaveCount(8);
-    expect($payload['result'])->toHaveKey('nextCursor');
+    expect($payload['result']['tools'])->toHaveCount(8)
+        ->and($payload['result'])->toHaveKey('nextCursor');
 });
