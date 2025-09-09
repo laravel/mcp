@@ -9,35 +9,16 @@ use Laravel\Mcp\Server\Transport\JsonRpcProtocolError;
 
 class JsonRpcException extends Exception
 {
-    protected mixed $requestId;
-
-    /**
-     * @var array<string, mixed>|null
-     */
-    protected ?array $data;
-
     /**
      * @param  array<string, mixed>|null  $data
      */
-    public function __construct(string $message, int $code, mixed $requestId = null, ?array $data = null)
-    {
+    public function __construct(
+        string $message,
+        int $code,
+        protected mixed $requestId = null,
+        protected ?array $data = null
+    ) {
         parent::__construct($message, $code);
-
-        $this->requestId = $requestId;
-        $this->data = $data;
-    }
-
-    public function getRequestId(): mixed
-    {
-        return $this->requestId;
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    public function getData(): ?array
-    {
-        return $this->data;
     }
 
     /**

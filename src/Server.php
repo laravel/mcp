@@ -167,6 +167,7 @@ abstract class Server
                 requestId: $request->id ?? null,
                 data: null,
             ))->toArray();
+
             $this->transport->send(json_encode($jsonRpcError));
         }
     }
