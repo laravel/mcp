@@ -34,7 +34,9 @@ it('can add a capability', function () {
 
     $jsonResponse = $transport->sent[0];
 
-    $expectedCapabilitiesJson = json_encode(array_merge((new ExampleServer)->capabilities, [
+    $capabilities = (fn () => $this->capabilities)->call($server);
+
+    $expectedCapabilitiesJson = json_encode(array_merge($capabilities, [
         'customFeature' => [
             'enabled' => true,
         ],

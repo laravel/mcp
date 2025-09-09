@@ -9,26 +9,26 @@ class {{ class }} extends Server
     /**
      * The name of the MCP server.
      */
-    public string $name = '{{ serverDisplayName }}';
+    protected string $name = '{{ serverDisplayName }}';
 
     /**
      * The MCP server version.
      */
-    public string $version = '0.0.1';
+    protected string $version = '0.0.1';
 
     /**
      * Instructions for LLMs connecting to this MCP server.
      */
-    public string $instructions = 'Instructions describing how to use the server and its features. This may be used by clients to improve the LLM\'s understanding of the server\'s capabilities. It can be thought of as a "hint" to the LLM.';
+    protected string $instructions = 'Instructions describing how to use the server and its features. This may be used by clients to improve the LLM\'s understanding of the server\'s capabilities. It can be thought of as a "hint" to the LLM.';
 
     /**
      * The tools registered with this MCP server.
      *
      * See: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
      *
-     * @param  array<int, class-string<\Laravel\Mcp\Server\Tool>>  $tools
+     * @var  array<int, class-string<\Laravel\Mcp\Server\Tool>>
      */
-    public array $tools = [
+    protected array $tools = [
         // ExampleTool::class,
     ];
 
@@ -37,9 +37,9 @@ class {{ class }} extends Server
      *
      * See: https://modelcontextprotocol.io/specification/2025-06-18/server/resources
      *
-     * @param  array<int, class-string<\Laravel\Mcp\Server\Resource>>  $resources
+     * @var  array<int, class-string<\Laravel\Mcp\Server\Resource>>
      */
-    public array $resources = [
+    protected array $resources = [
         // ExampleResource::class,
     ];
 
@@ -48,9 +48,9 @@ class {{ class }} extends Server
      *
      * See: https://modelcontextprotocol.io/specification/2025-06-18/server/prompts
      *
-     * @param  array<int, class-string<\Laravel\Mcp\Server\Prompt>>  $prompts
+     * @var  array<int, class-string<\Laravel\Mcp\Server\Prompt>>
      */
-    public array $prompts = [
+    protected array $prompts = [
         // ExamplePrompt::class,
     ];
 }

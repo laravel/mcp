@@ -53,17 +53,29 @@ function expectedInitializeResponse(): array
 {
     $server = new ExampleServer;
 
+    [
+        $capabilities,
+        $name,
+        $version,
+        $instructions,
+    ] = (fn () => [
+        $this->capabilities,
+        $this->name,
+        $this->version,
+        $this->instructions,
+    ])->call($server);
+
     return [
         'jsonrpc' => '2.0',
         'id' => 456,
         'result' => [
             'protocolVersion' => '2025-06-18',
-            'capabilities' => $server->capabilities,
+            'capabilities' => $capabilities,
             'serverInfo' => [
-                'name' => $server->name,
-                'version' => $server->version,
+                'name' => $name,
+                'version' => $version,
             ],
-            'instructions' => $server->instructions,
+            'instructions' => $instructions,
         ],
     ];
 }
