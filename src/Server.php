@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
-use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Contracts\Method;
@@ -220,17 +219,17 @@ abstract class Server
 
         $response = $methodClass->handle($request, $context);
 
-        if ($response instanceof Generator) {
-            $this->transport->stream(function () use ($response) {
-                foreach ($response as $message) {
-                    $this->transport->send($message->toJson());
-                }
-            });
+        if (! is_iterable($response)) {
+            $this->transport->send($response->toJson());
 
             return;
         }
 
-        $this->transport->send($response->toJson());
+        $this->transport->stream(function () use ($response) {
+            foreach ($response as $message) {
+                $this->transport->send($message->toJson());
+            }
+        });
     }
 
     protected function handleInitializeMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
