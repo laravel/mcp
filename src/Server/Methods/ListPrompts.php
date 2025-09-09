@@ -9,7 +9,6 @@ use Laravel\Mcp\Server\Pagination\CursorPaginator;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Laravel\Mcp\Server\Transport\JsonRpcResult;
 
 class ListPrompts implements Method
 {
@@ -21,6 +20,6 @@ class ListPrompts implements Method
             cursor: $request->cursor(),
         );
 
-        return JsonRpcResult::create($request->id, $paginator->paginate('prompts'));
+        return JsonRpcResponse::result($request->id, $paginator->paginate('prompts'));
     }
 }

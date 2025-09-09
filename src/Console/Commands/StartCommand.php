@@ -20,7 +20,7 @@ class StartCommand extends Command
         $handle = $this->argument('handle');
         $server = $registrar->getLocalServer($handle);
 
-        if (! $server) {
+        if ($server === null) {
             $this->components->error("MCP Server with name [{$handle}] not found. Did you register it using [Mcp::local()]?");
 
             return static::FAILURE;

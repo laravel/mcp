@@ -11,7 +11,6 @@ use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Laravel\Mcp\Server\Transport\JsonRpcResult;
 
 class ReadResource implements Method
 {
@@ -21,12 +20,12 @@ class ReadResource implements Method
             throw new InvalidArgumentException('Missing required parameter: uri');
         }
 
-        $resource = $context->resources()->first(fn (Resource $resource) => $resource->uri() === $request->get('uri'));
+        $resource = $context->resources()->first(fn (Resource $resource): bool => $resource->uri() === $request->get('uri'));
         if (is_null($resource)) {
             throw new ItemNotFoundException('Resource not found');
         }
 
-        return new JsonRpcResult(
+        return JsonRpcResponse::result(
             $request->id,
             $resource->handle()->toArray(),
         );

@@ -4,7 +4,7 @@ use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
 
 uses(TestCase::class)
-    ->beforeEach(function () {
+    ->beforeEach(function (): void {
         $directory = app_path('Mcp');
         $filesystem = new Illuminate\Filesystem\Filesystem;
 
@@ -24,9 +24,7 @@ uses(TestCase::class)
 |
 */
 
-expect()->extend('toBeOne', function () {
-    return $this->toBe(1);
-});
+expect()->extend('toBeOne', fn () => $this->toBe(1));
 
 /*
 |--------------------------------------------------------------------------
@@ -53,17 +51,29 @@ function expectedInitializeResponse(): array
 {
     $server = new ExampleServer;
 
+    [
+        $capabilities,
+        $name,
+        $version,
+        $instructions,
+    ] = (fn (): array => [
+        $this->capabilities,
+        $this->name,
+        $this->version,
+        $this->instructions,
+    ])->call($server);
+
     return [
         'jsonrpc' => '2.0',
         'id' => 456,
         'result' => [
             'protocolVersion' => '2025-06-18',
-            'capabilities' => $server->capabilities,
+            'capabilities' => $capabilities,
             'serverInfo' => [
-                'name' => $server->name,
-                'version' => $server->version,
+                'name' => $name,
+                'version' => $version,
             ],
-            'instructions' => $server->instructions,
+            'instructions' => $instructions,
         ],
     ];
 }
@@ -285,26 +295,17 @@ function expectedStreamingToolResponse(int $count = 2): array
     return $messages;
 }
 
-function expectedDeletedSessionErrorResponse(string|int $requestId): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'id' => $requestId,
-        'error' => [
-            'code' => -32601,
-            'message' => 'Session not found or not initialized.',
-        ],
-    ];
-}
-
 function parseJsonRpcMessagesFromSseStream(string $content): array
 {
     $messages = [];
 
     foreach (explode("\n\n", trim($content)) as $event) {
-        if (empty($event)) {
+        $event = trim($event);
+
+        if ($event === '') {
             continue;
         }
+
         $messages[] = json_decode(trim(substr($event, strlen('data: '))), true);
     }
 
@@ -321,6 +322,7 @@ function parseJsonRpcMessagesFromStdout(string $output): array
         if (empty($jsonMessage)) {
             continue;
         }
+
         $messages[] = json_decode($jsonMessage, true);
     }
 

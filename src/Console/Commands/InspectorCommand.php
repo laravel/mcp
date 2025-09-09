@@ -39,7 +39,7 @@ class InspectorCommand extends Command
             return static::FAILURE;
         }
 
-        if ($localServer) {
+        if ($localServer !== null) {
             $artisanPath = base_path('artisan');
 
             $command = [
@@ -85,11 +85,11 @@ class InspectorCommand extends Command
 
             $this->newLine();
 
-            $process->mustRun(function (int|string $type, string $buffer) {
+            $process->mustRun(function (int|string $type, string $buffer): void {
                 echo $buffer;
             });
-        } catch (Exception $e) {
-            $this->components->error('Failed to start MCP Inspector: '.$e->getMessage());
+        } catch (Exception $exception) {
+            $this->components->error('Failed to start MCP Inspector: '.$exception->getMessage());
 
             return static::FAILURE;
         }

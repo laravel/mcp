@@ -1,5 +1,8 @@
 <?php
 
+use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\Contracts\Tools\Annotation;
+
 arch('strict and safe')
     ->expect('Laravel\Mcp')
     ->toUseStrictTypes()
@@ -7,11 +10,11 @@ arch('strict and safe')
 
 arch('mcp methods extend base class')
     ->expect('Laravel\Mcp\Server\Methods')
-    ->toOnlyImplement('Laravel\Mcp\Server\Contracts\Method');
+    ->toOnlyImplement(Method::class);
 
 arch('tool annotations implement annotation interface')
     ->expect('Laravel\Mcp\Server\Tools\Annotations')
-    ->toOnlyImplement('Laravel\Mcp\Server\Contracts\Tools\Annotation');
+    ->toOnlyImplement(Annotation::class);
 
 arch('contracts are interfaces')
     ->expect('Laravel\Mcp\Server\Contracts\*')

@@ -10,22 +10,11 @@ use Throwable;
 class CursorPaginator
 {
     /**
-     * @var Collection<int, mixed>
-     */
-    protected Collection $items;
-
-    protected int $perPage;
-
-    protected ?string $cursor;
-
-    /**
      * @param  Collection<int, mixed>  $items
      */
-    public function __construct(Collection $items, int $perPage = 10, ?string $cursor = null)
+    public function __construct(protected Collection $items, protected int $perPage = 10, protected ?string $cursor = null)
     {
         $this->items = $items->values();
-        $this->perPage = $perPage;
-        $this->cursor = $cursor;
     }
 
     /**
@@ -50,7 +39,7 @@ class CursorPaginator
 
     protected function getStartOffsetFromCursor(): int
     {
-        if (! $this->cursor) {
+        if (! is_string($this->cursor)) {
             return 0;
         }
 
@@ -68,9 +57,11 @@ class CursorPaginator
             }
 
             return (int) ($cursorData['offset'] ?? 0);
-        } catch (Throwable $e) {
-            return 0;
+        } catch (Throwable) {
+            //
         }
+
+        return 0;
     }
 
     protected function createCursor(int $offset): string

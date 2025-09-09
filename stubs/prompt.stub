@@ -5,7 +5,6 @@ namespace {{ namespace }};
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\Argument;
-use Laravel\Mcp\Server\Prompts\Arguments;
 use Laravel\Mcp\Server\Prompts\PromptResult;
 
 class {{ class }} extends Prompt
@@ -17,16 +16,18 @@ class {{ class }} extends Prompt
 
     /**
      * Get the prompt's arguments.
+     *
+     * @return array<int, Argument>
      */
-    public function arguments(): Arguments
+    public function arguments(): array
     {
-        return (new Arguments)->add(
+        return [
             new Argument(
                 name: 'language',
                 description: 'The language the code is in',
                 required: true,
             ),
-        );
+        ];
     }
 
     /**

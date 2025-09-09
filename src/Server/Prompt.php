@@ -10,21 +10,20 @@ use Laravel\Mcp\Server\Prompts\Argument;
 use Laravel\Mcp\Server\Prompts\Arguments;
 
 /**
- * @implements Arrayable<string, mixed>
+ * @implements Arrayable<'name'|'description'|'title'|'arguments', string|array<int, array{name: string, description: string, required: bool}>>
  */
 abstract class Prompt implements Arrayable
 {
     protected string $description;
 
-    public function arguments(): Arguments
+    /**
+     * @return array<int, Argument>
+     */
+    public function arguments(): array
     {
-        return new Arguments([
-            new Argument(
-                name: 'best_cheese',
-                description: 'The best cheese',
-                required: false,
-            ),
-        ]);
+        return [
+            //
+        ];
     }
 
     public function description(): string
@@ -43,7 +42,7 @@ abstract class Prompt implements Arrayable
     }
 
     /**
-     * Returned in ListPrompts
+     * @return array{name: string, title: string, description: string, arguments: array<int, array{name: string, description: string, required: bool}>}
      */
     public function toArray(): array
     {
@@ -51,7 +50,10 @@ abstract class Prompt implements Arrayable
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
-            'arguments' => $this->arguments()->toArray(),
+            'arguments' => array_map(
+                fn (Argument $argument): array => $argument->toArray(),
+                $this->arguments(),
+            ),
         ];
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-it('can create a tool class', function () {
+it('can create a tool class', function (): void {
     $response = $this->artisan('make:mcp-tool', [
         'name' => 'TestTool',
     ]);
@@ -10,7 +10,7 @@ it('can create a tool class', function () {
     $this->assertFileExists(app_path('Mcp/Tools/TestTool.php'));
 });
 
-it('may publish a custom stub', function () {
+it('may publish a custom stub', function (): void {
     $this->artisan('vendor:publish', [
         '--tag' => 'mcp-stubs',
         '--force' => true,

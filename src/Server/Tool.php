@@ -45,21 +45,23 @@ abstract class Tool implements Arrayable
 
         // @phpstan-ignore-next-line
         return collect($reflection->getAttributes())
-            ->map(fn (ReflectionAttribute $attributeReflection) => $attributeReflection->newInstance())
+            ->map(fn (ReflectionAttribute $attributeReflection): object => $attributeReflection->newInstance())
             // @phpstan-ignore-next-line
-            ->mapWithKeys(fn (Annotation $attribute) => [$attribute->key() => $attribute->value])
+            ->mapWithKeys(fn (Annotation $attribute): array => [$attribute->key() => $attribute->value])
             ->all();
     }
 
     public function toArray(): array
     {
+        $annotations = $this->annotations();
+
         return [
             'name' => $this->name(),
             'description' => $this->description(),
             'inputSchema' => JsonSchema::object(
-                fn (JsonSchema $schema) => $this->schema($schema),
+                fn (JsonSchema $schema): array => $this->schema($schema),
             )->toArray(),
-            'annotations' => $this->annotations() ?: (object) [],
+            'annotations' => $annotations === [] ? (object) [] : $annotations,
         ];
     }
 

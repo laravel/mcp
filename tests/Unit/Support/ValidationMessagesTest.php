@@ -3,7 +3,7 @@
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Support\ValidationMessages;
 
-test('implodes all messages a single one', function () {
+test('implodes all messages a single one', function (): void {
     $exception = null;
 
     try {
@@ -11,8 +11,8 @@ test('implodes all messages a single one', function () {
             ['name' => '', 'email' => 'invalid-email'],
             ['name' => 'required', 'email' => 'required|email']
         )->validate();
-    } catch (ValidationException $e) {
-        $exception = $e;
+    } catch (ValidationException $validationException) {
+        $exception = $validationException;
     }
 
     $messages = ValidationMessages::from($exception);
@@ -20,7 +20,7 @@ test('implodes all messages a single one', function () {
     expect($messages)->toBe('The name field is required. The email field must be a valid email address.');
 });
 
-test('returns a generic message if no messages are available', function () {
+test('returns a generic message if no messages are available', function (): void {
     $exception = new ValidationException(validator([], []));
 
     $messages = ValidationMessages::from($exception);

@@ -16,12 +16,12 @@ use Laravel\Mcp\Server\Resources\Content\Text;
 class ResourceResult implements Arrayable
 {
     /**
-     * @var array<int, Content>
+     * @param  array<int, Content>  $contents
      */
-    protected array $contents = [];
-
-    public function __construct(public Resource $resource)
-    {
+    public function __construct(
+        public Resource $resource,
+        protected array $contents = [],
+    ) {
         //
     }
 
@@ -46,7 +46,7 @@ class ResourceResult implements Arrayable
     {
         return [
             'contents' => collect($this->contents)
-                ->map(fn (Content $item) => array_merge([
+                ->map(fn (Content $item): array => array_merge([
                     'uri' => $this->resource->uri(),
                     'name' => $this->resource->name(),
                     'title' => $this->resource->title(),

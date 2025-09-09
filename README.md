@@ -256,6 +256,25 @@ php artisan make:mcp-prompt ExamplePrompt
 
 To make a prompt available to clients, you must register it in your server class in the `$prompts` property.
 
+### Creating Prompt Arguments
+
+You can define arguments for your prompt using the `arguments` method:
+
+```php
+use Laravel\Mcp\Server\Prompts\Argument;
+
+public function arguments(): array
+{
+    return [
+        new Argument(
+            name: 'language',
+            description: 'The language the code is in',
+            required: true,
+        ),
+    ];
+}
+```
+
 ### Validating Prompt Arguments
 
 You may validate prompt's arguments in the `handle` method using Laravel's built-in validation features.

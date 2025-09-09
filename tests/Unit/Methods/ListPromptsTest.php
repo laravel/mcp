@@ -3,10 +3,10 @@
 use Laravel\Mcp\Server\Methods\ListPrompts;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResult;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\ReviewMyCodePrompt;
 
-it('returns a valid list prompts response', function () {
+it('returns a valid list prompts response', function (): void {
     $request = JsonRpcRequest::fromJson(json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,
@@ -31,27 +31,24 @@ it('returns a valid list prompts response', function () {
 
     $response = $listPrompts->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResult::class);
-    expect($response->id)->toEqual(1);
-    expect($response->result)->toEqual([
-        'prompts' => [
-            [
-                'name' => 'review-my-code-prompt',
-                'title' => 'Review My Code Prompt',
-                'description' => 'Instructions for how to review my code',
-                'arguments' => [
-                    [
-                        'name' => 'best_cheese',
-                        'description' => 'The best cheese',
-                        'required' => false,
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'prompts' => [
+                [
+                    'name' => 'review-my-code-prompt',
+                    'title' => 'Review My Code Prompt',
+                    'description' => 'Instructions for how to review my code',
+                    'arguments' => [
+                        //
                     ],
                 ],
             ],
-        ],
-    ]);
+        ]);
 });
 
-it('returns empty list when no prompts registered', function () {
+it('returns empty list when no prompts registered', function (): void {
     $request = JsonRpcRequest::fromJson(json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,
@@ -76,9 +73,10 @@ it('returns empty list when no prompts registered', function () {
 
     $response = $listPrompts->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResult::class);
-    expect($response->id)->toEqual(1);
-    expect($response->result)->toEqual([
-        'prompts' => [],
-    ]);
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'prompts' => [],
+        ]);
 });

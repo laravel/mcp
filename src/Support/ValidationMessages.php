@@ -13,7 +13,7 @@ class ValidationMessages
     {
         $messages = collect($exception->errors())->flatten()->all();
 
-        if (! count($messages) || ! is_string($messages[0])) {
+        if (count($messages) === 0 || ! is_string($messages[0])) {
             $translator = Validator::getTranslator();
 
             return $translator->get('The given data was invalid.');

@@ -4,9 +4,9 @@ use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Initialize;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResult;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
-it('returns a valid initialize response', function () {
+it('returns a valid initialize response', function (): void {
     $request = JsonRpcRequest::fromJson(json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,
@@ -31,19 +31,20 @@ it('returns a valid initialize response', function () {
 
     $response = $method->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResult::class);
-    expect($response->id)->toEqual(1);
-    expect($response->result)->toEqual([
-        'protocolVersion' => '2025-03-26',
-        'capabilities' => ['listChanged' => false],
-        'serverInfo' => [
-            'name' => 'Test Server',
-            'version' => '1.0.0',
-        ],
-    ]);
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'protocolVersion' => '2025-03-26',
+            'capabilities' => ['listChanged' => false],
+            'serverInfo' => [
+                'name' => 'Test Server',
+                'version' => '1.0.0',
+            ],
+        ]);
 });
 
-it('throws exception for unsupported protocol version', function () {
+it('throws exception for unsupported protocol version', function (): void {
     $this->expectException(JsonRpcException::class);
     $this->expectExceptionMessage('Unsupported protocol version');
     $this->expectExceptionCode(-32602);
@@ -74,17 +75,27 @@ it('throws exception for unsupported protocol version', function () {
 
     try {
         $method->handle($request, $context);
-    } catch (JsonRpcException $e) {
-        expect($e->getRequestId())->toEqual(1);
-        expect($e->getData())->toEqual([
-            'supported' => ['2025-03-26'],
-            'requested' => '2024-11-05',
+    } catch (JsonRpcException $jsonRpcException) {
+        $error = $jsonRpcException->toJsonRpcResponse()->toArray();
+
+        expect($error)->toEqual([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'error' => [
+                'code' => -32602,
+                'message' => 'Unsupported protocol version',
+                'data' => [
+                    'supported' => ['2025-03-26'],
+                    'requested' => '2024-11-05',
+                ],
+            ],
         ]);
-        throw $e;
+
+        throw $jsonRpcException;
     }
 });
 
-it('uses requested protocol version if supported', function () {
+it('uses requested protocol version if supported', function (): void {
     $requestedVersion = '2024-11-05';
     $request = JsonRpcRequest::fromJson(json_encode([
         'jsonrpc' => '2.0',
@@ -111,7 +122,8 @@ it('uses requested protocol version if supported', function () {
     $method = new Initialize;
     $response = $method->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResult::class);
-    expect($response->id)->toEqual(1);
-    expect($response->result['protocolVersion'])->toEqual($requestedVersion);
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result']['protocolVersion'])->toEqual($requestedVersion);
 });

@@ -4,7 +4,7 @@ use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Resources\Content\Blob;
 use Laravel\Mcp\Server\Resources\Content\Text;
 
-it('returns a valid resource result for text resources', function () {
+it('returns a valid resource result for text resources', function (): void {
     $resource = new class extends Resource
     {
         public function description(): string
@@ -35,7 +35,7 @@ it('returns a valid resource result for text resources', function () {
     expect($result->toArray())->toBe($expected);
 });
 
-it('returns a valid resource result for binary resources', function () {
+it('returns a valid resource result for binary resources', function (): void {
     $binaryData = file_get_contents(__DIR__.'/../../Fixtures/binary.png');
 
     $resource = new class extends Resource
@@ -78,7 +78,7 @@ it('returns a valid resource result for binary resources', function () {
     expect($result)->toBe($expected);
 });
 
-it('handles a text content object returned from read', function () {
+it('handles a text content object returned from read', function (): void {
     $resource = new class extends Resource
     {
         public function description(): string
@@ -109,7 +109,7 @@ it('handles a text content object returned from read', function () {
     expect($result)->toBe($expected);
 });
 
-it('handles a blob content object returned from read', function () {
+it('handles a blob content object returned from read', function (): void {
     $resource = new class extends Resource
     {
         public function description(): string
@@ -140,7 +140,7 @@ it('handles a blob content object returned from read', function () {
     expect($result)->toBe($expected);
 });
 
-it('only calls read once', function () {
+it('only calls read once', function (): void {
     $resource = $this->getMockBuilder(Resource::class)
         ->onlyMethods(['read', 'description'])
         ->getMock();
@@ -157,7 +157,7 @@ it('only calls read once', function () {
     expect($result->toArray()['contents'][0]['text'])->toBe('This is a test resource.');
 });
 
-test('description property works as expected', function () {
+test('description property works as expected', function (): void {
     $resource = new class extends Resource
     {
         public function description(): string

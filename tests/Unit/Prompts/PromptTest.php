@@ -1,7 +1,6 @@
 <?php
 
 use Laravel\Mcp\Server\Prompt;
-use Laravel\Mcp\Server\Prompts\Arguments;
 use Laravel\Mcp\Server\Prompts\PromptResult;
 use Tests\Fixtures\ReviewMyCodePrompt;
 
@@ -20,7 +19,7 @@ function makePrompt(): Prompt
     return new DummyPrompt;
 }
 
-it('has expected default values', function () {
+it('has expected default values', function (): void {
     $prompt = makePrompt();
 
     expect($prompt->name())->toBe('dummy-prompt');
@@ -28,14 +27,14 @@ it('has expected default values', function () {
     expect($prompt->description())->toBe('A test prompt');
 });
 
-it('returns arguments', function () {
+it('returns arguments', function (): void {
     $prompt = makePrompt();
     $arguments = $prompt->arguments();
 
-    expect($arguments)->toBeInstanceOf(Arguments::class);
+    expect($arguments)->toBeArray();
 });
 
-it('can be converted to array', function () {
+it('can be converted to array', function (): void {
     $prompt = makePrompt();
     $array = $prompt->toArray();
 
@@ -50,20 +49,20 @@ it('can be converted to array', function () {
     expect($array['arguments'])->toBeArray();
 });
 
-it('can handle arguments', function () {
+it('can handle arguments', function (): void {
     $prompt = makePrompt();
     $result = $prompt->handle(['test' => 'value']);
 
     expect('Test description')->toEqual($result->toArray()['description']);
 });
 
-it('works with fixture prompt', function () {
+it('works with fixture prompt', function (): void {
     $prompt = new ReviewMyCodePrompt;
 
     expect($prompt->name())->toBe('review-my-code-prompt');
     expect($prompt->title())->toBe('Review My Code Prompt');
 
-    $result = $prompt->handle([]);
+    $result = $prompt->handle();
     expect('Instructions for how to review my code')->toEqual($result->toArray()['description']);
     expect($result->toArray()['messages'])->toHaveCount(1);
 });
