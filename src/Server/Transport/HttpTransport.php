@@ -82,7 +82,7 @@ class HttpTransport implements Transport
             'Content-Type' => $this->stream instanceof Closure ? 'text/event-stream' : 'application/json',
         ];
 
-        if ($this->replySessionId === null) {
+        if ($this->replySessionId !== null) {
             $headers['Mcp-Session-Id'] = $this->replySessionId;
         }
 
