@@ -29,7 +29,7 @@
         "illuminate/json-schema": "^12.28.1"
     },
     "require-dev": {
-        "laravel/pint": "^1.20.0",
+        "laravel/pint": "1.20.0",
         "orchestra/testbench": "^8.36.0|^9.15.0|^10.6.0",
         "pestphp/pest": "^2.36.0|^3.8.4|^4.0.4",
         "phpstan/phpstan": "^2.1.22"
