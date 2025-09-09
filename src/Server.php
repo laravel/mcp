@@ -215,7 +215,9 @@ abstract class Server
     protected function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
     {
         /** @var Method $methodClass */
-        $methodClass = Container::getInstance()->make($this->methods[$request->method]);
+        $methodClass = Container::getInstance()->make(
+            $this->methods[$request->method],
+        );
 
         $response = $methodClass->handle($request, $context);
 
