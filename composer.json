@@ -34,7 +34,8 @@
         "laravel/pint": "1.20.0",
         "orchestra/testbench": "^8.36.0|^9.15.0|^10.6.0",
         "pestphp/pest": "^2.36.0|^3.8.4|^4.0.4",
-        "phpstan/phpstan": "^2.1.22"
+        "phpstan/phpstan": "^2.1.22",
+        "rector/rector": "^2.1.6"
     },
     "autoload": {
         "psr-4": {
@@ -71,8 +72,14 @@
             "@build",
             "@php vendor/bin/testbench serve --ansi"
         ],
-        "lint": "pint",
-        "test:lint": "pint --test",
+        "lint": [
+            "pint",
+            "rector"
+        ],
+        "test:lint": [
+            "pint --test",
+            "rector --dry-run"
+        ],
         "test:unit": "pest --ci --coverage --min=77.5",
         "test:types": "phpstan",
         "test": [
