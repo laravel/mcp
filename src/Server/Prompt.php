@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Prompts\Argument;
 use Laravel\Mcp\Server\Prompts\Arguments;
 
 /**
@@ -15,6 +16,9 @@ abstract class Prompt implements Arrayable
 {
     protected string $description;
 
+    /**
+     * @return array<int, Argument>
+     */
     public function arguments(): array
     {
         return [
@@ -38,7 +42,7 @@ abstract class Prompt implements Arrayable
     }
 
     /**
-     * @return array{name: string, description: string, title: string, arguments: array<int, array{name: string, description: string, required: bool}>}
+     * @return array{name: string, title: string, description: string, arguments: array<int, array{name: string, description: string, required: bool}>}
      */
     public function toArray(): array
     {
@@ -46,7 +50,10 @@ abstract class Prompt implements Arrayable
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
-            'arguments' => $this->arguments(),
+            'arguments' => array_map(
+                fn (Argument $argument): array => $argument->toArray(),
+                $this->arguments(),
+            ),
         ];
     }
 }
