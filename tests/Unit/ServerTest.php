@@ -14,7 +14,7 @@ it('can handle an initialize message', function () {
 
     ($transport->handler)($payload);
 
-    $response = json_decode($transport->sent[0], true);
+    $response = json_decode((string) $transport->sent[0], true);
 
     expect($response)->toEqual(expectedInitializeResponse());
 });
@@ -56,7 +56,7 @@ it('can handle a list tools message', function () {
 
     ($transport->handler)($payload);
 
-    $response = json_decode($transport->sent[0], true);
+    $response = json_decode((string) $transport->sent[0], true);
 
     expect($response)->toEqual(expectedListToolsResponse());
 });
@@ -71,7 +71,7 @@ it('can handle a call tool message', function () {
 
     ($transport->handler)($payload);
 
-    $response = json_decode($transport->sent[0], true);
+    $response = json_decode((string) $transport->sent[0], true);
 
     expect($response)->toEqual(expectedCallToolResponse());
 });
@@ -107,7 +107,7 @@ it('can handle an unknown method', function () {
 
     ($transport->handler)($payload);
 
-    $response = json_decode($transport->sent[0], true);
+    $response = json_decode((string) $transport->sent[0], true);
 
     expect($response)->toEqual([
         'jsonrpc' => '2.0',
@@ -131,7 +131,7 @@ it('handles json decode errors', function () {
     ($transport->handler)($invalidJsonPayload);
 
     expect($transport->sent)->toHaveCount(1);
-    $response = json_decode($transport->sent[0], true);
+    $response = json_decode((string) $transport->sent[0], true);
 
     expect($response['jsonrpc'])->toEqual('2.0');
     expect($response['id'])->toBeNull();
@@ -159,7 +159,7 @@ it('can handle a custom method message', function () {
     ($transport->handler)($payload);
 
     expect($transport->sent)->toHaveCount(1);
-    $response = json_decode($transport->sent[0], true);
+    $response = json_decode((string) $transport->sent[0], true);
 
     expect($response)->toEqual([
         'jsonrpc' => '2.0',
@@ -180,7 +180,7 @@ it('can handle a ping message', function () {
 
     ($transport->handler)($payload);
 
-    $response = json_decode($transport->sent[0], true);
+    $response = json_decode((string) $transport->sent[0], true);
 
     expect($response)->toEqual(expectedPingResponse());
 });
@@ -210,7 +210,7 @@ it('can handle a tool streaming multiple messages', function () {
 
     ($transport->handler)($payload);
 
-    $messages = array_map(fn ($msg) => json_decode($msg, true), $transport->sent);
+    $messages = array_map(fn ($msg) => json_decode((string) $msg, true), $transport->sent);
 
     expect($messages)->toEqual(expectedStreamingToolResponse());
 });

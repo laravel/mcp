@@ -201,7 +201,7 @@ abstract class Server
 
     public function addCapability(string $key, mixed $value = null): static
     {
-        $value = $value ?? (object) [];
+        $value ??= (object) [];
 
         data_set($this->capabilities, $key, $value);
 

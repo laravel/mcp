@@ -56,7 +56,7 @@ class MakeServerCommand extends GeneratorCommand
 
         $className = class_basename($name);
 
-        $serverDisplayName = trim(preg_replace('/(?<!^)([A-Z])/', ' $1', $className));
+        $serverDisplayName = trim((string) preg_replace('/(?<!^)([A-Z])/', ' $1', $className));
 
         return str_replace('{{ serverDisplayName }}', $serverDisplayName, $stub);
     }

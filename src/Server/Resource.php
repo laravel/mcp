@@ -41,7 +41,7 @@ abstract class Resource implements Arrayable
 
     protected function isBinary(string $content): bool
     {
-        return strpos($content, "\0") !== false;
+        return str_contains($content, "\0");
     }
 
     protected function content(): string|Content
