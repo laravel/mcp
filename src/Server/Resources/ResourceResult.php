@@ -16,12 +16,12 @@ use Laravel\Mcp\Server\Resources\Content\Text;
 class ResourceResult implements Arrayable
 {
     /**
-     * @var array<int, Content>
+     * @param  array<int, Content>  $contents
      */
-    protected array $contents = [];
-
-    public function __construct(public Resource $resource)
-    {
+    public function __construct(
+        public Resource $resource,
+        protected array $contents = [],
+    ) {
         //
     }
 
