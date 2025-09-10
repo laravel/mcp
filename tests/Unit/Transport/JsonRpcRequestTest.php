@@ -23,6 +23,36 @@ it('can create a notification message from valid json', function (): void {
         ->and($request->params)->toEqual([]);
 });
 
+it('can create a notification message from valid json with id null', function (): void {
+    $json = '{"jsonrpc": "2.0", "id": null, "method": "notifications/initialized"}';
+    $request = JsonRpcRequest::fromJson($json);
+
+    expect($request)->toBeInstanceOf(JsonRpcRequest::class)
+        ->and($request->id)->toBeNull()
+        ->and($request->method)->toEqual('notifications/initialized')
+        ->and($request->params)->toEqual([]);
+});
+
+it('can create a notification message from valid json with id int', function (): void {
+    $json = '{"jsonrpc": "2.0", "id": 1, "method": "notifications/initialized"}';
+    $request = JsonRpcRequest::fromJson($json);
+
+    expect($request)->toBeInstanceOf(JsonRpcRequest::class)
+        ->and($request->id)->toEqual(1)
+        ->and($request->method)->toEqual('notifications/initialized')
+        ->and($request->params)->toEqual([]);
+});
+
+it('can create a notification message from valid json with id string', function (): void {
+    $json = '{"jsonrpc": "2.0", "id": "uuid", "method": "notifications/initialized"}';
+    $request = JsonRpcRequest::fromJson($json);
+
+    expect($request)->toBeInstanceOf(JsonRpcRequest::class)
+        ->and($request->id)->toEqual('uuid')
+        ->and($request->method)->toEqual('notifications/initialized')
+        ->and($request->params)->toEqual([]);
+});
+
 it('throws exception for invalid json', function (): void {
     $this->expectException(JsonRpcException::class);
     $this->expectExceptionMessage('Parse error');
@@ -49,10 +79,10 @@ it('throws exception for incorrect jsonrpc version', function (): void {
 
 it('throws exception for invalid id type', function (): void {
     $this->expectException(JsonRpcException::class);
-    $this->expectExceptionMessage('Invalid params: "id" must be an integer or null if present.');
+    $this->expectExceptionMessage('Invalid params: "id" must be an integer, string, or null if present.');
     $this->expectExceptionCode(-32602);
 
-    JsonRpcRequest::fromJson('{"jsonrpc": "2.0", "id": "not-an-integer", "method": "initialize"}');
+    JsonRpcRequest::fromJson('{"jsonrpc": "2.0", "id": {}, "method": "initialize"}');
 });
 
 it('throws exception for missing method', function (): void {

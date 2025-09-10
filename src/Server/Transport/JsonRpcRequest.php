@@ -12,7 +12,7 @@ class JsonRpcRequest
      * @param  array<string, mixed>  $params
      */
     public function __construct(
-        public ?int $id,
+        public int|string|null $id,
         public string $method,
         public array $params,
     ) {
@@ -36,8 +36,8 @@ class JsonRpcRequest
             throw new JsonRpcException('Invalid Request: Invalid JSON-RPC version. Must be "2.0".', -32600, $requestId);
         }
 
-        if (array_key_exists('id', $data) && $data['id'] !== null && ! is_int($data['id'])) {
-            throw new JsonRpcException('Invalid params: "id" must be an integer or null if present.', -32602, $requestId);
+        if (array_key_exists('id', $data) && $data['id'] !== null && ! is_int($data['id']) && ! is_string($data['id'])) {
+            throw new JsonRpcException('Invalid params: "id" must be an integer, string, or null if present.', -32602, $requestId);
         }
 
         if (! isset($data['method']) || ! is_string($data['method'])) {
