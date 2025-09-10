@@ -1,7 +1,9 @@
 <?php
 
+use Illuminate\Console\Command;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Tools\Annotation;
+use Symfony\Component\Console\Attribute\AsCommand;
 
 arch('strict and safe')
     ->expect('Laravel\Mcp')
@@ -26,5 +28,5 @@ arch('exceptions extend')
 
 arch('commands extend command')
     ->expect('Laravel\Mcp\Console\Commands')
-    ->toExtend(\Illuminate\Console\Command::class)
-    ->toHaveAttribute(\Symfony\Component\Console\Attribute\AsCommand::class);
+    ->toExtend(Command::class)
+    ->toHaveAttribute(attribute: AsCommand::class);
