@@ -44,7 +44,7 @@ it('always returns success even if the server returns an int', function (): void
         ->shouldReceive('getLocalServer')
         ->once()
         ->with('code')
-        ->andReturn(fn () => 2);
+        ->andReturn(fn (): int => 2);
 
     $this->artisan('mcp:start', ['handle' => 'code'])
         ->assertExitCode(0);
@@ -55,7 +55,7 @@ it('requires the handle argument', function (): void {
         $this->artisan('mcp:start')
             ->expectsOutputToContain('handle')
             ->assertExitCode(1);
-    } catch (RuntimeException $e) {
-        expect($e->getMessage())->toContain('handle');
+    } catch (RuntimeException $runtimeException) {
+        expect($runtimeException->getMessage())->toContain('handle');
     }
 });
