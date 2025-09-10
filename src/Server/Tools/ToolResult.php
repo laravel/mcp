@@ -31,6 +31,7 @@ class ToolResult implements Arrayable
     public static function json(array $data): static
     {
         $json = json_encode($data, JSON_PRETTY_PRINT);
+
         if ($json === false) {
             return static::error(sprintf('Failed to encode data: %s', json_last_error_msg()));
         }
