@@ -19,7 +19,7 @@ class JsonRpcResponse implements Arrayable
     /**
      * @param  array<string, mixed>  $result
      */
-    public static function result(int $id, array $result): static
+    public static function result(int|string $id, array $result): static
     {
         return new static([
             'id' => $id,

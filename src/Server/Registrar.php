@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Server\Transport\StdioTransport;
 
@@ -20,6 +22,9 @@ class Registrar
     /** @var array<string, string> */
     protected array $registeredWebServers = [];
 
+    /**
+     * @param  class-string<Server>  $serverClass
+     */
     public function web(string $route, string $serverClass): Route
     {
         $this->registeredWebServers[$route] = $serverClass;
@@ -28,11 +33,15 @@ class Registrar
             $serverClass,
             fn (): HttpTransport => new HttpTransport(
                 $request = request(),
+                // @phpstan-ignore-next-line
                 (string) $request->header('Mcp-Session-Id')
             ),
         ))->name('mcp-server.'.$route);
     }
 
+    /**
+     * @param  class-string<Server>  $serverClass
+     */
     public function local(string $handle, string $serverClass): void
     {
         $this->localServers[$handle] = fn (): mixed => $this->bootServer(
@@ -92,11 +101,15 @@ class Registrar
         });
     }
 
+    /**
+     * @param  class-string<Server>  $serverClass
+     * @param  callable(): Transport  $transportFactory
+     */
     protected function bootServer(string $serverClass, callable $transportFactory): mixed
     {
         $transport = $transportFactory();
 
-        $server = new $serverClass;
+        $server = Container::getInstance()->make($serverClass);
 
         $server->connect($transport);
 

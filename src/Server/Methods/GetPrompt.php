@@ -48,12 +48,10 @@ class GetPrompt implements Method
                 ));
 
         try {
-            $response = Container::getInstance()->call(
-                [$prompt, 'handle'],
-                ['request' => new Request(
-                    $request->get('arguments', []),
-                )],
-            );
+            // @phpstan-ignore-next-line
+            $response = Container::getInstance()->call([$prompt, 'handle'], [
+                'request' => new Request($request->get('arguments', [])),
+            ]);
         } catch (ValidationException $validationException) {
             $response = Response::error('Invalid params: '.ValidationMessages::from($validationException));
         }

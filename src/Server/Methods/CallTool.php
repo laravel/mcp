@@ -40,10 +40,9 @@ class CallTool implements Method
                 ));
 
         try {
+            // @phpstan-ignore-next-line
             $response = Container::getInstance()->call([$tool, 'handle'], [
-                'request' => new Request(
-                    $request->params['arguments'],
-                ),
+                'request' => new Request($request->params['arguments']),
             ]);
         } catch (ValidationException $validationException) {
             $response = Response::error(ValidationMessages::from($validationException));

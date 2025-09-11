@@ -18,6 +18,9 @@ class StartCommand extends Command
     public function handle(Registrar $registrar): int
     {
         $handle = $this->argument('handle');
+
+        assert(is_string($handle));
+
         $server = $registrar->getLocalServer($handle);
 
         if ($server === null) {

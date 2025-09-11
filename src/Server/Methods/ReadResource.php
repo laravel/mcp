@@ -21,9 +21,12 @@ class ReadResource implements Method
         }
 
         $resource = $context->resources()->first(fn (Resource $resource): bool => $resource->uri() === $request->get('uri'));
+
         if (is_null($resource)) {
             throw new ItemNotFoundException('Resource not found');
         }
+
+        assert($request->id !== null);
 
         return JsonRpcResponse::result(
             $request->id,

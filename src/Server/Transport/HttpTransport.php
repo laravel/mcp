@@ -49,7 +49,11 @@ class HttpTransport implements Transport
             return response()->stream($this->stream, 200, $this->getHeaders());
         }
 
-        return response($this->reply, 200, $this->getHeaders());
+        $response = response($this->reply, 200, $this->getHeaders());
+
+        assert($response instanceof Response);
+
+        return $response;
     }
 
     public function sessionId(): ?string

@@ -68,6 +68,6 @@ class CursorPaginator
     {
         $cursorData = ['offset' => $offset];
 
-        return base64_encode(json_encode($cursorData));
+        return base64_encode((string) json_encode($cursorData));
     }
 }
