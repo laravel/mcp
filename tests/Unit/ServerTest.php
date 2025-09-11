@@ -6,9 +6,9 @@ use Tests\Fixtures\ExampleServer;
 
 it('can handle an initialize message', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode(initializeMessage());
 
@@ -21,12 +21,12 @@ it('can handle an initialize message', function (): void {
 
 it('can add a capability', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
     $server->addCapability('customFeature.enabled', true);
     $server->addCapability('anotherFeature');
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode(initializeMessage());
 
@@ -48,9 +48,9 @@ it('can add a capability', function (): void {
 
 it('can handle a list tools message', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode(listToolsMessage());
 
@@ -63,9 +63,9 @@ it('can handle a list tools message', function (): void {
 
 it('can handle a call tool message', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode(callToolMessage());
 
@@ -78,9 +78,9 @@ it('can handle a call tool message', function (): void {
 
 it('can handle a notification message', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode([
         'jsonrpc' => '2.0',
@@ -94,9 +94,9 @@ it('can handle a notification message', function (): void {
 
 it('can handle an unknown method', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode([
         'jsonrpc' => '2.0',
@@ -121,9 +121,9 @@ it('can handle an unknown method', function (): void {
 
 it('handles json decode errors', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $invalidJsonPayload = '{"jsonrpc": "2.0", "id": 123, "method": "initialize", "params": {}';
 
@@ -144,13 +144,13 @@ it('handles json decode errors', function (): void {
 
 it('can handle a custom method message', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
     $server->addMethod('custom/method', CustomMethodHandler::class);
 
     $this->app->bind(CustomMethodHandler::class, fn (): \Tests\Fixtures\CustomMethodHandler => new CustomMethodHandler('custom-dependency'));
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode([
         'jsonrpc' => '2.0',
@@ -175,9 +175,9 @@ it('can handle a custom method message', function (): void {
 
 it('can handle a ping message', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode(pingMessage());
 
@@ -191,23 +191,23 @@ it('can handle a ping message', function (): void {
 it('calls boot method on connect', function (): void {
     $transport = new ArrayTransport;
 
-    $server = new class extends \Laravel\Mcp\Server
+    $server = new class($transport) extends \Laravel\Mcp\Server
     {
         public function boot(): void
         {
             $this->bootCalled = true;
         }
     };
-    $server->connect($transport);
+    $server->start();
 
     expect($server->bootCalled)->toBeTrue('The boot() method was not called on connect.');
 });
 
 it('can handle a tool streaming multiple messages', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode(callStreamingToolMessage());
 

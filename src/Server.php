@@ -23,6 +23,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use stdClass;
 use Throwable;
 
 abstract class Server
@@ -43,7 +44,7 @@ abstract class Server
     ];
 
     /**
-     * @var array<string, mixed>
+     * @var array<string, array<string, bool>|stdClass|string>
      */
     protected array $capabilities = [
         'tools' => [
@@ -76,8 +77,6 @@ abstract class Server
 
     public int $defaultPaginationLength = 15;
 
-    protected Transport $transport;
-
     /**
      * @var array<string, class-string<Method>>
      */
@@ -91,13 +90,67 @@ abstract class Server
         'ping' => Ping::class,
     ];
 
-    public function connect(Transport $transport): void
+    public function __construct(
+        protected Transport $transport,
+    ) {
+        //
+    }
+
+    /**
+     * Add or modify a server capability.
+     *
+     * Using dot notation like "feature.enabled" will create a nested capability array.
+     * Passing a single key like "anotherFeature" will register an empty object capability.
+     */
+    public function addCapability(string $key, bool $value = true): void
     {
-        $this->transport = $transport;
+        if (str_contains($key, '.')) {
+            [$root, $child] = explode('.', $key, 2);
+            $existing = $this->capabilities[$root] ?? [];
 
+            if (! is_array($existing)) {
+                $existing = [];
+            }
+
+            $existing[$child] = $value;
+            $this->capabilities[$root] = $existing;
+
+            return;
+        }
+
+        // Represent empty capability as an object when JSON encoded
+        $this->capabilities[$key] = (object) [];
+    }
+
+    /**
+     * Register a custom JSON-RPC method handler.
+     *
+     * @param  class-string<Method>  $handler
+     */
+    public function addMethod(string $method, string $handler): void
+    {
+        $this->methods[$method] = $handler;
+    }
+
+    /**
+     * Dynamically add a Tool to the server.
+     *
+     * @param  class-string<Tool>|Tool  $tool
+     */
+    public function addTool(string|Tool $tool): void
+    {
+        $this->tools[] = $tool;
+    }
+
+    public function start(): void
+    {
         $this->boot();
-
         $this->transport->onReceive(fn (string $message) => $this->handle($message));
+    }
+
+    protected function boot(): void
+    {
+        // Meant to be overridden by concrete servers
     }
 
     public function handle(string $rawMessage): void
@@ -158,66 +211,6 @@ abstract class Server
 
             $this->transport->send($jsonRpcResponse->toJson());
         }
-    }
-
-    public function boot(): void
-    {
-        //
-    }
-
-    /**
-     * @param  Tool|class-string<Tool>  $tool
-     */
-    public function addTool(Tool|string $tool): static
-    {
-        if (! in_array($tool, $this->tools, true)) {
-            $this->tools[] = $tool;
-        }
-
-        return $this;
-    }
-
-    /**
-     * @param  Resource|class-string<Resource>  $resource
-     */
-    public function addResource(Resource|string $resource): static
-    {
-        if (! in_array($resource, $this->resources, true)) {
-            $this->resources[] = $resource;
-        }
-
-        return $this;
-    }
-
-    /**
-     * @param  Prompt|class-string<Prompt>  $prompt
-     */
-    public function addPrompt(Prompt|string $prompt): static
-    {
-        if (! in_array($prompt, $this->prompts, true)) {
-            $this->prompts[] = $prompt;
-        }
-
-        return $this;
-    }
-
-    /**
-     * @param  class-string<Method>  $handlerClass
-     */
-    public function addMethod(string $name, string $handlerClass): static
-    {
-        $this->methods[$name] = $handlerClass;
-
-        return $this;
-    }
-
-    public function addCapability(string $key, mixed $value = null): static
-    {
-        $value ??= (object) [];
-
-        data_set($this->capabilities, $key, $value);
-
-        return $this;
     }
 
     /**

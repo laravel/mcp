@@ -62,12 +62,11 @@ class ServerContext
      */
     public function prompts(): Collection
     {
-        return collect($this->prompts)
-            ->map(
-                fn ($promptClass) => is_string($promptClass)
-                    ? Container::getInstance()->make($promptClass)
-                    : $promptClass
-            );
+        return collect($this->prompts)->map(
+            fn ($promptClass) => is_string($promptClass)
+                ? Container::getInstance()->make($promptClass)
+                : $promptClass
+        );
     }
 
     public function perPage(?int $requestedPerPage = null): int

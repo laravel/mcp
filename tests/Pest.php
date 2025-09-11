@@ -49,7 +49,7 @@ function initializeMessage(): array
 
 function expectedInitializeResponse(): array
 {
-    $server = new ExampleServer;
+    $server = new ExampleServer(new \Tests\Fixtures\ArrayTransport);
 
     [
         $capabilities,

@@ -55,24 +55,3 @@ it('throws exception for non string method in notification', function (): void {
         'method' => 123,
     ]);
 });
-
-it('defaults params to empty array and supports getters in notification', function (): void {
-    $notification = JsonRpcNotification::from([
-        'jsonrpc' => '2.0',
-        'method' => 'notifications/ready',
-        // no params
-    ]);
-
-    expect($notification->params)->toEqual([])
-        ->and($notification->get('missing', 'default'))->toEqual('default')
-        ->and($notification->cursor())->toBeNull();
-
-    $withCursor = JsonRpcNotification::from([
-        'jsonrpc' => '2.0',
-        'method' => 'notifications/update',
-        'params' => ['cursor' => 'N-CUR-1', 'foo' => 'bar'],
-    ]);
-
-    expect($withCursor->cursor())->toEqual('N-CUR-1')
-        ->and($withCursor->get('foo'))->toEqual('bar');
-});

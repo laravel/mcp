@@ -29,7 +29,7 @@ class Registrar
     {
         $this->registeredWebServers[$route] = $serverClass;
 
-        return Router::post($route, fn (): mixed => $this->bootServer(
+        return Router::post($route, fn (): mixed => $this->startServer(
             $serverClass,
             fn (): HttpTransport => new HttpTransport(
                 $request = request(),
@@ -44,7 +44,7 @@ class Registrar
      */
     public function local(string $handle, string $serverClass): void
     {
-        $this->localServers[$handle] = fn (): mixed => $this->bootServer(
+        $this->localServers[$handle] = fn (): mixed => $this->startServer(
             $serverClass,
             fn (): StdioTransport => new StdioTransport(
                 Str::uuid()->toString(),
@@ -105,13 +105,15 @@ class Registrar
      * @param  class-string<Server>  $serverClass
      * @param  callable(): Transport  $transportFactory
      */
-    protected function bootServer(string $serverClass, callable $transportFactory): mixed
+    protected function startServer(string $serverClass, callable $transportFactory): mixed
     {
         $transport = $transportFactory();
 
-        $server = Container::getInstance()->make($serverClass);
+        $server = Container::getInstance()->make($serverClass, [
+            'transport' => $transport,
+        ]);
 
-        $server->connect($transport);
+        $server->start();
 
         return $transport->run();
     }
