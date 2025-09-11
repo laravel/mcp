@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Prompts\Arguments;
  */
 abstract class Prompt implements Arrayable
 {
-    protected string $description;
+    protected string $description = '';
 
     /**
      * @return array<int, Argument>

@@ -4,9 +4,9 @@ namespace {{ namespace }};
 
 use Illuminate\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Tools\Annotations\Title;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\ToolResult;
 
 #[Title('{{ title }}')]
 class {{ class }} extends Tool
@@ -14,24 +14,32 @@ class {{ class }} extends Tool
     /**
      * The tool's description.
      */
-    protected string $description = 'A description of what this tool does.';
+    protected string $description = 'Get current weather information for a location';
 
     /**
      * Handle the tool call.
      */
-    public function handle(Request $request): ToolResult
+    public function handle(Request $request): Response
     {
-        return ToolResult::text('Tool executed successfully.');
+        $request->validate([
+            'location' => 'required|string',
+        ]);
+
+        $location = $request->string('location');
+
+        return Response::text("The current weather in {$location} is sunny.");
     }
 
     /**
      * Get the tool's input schema.
+     *
+     * @return array<string, JsonSchema>
      */
     public function schema(JsonSchema $schema): array
     {
         return [
-            'example' => $schema->string()
-                ->description('An example input description.')
+            'location' => $schema->string()
+                ->description('City name or zip code')
                 ->required(),
         ];
     }

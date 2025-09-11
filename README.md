@@ -38,10 +38,10 @@ php artisan make:mcp-server DemoServer
 Next, create a tool for the MCP server:
 
 ```bash
-php artisan make:mcp-tool HelloTool
+php artisan make:mcp-tool CurrentWeatherTool
 ```
 
-This will create two files: `app/Mcp/Servers/DemoServer.php` and `app/Mcp/Tools/HelloTool.php`.
+This will create two files: `app/Mcp/Servers/DemoServer.php` and `app/Mcp/Tools/CurrentWeatherTool.php`.
 
 **Add the Tool to the Server**
 
@@ -52,13 +52,13 @@ Open `app/Mcp/Servers/DemoServer.php` and add your new tool to the `$tools` prop
 
 namespace App\Mcp\Servers;
 
-use App\Mcp\Tools\HelloTool;
+use App\Mcp\Tools\CurrentWeatherTool;
 use Laravel\Mcp\Server;
 
 class DemoServer extends Server
 {
     public array $tools = [
-        HelloTool::class,
+        CurrentWeatherTool::class,
     ];
 }
 ```
@@ -188,14 +188,14 @@ $response = ToolResult::error('This is an error response.');
 A tool result can contain multiple content items. The `items()` method allows you to construct a result from different content objects, like `TextContent`.
 
 ```php
-use Laravel\Mcp\Server\Tools\TextContent;
+use Laravel\Mcp\Server\Content\TextResource;
 
 $plainText = 'This is the plain text version.';
 $markdown = 'This is the **markdown** version.';
 
 $response = ToolResult::items(
-    new TextContent($plainText),
-    new TextContent($markdown)
+    new TextResource($plainText),
+    new TextResource($markdown)
 );
 ```
 
@@ -213,8 +213,8 @@ This is particularly useful for long-running tasks or when you want to provide r
 namespace App\Mcp\Tools;
 
 use Generator;
+use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\ToolNotification;
 use Laravel\Mcp\Server\Tools\ToolResult;
 
 class ChatStreamingTool extends Tool
@@ -224,7 +224,7 @@ class ChatStreamingTool extends Tool
         $tokens = $request->string('message')->explode(' ');
 
         foreach ($tokens as $token) {
-            yield new ToolNotification('chat/token', ['token' => $token . ' ']);
+            yield new Notification('chat/token', ['token' => $token . ' ']);
         }
 
         yield ToolResult::text("Message streamed successfully.");

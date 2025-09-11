@@ -5,9 +5,8 @@ namespace Tests\Fixtures;
 use Generator;
 use Illuminate\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\ToolNotification;
-use Laravel\Mcp\Server\Tools\ToolResult;
 
 class StreamingTool extends Tool
 {
@@ -27,9 +26,9 @@ class StreamingTool extends Tool
         $count = $request->integer('count', 2);
 
         for ($i = 1; $i <= $count; $i++) {
-            yield new ToolNotification('stream/progress', ['progress' => $i / $count * 100, 'message' => "Processing item {$i} of {$count}"]);
+            yield Response::notification('stream/progress', ['progress' => $i / $count * 100, 'message' => "Processing item {$i} of {$count}"]);
         }
 
-        yield ToolResult::text("Finished streaming {$count} messages.");
+        yield Response::text("Finished streaming {$count} messages.");
     }
 }

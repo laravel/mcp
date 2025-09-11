@@ -17,29 +17,21 @@ class JsonRpcResponse implements Arrayable
     public function __construct(protected array $content = []) {}
 
     /**
-     * @param  array<string, mixed>|Arrayable<string, mixed>  $result
+     * @param  array<string, mixed>  $result
      */
-    public static function result(int $id, array|Arrayable $result): static
+    public static function result(int $id, array $result): static
     {
-        if ($result instanceof Arrayable) {
-            $result = $result->toArray();
-        }
-
         return new static([
             'id' => $id,
-            'result' => count($result) === 0 ? (object) [] : $result,
+            'result' => $result === [] ? (object) [] : $result,
         ]);
     }
 
     /**
-     * @param  array<string, mixed>|Arrayable<string, mixed>  $params
+     * @param  array<string, mixed>  $params
      */
-    public static function notification(string $method, array|Arrayable $params): static
+    public static function notification(string $method, array $params): static
     {
-        if ($params instanceof Arrayable) {
-            $params = $params->toArray();
-        }
-
         return new static([
             'method' => $method,
             'params' => $params,

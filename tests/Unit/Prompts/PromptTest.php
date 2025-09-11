@@ -62,7 +62,11 @@ it('works with fixture prompt', function (): void {
     expect($prompt->name())->toBe('review-my-code-prompt');
     expect($prompt->title())->toBe('Review My Code Prompt');
 
-    $result = $prompt->handle();
-    expect('Instructions for how to review my code')->toEqual($result->toArray()['description']);
-    expect($result->toArray()['messages'])->toHaveCount(1);
+    $response = $prompt->handle();
+
+    expect($prompt->description())->toBe('Instructions for how to review my code')
+        ->and($response->content()->toArray())->toBe([
+            'type' => 'text',
+            'text' => 'Here are the instructions on how to review my code',
+        ]);
 });

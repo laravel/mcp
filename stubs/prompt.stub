@@ -3,6 +3,7 @@
 namespace {{ namespace }};
 
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\Argument;
 use Laravel\Mcp\Server\Prompts\PromptResult;
@@ -12,7 +13,7 @@ class {{ class }} extends Prompt
     /**
      * The prompt's description.
      */
-    protected string $description = 'Instructions for how to review my code';
+    protected string $description = 'Asks the LLM to analyze code quality and suggest improvements';
 
     /**
      * Get the prompt's arguments.
@@ -23,8 +24,8 @@ class {{ class }} extends Prompt
     {
         return [
             new Argument(
-                name: 'language',
-                description: 'The language the code is in',
+                name: 'code',
+                description: 'The code to review',
                 required: true,
             ),
         ];
@@ -33,16 +34,14 @@ class {{ class }} extends Prompt
     /**
      * Handle the prompt.
      */
-    public function handle(Request $request): PromptResult
+    public function handle(Request $request): Response
     {
-        $instructions = match ($request->get('language')) {
-            'php' => 'Review the code carefully',
-            null => 'Don\'t worry about it',
-        };
+        $request->validate([
+            'code' => 'required|string',
+        ]);
 
-        return new PromptResult(
-            content: $instructions,
-            description: $this->description()
-        );
+        $code = $request->string('code');
+
+        return Response::text("Please review this code: {$code}");
     }
 }

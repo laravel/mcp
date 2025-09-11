@@ -194,7 +194,7 @@ it('throws exception when prompt not found', function (): void {
     $method = new GetPrompt;
 
     $this->expectException(ItemNotFoundException::class);
-    $this->expectExceptionMessage('Prompt not found');
+    $this->expectExceptionMessage('Prompt [non-existent-prompt] not found.');
 
     $method->handle($request, $context);
 });

@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods;
 
 use Illuminate\Container\Container;
+use Illuminate\Support\Collection;
 use Illuminate\Support\ItemNotFoundException;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
+use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
@@ -17,6 +21,8 @@ use Laravel\Mcp\Support\ValidationMessages;
 
 class GetPrompt implements Method
 {
+    use InteractsWithResponses;
+
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
         if (is_null($request->get('name'))) {
@@ -24,25 +30,48 @@ class GetPrompt implements Method
         }
 
         $prompt = $context->prompts()->first(fn ($prompt): bool => $prompt->name() === $request->get('name'));
+
         if (is_null($prompt)) {
-            throw new ItemNotFoundException('Prompt not found');
+            throw new ItemNotFoundException("Prompt [{$request->get('name')}] not found.");
         }
 
         try {
-            $result = Container::getInstance()->call(
+            $response = Container::getInstance()->call(
                 [$prompt, 'handle'],
                 ['request' => new Request(
                     $request->get('arguments', []),
                 )],
             );
         } catch (ValidationException $validationException) {
-            return JsonRpcResponse::error(
-                id: $request->id,
-                code: -32602,
-                message: 'Invalid params: '.ValidationMessages::from($validationException),
-            );
+            $response = Response::error('Invalid params: '.ValidationMessages::from($validationException));
         }
 
-        return JsonRpcResponse::result($request->id, $result);
+        foreach (is_iterable($response) ? $response : [$response] as $res) {
+            if ($res->isError()) {
+                return JsonRpcResponse::error(
+                    id: $request->id,
+                    code: -32602,
+                    message: $res->content()->text,
+                );
+            }
+        }
+
+        return is_iterable($response)
+            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($prompt))
+            : $this->toJsonRpcResponse($request, $response, $this->serializable($prompt));
+    }
+
+    /**
+     * @return callable(Collection<int, Response>): array{description?: string, messages: array<int, array{role: string, content: array<int, array<string, mixed>}>}
+     */
+    protected function serializable(Prompt $prompt): callable
+    {
+        return fn (Collection $responses): array => [
+            'description' => $prompt->description(),
+            'messages' => $responses->map(fn (Response $response): array => [
+                'role' => 'user',
+                'content' => $response->content()->toArray(),
+            ])->all(),
+        ];
     }
 }

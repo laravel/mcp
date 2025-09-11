@@ -95,7 +95,7 @@ function expectedListToolsResponse(): array
         'result' => [
             'tools' => [
                 [
-                    'name' => 'example-tool',
+                    'name' => 'say-hi-tool',
                     'description' => 'This tool says hello to a person',
                     'inputSchema' => [
                         'type' => 'object',
@@ -178,7 +178,7 @@ function callToolMessage(): array
         'id' => 1,
         'method' => 'tools/call',
         'params' => [
-            'name' => 'example-tool',
+            'name' => 'say-hi-tool',
             'arguments' => [
                 'name' => 'John Doe',
             ],

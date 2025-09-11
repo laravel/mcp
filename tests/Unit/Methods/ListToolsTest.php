@@ -4,7 +4,7 @@ use Laravel\Mcp\Server\Methods\ListTools;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Tests\Fixtures\ExampleTool;
+use Tests\Fixtures\SayHiTool;
 
 if (! class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
     for ($i = 1; $i <= 12; $i++) {
@@ -38,7 +38,7 @@ it('returns a valid list tools response', function (): void {
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 5,
-        tools: [ExampleTool::class],
+        tools: [SayHiTool::class],
         resources: [],
         prompts: [],
     );
@@ -53,7 +53,7 @@ it('returns a valid list tools response', function (): void {
         ->and($payload['result'])->toEqual([
             'tools' => [
                 [
-                    'name' => 'example-tool',
+                    'name' => 'say-hi-tool',
                     'description' => 'This tool says hello to a person',
                     'inputSchema' => [
                         'type' => 'object',

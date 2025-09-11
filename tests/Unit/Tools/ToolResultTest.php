@@ -1,64 +1,27 @@
 <?php
 
-use Laravel\Mcp\Server\Tools\TextContent;
-use Laravel\Mcp\Server\Tools\ToolResult;
+use Laravel\Mcp\Response;
 
 it('returns a valid tool result', function (): void {
     $responseText = 'This is a test response.';
-    $response = ToolResult::text($responseText);
+    $response = Response::text($responseText);
 
     $expectedArray = [
-        'content' => [
-            [
-                'type' => 'text',
-                'text' => $responseText,
-            ],
-        ],
-        'isError' => false,
+        'type' => 'text',
+        'text' => $responseText,
     ];
 
-    expect($response->toArray())->toBe($expectedArray);
+    expect($response->content()->toArray())->toBe($expectedArray);
 });
 
 it('returns a valid error tool result', function (): void {
     $responseText = 'This is a test error response.';
-    $response = ToolResult::error($responseText);
+    $response = Response::error($responseText);
 
     $expectedArray = [
-        'content' => [
-            [
-                'type' => 'text',
-                'text' => $responseText,
-            ],
-        ],
-        'isError' => true,
+        'type' => 'text',
+        'text' => $responseText,
     ];
 
-    expect($response->toArray())->toBe($expectedArray);
-});
-
-it('can handle multiple content items', function (): void {
-    $plainText = 'This is the plain text version.';
-    $markdown = 'This is the **markdown** version.';
-
-    $response = ToolResult::items(
-        new TextContent($plainText),
-        new TextContent($markdown)
-    );
-
-    $expectedArray = [
-        'content' => [
-            [
-                'type' => 'text',
-                'text' => $plainText,
-            ],
-            [
-                'type' => 'text',
-                'text' => $markdown,
-            ],
-        ],
-        'isError' => false,
-    ];
-
-    expect($response->toArray())->toBe($expectedArray);
+    expect($response->content()->toArray())->toBe($expectedArray);
 });
