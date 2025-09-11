@@ -38,14 +38,4 @@ class JsonRpcNotification
             params: $jsonRequest['params'] ?? []
         );
     }
-
-    public function cursor(): ?string
-    {
-        return $this->get('cursor');
-    }
-
-    public function get(string $key, mixed $default = null): mixed
-    {
-        return $this->params[$key] ?? $default;
-    }
 }
