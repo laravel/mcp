@@ -7,7 +7,7 @@
 
 ## Introduction
 
-Laravel MCP makes it easy to add MCP servers to your project and let AI talk to your apps.
+Laravel MCP makes it easy to add MCP servers to your project and let AI clients interact with your application. It provides an expressive, fluent interface for defining servers, tools, resources, and prompts.
 
 ## Installation
 
