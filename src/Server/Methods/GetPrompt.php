@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Methods;
 
+use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
-use Illuminate\Support\ItemNotFoundException;
 use Illuminate\Validation\ValidationException;
-use InvalidArgumentException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\ServerContext;
@@ -23,17 +23,29 @@ class GetPrompt implements Method
 {
     use InteractsWithResponses;
 
-    public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
+    /**
+     * @return Generator<JsonRpcResponse>|JsonRpcResponse
+     *
+     * @throws JsonRpcException
+     */
+    public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
         if (is_null($request->get('name'))) {
-            throw new InvalidArgumentException('Missing required parameter: name');
+            throw new JsonRpcException(
+                'Missing [name] parameter.',
+                -32601,
+                $request->id,
+            );
         }
 
-        $prompt = $context->prompts()->first(fn ($prompt): bool => $prompt->name() === $request->get('name'));
-
-        if (is_null($prompt)) {
-            throw new ItemNotFoundException("Prompt [{$request->get('name')}] not found.");
-        }
+        $prompt = $context->prompts()
+            ->first(
+                fn ($prompt): bool => $prompt->name() === $request->get('name'),
+                fn () => throw new JsonRpcException(
+                    "Prompt [{$request->get('name')}] not found.",
+                    -32601,
+                    $request->id,
+                ));
 
         try {
             $response = Container::getInstance()->call(

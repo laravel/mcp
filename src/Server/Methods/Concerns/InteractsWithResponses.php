@@ -18,11 +18,12 @@ trait InteractsWithResponses
      */
     protected function toJsonRpcResponse(JsonRpcRequest $request, array|Response|string $response, callable $serializable): JsonRpcResponse
     {
-        if (is_string($response)) {
-            $response = Response::text($response);
-        }
-
-        $responses = collect(is_array($response) ? $response : [$response]);
+        $responses = collect(
+            is_array($response) ? $response : [$response]
+        )->map(fn (Response|string $response) => $response instanceof Response
+            ? $response
+            : Response::text($response),
+        );
 
         $serializable($responses);
 
@@ -40,7 +41,7 @@ trait InteractsWithResponses
 
             try {
                 foreach ($responses as $response) {
-                    if ($response->isNotification()) {
+                    if ($response instanceof Response && $response->isNotification()) {
                         /** @var Notification $content */
                         $content = $response->content();
 

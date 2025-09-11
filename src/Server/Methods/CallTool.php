@@ -7,11 +7,11 @@ namespace Laravel\Mcp\Server\Methods;
 use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
-use Illuminate\Support\ItemNotFoundException;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
@@ -24,18 +24,20 @@ class CallTool implements Method
 
     /**
      * @return JsonRpcResponse|Generator<JsonRpcResponse>
+     *
+     * @throws JsonRpcException
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
-        try {
-            $tool = $context->tools()
-                ->firstOrFail(fn ($tool): bool => $tool->name() === $request->params['name']);
-        } catch (ItemNotFoundException) {
-            return JsonRpcResponse::result(
-                $request->id,
-                Response::error('Tool ['.$request->params['name'].'] not found.')->content()->toArray(),
-            );
-        }
+        $tool = $context
+            ->tools()
+            ->first(
+                fn ($tool): bool => $tool->name() === $request->params['name'],
+                fn () => throw new JsonRpcException(
+                    "Tool [{$request->params['name']}] not found.",
+                    -32601,
+                    $request->id,
+                ));
 
         try {
             $response = Container::getInstance()->call([$tool, 'handle'], [

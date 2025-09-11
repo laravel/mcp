@@ -131,17 +131,23 @@ abstract class Server
             }
 
             if (! isset($this->methods[$request->method])) {
-                throw new JsonRpcException("Method not found: {$request->method}", -32601, $request->id);
+                throw new JsonRpcException(
+                    "The method [{$request->method}] was not found.",
+                    -32601,
+                    $request->id,
+                );
             }
 
             $this->handleMessage($sessionId, $request, $context);
         } catch (JsonRpcException $e) {
             $this->transport->send($e->toJsonRpcResponse()->toJson());
         } catch (Throwable $e) {
+            report($e);
+
             $jsonRpcResponse = JsonRpcResponse::error(
                 $request->id ?? null,
-                $e->getCode(),
-                $e->getMessage(),
+                -32603,
+                'Something went wrong while processing the request.',
             );
 
             $this->transport->send($jsonRpcResponse->toJson());
@@ -150,7 +156,7 @@ abstract class Server
 
     public function boot(): void
     {
-        // Override this method to dynamically add tools, custom methods, etc., when the server boots.
+        //
     }
 
     /**

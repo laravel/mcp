@@ -114,7 +114,7 @@ it('can handle an unknown method', function (): void {
         'id' => 789,
         'error' => [
             'code' => -32601,
-            'message' => 'Method not found: unknown/method',
+            'message' => 'The method [unknown/method] was not found.',
         ],
     ]);
 });

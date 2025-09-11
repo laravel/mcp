@@ -1,6 +1,6 @@
 <?php
 
-use Illuminate\Support\ItemNotFoundException;
+use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
@@ -161,8 +161,8 @@ it('throws exception when name parameter is missing', function (): void {
 
     $method = new GetPrompt;
 
-    $this->expectException(InvalidArgumentException::class);
-    $this->expectExceptionMessage('Missing required parameter: name');
+    $this->expectException(JsonRpcException::class);
+    $this->expectExceptionMessage('Missing [name] parameter.');
 
     $method->handle($request, $context);
 });
@@ -193,7 +193,7 @@ it('throws exception when prompt not found', function (): void {
 
     $method = new GetPrompt;
 
-    $this->expectException(ItemNotFoundException::class);
+    $this->expectException(JsonRpcException::class);
     $this->expectExceptionMessage('Prompt [non-existent-prompt] not found.');
 
     $method->handle($request, $context);
