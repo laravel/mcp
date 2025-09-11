@@ -14,13 +14,13 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 trait InteractsWithResponses
 {
     /**
-     * @param  array<int, Response>|Response|string  $response
+     * @param  array<int, Response|string>|Response|string  $response
      */
     protected function toJsonRpcResponse(JsonRpcRequest $request, array|Response|string $response, callable $serializable): JsonRpcResponse
     {
         $responses = collect(
             is_array($response) ? $response : [$response]
-        )->map(fn (Response|string $response) => $response instanceof Response
+        )->map(fn (Response|string $response): Response => $response instanceof Response
             ? $response
             : Response::text($response),
         );
@@ -31,7 +31,7 @@ trait InteractsWithResponses
     }
 
     /**
-     * @param  iterable<Response>  $responses
+     * @param  iterable<Response|string>  $responses
      * @return Generator<JsonRpcResponse>
      */
     protected function toJsonRpcStreamedResponse(JsonRpcRequest $request, iterable $responses, callable $serializable): Generator
