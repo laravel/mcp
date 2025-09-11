@@ -16,6 +16,20 @@ class {{ class }} extends Prompt
     protected string $description = 'Asks the LLM to analyze code quality and suggest improvements';
 
     /**
+     * Handle the prompt.
+     */
+    public function handle(Request $request): Response
+    {
+        $request->validate([
+            'code' => 'required|string',
+        ]);
+
+        $code = $request->string('code');
+
+        return Response::text("Please review this code: {$code}");
+    }
+
+    /**
      * Get the prompt's arguments.
      *
      * @return array<int, Argument>
@@ -29,19 +43,5 @@ class {{ class }} extends Prompt
                 required: true,
             ),
         ];
-    }
-
-    /**
-     * Handle the prompt.
-     */
-    public function handle(Request $request): Response
-    {
-        $request->validate([
-            'code' => 'required|string',
-        ]);
-
-        $code = $request->string('code');
-
-        return Response::text("Please review this code: {$code}");
     }
 }
