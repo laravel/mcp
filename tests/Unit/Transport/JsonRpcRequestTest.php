@@ -1,7 +1,6 @@
 <?php
 
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
-use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 
 it('can create a message from valid json', function (): void {
@@ -23,21 +22,9 @@ it('can create a message from valid json', function (): void {
         ->and($request->params)->toEqual(['name' => 'echo', 'arguments' => ['message' => 'Hello, world!']]);
 });
 
-it('can create a notification message from valid json', function (): void {
-    $json = '{"jsonrpc": "2.0", "method": "notifications/initialized"}';
-    $request = JsonRpcNotification::from([
-        'jsonrpc' => '2.0',
-        'method' => 'notifications/initialized',
-    ]);
-
-    expect($request)->toBeInstanceOf(JsonRpcNotification::class)
-        ->and($request->method)->toEqual('notifications/initialized')
-        ->and($request->params)->toEqual([]);
-});
-
 it('throws exception for missing jsonrpc version', function (): void {
     $this->expectException(JsonRpcException::class);
-    $this->expectExceptionMessage('Invalid Request: The [jsonrpc] member must be exactly [2.0]');
+    $this->expectExceptionMessage('Invalid Request: The [jsonrpc] member must be exactly [2.0].');
     $this->expectExceptionCode(-32600);
 
     JsonRpcRequest::from([
@@ -91,4 +78,27 @@ it('throws exception for non string method', function (): void {
         'id' => 1,
         'method' => 123,
     ]);
+});
+
+it('defaults params to empty array and supports getters', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 'abc',
+        'method' => 'something/do',
+        // no params
+    ]);
+
+    expect($request->params)->toEqual([])
+        ->and($request->get('missing', 'default'))->toEqual('default')
+        ->and($request->cursor())->toBeNull();
+
+    $requestWithCursor = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'method' => 'other',
+        'params' => ['cursor' => 'CUR123', 'foo' => 'bar'],
+    ]);
+
+    expect($requestWithCursor->cursor())->toEqual('CUR123')
+        ->and($requestWithCursor->get('foo'))->toEqual('bar');
 });
