@@ -25,8 +25,6 @@ trait InteractsWithResponses
             : Response::text($response),
         );
 
-        $serializable($responses);
-
         return JsonRpcResponse::result($request->id, $serializable($responses));
     }
 
@@ -36,33 +34,31 @@ trait InteractsWithResponses
      */
     protected function toJsonRpcStreamedResponse(JsonRpcRequest $request, iterable $responses, callable $serializable): Generator
     {
-        return (function () use ($responses, $request, $serializable) {
-            $pendingResponses = [];
+        $pendingResponses = [];
 
-            try {
-                foreach ($responses as $response) {
-                    if ($response instanceof Response && $response->isNotification()) {
-                        /** @var Notification $content */
-                        $content = $response->content();
+        try {
+            foreach ($responses as $response) {
+                if ($response instanceof Response && $response->isNotification()) {
+                    /** @var Notification $content */
+                    $content = $response->content();
 
-                        yield JsonRpcResponse::notification(
-                            ...$content->toArray(),
-                        );
+                    yield JsonRpcResponse::notification(
+                        ...$content->toArray(),
+                    );
 
-                        continue;
-                    }
-
-                    $pendingResponses[] = $response;
+                    continue;
                 }
-            } catch (ValidationException $validationException) {
-                yield $this->toJsonRpcResponse(
-                    $request,
-                    Response::error($validationException->getMessage()),
-                    $serializable,
-                );
-            }
 
-            yield $this->toJsonRpcResponse($request, $pendingResponses, $serializable);
-        })();
+                $pendingResponses[] = $response;
+            }
+        } catch (ValidationException $validationException) {
+            yield $this->toJsonRpcResponse(
+                $request,
+                Response::error($validationException->getMessage()),
+                $serializable,
+            );
+        }
+
+        yield $this->toJsonRpcResponse($request, $pendingResponses, $serializable);
     }
 }
