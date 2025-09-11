@@ -26,7 +26,7 @@ class {{ class }} extends Server
      *
      * See: https://modelcontextprotocol.io/specification/2025-06-18/server/tools
      *
-     * @var  array<int, class-string<\Laravel\Mcp\Server\Tool>>
+     * @var array<int, class-string<\Laravel\Mcp\Server\Tool>>
      */
     protected array $tools = [
         // ExampleTool::class,
@@ -37,7 +37,7 @@ class {{ class }} extends Server
      *
      * See: https://modelcontextprotocol.io/specification/2025-06-18/server/resources
      *
-     * @var  array<int, class-string<\Laravel\Mcp\Server\Resource>>
+     * @var array<int, class-string<\Laravel\Mcp\Server\Resource>>
      */
     protected array $resources = [
         // ExampleResource::class,
@@ -48,7 +48,7 @@ class {{ class }} extends Server
      *
      * See: https://modelcontextprotocol.io/specification/2025-06-18/server/prompts
      *
-     * @var  array<int, class-string<\Laravel\Mcp\Server\Prompt>>
+     * @var array<int, class-string<\Laravel\Mcp\Server\Prompt>>
      */
     protected array $prompts = [
         // ExamplePrompt::class,
