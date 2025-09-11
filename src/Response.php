@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Server\Content\ErrorTextContent;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\TextContent;

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
-use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
@@ -21,6 +20,7 @@ use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Throwable;
@@ -102,8 +102,6 @@ abstract class Server
 
     public function handle(string $rawMessage): void
     {
-        $sessionId = $this->transport->sessionId() ?? Str::uuid()->toString();
-
         $context = new ServerContext(
             supportedProtocolVersions: $this->supportedProtocolVersion,
             serverCapabilities: $this->capabilities,
@@ -118,16 +116,24 @@ abstract class Server
         );
 
         try {
-            $request = JsonRpcRequest::fromJson($rawMessage);
+            $jsonRequest = json_decode($rawMessage, true);
 
-            if ($request->method === 'initialize') {
-                $this->handleInitializeMessage($sessionId, $request, $context);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', -32700, null);
+            }
 
+            $request = isset($jsonRequest['id'])
+                ? JsonRpcRequest::from($jsonRequest)
+                : JsonRpcNotification::from($jsonRequest);
+
+            if ($request instanceof JsonRpcNotification) {
                 return;
             }
 
-            if (! isset($request->id)) {
-                return; // JSON-RPC notification, no response needed
+            if ($request->method === 'initialize') {
+                $this->handleInitializeMessage($request, $context);
+
+                return;
             }
 
             if (! isset($this->methods[$request->method])) {
@@ -138,7 +144,7 @@ abstract class Server
                 );
             }
 
-            $this->handleMessage($sessionId, $request, $context);
+            $this->handleMessage($request, $context);
         } catch (JsonRpcException $e) {
             $this->transport->send($e->toJsonRpcResponse()->toJson());
         } catch (Throwable $e) {
@@ -217,7 +223,7 @@ abstract class Server
     /**
      * @throws JsonRpcException
      */
-    protected function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
+    protected function handleMessage(JsonRpcRequest $request, ServerContext $context): void
     {
         /** @var Method $methodClass */
         $methodClass = Container::getInstance()->make(
@@ -239,7 +245,7 @@ abstract class Server
         });
     }
 
-    protected function handleInitializeMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
+    protected function handleInitializeMessage(JsonRpcRequest $request, ServerContext $context): void
     {
         $response = (new Initialize)->handle($request, $context);
 

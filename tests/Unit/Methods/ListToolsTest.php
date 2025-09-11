@@ -23,12 +23,12 @@ if (! class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
 }
 
 it('returns a valid list tools response', function (): void {
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'list-tools',
         'params' => [],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
@@ -92,12 +92,12 @@ it('handles pagination correctly', function (): void {
 
     $listTools = new ListTools;
 
-    $firstListToolsRequest = JsonRpcRequest::fromJson(json_encode([
+    $firstListToolsRequest = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'list-tools',
         'params' => [],
-    ]));
+    ]);
 
     $firstPageResponse = $listTools->handle($firstListToolsRequest, $context);
 
@@ -112,12 +112,12 @@ it('handles pagination correctly', function (): void {
 
     $nextCursor = $firstPayload['result']['nextCursor'];
 
-    $secondListToolsRequest = JsonRpcRequest::fromJson(json_encode([
+    $secondListToolsRequest = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 2,
         'method' => 'list-tools',
         'params' => ['cursor' => $nextCursor],
-    ]));
+    ]);
 
     $secondPageResponse = $listTools->handle($secondListToolsRequest, $context);
 
@@ -149,12 +149,12 @@ it('uses default per page when not provided', function (): void {
         prompts: [],
     );
 
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'list-tools',
         'params' => [/** no per_page */],
-    ]));
+    ]);
 
     $listTools = new ListTools;
     $response = $listTools->handle($request, $context);
@@ -183,12 +183,12 @@ it('uses requested per page when valid', function (): void {
         prompts: [],
     );
 
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'list-tools',
         'params' => ['per_page' => 5],
-    ]));
+    ]);
 
     $listTools = new ListTools;
     $response = $listTools->handle($request, $context);
@@ -217,12 +217,12 @@ it('caps per page at max pagination length', function (): void {
         prompts: [],
     );
 
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'list-tools',
         'params' => ['per_page' => 20],
-    ]));
+    ]);
 
     $listTools = new ListTools;
     $response = $listTools->handle($request, $context);
@@ -251,12 +251,12 @@ it('respects per page when bigger than default', function (): void {
         prompts: [],
     );
 
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'list-tools',
         'params' => ['per_page' => 8],
-    ]));
+    ]);
 
     $listTools = new ListTools;
     $response = $listTools->handle($request, $context);

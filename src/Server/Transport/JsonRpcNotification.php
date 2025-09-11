@@ -6,13 +6,12 @@ namespace Laravel\Mcp\Server\Transport;
 
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 
-class JsonRpcRequest
+class JsonRpcNotification
 {
     /**
      * @param  array<string, mixed>  $params
      */
     public function __construct(
-        public int|string $id,
         public string $method,
         public array $params,
     ) {
@@ -20,28 +19,21 @@ class JsonRpcRequest
     }
 
     /**
-     * @param  array{id: mixed, jsonrpc?: mixed, method?: mixed, params?: array<string, mixed>}  $jsonRequest
+     * @param  array{jsonrpc?: mixed, method?: mixed, params?: array<string, mixed>}  $jsonRequest
      *
      * @throws JsonRpcException
      */
     public static function from(array $jsonRequest): static
     {
-        $requestId = $jsonRequest['id'];
-
-        if (! is_int($jsonRequest['id']) && ! is_string($jsonRequest['id'])) {
-            throw new JsonRpcException('Invalid Request: The [id] member must be a string, number.', -32600, $requestId);
-        }
-
         if (! isset($jsonRequest['jsonrpc']) || $jsonRequest['jsonrpc'] !== '2.0') {
-            throw new JsonRpcException('Invalid Request: The [jsonrpc] member must be exactly [2.0].', -32600, $requestId);
+            throw new JsonRpcException('Invalid Request: Invalid JSON-RPC version. Must be "2.0".', -32600);
         }
 
         if (! isset($jsonRequest['method']) || ! is_string($jsonRequest['method'])) {
-            throw new JsonRpcException('Invalid Request: The [method] member is required and must be a string.', -32600, $requestId);
+            throw new JsonRpcException('Invalid Request: Invalid or missing "method". Must be a string.', -32600);
         }
 
         return new static(
-            id: $requestId,
             method: $jsonRequest['method'],
             params: $jsonRequest['params'] ?? []
         );

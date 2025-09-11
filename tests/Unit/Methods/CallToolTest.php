@@ -9,7 +9,7 @@ use Tests\Fixtures\SayHiTool;
 use Tests\Fixtures\SayHiTwiceTool;
 
 it('returns a valid call tool response', function (): void {
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'tools/call',
@@ -17,7 +17,7 @@ it('returns a valid call tool response', function (): void {
             'name' => 'say-hi-tool',
             'arguments' => ['name' => 'John Doe'],
         ],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
@@ -53,7 +53,7 @@ it('returns a valid call tool response', function (): void {
 });
 
 it('returns a valid call tool response that contains two messages', function (): void {
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'tools/call',
@@ -61,7 +61,7 @@ it('returns a valid call tool response that contains two messages', function ():
             'name' => 'say-hi-twice-tool',
             'arguments' => ['name' => 'John Doe'],
         ],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
@@ -101,7 +101,7 @@ it('returns a valid call tool response that contains two messages', function ():
 });
 
 it('returns a valid call tool response with validation error', function (): void {
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'tools/call',
@@ -109,7 +109,7 @@ it('returns a valid call tool response with validation error', function (): void
             'name' => 'say-hi-tool',
             'arguments' => ['name' => ''],
         ],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
@@ -143,7 +143,7 @@ it('returns a valid call tool response with validation error', function (): void
 });
 
 it('may resolve dependencies out of the container', function (): void {
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'tools/call',
@@ -151,7 +151,7 @@ it('may resolve dependencies out of the container', function (): void {
             'name' => 'current-time-tool',
             'arguments' => [],
         ],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],

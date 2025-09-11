@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp;
+namespace Laravel\Mcp\Exceptions;
 
 use Exception;
 

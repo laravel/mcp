@@ -10,7 +10,7 @@ use Tests\Fixtures\ReviewMyCodePrompt;
 use Tests\Fixtures\TellMeHiPrompt;
 
 it('returns a valid get prompt response', function (): void {
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'prompts/get',
@@ -18,7 +18,7 @@ it('returns a valid get prompt response', function (): void {
             'name' => 'review-my-code-prompt',
             'arguments' => [],
         ],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
@@ -55,7 +55,7 @@ it('returns a valid get prompt response', function (): void {
 });
 
 it('resolves the handle method from the IOC container', function (): void {
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'prompts/get',
@@ -63,7 +63,7 @@ it('resolves the handle method from the IOC container', function (): void {
             'name' => 'tell-me-hi-prompt',
             'arguments' => [],
         ],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
@@ -100,7 +100,7 @@ it('resolves the handle method from the IOC container', function (): void {
 });
 
 it('throws validation errors as regular json rpc errors', function (): void {
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'prompts/get',
@@ -108,7 +108,7 @@ it('throws validation errors as regular json rpc errors', function (): void {
             'name' => 'going-to-fail-prompt',
             'arguments' => [],
         ],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
@@ -129,6 +129,7 @@ it('throws validation errors as regular json rpc errors', function (): void {
 
     expect($response)->toBeInstanceOf(JsonRpcResponse::class);
     $payload = $response->toArray();
+
     expect($payload['id'])->toEqual(1)
         ->and($payload['error'])->toEqual([
             'code' => -32602,
@@ -137,14 +138,14 @@ it('throws validation errors as regular json rpc errors', function (): void {
 });
 
 it('throws exception when name parameter is missing', function (): void {
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'prompts/get',
         'params' => [
             'arguments' => [],
         ],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
@@ -168,7 +169,7 @@ it('throws exception when name parameter is missing', function (): void {
 });
 
 it('throws exception when prompt not found', function (): void {
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'prompts/get',
@@ -176,7 +177,7 @@ it('throws exception when prompt not found', function (): void {
             'name' => 'non-existent-prompt',
             'arguments' => [],
         ],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
@@ -200,7 +201,7 @@ it('throws exception when prompt not found', function (): void {
 });
 
 it('passes arguments to prompt handler', function (): void {
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'prompts/get',
@@ -208,7 +209,7 @@ it('passes arguments to prompt handler', function (): void {
             'name' => 'review-my-code-prompt',
             'arguments' => ['test_arg' => 'test_value'],
         ],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],

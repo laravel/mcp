@@ -43,7 +43,9 @@ class HttpTransport implements Transport
 
     public function run(): Response|StreamedResponse
     {
-        ($this->handler)($this->request->getContent());
+        if (is_callable($this->handler)) {
+            ($this->handler)($this->request->getContent());
+        }
 
         if ($this->stream instanceof Closure) {
             return response()->stream($this->stream, 200, $this->getHeaders());

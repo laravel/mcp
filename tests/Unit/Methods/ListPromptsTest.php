@@ -7,12 +7,12 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\ReviewMyCodePrompt;
 
 it('returns a valid list prompts response', function (): void {
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'list-prompts',
         'params' => [],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
@@ -49,12 +49,12 @@ it('returns a valid list prompts response', function (): void {
 });
 
 it('returns empty list when no prompts registered', function (): void {
-    $request = JsonRpcRequest::fromJson(json_encode([
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'list-prompts',
         'params' => [],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],

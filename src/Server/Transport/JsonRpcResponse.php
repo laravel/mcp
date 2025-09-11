@@ -41,7 +41,7 @@ class JsonRpcResponse implements Arrayable
     /**
      * @param  array<string, mixed>|null  $data
      */
-    public static function error(mixed $id, int $code, string $message, ?array $data = null): static
+    public static function error(string|int|null $id, int $code, string $message, ?array $data = null): static
     {
         $error = [
             'code' => $code,
@@ -53,7 +53,7 @@ class JsonRpcResponse implements Arrayable
         }
 
         return new static([
-            'id' => $id,
+            ...$id === null ? [] : ['id' => $id],
             'error' => $error,
         ]);
     }

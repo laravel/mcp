@@ -26,8 +26,6 @@ class ReadResource implements Method
             throw new ItemNotFoundException('Resource not found');
         }
 
-        assert($request->id !== null);
-
         return JsonRpcResponse::result(
             $request->id,
             $resource->handle()->toArray(),
