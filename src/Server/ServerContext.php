@@ -40,8 +40,7 @@ class ServerContext
             ->map(fn (Tool|string $toolClass) => is_string($toolClass)
                 ? Container::getInstance()->make($toolClass)
                 : $toolClass
-            )
-            ->filter(fn (Tool $tool): bool => $tool->shouldRegister());
+            );
     }
 
     /**

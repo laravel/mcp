@@ -145,12 +145,13 @@ abstract class Server
     public function start(): void
     {
         $this->boot();
+
         $this->transport->onReceive(fn (string $message) => $this->handle($message));
     }
 
     protected function boot(): void
     {
-        // Meant to be overridden by concrete servers
+        //
     }
 
     public function handle(string $rawMessage): void
