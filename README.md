@@ -32,7 +32,7 @@ The package will automatically register MCP servers defined in this file.
 First, create a new MCP server using the `mcp:server` Artisan command:
 
 ```bash
-php artisan make:mcp-server DemoServer
+php artisan make:mcp-server WeatherServer
 ```
 
 Next, create a tool for the MCP server:
@@ -41,11 +41,11 @@ Next, create a tool for the MCP server:
 php artisan make:mcp-tool CurrentWeatherTool
 ```
 
-This will create two files: `app/Mcp/Servers/DemoServer.php` and `app/Mcp/Tools/CurrentWeatherTool.php`.
+This will create two files: `app/Mcp/Servers/WeatherServer.php` and `app/Mcp/Tools/CurrentWeatherTool.php`.
 
 **Add the Tool to the Server**
 
-Open `app/Mcp/Servers/DemoServer.php` and add your new tool to the `$tools` property:
+Open `app/Mcp/Servers/WeatherServer.php` and add your new tool to the `$tools` property:
 
 ```php
 <?php
@@ -55,8 +55,10 @@ namespace App\Mcp\Servers;
 use App\Mcp\Tools\CurrentWeatherTool;
 use Laravel\Mcp\Server;
 
-class DemoServer extends Server
+class WeatherServer extends Server
 {
+    //
+
     public array $tools = [
         CurrentWeatherTool::class,
     ];
@@ -69,13 +71,13 @@ Next, register your server in `routes/ai.php`:
 use App\Mcp\Servers\DemoServer;
 use Laravel\Mcp\Facades\Mcp;
 
-Mcp::local('demo', DemoServer::class);
+Mcp::local('weather', WeatherServer::class);
 ```
 
 Finally, you can test it with the MCP Inspector tool:
 
 ```bash
-php artisan mcp:inspector demo
+php artisan mcp:inspector weather
 ```
 
 ## Creating Servers
@@ -83,7 +85,7 @@ php artisan mcp:inspector demo
 A server is the central point that handles communication and exposes MCP methods, like tools and resources. Create a server with the `make:mcp-server` Artisan command:
 
 ```bash
-php artisan make:mcp-server ExampleServer
+php artisan make:mcp-server WeatherExample
 ```
 
 ## Creating Tools
@@ -93,8 +95,10 @@ php artisan make:mcp-server ExampleServer
 Use the `mcp:tool` Artisan command to generate a tool class:
 
 ```bash
-php artisan make:mcp-tool ExampleTool
+php artisan make:mcp-tool WeatherTool
 ```
+
+To make a tool available to clients, you must register it in your server class in the `$tools` property.
 
 ### Tool Inputs
 
@@ -106,8 +110,8 @@ use Illuminate\JsonSchema\JsonSchema;
 public function schema(JsonSchema $schema): array
 {
     return [
-        'name' => $schema->string()
-            ->description('The name of the user')
+        'location' => $schema->string()
+            ->description('The location to get the weather for')
             ->required(),
     ];
 }
@@ -136,9 +140,9 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use Laravel\Mcp\Server\Tools\Annotations\Title;
 use Laravel\Mcp\Server\Tool;
 
-#[Title('A read-only tool')]
+#[Title('Weather Tool')]
 #[IsReadOnly]
-class ExampleTool extends Tool
+class WeatherTool extends Tool
 {
     // ...
 }
@@ -150,60 +154,66 @@ You may validate tool's request arguments in the `handle` method using Laravel's
 
 ```php
 use Laravel\Mcp\Request;
-use Laravel\Mcp\Server\Tools\ToolResult;
+use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Tools\Response;
 
-public function handle(Request $request): ToolResult
+public function handle(Request $request): Response
 {
-    $validated = $request->validate([
-        'name' => 'required|string|max:255',
-        'age' => 'nullable|integer|min:0',
+    $request->validate([
+        'location' => 'required|string|max:50',
     ]);
 
-    // Use $validated data...
+    $location = $request->string('location');
+    
+    return Response::text("The weather in {$location} is sunny.");
 }
 ```
 
-### Tool Results
+### Tool Responses
 
-The `handle` method of a tool must return an instance of `Laravel\Mcp\Server\Tools\ToolResult`. This class provides a few convenient methods for creating responses.
+The `handle` method of a tool must return an instance of `Laravel\Mcp\Response`. This class provides a few convenient methods for creating responses.
 
-#### Plain Text Result
+#### Plain Text
 
 For a simple text response, you can use the `text()` method:
 
 ```php
-$response = ToolResult::text('This is a test response.');
+$response = Response::text('This is a test response.');
 ```
 
-#### Error Result
+#### Errors
 
 To indicate that the tool execution resulted in an error, use the `error()` method:
 
 ```php
-$response = ToolResult::error('This is an error response.');
+$response = Response::error('This is an error response.');
 ```
 
-#### Result with Multiple Content Items
+#### Multiple Responses
 
-A tool result can contain multiple content items. The `items()` method allows you to construct a result from different content objects, like `TextContent`.
+If your tool returns multiple pieces of content, you can return an array of `Laravel\Mcp\Response` instances. Each response can contain different types of content, such as plain text or markdown:
 
 ```php
-use Laravel\Mcp\Server\Content\TextResource;
+use Laravel\Mcp\Response;
+use Laravel\Mcp\Request;
 
-$plainText = 'This is the plain text version.';
-$markdown = 'This is the **markdown** version.';
-
-$response = ToolResult::items(
-    new TextResource($plainText),
-    new TextResource($markdown)
-);
+public function handle(Request $request): Response
+{
+    $plainText = 'This is the plain text version.';
+    $markdown = 'This is the **markdown** version.';
+    
+    return [
+        Response::text($plainText),
+        Response::text($markdown),
+    ];
+}
 ```
 
-## Streaming Tool Responses
+## Streaming Responses
 
 For tools that send multiple updates or stream large amounts of data, you can return a generator from the `handle()` method. For web-based servers, this automatically opens an SSE stream and sends an event for each message the generator yields.
 
-Within your generator, you can yield any number of `Laravel\Mcp\Server\Tools\ToolNotification` instances to send intermediate updates to the client. When you're done, yield a single `Laravel\Mcp\Server\Tools\ToolResult` to complete the execution.
+Within your generator, you can yield any number of notifications to send intermediate updates to the client. When you're done, yield a single `Laravel\Mcp\Response` to complete the execution.
 
 This is particularly useful for long-running tasks or when you want to provide real-time feedback to the client, such as streaming tokens in a chat application:
 
@@ -213,9 +223,9 @@ This is particularly useful for long-running tasks or when you want to provide r
 namespace App\Mcp\Tools;
 
 use Generator;
-use Laravel\Mcp\Server\Content\Notification;
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\ToolResult;
 
 class ChatStreamingTool extends Tool
 {
@@ -224,10 +234,10 @@ class ChatStreamingTool extends Tool
         $tokens = $request->string('message')->explode(' ');
 
         foreach ($tokens as $token) {
-            yield new Notification('chat/token', ['token' => $token . ' ']);
+            yield Response::notificaton('chat/token', ['token' => $token . ' ']);
         }
 
-        yield ToolResult::text("Message streamed successfully.");
+        yield Response::text("Message streamed successfully.");
     }
 }
 ```
@@ -239,7 +249,7 @@ class ChatStreamingTool extends Tool
 Use the `make:mcp-resource` Artisan command to generate a resource class:
 
 ```bash
-php artisan make:mcp-resource ExampleResource
+php artisan make:mcp-resource WeatherGuidelinesResource
 ```
 
 To make a resource available to clients, you must register it in your server class in the `$resources` property.
@@ -251,7 +261,7 @@ To make a resource available to clients, you must register it in your server cla
 Use the `make:mcp-prompt` Artisan command to generate a prompt class:
 
 ```bash
-php artisan make:mcp-prompt ExamplePrompt
+php artisan make:mcp-prompt AskWeatherPrompt
 ```
 
 To make a prompt available to clients, you must register it in your server class in the `$prompts` property.
@@ -281,15 +291,16 @@ You may validate prompt's arguments in the `handle` method using Laravel's built
 
 ```php
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Prompts\PromptResult;
 
-public function handle(Request $request): PromptResult
+public function handle(Request $request): Response
 {
-    $validated = $request->validate([
-        'code' => 'required|string',
+    $request->validate([
+        'location' => 'required|string',
     ]);
 
-    // Use $validated data...
+    $location = $request->string('location');
 }
 ```
 
@@ -302,23 +313,23 @@ The easiest way to register MCP servers is by publishing the `routes/ai.php` fil
 To register a web-based MCP server that can be accessed via HTTP POST requests, you should use the `web` method:
 
 ```php
-use App\Mcp\Servers\ExampleServer;
+use App\Mcp\Servers\WeatherExample;
 use Laravel\Mcp\Facades\Mcp;
 
-Mcp::web('/mcp/demo', ExampleServer::class);
+Mcp::web('/mcp/weather', WeatherExample::class);
 ```
 
-This will make `ExampleServer` available at the `/mcp/demo` endpoint.
+This will make `WeatherExample` available at the `/mcp/weather` endpoint.
 
 ### Local Servers
 
 To register a local MCP server that can be run as an Artisan command:
 
 ```php
-use App\Mcp\Servers\ExampleServer;
+use App\Mcp\Servers\WeatherExample;
 use Laravel\Mcp\Facades\Mcp;
 
-Mcp::local('demo', ExampleServer::class);
+Mcp::local('demo', WeatherExample::class);
 ```
 
 This makes the server available via the `mcp:start` Artisan command:
@@ -342,10 +353,10 @@ Mcp::oauthRoutes();
 Then, apply the `auth:api` middleware to your server registration in `routes/ai.php`:
 
 ```php
-use App\Mcp\Servers\ExampleServer;
+use App\Mcp\Servers\WeatherExample;
 use Laravel\Mcp\Facades\Mcp;
 
-Mcp::web('/mcp/demo', ExampleServer::class)
+Mcp::web('/mcp/weather', WeatherExample::class)
     ->middleware('auth:api');
 ```
 
