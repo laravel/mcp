@@ -39,6 +39,22 @@ class Response
         return $this->content;
     }
 
+    /**
+     * @throws NotImplementedException
+     */
+    public function audio(): Content
+    {
+        throw NotImplementedException::forMethod(static::class, __METHOD__);
+    }
+
+    /**
+     * @throws NotImplementedException
+     */
+    public function image(): Content
+    {
+        throw NotImplementedException::forMethod(static::class, __METHOD__);
+    }
+
     public function isNotification(): bool
     {
         return $this->content instanceof Notification;
