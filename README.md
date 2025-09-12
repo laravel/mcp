@@ -123,7 +123,6 @@ You can add annotations to your tools to provide hints to the MCP client about t
 
 | Annotation         | Type    | Description                                                                                                                                          |
 | ------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `#[Title]`         | string  | A human-readable title for the tool.                                                                                                                 |
 | `#[IsReadOnly]`    | boolean | Indicates the tool does not modify its environment.                                                                                                  |
 | `#[IsDestructive]` | boolean | Indicates the tool may perform destructive updates. This is only meaningful when the tool is not read-only.                                          |
 | `#[IsIdempotent]`  | boolean | Indicates that calling the tool repeatedly with the same arguments has no additional effect. This is only meaningful when the tool is not read-only. |
@@ -140,11 +139,10 @@ use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use Laravel\Mcp\Server\Tools\Annotations\Title;
 use Laravel\Mcp\Server\Tool;
 
-#[Title('Weather Tool')]
 #[IsReadOnly]
 class WeatherTool extends Tool
 {
-    // ...
+    protected string $title = 'The Weather Tool';
 }
 ```
 

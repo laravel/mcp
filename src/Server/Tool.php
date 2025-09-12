@@ -16,6 +16,8 @@ use ReflectionClass;
  */
 abstract class Tool implements Arrayable
 {
+    protected string $title = '';
+
     protected string $description;
 
     public function name(): string
@@ -57,6 +59,7 @@ abstract class Tool implements Arrayable
 
         return [
             'name' => $this->name(),
+            ...$this->title !== '' ? ['title' => $this->title] : [],
             'description' => $this->description(),
             'inputSchema' => JsonSchema::object(
                 fn (JsonSchema $schema): array => $this->schema($schema),

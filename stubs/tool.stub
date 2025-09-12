@@ -5,12 +5,15 @@ namespace {{ namespace }};
 use Illuminate\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
-use Laravel\Mcp\Server\Tools\Annotations\Title;
 use Laravel\Mcp\Server\Tool;
 
-#[Title('{{ title }}')]
 class {{ class }} extends Tool
 {
+    /**
+     * The tool's title.
+     */
+    protected string $title = '{{ title }}';
+
     /**
      * The tool's description.
      */
