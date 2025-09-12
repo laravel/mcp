@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Foundation\Auth\User;
+use Illuminate\Support\Facades\Auth;
 use Laravel\Mcp\Request;
 
 it('may return all data', function (): void {
@@ -57,4 +59,20 @@ it('may be returned as array', function (): void {
         'age' => 30,
         'city' => 'Wonderland',
     ]);
+});
+
+it('may return the current logged in user', function (): void {
+    $user = new class extends User {};
+
+    Auth::setUser($user);
+
+    $request = new Request;
+
+    expect($request->user())->toBe($user);
+});
+
+it('may return null if no user is logged in', function (): void {
+    $request = new Request;
+
+    expect($request->user())->toBeNull();
 });

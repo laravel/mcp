@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Traits\InteractsWithData;
@@ -71,5 +73,12 @@ class Request implements Arrayable
     public function validate(array $rules, array $messages = [], array $attributes = []): array
     {
         return Validator::validate($this->all(), $rules, $messages, $attributes);
+    }
+
+    public function user(?string $guard = null): ?Authenticatable
+    {
+        $auth = Container::getInstance()->make('auth');
+
+        return call_user_func($auth->userResolver(), $guard);
     }
 }
