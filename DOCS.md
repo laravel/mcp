@@ -13,12 +13,14 @@
     - [Validating Tool Arguments](#validating-tool-arguments)
     - [Tool Dependency Injection](#tool-dependency-injection)
     - [Tool Annotations](#tool-annotations)
+    - [Conditional Tool Registration](#conditional-tool-registration)
     - [Tool Responses](#tool-responses)
 - [Creating Prompts](#creating-prompts)
     - [Prompt Name, Title, and Description](#prompt-name-title-and-description)
     - [Prompt Arguments](#prompt-arguments)
     - [Validating Prompt Arguments](#validating-prompt-arguments)
     - [Prompt Dependency Injection](#prompt-dependency-injection)
+    - [Conditional Prompt Registration](#conditional-prompt-registration)
     - [Prompt Responses](#prompt-responses)
 
 <a name="introduction"></a>
@@ -354,6 +356,55 @@ Available annotations include:
 | `#[IsIdempotent]`  | boolean | Indicates repeated calls with same arguments have no additional effect (when not read-only)   |
 | `#[IsOpenWorld]`   | boolean | Indicates the tool may interact with external entities                                        |
 
+<a name="conditional-tool-registration"></a>
+### Conditional Tool Registration
+
+You may conditionally register tools at runtime by implementing the `shouldRegister` method in your tool class. This method allows you to determine whether a tool should be available based on application state, configuration, or request parameters:
+
+```php
+<?php
+
+namespace App\Mcp\Tools;
+
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Tool;
+
+class CurrentWeatherTool extends Tool
+{
+    /**
+     * Determine if the tool should be registered.
+     */
+    public function shouldRegister(): bool
+    {
+        return config('features.weather_tools_enabled', false);
+    }
+}
+```
+
+The `shouldRegister` method can also accept the current `Request` instance, allowing you to make registration decisions based on request parameters:
+
+```php
+<?php
+
+namespace App\Mcp\Tools;
+
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Tool;
+
+class CurrentWeatherTool extends Tool
+{
+    /**
+     * Determine if the tool should be registered.
+     */
+    public function shouldRegister(Request $request): bool
+    {
+        return $request?->user()?->isSubscribed() ?? false;
+    }
+}
+```
+
+When a tool's `shouldRegister` method returns `false`, it will not appear in the list of available tools and cannot be invoked by AI clients.
+
 <a name="tool-responses"></a>
 ### Tool Responses
 
@@ -628,6 +679,55 @@ class DescribeWeatherPrompt extends Prompt
     }
 }
 ```
+
+<a name="conditional-prompt-registration"></a>
+### Conditional Prompt Registration
+
+You may conditionally register prompts at runtime by implementing the `shouldRegister` method in your prompt class. This method allows you to determine whether a prompt should be available based on application state, configuration, or request parameters:
+
+```php
+<?php
+
+namespace App\Mcp\Prompts;
+
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Prompt;
+
+class CurrentWeatherPrompt extends Prompt
+{
+    /**
+     * Determine if the prompt should be registered.
+     */
+    public function shouldRegister(): bool
+    {
+        return config('features.weather_prompts_enabled', false);
+    }
+}
+```
+
+The `shouldRegister` method can also accept the current `Request` instance, allowing you to make registration decisions based on request parameters:
+
+```php
+<?php
+
+namespace App\Mcp\Prompts;
+
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Prompt;
+
+class CurrentWeatherPrompt extends Prompt
+{
+    /**
+     * Determine if the prompt should be registered.
+     */
+    public function shouldRegister(Request $request): bool
+    {
+        return $request?->user()?->isSubscribed() ?? false;
+    }
+}
+```
+
+When a prompt's `shouldRegister` method returns `false`, it will not appear in the list of available prompts and cannot be invoked by AI clients.
 
 <a name="prompt-responses"></a>
 ### Prompt Responses
