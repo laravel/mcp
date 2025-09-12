@@ -99,7 +99,7 @@ it('can stream a tool response over http', function (): void {
 });
 
 it('can initialize a connection over stdio', function (): void {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+    $process = new Process(['vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(initializeMessage()));
 
     $process->run(function (string $type, string $output): void {
@@ -111,7 +111,7 @@ it('can initialize a connection over stdio', function (): void {
 });
 
 it('can list tools over stdio', function (): void {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+    $process = new Process(['vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(listToolsMessage()));
 
     $process->run();
@@ -122,7 +122,7 @@ it('can list tools over stdio', function (): void {
 });
 
 it('can call a tool over stdio', function (): void {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+    $process = new Process(['vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(callToolMessage()));
 
     $process->run();
@@ -133,7 +133,7 @@ it('can call a tool over stdio', function (): void {
 });
 
 it('can handle a ping over stdio', function (): void {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+    $process = new Process(['vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(pingMessage()));
 
     $process->run();
@@ -144,7 +144,7 @@ it('can handle a ping over stdio', function (): void {
 });
 
 it('can stream a tool response over stdio', function (): void {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+    $process = new Process(['vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(callStreamingToolMessage()));
 
     $process->run();
