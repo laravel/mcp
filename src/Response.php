@@ -5,15 +5,17 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Laravel\Mcp\Exceptions\NotImplementedException;
-use Laravel\Mcp\Server\Content\ErrorTextContent;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\TextContent;
 use Laravel\Mcp\Server\Contracts\Content;
 
 class Response
 {
-    protected function __construct(protected Content $content)
-    {
+    protected function __construct(
+        protected Content $content,
+        protected $isError = false,
+        protected $role = 'user',
+    ) {
         //
     }
 
@@ -32,7 +34,7 @@ class Response
 
     public static function error(string $text): static
     {
-        return new static(new ErrorTextContent($text));
+        return new static(new TextContent($text), true);
     }
 
     public function content(): Content
@@ -56,6 +58,11 @@ class Response
         throw NotImplementedException::forMethod(static::class, __METHOD__);
     }
 
+    public function asAssistant(): static
+    {
+        return new static($this->content, $this->isError, 'assistant');
+    }
+
     public function isNotification(): bool
     {
         return $this->content instanceof Notification;
@@ -63,6 +70,11 @@ class Response
 
     public function isError(): bool
     {
-        return $this->content instanceof ErrorTextContent;
+        return $this->isError;
+    }
+
+    public function role(): string
+    {
+        return $this->role;
     }
 }

@@ -79,7 +79,7 @@ class GetPrompt implements Method
         return fn (Collection $responses): array => [
             'description' => $prompt->description(),
             'messages' => $responses->map(fn (Response $response): array => [
-                'role' => 'user',
+                'role' => $response->role(),
                 'content' => $response->content()->toArray(),
             ])->all(),
         ];
