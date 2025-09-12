@@ -103,9 +103,8 @@ it('can initialize a connection over stdio', function (): void {
     $process->setInput(json_encode(initializeMessage()));
 
     $process->run(function (string $type, string $output): void {
-        var_dump($type, $output);
-        //        expect($type)->toEqual(Process::OUT);
-        //        expect(json_decode($output, true))->toEqual(expectedInitializeResponse());
+        expect($type)->toEqual(Process::OUT);
+        expect(json_decode($output, true))->toEqual(expectedInitializeResponse());
     });
     expect(true)->toBeTrue();
 });
