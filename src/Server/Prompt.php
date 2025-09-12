@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server;
 
 use Illuminate\Contracts\Support\Arrayable;
-use Laravel\Mcp\Server\Concerns\Readable;
+use Laravel\Mcp\Server\Concerns\Capable;
 use Laravel\Mcp\Server\Prompts\Argument;
 use Laravel\Mcp\Server\Prompts\Arguments;
 
@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Prompts\Arguments;
  */
 abstract class Prompt implements Arrayable
 {
-    use Readable;
+    use Capable;
 
     /**
      * @return array<int, Argument>

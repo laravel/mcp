@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server\Concerns;
 
 use Illuminate\Support\Str;
 
-trait Readable
+trait Capable
 {
     protected string $name = '';
 

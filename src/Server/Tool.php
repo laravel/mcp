@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\JsonSchema\JsonSchema;
-use Laravel\Mcp\Server\Concerns\Readable;
+use Laravel\Mcp\Server\Concerns\Capable;
 use Laravel\Mcp\Server\Contracts\Tools\Annotation;
 use ReflectionAttribute;
 use ReflectionClass;
@@ -16,7 +16,7 @@ use ReflectionClass;
  */
 abstract class Tool implements Arrayable
 {
-    use Readable;
+    use Capable;
 
     /**
      * @return array<string, mixed>

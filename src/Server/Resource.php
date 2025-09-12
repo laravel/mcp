@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
-use Laravel\Mcp\Server\Concerns\Readable;
+use Laravel\Mcp\Server\Concerns\Capable;
 use Laravel\Mcp\Server\Contracts\Resources\Content;
 use Laravel\Mcp\Server\Resources\ResourceResult;
 
@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\Resources\ResourceResult;
  */
 abstract class Resource implements Arrayable
 {
-    use Readable;
+    use Capable;
 
     protected string|Content $content;
 
