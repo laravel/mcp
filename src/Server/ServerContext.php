@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
+use Laravel\Mcp\Request;
 
 class ServerContext
 {
@@ -34,38 +35,36 @@ class ServerContext
     /**
      * @return Collection<int, Tool>
      */
-    public function tools(): Collection
+    public function tools(Request $request): Collection
     {
-        return collect($this->tools)
-            ->map(fn (Tool|string $toolClass) => is_string($toolClass)
-                ? Container::getInstance()->make($toolClass)
-                : $toolClass
-            );
+        return collect($this->tools)->map(fn (Tool|string $toolClass) => is_string($toolClass)
+            ? Container::getInstance()->make($toolClass)
+            : $toolClass
+        )->filter(fn (Tool $tool): bool => $tool->eligibleForRegistration($request));
     }
 
     /**
      * @return Collection<int, Resource>
      */
-    public function resources(): Collection
+    public function resources(Request $request): Collection
     {
-        return collect($this->resources)
-            ->map(
-                fn (Resource|string $resourceClass) => is_string($resourceClass)
-                    ? Container::getInstance()->make($resourceClass)
-                    : $resourceClass
-            );
+        return collect($this->resources)->map(
+            fn (Resource|string $resourceClass) => is_string($resourceClass)
+                ? Container::getInstance()->make($resourceClass)
+                : $resourceClass
+        )->filter(fn (Resource $tool): bool => $tool->eligibleForRegistration($request));
     }
 
     /**
      * @return Collection<int, Prompt>
      */
-    public function prompts(): Collection
+    public function prompts(Request $request): Collection
     {
         return collect($this->prompts)->map(
             fn ($promptClass) => is_string($promptClass)
                 ? Container::getInstance()->make($promptClass)
                 : $promptClass
-        );
+        )->filter(fn (Prompt $prompt): bool => $prompt->eligibleForRegistration($request));
     }
 
     public function perPage(?int $requestedPerPage = null): int

@@ -8,7 +8,6 @@ use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
-use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
@@ -28,29 +27,31 @@ class GetPrompt implements Method
      *
      * @throws JsonRpcException
      */
-    public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
+    public function handle(JsonRpcRequest $jsonRpcRequest, ServerContext $context): Generator|JsonRpcResponse
     {
-        if (is_null($request->get('name'))) {
+        if (is_null($jsonRpcRequest->get('name'))) {
             throw new JsonRpcException(
                 'Missing [name] parameter.',
                 -32601,
-                $request->id,
+                $jsonRpcRequest->id,
             );
         }
 
-        $prompt = $context->prompts()
+        $request = $jsonRpcRequest->toRequest();
+
+        $prompt = $context->prompts($request)
             ->first(
-                fn ($prompt): bool => $prompt->name() === $request->get('name'),
+                fn ($prompt): bool => $prompt->name() === $jsonRpcRequest->get('name'),
                 fn () => throw new JsonRpcException(
-                    "Prompt [{$request->get('name')}] not found.",
+                    "Prompt [{$jsonRpcRequest->get('name')}] not found.",
                     -32601,
-                    $request->id,
+                    $jsonRpcRequest->id,
                 ));
 
         try {
             // @phpstan-ignore-next-line
             $response = Container::getInstance()->call([$prompt, 'handle'], [
-                'request' => new Request($request->get('arguments', [])),
+                'request' => $request,
             ]);
         } catch (ValidationException $validationException) {
             $response = Response::error('Invalid params: '.ValidationMessages::from($validationException));
@@ -59,7 +60,7 @@ class GetPrompt implements Method
         foreach (is_iterable($response) ? $response : [$response] as $res) {
             if ($res->isError()) {
                 return JsonRpcResponse::error(
-                    id: $request->id,
+                    id: $jsonRpcRequest->id,
                     code: -32602,
                     message: $res->content()->text,
                 );
@@ -67,8 +68,8 @@ class GetPrompt implements Method
         }
 
         return is_iterable($response)
-            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($prompt))
-            : $this->toJsonRpcResponse($request, $response, $this->serializable($prompt));
+            ? $this->toJsonRpcStreamedResponse($jsonRpcRequest, $response, $this->serializable($prompt))
+            : $this->toJsonRpcResponse($jsonRpcRequest, $response, $this->serializable($prompt));
     }
 
     /**
@@ -79,7 +80,7 @@ class GetPrompt implements Method
         return fn (Collection $responses): array => [
             'description' => $prompt->description(),
             'messages' => $responses->map(fn (Response $response): array => [
-                'role' => $response->role(),
+                'role' => $response->role()->value,
                 'content' => $response->content()->toArray(),
             ])->all(),
         ];

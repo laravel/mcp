@@ -8,7 +8,6 @@ use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
-use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
@@ -27,30 +26,32 @@ class CallTool implements Method
      *
      * @throws JsonRpcException
      */
-    public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
+    public function handle(JsonRpcRequest $jsonRpcRequest, ServerContext $context): Generator|JsonRpcResponse
     {
+        $request = $jsonRpcRequest->toRequest();
+
         $tool = $context
-            ->tools()
+            ->tools($request)
             ->first(
-                fn ($tool): bool => $tool->name() === $request->params['name'],
+                fn ($tool): bool => $tool->name() === $jsonRpcRequest->params['name'],
                 fn () => throw new JsonRpcException(
-                    "Tool [{$request->params['name']}] not found.",
+                    "Tool [{$jsonRpcRequest->params['name']}] not found.",
                     -32601,
-                    $request->id,
+                    $jsonRpcRequest->id,
                 ));
 
         try {
             // @phpstan-ignore-next-line
             $response = Container::getInstance()->call([$tool, 'handle'], [
-                'request' => new Request($request->params['arguments']),
+                'request' => $request,
             ]);
         } catch (ValidationException $validationException) {
             $response = Response::error(ValidationMessages::from($validationException));
         }
 
         return is_iterable($response)
-            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable())
-            : $this->toJsonRpcResponse($request, $response, $this->serializable());
+            ? $this->toJsonRpcStreamedResponse($jsonRpcRequest, $response, $this->serializable())
+            : $this->toJsonRpcResponse($jsonRpcRequest, $response, $this->serializable());
     }
 
     /**

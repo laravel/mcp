@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\TextContent;
@@ -13,8 +14,8 @@ class Response
 {
     protected function __construct(
         protected Content $content,
-        protected $isError = false,
-        protected $role = 'user',
+        protected Role $role = Role::USER,
+        protected bool $isError = false,
     ) {
         //
     }
@@ -34,7 +35,7 @@ class Response
 
     public static function error(string $text): static
     {
-        return new static(new TextContent($text), true);
+        return new static(new TextContent($text), isError: true);
     }
 
     public function content(): Content
@@ -73,7 +74,7 @@ class Response
         return $this->isError;
     }
 
-    public function role(): string
+    public function role(): Role
     {
         return $this->role;
     }

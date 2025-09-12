@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Transport;
 
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 
 class JsonRpcRequest
@@ -55,5 +56,10 @@ class JsonRpcRequest
     public function get(string $key, mixed $default = null): mixed
     {
         return $this->params[$key] ?? $default;
+    }
+
+    public function toRequest(): Request
+    {
+        return new Request($this->params['arguments'] ?? []);
     }
 }

@@ -49,9 +49,9 @@ class Request implements Arrayable
         return $this->arguments[$key] ?? $default;
     }
 
-    public function get(string $key): mixed
+    public function get(string $key, mixed $default = null): mixed
     {
-        return $this->arguments[$key] ?? null;
+        return $this->data($key, $default);
     }
 
     /**

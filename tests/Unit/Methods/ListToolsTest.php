@@ -1,5 +1,6 @@
 <?php
 
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Methods\ListTools;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
@@ -265,4 +266,86 @@ it('respects per page when bigger than default', function (): void {
     $payload = $response->toArray();
     expect($payload['result']['tools'])->toHaveCount(8)
         ->and($payload['result'])->toHaveKey('nextCursor');
+});
+
+it('returns empty list when the single tool is not eligible for registration', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'list-tools',
+        'params' => [],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 5,
+        tools: [new class extends SayHiTool
+        {
+            public function shouldRegister(): bool
+            {
+                return false;
+            }
+        }],
+        resources: [],
+        prompts: [],
+    );
+
+    $listTools = new ListTools;
+
+    $response = $listTools->handle($request, $context);
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'tools' => [],
+        ]);
+});
+
+it('returns empty list when the single prompt is not eligible for registration via request', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'list-tools',
+        'params' => [
+            'arguments' => ['register_tools' => false],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 5,
+        tools: [new class extends SayHiTool
+        {
+            public function shouldRegister(Request $request): bool
+            {
+                return $request->get('register_tools', true);
+            }
+        }],
+        resources: [],
+        prompts: [],
+    );
+
+    $listTools = new ListTools;
+
+    $response = $listTools->handle($request, $context);
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'tools' => [],
+        ]);
 });
