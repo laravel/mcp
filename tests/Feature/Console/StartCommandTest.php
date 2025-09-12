@@ -102,11 +102,10 @@ it('can initialize a connection over stdio', function (): void {
     $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(initializeMessage()));
 
-    $process->run();
-
-    $output = json_decode($process->getOutput(), true);
-
-    expect($output)->toEqual(expectedInitializeResponse());
+    $process->run(function (string $type, string $output) {
+        expect($type)->toEqual(Process::OUT);
+        expect(json_decode($output, true))->toEqual(expectedInitializeResponse());
+    });
 });
 
 it('can list tools over stdio', function (): void {
