@@ -99,18 +99,18 @@ it('can stream a tool response over http', function (): void {
 });
 
 it('can initialize a connection over stdio', function (): void {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+    $process = new Process([PHP_BINARY, 'vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(initializeMessage()));
 
-    $process->run();
-
-    $output = json_decode($process->getOutput(), true);
-
-    expect($output)->toEqual(expectedInitializeResponse());
+    $process->run(function (string $type, string $output): void {
+        expect($type)->toEqual(Process::OUT);
+        expect(json_decode($output, true))->toEqual(expectedInitializeResponse());
+    });
+    expect(true)->toBeTrue();
 });
 
 it('can list tools over stdio', function (): void {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+    $process = new Process([PHP_BINARY, 'vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(listToolsMessage()));
 
     $process->run();
@@ -121,7 +121,7 @@ it('can list tools over stdio', function (): void {
 });
 
 it('can call a tool over stdio', function (): void {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+    $process = new Process([PHP_BINARY, 'vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(callToolMessage()));
 
     $process->run();
@@ -132,7 +132,7 @@ it('can call a tool over stdio', function (): void {
 });
 
 it('can handle a ping over stdio', function (): void {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+    $process = new Process([PHP_BINARY, 'vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(pingMessage()));
 
     $process->run();
@@ -143,7 +143,7 @@ it('can handle a ping over stdio', function (): void {
 });
 
 it('can stream a tool response over stdio', function (): void {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+    $process = new Process([PHP_BINARY, 'vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(callStreamingToolMessage()));
 
     $process->run();
