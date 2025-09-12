@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server;
 
 use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Concerns\Readable;
 use Laravel\Mcp\Server\Prompts\Argument;
 use Laravel\Mcp\Server\Prompts\Arguments;
 
@@ -14,7 +14,7 @@ use Laravel\Mcp\Server\Prompts\Arguments;
  */
 abstract class Prompt implements Arrayable
 {
-    protected string $description = '';
+    use Readable;
 
     /**
      * @return array<int, Argument>
@@ -24,21 +24,6 @@ abstract class Prompt implements Arrayable
         return [
             //
         ];
-    }
-
-    public function description(): string
-    {
-        return $this->description;
-    }
-
-    public function name(): string
-    {
-        return Str::kebab(class_basename($this));
-    }
-
-    public function title(): string
-    {
-        return Str::headline(class_basename($this));
     }
 
     /**

@@ -12,6 +12,12 @@ test('the default name is in kebab case', function (): void {
     expect($tool->name())->toBe('another-complex-tool-name');
 });
 
+test('the name may be tweaked', function (): void {
+    $tool = new CustomToolName;
+
+    expect($tool->name())->toBe('my_custom_tool_name');
+});
+
 it('returns no annotations by default', function (): void {
     $tool = new TestTool;
     expect($tool->annotations())->toEqual([]);
@@ -112,3 +118,8 @@ class KitchenSinkTool extends TestTool
 }
 
 class AnotherComplexToolName extends TestTool {}
+
+class CustomToolName extends TestTool
+{
+    protected string $name = 'my_custom_tool_name';
+}

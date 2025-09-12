@@ -10,11 +10,6 @@ use Laravel\Mcp\Server\Tool;
 class {{ class }} extends Tool
 {
     /**
-     * The tool's title.
-     */
-    protected string $title = '{{ title }}';
-
-    /**
      * The tool's description.
      */
     protected string $description = 'Get current weather information for a location';

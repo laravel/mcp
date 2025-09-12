@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\JsonSchema\JsonSchema;
-use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Concerns\Readable;
 use Laravel\Mcp\Server\Contracts\Tools\Annotation;
 use ReflectionAttribute;
 use ReflectionClass;
@@ -16,14 +16,7 @@ use ReflectionClass;
  */
 abstract class Tool implements Arrayable
 {
-    protected string $title = '';
-
-    protected string $description;
-
-    public function name(): string
-    {
-        return Str::kebab(class_basename($this));
-    }
+    use Readable;
 
     /**
      * @return array<string, mixed>
@@ -31,11 +24,6 @@ abstract class Tool implements Arrayable
     public function schema(JsonSchema $schema): array
     {
         return [];
-    }
-
-    public function description(): string
-    {
-        return $this->description;
     }
 
     /**
@@ -59,7 +47,7 @@ abstract class Tool implements Arrayable
 
         return [
             'name' => $this->name(),
-            ...$this->title !== '' ? ['title' => $this->title] : [],
+            'title' => $this->title(),
             'description' => $this->description(),
             'inputSchema' => JsonSchema::object(
                 fn (JsonSchema $schema): array => $this->schema($schema),
