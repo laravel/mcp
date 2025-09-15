@@ -4,3 +4,4 @@
 /phpunit.xml
 /.phpunit.cache
 .claude
+.DS_Store

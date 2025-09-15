@@ -51,7 +51,9 @@ class HttpTransport implements Transport
             return response()->stream($this->stream, 200, $this->getHeaders());
         }
 
-        $response = response($this->reply, 200, $this->getHeaders());
+        // Must be 202 - https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#sending-messages-to-the-server
+        $statusCode = $this->reply === null || $this->reply === '' || $this->reply === '0' ? 202 : 200;
+        $response = response($this->reply, $statusCode, $this->getHeaders());
 
         assert($response instanceof Response);
 
