@@ -8,7 +8,7 @@ class {{ class }} extends Resource
 {
     /**
      * The resource's description.
-     /*
+     */
     protected string $description = 'A description of what this resource contains.';
 
     /**
