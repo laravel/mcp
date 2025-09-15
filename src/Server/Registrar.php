@@ -147,12 +147,10 @@ class Registrar
             return [];
         }
 
-        /** @phpstan-ignore class.notFound */
         $current = \Laravel\Passport\Passport::$scopes ?? [];
 
         if (! array_key_exists('mcp:use', $current)) {
             $current['mcp:use'] = 'Use MCP server';
-            /** @phpstan-ignore class.notFound */
             \Laravel\Passport\Passport::tokensCan($current);
         }
 
