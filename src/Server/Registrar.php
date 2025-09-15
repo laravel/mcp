@@ -106,7 +106,7 @@ class Registrar
             'registration_endpoint' => url($oauthPrefix.'/register'),
             'response_types_supported' => ['code'],
             'code_challenge_methods_supported' => ['S256'],
-            'supported_scopes' => ['mcp:use'],
+            'supported_scopes' => ['mcp:use', 'claudeai'],
             'grant_types_supported' => ['authorization_code', 'refresh_token'],
         ]))->name('mcp.oauth.authorization-server');
 
@@ -130,7 +130,7 @@ class Registrar
                 'grant_types' => $client->grantTypes,
                 'response_types' => ['code'],
                 'redirect_uris' => $client->redirectUris,
-                'scope' => 'mcp:use',
+                'scope' => 'mcp:use claudeai',
                 'token_endpoint_auth_method' => 'none',
             ]);
         });
