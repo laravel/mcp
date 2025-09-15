@@ -8,7 +8,7 @@ use Laravel\Mcp\Server\Contracts\Transport;
 
 class ArrayTransport implements Transport
 {
-    public $handler = null;
+    public $handler;
 
     public array $sent = [];
 

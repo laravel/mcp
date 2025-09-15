@@ -5,45 +5,29 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server;
 
 use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Concerns\Capable;
 use Laravel\Mcp\Server\Prompts\Argument;
 use Laravel\Mcp\Server\Prompts\Arguments;
 
 /**
- * @implements Arrayable<string, mixed>
+ * @implements Arrayable<'name'|'description'|'title'|'arguments', string|array<int, array{name: string, description: string, required: bool}>>
  */
 abstract class Prompt implements Arrayable
 {
-    protected string $description;
+    use Capable;
 
-    public function arguments(): Arguments
+    /**
+     * @return array<int, Argument>
+     */
+    public function arguments(): array
     {
-        return new Arguments([
-            new Argument(
-                name: 'best_cheese',
-                description: 'The best cheese',
-                required: false,
-            ),
-        ]);
-    }
-
-    public function description(): string
-    {
-        return $this->description;
-    }
-
-    public function name(): string
-    {
-        return Str::kebab(class_basename($this));
-    }
-
-    public function title(): string
-    {
-        return Str::headline(class_basename($this));
+        return [
+            //
+        ];
     }
 
     /**
-     * Returned in ListPrompts
+     * @return array{name: string, title: string, description: string, arguments: array<int, array{name: string, description: string, required: bool}>}
      */
     public function toArray(): array
     {
@@ -51,7 +35,10 @@ abstract class Prompt implements Arrayable
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
-            'arguments' => $this->arguments()->toArray(),
+            'arguments' => array_map(
+                fn (Argument $argument): array => $argument->toArray(),
+                $this->arguments(),
+            ),
         ];
     }
 }

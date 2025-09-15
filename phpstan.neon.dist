@@ -1,8 +1,9 @@
 parameters:
   paths:
     - src
+    - routes
 
-  level: 6
+  level: 8
 
   ignoreErrors:
     - "#Unsafe usage of new static\\(\\)#"

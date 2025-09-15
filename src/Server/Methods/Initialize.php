@@ -43,6 +43,6 @@ class Initialize implements Method
             unset($initResult['instructions']);
         }
 
-        return JsonRpcResponse::create($request->id, $initResult);
+        return JsonRpcResponse::result($request->id, $initResult);
     }
 }

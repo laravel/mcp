@@ -4,29 +4,29 @@ use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\CustomMethodHandler;
 use Tests\Fixtures\ExampleServer;
 
-it('can handle an initialize message', function () {
+it('can handle an initialize message', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode(initializeMessage());
 
     ($transport->handler)($payload);
 
-    $response = json_decode($transport->sent[0], true);
+    $response = json_decode((string) $transport->sent[0], true);
 
     expect($response)->toEqual(expectedInitializeResponse());
 });
 
-it('can add a capability', function () {
+it('can add a capability', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
     $server->addCapability('customFeature.enabled', true);
     $server->addCapability('anotherFeature');
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode(initializeMessage());
 
@@ -34,7 +34,9 @@ it('can add a capability', function () {
 
     $jsonResponse = $transport->sent[0];
 
-    $expectedCapabilitiesJson = json_encode(array_merge((new ExampleServer)->capabilities, [
+    $capabilities = (fn (): array => $this->capabilities)->call($server);
+
+    $expectedCapabilitiesJson = json_encode(array_merge($capabilities, [
         'customFeature' => [
             'enabled' => true,
         ],
@@ -44,41 +46,41 @@ it('can add a capability', function () {
     $this->assertStringContainsString($expectedCapabilitiesJson, $jsonResponse);
 });
 
-it('can handle a list tools message', function () {
+it('can handle a list tools message', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode(listToolsMessage());
 
     ($transport->handler)($payload);
 
-    $response = json_decode($transport->sent[0], true);
+    $response = json_decode((string) $transport->sent[0], true);
 
     expect($response)->toEqual(expectedListToolsResponse());
 });
 
-it('can handle a call tool message', function () {
+it('can handle a call tool message', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode(callToolMessage());
 
     ($transport->handler)($payload);
 
-    $response = json_decode($transport->sent[0], true);
+    $response = json_decode((string) $transport->sent[0], true);
 
     expect($response)->toEqual(expectedCallToolResponse());
 });
 
-it('can handle a notification message', function () {
+it('can handle a notification message', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode([
         'jsonrpc' => '2.0',
@@ -90,11 +92,11 @@ it('can handle a notification message', function () {
     expect($transport->sent)->toHaveCount(0);
 });
 
-it('can handle an unknown method', function () {
+it('can handle an unknown method', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode([
         'jsonrpc' => '2.0',
@@ -105,23 +107,23 @@ it('can handle an unknown method', function () {
 
     ($transport->handler)($payload);
 
-    $response = json_decode($transport->sent[0], true);
+    $response = json_decode((string) $transport->sent[0], true);
 
     expect($response)->toEqual([
         'jsonrpc' => '2.0',
         'id' => 789,
         'error' => [
             'code' => -32601,
-            'message' => 'Method not found: unknown/method',
+            'message' => 'The method [unknown/method] was not found.',
         ],
     ]);
 });
 
-it('handles json decode errors', function () {
+it('handles json decode errors', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $invalidJsonPayload = '{"jsonrpc": "2.0", "id": 123, "method": "initialize", "params": {}';
 
@@ -129,23 +131,26 @@ it('handles json decode errors', function () {
     ($transport->handler)($invalidJsonPayload);
 
     expect($transport->sent)->toHaveCount(1);
-    $response = json_decode($transport->sent[0], true);
+    $response = json_decode((string) $transport->sent[0], true);
 
-    expect($response['jsonrpc'])->toEqual('2.0');
-    expect($response['id'])->toBeNull();
-    expect($response['error']['code'])->toEqual(-32700);
-    expect($response['error']['message'])->toEqual('Parse error');
+    expect($response)->toBe([
+        'jsonrpc' => '2.0',
+        'error' => [
+            'code' => -32700,
+            'message' => 'Parse error: Invalid JSON was received by the server.',
+        ],
+    ]);
 });
 
-it('can handle a custom method message', function () {
+it('can handle a custom method message', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
     $server->addMethod('custom/method', CustomMethodHandler::class);
 
-    $this->app->bind(CustomMethodHandler::class, fn () => new CustomMethodHandler('custom-dependency'));
+    $this->app->bind(CustomMethodHandler::class, fn (): \Tests\Fixtures\CustomMethodHandler => new CustomMethodHandler('custom-dependency'));
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode([
         'jsonrpc' => '2.0',
@@ -157,7 +162,7 @@ it('can handle a custom method message', function () {
     ($transport->handler)($payload);
 
     expect($transport->sent)->toHaveCount(1);
-    $response = json_decode($transport->sent[0], true);
+    $response = json_decode((string) $transport->sent[0], true);
 
     expect($response)->toEqual([
         'jsonrpc' => '2.0',
@@ -168,47 +173,47 @@ it('can handle a custom method message', function () {
     ]);
 });
 
-it('can handle a ping message', function () {
+it('can handle a ping message', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode(pingMessage());
 
     ($transport->handler)($payload);
 
-    $response = json_decode($transport->sent[0], true);
+    $response = json_decode((string) $transport->sent[0], true);
 
     expect($response)->toEqual(expectedPingResponse());
 });
 
-it('calls boot method on connect', function () {
+it('calls boot method on connect', function (): void {
     $transport = new ArrayTransport;
 
-    $server = new class extends \Laravel\Mcp\Server
+    $server = new class($transport) extends \Laravel\Mcp\Server
     {
         public function boot(): void
         {
             $this->bootCalled = true;
         }
     };
-    $server->connect($transport);
+    $server->start();
 
     expect($server->bootCalled)->toBeTrue('The boot() method was not called on connect.');
 });
 
-it('can handle a tool streaming multiple messages', function () {
+it('can handle a tool streaming multiple messages', function (): void {
     $transport = new ArrayTransport;
-    $server = new ExampleServer;
+    $server = new ExampleServer($transport);
 
-    $server->connect($transport);
+    $server->start();
 
     $payload = json_encode(callStreamingToolMessage());
 
     ($transport->handler)($payload);
 
-    $messages = array_map(fn ($msg) => json_decode($msg, true), $transport->sent);
+    $messages = array_map(fn ($msg): mixed => json_decode((string) $msg, true), $transport->sent);
 
     expect($messages)->toEqual(expectedStreamingToolResponse());
 });

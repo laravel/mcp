@@ -12,7 +12,7 @@ use Symfony\Component\Console\Input\InputOption;
     name: 'make:mcp-resource',
     description: 'Create a new MCP resource class'
 )]
-class ResourceMakeCommand extends GeneratorCommand
+class MakeResourceCommand extends GeneratorCommand
 {
     /**
      * @var string

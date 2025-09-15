@@ -6,25 +6,26 @@ namespace Laravel\Mcp\Console\Commands;
 
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
+use Illuminate\Support\Str;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
 
 #[AsCommand(
-    name: 'make:mcp-server',
-    description: 'Create a new MCP server class'
+    name: 'make:mcp-tool',
+    description: 'Create a new MCP tool class'
 )]
-class ServerMakeCommand extends GeneratorCommand
+class MakeToolCommand extends GeneratorCommand
 {
     /**
      * @var string
      */
-    protected $type = 'Server';
+    protected $type = 'Tool';
 
     protected function getStub(): string
     {
-        return file_exists($customPath = $this->laravel->basePath('stubs/server.stub'))
+        return file_exists($customPath = $this->laravel->basePath('stubs/tool.stub'))
             ? $customPath
-            : __DIR__.'/../../../stubs/server.stub';
+            : __DIR__.'/../../../stubs/tool.stub';
     }
 
     /**
@@ -32,7 +33,7 @@ class ServerMakeCommand extends GeneratorCommand
      */
     protected function getDefaultNamespace($rootNamespace): string
     {
-        return "{$rootNamespace}\\Mcp\\Servers";
+        return "{$rootNamespace}\\Mcp\\Tools";
     }
 
     /**
@@ -41,7 +42,7 @@ class ServerMakeCommand extends GeneratorCommand
     protected function getOptions(): array
     {
         return [
-            ['force', 'f', InputOption::VALUE_NONE, 'Create the class even if the server already exists'],
+            ['force', 'f', InputOption::VALUE_NONE, 'Create the class even if the tool already exists'],
         ];
     }
 
@@ -55,9 +56,12 @@ class ServerMakeCommand extends GeneratorCommand
         $stub = parent::buildClass($name);
 
         $className = class_basename($name);
+        $title = Str::headline($className);
 
-        $serverDisplayName = trim(preg_replace('/(?<!^)([A-Z])/', ' $1', $className));
-
-        return str_replace('{{ serverDisplayName }}', $serverDisplayName, $stub);
+        return str_replace(
+            '{{ title }}',
+            $title,
+            $stub,
+        );
     }
 }

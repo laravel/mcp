@@ -7,7 +7,7 @@ use Laravel\Mcp\Server;
 class ExampleServer extends Server
 {
     public array $tools = [
-        ExampleTool::class,
+        SayHiTool::class,
         StreamingTool::class,
     ];
 

@@ -33,7 +33,7 @@ class HttpTransport implements Transport
 
     public function send(string $message, ?string $sessionId = null): void
     {
-        if ($this->stream) {
+        if ($this->stream instanceof Closure) {
             $this->sendStreamMessage($message);
         }
 
@@ -43,16 +43,21 @@ class HttpTransport implements Transport
 
     public function run(): Response|StreamedResponse
     {
-        ($this->handler)($this->request->getContent());
+        if (is_callable($this->handler)) {
+            ($this->handler)($this->request->getContent());
+        }
 
-        if ($this->stream) {
+        if ($this->stream instanceof Closure) {
             return response()->stream($this->stream, 200, $this->getHeaders());
         }
 
         // Must be 202 - https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#sending-messages-to-the-server
         $statusCode = empty($this->reply) ? 202 : 200;
+        $response = response($this->reply, $statusCode, $this->getHeaders());
 
-        return response($this->reply, $statusCode, $this->getHeaders());
+        assert($response instanceof Response);
+
+        return $response;
     }
 
     public function sessionId(): ?string
@@ -69,7 +74,7 @@ class HttpTransport implements Transport
     {
         echo 'data: '.$message."\n\n";
 
-        if (ob_get_level()) {
+        if (ob_get_level() !== 0) {
             ob_flush();
         }
 
@@ -82,14 +87,14 @@ class HttpTransport implements Transport
     protected function getHeaders(): array
     {
         $headers = [
-            'Content-Type' => $this->stream ? 'text/event-stream' : 'application/json',
+            'Content-Type' => $this->stream instanceof Closure ? 'text/event-stream' : 'application/json',
         ];
 
-        if ($this->replySessionId) {
+        if ($this->replySessionId !== null) {
             $headers['Mcp-Session-Id'] = $this->replySessionId;
         }
 
-        if ($this->stream) {
+        if ($this->stream instanceof Closure) {
             $headers['X-Accel-Buffering'] = 'no';
         }
 

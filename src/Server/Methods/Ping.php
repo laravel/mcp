@@ -13,6 +13,6 @@ class Ping implements Method
 {
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
-        return JsonRpcResponse::create($request->id, []);
+        return JsonRpcResponse::result($request->id, []);
     }
 }

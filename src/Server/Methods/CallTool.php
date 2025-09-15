@@ -6,82 +6,62 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
 use Illuminate\Container\Container;
-use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Support\ItemNotFoundException;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
-use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\Exceptions\JsonRpcException;
+use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Server\Tools\ToolNotification;
-use Laravel\Mcp\Server\Tools\ToolResult;
-use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Laravel\Mcp\Support\ValidationMessages;
 
 class CallTool implements Method
 {
+    use InteractsWithResponses;
+
     /**
-     * @return JsonRpcResponse|Generator<JsonRpcNotification|JsonRpcResponse>
+     * @return JsonRpcResponse|Generator<JsonRpcResponse>
+     *
+     * @throws JsonRpcException
      */
-    public function handle(JsonRpcRequest $request, ServerContext $context)
+    public function handle(JsonRpcRequest $jsonRpcRequest, ServerContext $context): Generator|JsonRpcResponse
     {
-        try {
-            $tool = $context->tools()
-                ->firstOrFail(fn ($tool) => $tool->name() === $request->params['name']);
-        } catch (ItemNotFoundException $e) {
-            return JsonRpcResponse::create(
-                $request->id,
-                ToolResult::error('Tool not found')
-            );
-        }
+        $request = $jsonRpcRequest->toRequest();
+
+        $tool = $context
+            ->tools($request)
+            ->first(
+                fn ($tool): bool => $tool->name() === $jsonRpcRequest->params['name'],
+                fn () => throw new JsonRpcException(
+                    "Tool [{$jsonRpcRequest->params['name']}] not found.",
+                    -32601,
+                    $jsonRpcRequest->id,
+                ));
 
         try {
-            $result = Container::getInstance()->call([$tool, 'handle'], [
-                'request' => new Request(
-                    $request->params['arguments'],
-                ),
+            // @phpstan-ignore-next-line
+            $response = Container::getInstance()->call([$tool, 'handle'], [
+                'request' => $request,
             ]);
-        } catch (ValidationException $e) {
-            $result = ToolResult::error(ValidationMessages::from($e));
+        } catch (ValidationException $validationException) {
+            $response = Response::error(ValidationMessages::from($validationException));
         }
 
-        return $result instanceof Generator
-            ? $this->toStream($request, $result)
-            : $this->toResponse($request->id, $result);
+        return is_iterable($response)
+            ? $this->toJsonRpcStreamedResponse($jsonRpcRequest, $response, $this->serializable())
+            : $this->toJsonRpcResponse($jsonRpcRequest, $response, $this->serializable());
     }
 
     /**
-     * @param  array<string, mixed>|Arrayable<string, mixed>  $result
+     * @return callable(Collection<int, Response>): array{content: array<int, array<string, mixed>>, isError: bool}
      */
-    protected function toResponse(?int $id, array|Arrayable|string $result): JsonRpcResponse
+    protected function serializable(): callable
     {
-        if (is_string($result)) {
-            $result = ToolResult::text($result);
-        }
-
-        return JsonRpcResponse::create($id, $result);
-    }
-
-    protected function toStream(JsonRpcRequest $request, Generator $result): Generator
-    {
-        return (function () use ($result, $request) {
-            try {
-                foreach ($result as $response) {
-                    if ($response instanceof ToolNotification) {
-                        yield JsonRpcNotification::create(
-                            $response->getMethod(),
-                            $response
-                        );
-
-                        continue;
-                    }
-
-                    yield $this->toResponse($request->id, $response);
-                }
-            } catch (ValidationException $e) {
-                yield $this->toResponse($request->id, ToolResult::error($e->getMessage()));
-            }
-        })();
+        return fn (Collection $responses): array => [
+            'content' => $responses->map(fn (Response $response): array => $response->content()->toArray())->all(),
+            'isError' => $responses->contains(fn (Response $response): bool => $response->isError()),
+        ];
     }
 }

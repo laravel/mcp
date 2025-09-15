@@ -6,48 +6,45 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
-use Laravel\Mcp\Console\Commands\McpInspectorCommand;
-use Laravel\Mcp\Console\Commands\PromptMakeCommand;
-use Laravel\Mcp\Console\Commands\ResourceMakeCommand;
-use Laravel\Mcp\Console\Commands\ServerMakeCommand;
-use Laravel\Mcp\Console\Commands\StartServerCommand;
-use Laravel\Mcp\Console\Commands\ToolMakeCommand;
+use Laravel\Mcp\Console\Commands\InspectorCommand;
+use Laravel\Mcp\Console\Commands\MakePromptCommand;
+use Laravel\Mcp\Console\Commands\MakeResourceCommand;
+use Laravel\Mcp\Console\Commands\MakeServerCommand;
+use Laravel\Mcp\Console\Commands\MakeToolCommand;
+use Laravel\Mcp\Console\Commands\StartCommand;
 
 class McpServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton('mcp', fn () => new Registrar);
-
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                StartServerCommand::class,
-                ServerMakeCommand::class,
-                ToolMakeCommand::class,
-                PromptMakeCommand::class,
-                ResourceMakeCommand::class,
-                McpInspectorCommand::class,
-            ]);
-        }
+        $this->app->singleton(Registrar::class, fn (): Registrar => new Registrar);
     }
 
     public function boot(): void
     {
-        if ($this->app->runningInConsole()) {
-            $this->offerPublishing();
-        }
+        $this->registerRoutes();
 
-        $this->loadAiRoutes();
+        if ($this->app->runningInConsole()) {
+            $this->registerCommands();
+            $this->registerPublishing();
+        }
     }
 
-    protected function offerPublishing(): void
+    protected function registerPublishing(): void
     {
         $this->publishes([
             __DIR__.'/../../routes/ai.php' => base_path('routes/ai.php'),
         ], 'ai-routes');
+
+        $this->publishes([
+            __DIR__.'/../../stubs/prompt.stub' => base_path('stubs/prompt.stub'),
+            __DIR__.'/../../stubs/resource.stub' => base_path('stubs/resource.stub'),
+            __DIR__.'/../../stubs/server.stub' => base_path('stubs/server.stub'),
+            __DIR__.'/../../stubs/tool.stub' => base_path('stubs/tool.stub'),
+        ], 'mcp-stubs');
     }
 
-    protected function loadAiRoutes(): void
+    protected function registerRoutes(): void
     {
         $path = base_path('routes/ai.php');
 
@@ -60,5 +57,17 @@ class McpServiceProvider extends ServiceProvider
         }
 
         Route::group([], $path);
+    }
+
+    protected function registerCommands(): void
+    {
+        $this->commands([
+            StartCommand::class,
+            MakeServerCommand::class,
+            MakeToolCommand::class,
+            MakePromptCommand::class,
+            MakeResourceCommand::class,
+            InspectorCommand::class,
+        ]);
     }
 }

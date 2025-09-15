@@ -6,7 +6,6 @@ namespace Laravel\Mcp\Console\Commands;
 
 use Exception;
 use Illuminate\Console\Command;
-use Illuminate\Container\Container;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Arr;
 use Laravel\Mcp\Server\Registrar;
@@ -17,30 +16,28 @@ use Symfony\Component\Process\Process;
 
 #[AsCommand(
     name: 'mcp:inspector',
-    description: 'Open the MCP inspector tool to debug and test MCP servers'
+    description: 'Open the MCP Inspector tool to debug and test MCP Servers.'
 )]
-class McpInspectorCommand extends Command
+class InspectorCommand extends Command
 {
-    public function handle(): int
+    public function handle(Registrar $registrar): int
     {
         $handle = $this->argument('handle');
+
         if (! is_string($handle)) {
-            $this->error('Please pass a valid MCP server handle');
+            $this->components->error('Please pass a valid MCP server handle');
 
             return static::FAILURE;
         }
 
-        /** @var Registrar $registrar */
-        $registrar = Container::getInstance()->make('mcp');
-
-        $this->info("Starting the MCP Inspector for server: {$handle}");
+        $this->components->info("Starting the MCP Inspector for server [{$handle}]");
 
         $localServer = $registrar->getLocalServer($handle);
         $route = $registrar->getWebServer($handle);
 
         $servers = $registrar->servers();
         if (empty($servers)) {
-            $this->error('No MCP servers found. Please run `php artisan make:mcp-server [name]`');
+            $this->components->error('No MCP servers found. Please run `php artisan make:mcp-server [name]`');
 
             return static::FAILURE;
         }
@@ -56,27 +53,32 @@ class McpInspectorCommand extends Command
         }
 
         if (is_null($localServer) && is_null($route)) {
-            $this->error('Please pass a valid MCP handle or route: '.Arr::join(array_keys($servers), ', '));
+            $this->components->error('Please pass a valid MCP handle or route: '.Arr::join(array_keys($servers), ', '));
 
             return static::FAILURE;
         }
 
         $env = [];
 
-        if ($localServer) {
-            $currentDir = getcwd();
+        if ($localServer !== null) {
+            $artisanPath = base_path('artisan');
+
             $command = [
                 'npx',
                 '@modelcontextprotocol/inspector',
                 $this->phpBinary(),
-                $currentDir.'/artisan',
+                $artisanPath,
                 "mcp:start {$handle}",
             ];
 
             $guidance = [
                 'Transport Type' => 'STDIO',
                 'Command' => $this->phpBinary(),
-                'Arguments' => implode(' ', [base_path('/artisan'), 'mcp:start', $handle]),
+                'Arguments' => implode(' ', [
+                    str_replace('\\', '/', $artisanPath),
+                    'mcp:start',
+                    $handle,
+                ]),
             ];
         } else {
             $serverUrl = url($route->uri());
@@ -107,12 +109,14 @@ class McpInspectorCommand extends Command
             foreach ($guidance as $guidanceKey => $guidanceValue) {
                 $this->info(sprintf('%s => %s', $guidanceKey, $guidanceValue));
             }
+
             $this->newLine();
-            $process->mustRun(function ($type, $buffer) {
+
+            $process->mustRun(function (int|string $type, string $buffer): void {
                 echo $buffer;
             });
-        } catch (Exception $e) {
-            $this->error('Failed to start MCP Inspector: '.$e->getMessage());
+        } catch (Exception $exception) {
+            $this->components->error('Failed to start MCP Inspector: '.$exception->getMessage());
 
             return static::FAILURE;
         }

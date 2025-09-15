@@ -20,7 +20,7 @@ class Argument implements Arrayable
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{name: string, description: string, required: bool}
      */
     public function toArray(): array
     {

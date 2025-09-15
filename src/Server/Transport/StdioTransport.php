@@ -40,7 +40,9 @@ class StdioTransport implements Transport
                 continue;
             }
 
-            ($this->handler)($line);
+            if (is_callable($this->handler)) {
+                ($this->handler)($line);
+            }
         }
     }
 

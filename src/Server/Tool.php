@@ -6,7 +6,9 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\JsonSchema\JsonSchema;
-use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Concerns\Capable;
+use Laravel\Mcp\Server\Contracts\Tools\Annotation;
+use ReflectionAttribute;
 use ReflectionClass;
 
 /**
@@ -14,12 +16,7 @@ use ReflectionClass;
  */
 abstract class Tool implements Arrayable
 {
-    protected string $description;
-
-    public function name(): string
-    {
-        return Str::kebab(class_basename($this));
-    }
+    use Capable;
 
     /**
      * @return array<string, mixed>
@@ -29,11 +26,6 @@ abstract class Tool implements Arrayable
         return [];
     }
 
-    public function description(): string
-    {
-        return $this->description;
-    }
-
     /**
      * @return array<string, mixed>
      */
@@ -41,26 +33,26 @@ abstract class Tool implements Arrayable
     {
         $reflection = new ReflectionClass($this);
 
+        // @phpstan-ignore-next-line
         return collect($reflection->getAttributes())
-            ->map(fn ($attributeReflection) => $attributeReflection->newInstance())
-            ->mapWithKeys(fn ($attribute): array => [$attribute->key() => $attribute->value])
+            ->map(fn (ReflectionAttribute $attributeReflection): object => $attributeReflection->newInstance())
+            // @phpstan-ignore-next-line
+            ->mapWithKeys(fn (Annotation $attribute): array => [$attribute->key() => $attribute->value])
             ->all();
     }
 
     public function toArray(): array
     {
+        $annotations = $this->annotations();
+
         return [
             'name' => $this->name(),
+            'title' => $this->title(),
             'description' => $this->description(),
             'inputSchema' => JsonSchema::object(
-                fn (JsonSchema $schema) => $this->schema($schema),
+                fn (JsonSchema $schema): array => $this->schema($schema),
             )->toArray(),
-            'annotations' => $this->annotations() ?: (object) [],
+            'annotations' => $annotations === [] ? (object) [] : $annotations,
         ];
-    }
-
-    public function shouldRegister(): bool
-    {
-        return true;
     }
 }

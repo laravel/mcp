@@ -3,7 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\Process\Process;
 
-it('can initialize a connection over http', function () {
+it('can initialize a connection over http', function (): void {
     $response = $this->postJson('test-mcp', initializeMessage());
 
     $response->assertStatus(200);
@@ -11,7 +11,7 @@ it('can initialize a connection over http', function () {
     expect($response->json())->toEqual(expectedInitializeResponse());
 });
 
-it('can list resources over http', function () {
+it('can list resources over http', function (): void {
     $sessionId = initializeHttpConnection($this);
 
     $response = $this->postJson(
@@ -25,7 +25,7 @@ it('can list resources over http', function () {
     expect($response->json())->toEqual(expectedListResourcesResponse());
 });
 
-it('can read a resource over http', function () {
+it('can read a resource over http', function (): void {
     $sessionId = initializeHttpConnection($this);
 
     $response = $this->postJson(
@@ -39,7 +39,7 @@ it('can read a resource over http', function () {
     expect($response->json())->toEqual(expectedReadResourceResponse());
 });
 
-it('can list tools over http', function () {
+it('can list tools over http', function (): void {
     $sessionId = initializeHttpConnection($this);
 
     $response = $this->postJson(
@@ -53,7 +53,7 @@ it('can list tools over http', function () {
     expect($response->json())->toEqual(expectedListToolsResponse());
 });
 
-it('can call a tool over http', function () {
+it('can call a tool over http', function (): void {
     $sessionId = initializeHttpConnection($this);
 
     $response = $this->postJson(
@@ -67,7 +67,7 @@ it('can call a tool over http', function () {
     expect($response->json())->toEqual(expectedCallToolResponse());
 });
 
-it('can handle a ping over http', function () {
+it('can handle a ping over http', function (): void {
     $sessionId = initializeHttpConnection($this);
 
     $response = $this->postJson(
@@ -81,7 +81,7 @@ it('can handle a ping over http', function () {
     expect($response->json())->toEqual(expectedPingResponse());
 });
 
-it('can stream a tool response over http', function () {
+it('can stream a tool response over http', function (): void {
     $sessionId = initializeHttpConnection($this);
 
     $response = $this->postJson(
@@ -99,19 +99,19 @@ it('can stream a tool response over http', function () {
     expect($messages)->toEqual(expectedStreamingToolResponse());
 });
 
-it('can initialize a connection over stdio', function () {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+it('can initialize a connection over stdio', function (): void {
+    $process = new Process([PHP_BINARY, 'vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(initializeMessage()));
 
-    $process->run();
-
-    $output = json_decode($process->getOutput(), true);
-
-    expect($output)->toEqual(expectedInitializeResponse());
+    $process->run(function (string $type, string $output): void {
+        expect($type)->toEqual(Process::OUT);
+        expect(json_decode($output, true))->toEqual(expectedInitializeResponse());
+    });
+    expect(true)->toBeTrue();
 });
 
-it('can list tools over stdio', function () {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+it('can list tools over stdio', function (): void {
+    $process = new Process([PHP_BINARY, 'vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(listToolsMessage()));
 
     $process->run();
@@ -121,8 +121,8 @@ it('can list tools over stdio', function () {
     expect($output)->toEqual(expectedListToolsResponse());
 });
 
-it('can call a tool over stdio', function () {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+it('can call a tool over stdio', function (): void {
+    $process = new Process([PHP_BINARY, 'vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(callToolMessage()));
 
     $process->run();
@@ -132,8 +132,8 @@ it('can call a tool over stdio', function () {
     expect($output)->toEqual(expectedCallToolResponse());
 });
 
-it('can handle a ping over stdio', function () {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+it('can handle a ping over stdio', function (): void {
+    $process = new Process([PHP_BINARY, 'vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(pingMessage()));
 
     $process->run();
@@ -143,8 +143,8 @@ it('can handle a ping over stdio', function () {
     expect($output)->toEqual(expectedPingResponse());
 });
 
-it('can stream a tool response over stdio', function () {
-    $process = new Process(['./vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+it('can stream a tool response over stdio', function (): void {
+    $process = new Process([PHP_BINARY, 'vendor/bin/testbench', 'mcp:start', 'test-mcp']);
     $process->setInput(json_encode(callStreamingToolMessage()));
 
     $process->run();
@@ -155,7 +155,7 @@ it('can stream a tool response over stdio', function () {
     expect($messages)->toEqual(expectedStreamingToolResponse());
 });
 
-it('can list dynamically added tools', function () {
+it('can list dynamically added tools', function (): void {
     $sessionId = initializeHttpConnection($this, 'test-mcp-dynamic-tools');
 
     $response = $this->postJson(

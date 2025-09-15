@@ -5,24 +5,26 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Console\Commands;
 
 use Illuminate\Console\Command;
-use Illuminate\Container\Container;
+use Laravel\Mcp\Server\Registrar;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 
 #[AsCommand(
     name: 'mcp:start',
-    description: 'Start the MCP server for a given handle'
+    description: 'Start the MCP Server for a given handle.'
 )]
-class StartServerCommand extends Command
+class StartCommand extends Command
 {
-    public function handle(): int
+    public function handle(Registrar $registrar): int
     {
-        $registrar = Container::getInstance()->make('mcp');
         $handle = $this->argument('handle');
+
+        assert(is_string($handle));
+
         $server = $registrar->getLocalServer($handle);
 
-        if (! $server) {
-            $this->error("MCP server with handle '{$handle}' not found.");
+        if ($server === null) {
+            $this->components->error("MCP Server with name [{$handle}] not found. Did you register it using [Mcp::local()]?");
 
             return static::FAILURE;
         }

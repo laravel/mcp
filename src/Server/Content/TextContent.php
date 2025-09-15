@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Server\Tools;
+namespace Laravel\Mcp\Server\Content;
 
-use Laravel\Mcp\Server\Contracts\Tools\Content;
+use Laravel\Mcp\Server\Contracts\Content;
 
 class TextContent implements Content
 {

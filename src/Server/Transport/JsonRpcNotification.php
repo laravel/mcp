@@ -4,46 +4,38 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Transport;
 
-use Illuminate\Contracts\Support\Arrayable;
+use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 
 class JsonRpcNotification
 {
     /**
      * @param  array<string, mixed>  $params
      */
-    public function __construct(protected string $method, protected array $params)
-    {
+    public function __construct(
+        public string $method,
+        public array $params,
+    ) {
         //
     }
 
     /**
-     * @param  array<string, mixed>|Arrayable<string, mixed>  $params
+     * @param  array{jsonrpc?: mixed, method?: mixed, params?: array<string, mixed>}  $jsonRequest
+     *
+     * @throws JsonRpcException
      */
-    public static function create(string $method, array|Arrayable $params): JsonRpcNotification
+    public static function from(array $jsonRequest): static
     {
+        if (! isset($jsonRequest['jsonrpc']) || $jsonRequest['jsonrpc'] !== '2.0') {
+            throw new JsonRpcException('Invalid Request: Invalid JSON-RPC version. Must be "2.0".', -32600);
+        }
+
+        if (! isset($jsonRequest['method']) || ! is_string($jsonRequest['method'])) {
+            throw new JsonRpcException('Invalid Request: Invalid or missing "method". Must be a string.', -32600);
+        }
+
         return new static(
-            method: $method,
-            params: is_array($params) ? $params : $params->toArray(),
+            method: $jsonRequest['method'],
+            params: $jsonRequest['params'] ?? []
         );
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function toArray(): array
-    {
-        return [
-            'jsonrpc' => '2.0',
-            'method' => $this->method,
-            'params' => $this->params,
-        ];
-    }
-
-    /**
-     * Convert the notification response to a JSON string.
-     */
-    public function toJson(): string
-    {
-        return json_encode($this->toArray());
     }
 }

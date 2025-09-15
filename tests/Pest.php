@@ -4,8 +4,14 @@ use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
 
 uses(TestCase::class)
- // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Unit', 'Feature');
+    ->beforeEach(function (): void {
+        $directory = app_path('Mcp');
+        $filesystem = new Illuminate\Filesystem\Filesystem;
+
+        if ($filesystem->isDirectory($directory)) {
+            $filesystem->deleteDirectory($directory);
+        }
+    })->in('Unit', 'Feature');
 
 /*
 |--------------------------------------------------------------------------
@@ -18,9 +24,7 @@ uses(TestCase::class)
 |
 */
 
-expect()->extend('toBeOne', function () {
-    return $this->toBe(1);
-});
+expect()->extend('toBeOne', fn () => $this->toBe(1));
 
 /*
 |--------------------------------------------------------------------------
@@ -45,19 +49,31 @@ function initializeMessage(): array
 
 function expectedInitializeResponse(): array
 {
-    $server = new ExampleServer;
+    $server = new ExampleServer(new \Tests\Fixtures\ArrayTransport);
+
+    [
+        $capabilities,
+        $name,
+        $version,
+        $instructions,
+    ] = (fn (): array => [
+        $this->capabilities,
+        $this->name,
+        $this->version,
+        $this->instructions,
+    ])->call($server);
 
     return [
         'jsonrpc' => '2.0',
         'id' => 456,
         'result' => [
             'protocolVersion' => '2025-06-18',
-            'capabilities' => $server->capabilities,
+            'capabilities' => $capabilities,
             'serverInfo' => [
-                'name' => $server->name,
-                'version' => $server->version,
+                'name' => $name,
+                'version' => $version,
             ],
-            'instructions' => $server->instructions,
+            'instructions' => $instructions,
         ],
     ];
 }
@@ -79,7 +95,7 @@ function expectedListToolsResponse(): array
         'result' => [
             'tools' => [
                 [
-                    'name' => 'example-tool',
+                    'name' => 'say-hi-tool',
                     'description' => 'This tool says hello to a person',
                     'inputSchema' => [
                         'type' => 'object',
@@ -92,6 +108,7 @@ function expectedListToolsResponse(): array
                         'required' => ['name'],
                     ],
                     'annotations' => [],
+                    'title' => 'Say Hi Tool',
                 ],
                 [
                     'name' => 'streaming-tool',
@@ -107,6 +124,7 @@ function expectedListToolsResponse(): array
                         'required' => ['count'],
                     ],
                     'annotations' => [],
+                    'title' => 'Streaming Tool',
                 ],
             ],
         ],
@@ -162,7 +180,7 @@ function callToolMessage(): array
         'id' => 1,
         'method' => 'tools/call',
         'params' => [
-            'name' => 'example-tool',
+            'name' => 'say-hi-tool',
             'arguments' => [
                 'name' => 'John Doe',
             ],
@@ -279,26 +297,17 @@ function expectedStreamingToolResponse(int $count = 2): array
     return $messages;
 }
 
-function expectedDeletedSessionErrorResponse(string|int $requestId): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'id' => $requestId,
-        'error' => [
-            'code' => -32601,
-            'message' => 'Session not found or not initialized.',
-        ],
-    ];
-}
-
 function parseJsonRpcMessagesFromSseStream(string $content): array
 {
     $messages = [];
 
     foreach (explode("\n\n", trim($content)) as $event) {
-        if (empty($event)) {
+        $event = trim($event);
+
+        if ($event === '') {
             continue;
         }
+
         $messages[] = json_decode(trim(substr($event, strlen('data: '))), true);
     }
 
@@ -315,6 +324,7 @@ function parseJsonRpcMessagesFromStdout(string $output): array
         if (empty($jsonMessage)) {
             continue;
         }
+
         $messages[] = json_decode($jsonMessage, true);
     }
 

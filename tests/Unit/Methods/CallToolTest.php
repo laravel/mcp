@@ -5,18 +5,19 @@ use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\CurrentTimeTool;
-use Tests\Fixtures\ExampleTool;
+use Tests\Fixtures\SayHiTool;
+use Tests\Fixtures\SayHiTwiceTool;
 
-it('returns a valid call tool response', function () {
-    $request = JsonRpcRequest::fromJson(json_encode([
+it('returns a valid call tool response', function (): void {
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'tools/call',
         'params' => [
-            'name' => 'example-tool',
+            'name' => 'say-hi-tool',
             'arguments' => ['name' => 'John Doe'],
         ],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
@@ -26,7 +27,7 @@ it('returns a valid call tool response', function () {
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,
-        tools: [ExampleTool::class],
+        tools: [SayHiTool::class],
         resources: [],
         prompts: [],
     );
@@ -36,28 +37,31 @@ it('returns a valid call tool response', function () {
     $response = $method->handle($request, $context);
 
     expect($response)->toBeInstanceOf(JsonRpcResponse::class);
-    expect($response->id)->toEqual(1);
-    expect($response->result)->toEqual([
-        'content' => [
-            [
-                'type' => 'text',
-                'text' => 'Hello, John Doe!',
+
+    $payload = $response->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'content' => [
+                [
+                    'type' => 'text',
+                    'text' => 'Hello, John Doe!',
+                ],
             ],
-        ],
-        'isError' => false,
-    ]);
+            'isError' => false,
+        ]);
 });
 
-it('returns a valid call tool response with validation error', function () {
-    $request = JsonRpcRequest::fromJson(json_encode([
+it('returns a valid call tool response that contains two messages', function (): void {
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'tools/call',
         'params' => [
-            'name' => 'example-tool',
-            'arguments' => ['name' => ''],
+            'name' => 'say-hi-twice-tool',
+            'arguments' => ['name' => 'John Doe'],
         ],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
@@ -67,7 +71,55 @@ it('returns a valid call tool response with validation error', function () {
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,
-        tools: [ExampleTool::class],
+        tools: [SayHiTwiceTool::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $method = new CallTool;
+
+    $responses = $method->handle($request, $context);
+
+    [$response] = iterator_to_array($responses);
+
+    $payload = $response->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'content' => [
+                [
+                    'type' => 'text',
+                    'text' => 'Hello, John Doe!',
+                ],
+                [
+                    'type' => 'text',
+                    'text' => 'Hello again, John Doe!',
+                ],
+            ],
+            'isError' => false,
+        ]);
+});
+
+it('returns a valid call tool response with validation error', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'say-hi-tool',
+            'arguments' => ['name' => ''],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [SayHiTool::class],
         resources: [],
         prompts: [],
     );
@@ -76,9 +128,10 @@ it('returns a valid call tool response with validation error', function () {
 
     $response = $method->handle($request, $context);
 
-    expect($response)->toBeInstanceOf(JsonRpcResponse::class)
-        ->and($response->id)->toEqual(1)
-        ->and($response->result)->toEqual([
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
             'content' => [
                 [
                     'type' => 'text',
@@ -89,8 +142,8 @@ it('returns a valid call tool response with validation error', function () {
         ]);
 });
 
-it('may resolve dependencies out of the container', function () {
-    $request = JsonRpcRequest::fromJson(json_encode([
+it('may resolve dependencies out of the container', function (): void {
+    $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'tools/call',
@@ -98,7 +151,7 @@ it('may resolve dependencies out of the container', function () {
             'name' => 'current-time-tool',
             'arguments' => [],
         ],
-    ]));
+    ]);
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
@@ -117,10 +170,11 @@ it('may resolve dependencies out of the container', function () {
 
     $response = $method->handle($request, $context);
 
-    ['type' => $type, 'text' => $text] = $response->result['content'][0];
+    $payload = $response->toArray();
+    ['type' => $type, 'text' => $text] = $payload['result']['content'][0];
 
     expect($response)->toBeInstanceOf(JsonRpcResponse::class)
-        ->and($response->id)->toEqual(1)
+        ->and($payload['id'])->toEqual(1)
         ->and($type)->toEqual('text')
         ->and($text)->toContain('The current time is ');
 });

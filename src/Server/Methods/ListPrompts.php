@@ -12,14 +12,14 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
 class ListPrompts implements Method
 {
-    public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
+    public function handle(JsonRpcRequest $jsonRpcRequest, ServerContext $context): JsonRpcResponse
     {
         $paginator = new CursorPaginator(
-            items: $context->prompts(),
-            perPage: $context->perPage($request->get('per_page')),
-            cursor: $request->cursor(),
+            items: $context->prompts($jsonRpcRequest->toRequest()),
+            perPage: $context->perPage($jsonRpcRequest->get('per_page')),
+            cursor: $jsonRpcRequest->cursor(),
         );
 
-        return JsonRpcResponse::create($request->id, $paginator->paginate('prompts'));
+        return JsonRpcResponse::result($jsonRpcRequest->id, $paginator->paginate('prompts'));
     }
 }

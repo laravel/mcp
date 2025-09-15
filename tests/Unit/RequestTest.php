@@ -1,8 +1,10 @@
 <?php
 
+use Illuminate\Foundation\Auth\User;
+use Illuminate\Support\Facades\Auth;
 use Laravel\Mcp\Request;
 
-it('may return all data', function () {
+it('may return all data', function (): void {
     $request = new Request([
         'name' => 'Alice',
         'age' => 30,
@@ -16,7 +18,7 @@ it('may return all data', function () {
     ]);
 });
 
-it('may return specific set of keys', function () {
+it('may return specific set of keys', function (): void {
     $request = new Request([
         'name' => 'Alice',
         'age' => 30,
@@ -31,7 +33,7 @@ it('may return specific set of keys', function () {
     ]);
 });
 
-it('interact with data', function () {
+it('interact with data', function (): void {
     $request = new Request([
         'name' => 'Alice',
         'age' => 30,
@@ -45,7 +47,7 @@ it('interact with data', function () {
         ->and($request->integer('city'))->toBe(0);
 });
 
-it('may be returned as array', function () {
+it('may be returned as array', function (): void {
     $request = new Request([
         'name' => 'Alice',
         'age' => 30,
@@ -57,4 +59,20 @@ it('may be returned as array', function () {
         'age' => 30,
         'city' => 'Wonderland',
     ]);
+});
+
+it('may return the current logged in user', function (): void {
+    $user = new class extends User {};
+
+    Auth::setUser($user);
+
+    $request = new Request;
+
+    expect($request->user())->toBe($user);
+});
+
+it('may return null if no user is logged in', function (): void {
+    $request = new Request;
+
+    expect($request->user())->toBeNull();
 });

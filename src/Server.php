@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
-use Generator;
 use Illuminate\Container\Container;
-use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
@@ -22,25 +20,33 @@ use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Transport\JsonRpcProtocolError;
+use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use stdClass;
 use Throwable;
 
 abstract class Server
 {
+    protected string $name = 'Laravel MCP Server';
+
+    protected string $version = '0.0.1';
+
+    protected string $instructions = 'This MCP server lets AI agents interact with our Laravel application.';
+
     /**
      * @var array<int, string>
      */
-    public array $supportedProtocolVersion = [
+    protected array $supportedProtocolVersion = [
         '2025-06-18',
         '2025-03-26',
         '2024-11-05',
     ];
 
     /**
-     * @var array<string, mixed>
+     * @var array<string, array<string, bool>|stdClass|string>
      */
-    public array $capabilities = [
+    protected array $capabilities = [
         'tools' => [
             'listChanged' => false,
         ],
@@ -52,47 +58,24 @@ abstract class Server
         ],
     ];
 
-    public string $name = 'Laravel MCP Server';
-
-    public string $version = '0.0.1';
-
-    public string $instructions = 'This MCP server lets AI agents interact with our Laravel application.';
+    /**
+     * @var array<int, Tool|class-string<Tool>>
+     */
+    protected array $tools = [];
 
     /**
-     * @var array<int, string>
+     * @var array<int, Resource|class-string<Resource>>
      */
-    public array $tools = [];
+    protected array $resources = [];
 
     /**
-     * @var array<int, string>
+     * @var array<int, Prompt|class-string<Prompt>>
      */
-    public array $resources = [];
-
-    /**
-     * @var array<int, string>
-     */
-    public array $prompts = [];
+    protected array $prompts = [];
 
     public int $maxPaginationLength = 50;
 
     public int $defaultPaginationLength = 15;
-
-    protected Transport $transport;
-
-    /**
-     * @var array<int, Tool|string>
-     */
-    protected array $registeredTools = [];
-
-    /**
-     * @var array<int, Resource|string>
-     */
-    protected array $registeredResources = [];
-
-    /**
-     * @var array<int, Prompt|string>
-     */
-    protected array $registeredPrompts = [];
 
     /**
      * @var array<string, class-string<Method>>
@@ -107,26 +90,72 @@ abstract class Server
         'ping' => Ping::class,
     ];
 
-    public function __construct()
-    {
-        $this->registeredTools = $this->tools;
-        $this->registeredResources = $this->resources;
-        $this->registeredPrompts = $this->prompts;
+    public function __construct(
+        protected Transport $transport,
+    ) {
+        //
     }
 
-    public function connect(Transport $transport): void
+    /**
+     * Add or modify a server capability.
+     *
+     * Using dot notation like "feature.enabled" will create a nested capability array.
+     * Passing a single key like "anotherFeature" will register an empty object capability.
+     */
+    public function addCapability(string $key, bool $value = true): void
     {
-        $this->transport = $transport;
+        if (str_contains($key, '.')) {
+            [$root, $child] = explode('.', $key, 2);
+            $existing = $this->capabilities[$root] ?? [];
 
+            if (! is_array($existing)) {
+                $existing = [];
+            }
+
+            $existing[$child] = $value;
+            $this->capabilities[$root] = $existing;
+
+            return;
+        }
+
+        // Represent empty capability as an object when JSON encoded
+        $this->capabilities[$key] = (object) [];
+    }
+
+    /**
+     * Register a custom JSON-RPC method handler.
+     *
+     * @param  class-string<Method>  $handler
+     */
+    public function addMethod(string $method, string $handler): void
+    {
+        $this->methods[$method] = $handler;
+    }
+
+    /**
+     * Dynamically add a Tool to the server.
+     *
+     * @param  class-string<Tool>|Tool  $tool
+     */
+    public function addTool(string|Tool $tool): void
+    {
+        $this->tools[] = $tool;
+    }
+
+    public function start(): void
+    {
         $this->boot();
 
-        $this->transport->onReceive(fn ($message) => $this->handle($message));
+        $this->transport->onReceive(fn (string $message) => $this->handle($message));
+    }
+
+    protected function boot(): void
+    {
+        //
     }
 
     public function handle(string $rawMessage): void
     {
-        $sessionId = $this->transport->sessionId() ?? Str::uuid()->toString();
-
         $context = new ServerContext(
             supportedProtocolVersions: $this->supportedProtocolVersion,
             serverCapabilities: $this->capabilities,
@@ -135,114 +164,82 @@ abstract class Server
             instructions: $this->instructions,
             maxPaginationLength: $this->maxPaginationLength,
             defaultPaginationLength: $this->defaultPaginationLength,
-            tools: $this->registeredTools,
-            resources: $this->registeredResources,
-            prompts: $this->registeredPrompts,
+            tools: $this->tools,
+            resources: $this->resources,
+            prompts: $this->prompts,
         );
 
         try {
-            $request = JsonRpcRequest::fromJson($rawMessage);
+            $jsonRequest = json_decode($rawMessage, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', -32700, null);
+            }
+
+            $request = isset($jsonRequest['id'])
+                ? JsonRpcRequest::from($jsonRequest)
+                : JsonRpcNotification::from($jsonRequest);
+
+            if ($request instanceof JsonRpcNotification) {
+                return;
+            }
 
             if ($request->method === 'initialize') {
-                $this->handleInitializeMessage($sessionId, $request, $context);
+                $this->handleInitializeMessage($request, $context);
 
                 return;
             }
 
-            if (! isset($request->id)) {
-                return; // JSON-RPC notification, no response needed
-            }
-
             if (! isset($this->methods[$request->method])) {
-                throw new JsonRpcException("Method not found: {$request->method}", -32601, $request->id);
+                throw new JsonRpcException(
+                    "The method [{$request->method}] was not found.",
+                    -32601,
+                    $request->id,
+                );
             }
 
-            $this->handleMessage($sessionId, $request, $context);
+            $this->handleMessage($request, $context);
         } catch (JsonRpcException $e) {
-            $this->transport->send(json_encode($e->toJsonRpcError()));
+            $this->transport->send($e->toJsonRpcResponse()->toJson());
         } catch (Throwable $e) {
-            $jsonRpcError = (new JsonRpcProtocolError(
-                code: $e->getCode(),
-                message: $e->getMessage(),
-                requestId: $request->id ?? null,
-                data: null,
-            ))->toArray();
-            $this->transport->send(json_encode($jsonRpcError));
+            report($e);
+
+            $jsonRpcResponse = JsonRpcResponse::error(
+                $request->id ?? null,
+                -32603,
+                'Something went wrong while processing the request.',
+            );
+
+            $this->transport->send($jsonRpcResponse->toJson());
         }
-    }
-
-    public function boot(): void
-    {
-        // Override this method to dynamically add tools, custom methods, etc., when the server boots.
-    }
-
-    public function addTool(Tool|string $tool): static
-    {
-        if (! in_array($tool, $this->registeredTools, true)) {
-            $this->registeredTools[] = $tool;
-        }
-
-        return $this;
-    }
-
-    public function addResource(Resource|string $resource): static
-    {
-        if (! in_array($resource, $this->registeredResources, true)) {
-            $this->registeredResources[] = $resource;
-        }
-
-        return $this;
-    }
-
-    public function addPrompt(Prompt|string $prompt): static
-    {
-        if (! in_array($prompt, $this->registeredPrompts, true)) {
-            $this->registeredPrompts[] = $prompt;
-        }
-
-        return $this;
-    }
-
-    public function addMethod(string $name, string $handlerClass): static
-    {
-        $this->methods[$name] = $handlerClass;
-
-        return $this;
-    }
-
-    public function addCapability(string $key, mixed $value = null): static
-    {
-        $value = $value ?? (object) [];
-
-        data_set($this->capabilities, $key, $value);
-
-        return $this;
     }
 
     /**
      * @throws JsonRpcException
      */
-    protected function handleMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
+    protected function handleMessage(JsonRpcRequest $request, ServerContext $context): void
     {
         /** @var Method $methodClass */
-        $methodClass = Container::getInstance()->make($this->methods[$request->method]);
+        $methodClass = Container::getInstance()->make(
+            $this->methods[$request->method],
+        );
 
         $response = $methodClass->handle($request, $context);
 
-        if ($response instanceof Generator) {
-            $this->transport->stream(function () use ($response) {
-                foreach ($response as $message) {
-                    $this->transport->send($message->toJson());
-                }
-            });
+        if (! is_iterable($response)) {
+            $this->transport->send($response->toJson());
 
             return;
         }
 
-        $this->transport->send($response->toJson());
+        $this->transport->stream(function () use ($response): void {
+            foreach ($response as $message) {
+                $this->transport->send($message->toJson());
+            }
+        });
     }
 
-    protected function handleInitializeMessage(string $sessionId, JsonRpcRequest $request, ServerContext $context): void
+    protected function handleInitializeMessage(JsonRpcRequest $request, ServerContext $context): void
     {
         $response = (new Initialize)->handle($request, $context);
 

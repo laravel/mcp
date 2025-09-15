@@ -18,8 +18,11 @@ use Laravel\Mcp\Server\Registrar;
  */
 class Mcp extends Facade
 {
+    /**
+     * @return class-string<Registrar>
+     */
     protected static function getFacadeAccessor(): string
     {
-        return 'mcp';
+        return Registrar::class;
     }
 }

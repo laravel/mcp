@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Transport;
 
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 
 class JsonRpcRequest
@@ -12,39 +13,38 @@ class JsonRpcRequest
      * @param  array<string, mixed>  $params
      */
     public function __construct(
-        public ?int $id,
+        public int|string $id,
         public string $method,
         public array $params,
     ) {
         //
     }
 
-    public static function fromJson(string $jsonString): static
+    /**
+     * @param  array{id: mixed, jsonrpc?: mixed, method?: mixed, params?: array<string, mixed>}  $jsonRequest
+     *
+     * @throws JsonRpcException
+     */
+    public static function from(array $jsonRequest): static
     {
-        $data = json_decode($jsonString, true);
+        $requestId = $jsonRequest['id'];
 
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new JsonRpcException('Parse error', -32700, null);
+        if (! is_int($jsonRequest['id']) && ! is_string($jsonRequest['id'])) {
+            throw new JsonRpcException('Invalid Request: The [id] member must be a string, number.', -32600, $requestId);
         }
 
-        $requestId = $data['id'] ?? null;
-
-        if (! isset($data['jsonrpc']) || $data['jsonrpc'] !== '2.0') {
-            throw new JsonRpcException('Invalid Request: Invalid JSON-RPC version. Must be "2.0".', -32600, $requestId);
+        if (! isset($jsonRequest['jsonrpc']) || $jsonRequest['jsonrpc'] !== '2.0') {
+            throw new JsonRpcException('Invalid Request: The [jsonrpc] member must be exactly [2.0].', -32600, $requestId);
         }
 
-        if (array_key_exists('id', $data) && $data['id'] !== null && ! is_int($data['id'])) {
-            throw new JsonRpcException('Invalid params: "id" must be an integer or null if present.', -32602, $requestId);
-        }
-
-        if (! isset($data['method']) || ! is_string($data['method'])) {
-            throw new JsonRpcException('Invalid Request: Invalid or missing "method". Must be a string.', -32600, $requestId);
+        if (! isset($jsonRequest['method']) || ! is_string($jsonRequest['method'])) {
+            throw new JsonRpcException('Invalid Request: The [method] member is required and must be a string.', -32600, $requestId);
         }
 
         return new static(
             id: $requestId,
-            method: $data['method'],
-            params: $data['params'] ?? []
+            method: $jsonRequest['method'],
+            params: $jsonRequest['params'] ?? []
         );
     }
 
@@ -56,5 +56,10 @@ class JsonRpcRequest
     public function get(string $key, mixed $default = null): mixed
     {
         return $this->params[$key] ?? $default;
+    }
+
+    public function toRequest(): Request
+    {
+        return new Request($this->params['arguments'] ?? []);
     }
 }

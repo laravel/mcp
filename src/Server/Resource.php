@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Concerns\Capable;
 use Laravel\Mcp\Server\Contracts\Resources\Content;
 use Laravel\Mcp\Server\Resources\ResourceResult;
 
@@ -14,16 +15,11 @@ use Laravel\Mcp\Server\Resources\ResourceResult;
  */
 abstract class Resource implements Arrayable
 {
-    protected string $description = '';
+    use Capable;
 
     protected string|Content $content;
 
     abstract public function read(): string|Content;
-
-    public function description(): string
-    {
-        return $this->description;
-    }
 
     public function handle(): ResourceResult
     {
@@ -41,7 +37,7 @@ abstract class Resource implements Arrayable
 
     protected function isBinary(string $content): bool
     {
-        return strpos($content, "\0") !== false;
+        return str_contains($content, "\0");
     }
 
     protected function content(): string|Content
@@ -51,16 +47,6 @@ abstract class Resource implements Arrayable
         }
 
         return $this->content;
-    }
-
-    public function name(): string
-    {
-        return Str::kebab(class_basename($this));
-    }
-
-    public function title(): string
-    {
-        return Str::headline(class_basename($this));
     }
 
     public function uri(): string

@@ -6,7 +6,7 @@ use Illuminate\Support\ItemNotFoundException;
 use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 
-it('returns a valid resource result', function () {
+it('returns a valid resource result', function (): void {
     $resource = $this->makeResource('resource-content');
     $readResource = new ReadResource;
     $context = $this->getServerContext();
@@ -26,7 +26,7 @@ it('returns a valid resource result', function () {
         ],
     ], $resourceResult);
 });
-it('returns a valid resource result for blob resources', function () {
+it('returns a valid resource result for blob resources', function (): void {
     $resource = $this->makeBinaryResource(__DIR__.'/../../Fixtures/binary.png');
     $readResource = new ReadResource;
     $context = $this->getServerContext();
@@ -46,7 +46,7 @@ it('returns a valid resource result for blob resources', function () {
         ],
     ], $resourceResult);
 });
-it('throws exception when uri is missing', function () {
+it('throws exception when uri is missing', function (): void {
     $this->expectException(InvalidArgumentException::class);
     $this->expectExceptionMessage('Missing required parameter: uri');
 
@@ -61,7 +61,7 @@ it('throws exception when uri is missing', function () {
 
     $readResource->handle($jsonRpcRequest, $context);
 });
-it('throws exception when resource is not found', function () {
+it('throws exception when resource is not found', function (): void {
     $this->expectException(ItemNotFoundException::class);
 
     $readResource = new ReadResource;

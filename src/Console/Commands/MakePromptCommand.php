@@ -12,7 +12,7 @@ use Symfony\Component\Console\Input\InputOption;
     name: 'make:mcp-prompt',
     description: 'Create a new MCP prompt class'
 )]
-class PromptMakeCommand extends GeneratorCommand
+class MakePromptCommand extends GeneratorCommand
 {
     /**
      * @var string

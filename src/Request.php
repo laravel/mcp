@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Traits\InteractsWithData;
@@ -26,8 +28,6 @@ class Request implements Arrayable
     }
 
     /**
-     * Retrieve all data from the instance.
-     *
      * @param  array<array-key, string>|array-key|null  $keys
      * @return array<string, mixed>
      */
@@ -40,10 +40,7 @@ class Request implements Arrayable
         return array_intersect_key($this->data(), array_flip(is_array($keys) ? $keys : func_get_args()));
     }
 
-    /**
-     * Retrieve data from the instance.
-     */
-    protected function data(mixed $key = null, mixed $default = null)
+    protected function data(mixed $key = null, mixed $default = null): mixed
     {
         if (is_null($key)) {
             return $this->arguments;
@@ -52,12 +49,9 @@ class Request implements Arrayable
         return $this->arguments[$key] ?? $default;
     }
 
-    /**
-     * Get an argument by key.
-     */
-    public function get(string $key): mixed
+    public function get(string $key, mixed $default = null): mixed
     {
-        return $this->arguments[$key] ?? null;
+        return $this->data($key, $default);
     }
 
     /**
@@ -69,8 +63,6 @@ class Request implements Arrayable
     }
 
     /**
-     * Validate the request's arguments against the given rules.
-     *
      * @param  array<string, mixed>  $rules
      * @param  array<string, mixed>  $messages
      * @param  array<string, mixed>  $attributes
@@ -81,5 +73,12 @@ class Request implements Arrayable
     public function validate(array $rules, array $messages = [], array $attributes = []): array
     {
         return Validator::validate($this->all(), $rules, $messages, $attributes);
+    }
+
+    public function user(?string $guard = null): ?Authenticatable
+    {
+        $auth = Container::getInstance()->make('auth');
+
+        return call_user_func($auth->userResolver(), $guard);
     }
 }

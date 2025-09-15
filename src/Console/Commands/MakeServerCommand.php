@@ -6,26 +6,25 @@ namespace Laravel\Mcp\Console\Commands;
 
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Contracts\Filesystem\FileNotFoundException;
-use Illuminate\Support\Str;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
 
 #[AsCommand(
-    name: 'make:mcp-tool',
-    description: 'Create a new MCP tool class'
+    name: 'make:mcp-server',
+    description: 'Create a new MCP server class'
 )]
-class ToolMakeCommand extends GeneratorCommand
+class MakeServerCommand extends GeneratorCommand
 {
     /**
      * @var string
      */
-    protected $type = 'Tool';
+    protected $type = 'Server';
 
     protected function getStub(): string
     {
-        return file_exists($customPath = $this->laravel->basePath('stubs/tool.stub'))
+        return file_exists($customPath = $this->laravel->basePath('stubs/server.stub'))
             ? $customPath
-            : __DIR__.'/../../../stubs/tool.stub';
+            : __DIR__.'/../../../stubs/server.stub';
     }
 
     /**
@@ -33,7 +32,7 @@ class ToolMakeCommand extends GeneratorCommand
      */
     protected function getDefaultNamespace($rootNamespace): string
     {
-        return "{$rootNamespace}\\Mcp\\Tools";
+        return "{$rootNamespace}\\Mcp\\Servers";
     }
 
     /**
@@ -42,7 +41,7 @@ class ToolMakeCommand extends GeneratorCommand
     protected function getOptions(): array
     {
         return [
-            ['force', 'f', InputOption::VALUE_NONE, 'Create the class even if the tool already exists'],
+            ['force', 'f', InputOption::VALUE_NONE, 'Create the class even if the server already exists'],
         ];
     }
 
@@ -56,12 +55,9 @@ class ToolMakeCommand extends GeneratorCommand
         $stub = parent::buildClass($name);
 
         $className = class_basename($name);
-        $title = Str::headline($className);
 
-        return str_replace(
-            '{{ title }}',
-            $title,
-            $stub,
-        );
+        $serverDisplayName = trim((string) preg_replace('/(?<!^)([A-Z])/', ' $1', $className));
+
+        return str_replace('{{ serverDisplayName }}', $serverDisplayName, $stub);
     }
 }
