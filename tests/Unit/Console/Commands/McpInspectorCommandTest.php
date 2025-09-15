@@ -53,6 +53,8 @@ it('fails with invalid handle', function (): void {
         ->with('invalid')
         ->andReturn(null);
 
+    $this->registrar->shouldReceive('servers')->andReturn(['demo' => 'Demo Server', 'weather' => 'Weather Server']);
+
     $this->artisan('mcp:inspector', ['handle' => 'invalid'])
         ->expectsOutputToContain('Starting the MCP Inspector for server [invalid].')
         ->expectsOutputToContain('MCP Server with name [invalid] not found.')

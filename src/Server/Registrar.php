@@ -46,6 +46,8 @@ class Registrar
                 AddWwwAuthenticateHeader::class,
             ]);
 
+        assert($route instanceof Route);
+
         $this->httpServers[$route->uri()] = $route;
 
         return $route;
@@ -66,7 +68,7 @@ class Registrar
 
     public function routeName(string $path): string
     {
-        return 'mcp-server.'.Str::kebab(Str::replace('/', '-', $path));
+        return 'mcp-server.'.Str::kebab(str_replace('/', '-', $path));
     }
 
     public function getLocalServer(string $handle): ?callable
