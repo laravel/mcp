@@ -97,16 +97,17 @@ class Registrar
         Router::get('/.well-known/oauth-protected-resource', fn () => response()->json([
             'resource' => url('/'),
             'authorization_servers' => [route('mcp.oauth.authorization-server')],
+            'scopes_supported' => ['mcp:use'],
         ]))->name('mcp.oauth.protected-resource');
 
         Router::get('/.well-known/oauth-authorization-server', fn () => response()->json([
             'issuer' => url('/'),
-            'authorization_endpoint' => url($oauthPrefix.'/authorize'),
-            'token_endpoint' => url($oauthPrefix.'/token'),
+            'authorization_endpoint' => route('passport.authorizations.authorize'),
+            'token_endpoint' => route('passport.token'),
             'registration_endpoint' => url($oauthPrefix.'/register'),
             'response_types_supported' => ['code'],
             'code_challenge_methods_supported' => ['S256'],
-            'supported_scopes' => ['mcp:use', 'claudeai'],
+            'scopes_supported' => ['mcp:use'],
             'grant_types_supported' => ['authorization_code', 'refresh_token'],
         ]))->name('mcp.oauth.authorization-server');
 
@@ -130,7 +131,7 @@ class Registrar
                 'grant_types' => $client->grantTypes,
                 'response_types' => ['code'],
                 'redirect_uris' => $client->redirectUris,
-                'scope' => 'mcp:use claudeai',
+                'scope' => 'mcp:use',
                 'token_endpoint_auth_method' => 'none',
             ]);
         });
