@@ -158,18 +158,7 @@ abstract class Server
 
     public function handle(string $rawMessage): void
     {
-        $context = new ServerContext(
-            supportedProtocolVersions: $this->supportedProtocolVersion,
-            serverCapabilities: $this->capabilities,
-            serverName: $this->name,
-            serverVersion: $this->version,
-            instructions: $this->instructions,
-            maxPaginationLength: $this->maxPaginationLength,
-            defaultPaginationLength: $this->defaultPaginationLength,
-            tools: $this->tools,
-            resources: $this->resources,
-            prompts: $this->prompts,
-        );
+        $context = $this->createContext();
 
         try {
             $jsonRequest = json_decode($rawMessage, true);
@@ -223,6 +212,7 @@ abstract class Server
     public static function tool(Tool|string $class, array $arguments = []): TestResponse
     {
         $container = Container::getInstance();
+
         $server = $container->make(static::class, [
             'transport' => new FakeTransporter,
         ]);
@@ -230,15 +220,12 @@ abstract class Server
         $tool = is_string($class) ? $container->make($class) : $class;
 
         /** @var Method $methodClass */
-        $methodClass = Container::getInstance()->make(CallTool::class);
+        $methodClass = $container->make(CallTool::class);
 
         $response = $methodClass->handle(new JsonRpcRequest(
             uniqid(),
             'tools/call',
-            [
-                'name' => $tool->name(),
-                'arguments' => $arguments,
-            ],
+            ['name' => $tool->name(), 'arguments' => $arguments],
         ), $server->createContext());
 
         return new TestResponse($tool, $response);
