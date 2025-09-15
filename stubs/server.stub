@@ -27,7 +27,7 @@ class {{ class }} extends Server
      * @var array<int, class-string<\Laravel\Mcp\Server\Tool>>
      */
     protected array $tools = [
-        // ExampleTool::class,
+        //
     ];
 
     /**
@@ -36,7 +36,7 @@ class {{ class }} extends Server
      * @var array<int, class-string<\Laravel\Mcp\Server\Resource>>
      */
     protected array $resources = [
-        // ExampleResource::class,
+        //
     ];
 
     /**
@@ -45,6 +45,6 @@ class {{ class }} extends Server
      * @var array<int, class-string<\Laravel\Mcp\Server\Prompt>>
      */
     protected array $prompts = [
-        // ExamplePrompt::class,
+        //
     ];
 }
