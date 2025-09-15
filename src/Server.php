@@ -19,7 +19,9 @@ use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Testing\TestResponse;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
@@ -212,6 +214,50 @@ abstract class Server
 
             $this->transport->send($jsonRpcResponse->toJson());
         }
+    }
+
+    /**
+     * @param  Tool|class-string<Tool>  $class
+     * @param  array<string, mixed>  $arguments
+     */
+    public static function tool(Tool|string $class, array $arguments = []): TestResponse
+    {
+        $container = Container::getInstance();
+        $server = $container->make(static::class, [
+            'transport' => new FakeTransporter,
+        ]);
+
+        $tool = is_string($class) ? $container->make($class) : $class;
+
+        /** @var Method $methodClass */
+        $methodClass = Container::getInstance()->make(CallTool::class);
+
+        $response = $methodClass->handle(new JsonRpcRequest(
+            uniqid(),
+            'tools/call',
+            [
+                'name' => $tool->name(),
+                'arguments' => $arguments,
+            ],
+        ), $server->createContext());
+
+        return new TestResponse($tool, $response);
+    }
+
+    public function createContext(): ServerContext
+    {
+        return new ServerContext(
+            supportedProtocolVersions: $this->supportedProtocolVersion,
+            serverCapabilities: $this->capabilities,
+            serverName: $this->name,
+            serverVersion: $this->version,
+            instructions: $this->instructions,
+            maxPaginationLength: $this->maxPaginationLength,
+            defaultPaginationLength: $this->defaultPaginationLength,
+            tools: $this->tools,
+            resources: $this->resources,
+            prompts: $this->prompts,
+        );
     }
 
     /**
