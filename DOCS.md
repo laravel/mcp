@@ -283,7 +283,7 @@ class CurrentWeatherTool extends Tool
 <a name="tool-dependency-injection"></a>
 #### Tool Dependency Injection
 
-The Laravel service container is used to resolve all tools. As a result, you are able to type-hint any dependencies your tool may need in its constructor. The declared dependencies will automatically be resolved and injected into the controller instance:
+The Laravel service container is used to resolve all tools. As a result, you are able to type-hint any dependencies your tool may need in its constructor. The declared dependencies will automatically be resolved and injected into the tool instance:
 
 ```php
 <?php
@@ -311,7 +311,7 @@ In addition to constructor injection, you may also type-hint dependencies in you
 ```php
 <?php
 
-namespace App\Http\Mcp\Tools;
+namespace App\Mcp\Tools;
 
 use App\Repositories\WeatherRepository;
 use Laravel\Mcp\Request;
@@ -325,12 +325,13 @@ class CurrentWeatherTool extends Tool
      */
     public function handle(Request $request, WeatherRepository $weather): Response
     {
-        //
-        
+        $location = $request->get('location');
+
         $forecast = $weather->getForecastFor($location);
-        
+
         //
     }
+}
 ```
 
 <a name="tool-annotations"></a>
@@ -345,10 +346,8 @@ namespace App\Mcp\Tools;
 
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
-use Laravel\Mcp\Server\Tools\Annotations\Title;
 use Laravel\Mcp\Server\Tool;
 
-#[Title('Get Current Weather')]
 #[IsReadOnly]
 #[IsIdempotent]
 class CurrentWeatherTool extends Tool
@@ -487,14 +486,12 @@ class CurrentWeatherTool extends Tool
             // Send progress notification
             yield Response::notification('processing/progress', [
                 'current' => $index + 1,
-                'total' => count($items),
-                'item' => $item,
+                'total' => count($locations),
+                'location' => $location,
             ]);
-            
-            $forecasts[] = Response::text($this->forecastFor($location));
+
+            yield Response::text($this->forecastFor($location));
         }
-        
-        yield $responses;
     }
 }
 ```
@@ -517,7 +514,7 @@ After creating a prompt, register it in your server's `$prompts` property:
 
 namespace App\Mcp\Servers;
 
-use App\Mcp\Prompts\AskWeatherPrompt;
+use App\Mcp\Prompts\DescribeWeatherPrompt;
 use Laravel\Mcp\Server;
 
 class WeatherServer extends Server
@@ -558,7 +555,7 @@ class DescribeWeatherPrompt extends Prompt
 On the other hand, the prompt's description is not automatically generated. You should always provide a meaningful description by overriding the `$description` property:
 
 ```php
-class AskWeatherPrompt extends Prompt
+class DescribeWeatherPrompt extends Prompt
 {
     /**
      * The prompt's description.
@@ -629,7 +626,7 @@ class DescribeWeatherPrompt extends Prompt
             'tone' => 'required|string|max:50',
         ]);
         
-        $location = $validated['tone'];
+        $tone = $validated['tone'];
         
         // Generate the prompt response using the given tone...
     }
@@ -742,7 +739,7 @@ When a prompt's `shouldRegister` method returns `false`, it will not appear in t
 <a name="prompt-responses"></a>
 ### Prompt Responses
 
-Prompts must return an instance of `Laravel\Mcp\Response`. This class encapsulates the generated prompt content that will be sent to the AI client:
+Prompts may return a single `Laravel\Mcp\Response` or an iterable of `Laravel\Mcp\Response` instances. These responses encapsulate the content that will be sent to the AI client:
 
 ```php
 <?php
@@ -757,8 +754,10 @@ class DescribeWeatherPrompt extends Prompt
 {
     /**
      * Handle the prompt request.
+     *
+     * @return array<int, \Laravel\Mcp\Response>
      */
-    public function handle(Request $request): Response
+    public function handle(Request $request): array
     {
         $tone = $request->string('tone');
         
@@ -767,7 +766,7 @@ class DescribeWeatherPrompt extends Prompt
         
         return [
             Response::text($systemMessage)->asAssistant(),
-            Response::text($promptText),
+            Response::text($userMessage),
         ];
     }
 }
