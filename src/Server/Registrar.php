@@ -94,6 +94,7 @@ class Registrar
 
     public function oauthRoutes(string $oauthPrefix = 'oauth'): void
     {
+        $this->maybeAddMcpScope();
         Router::get('/.well-known/oauth-protected-resource', fn () => response()->json([
             'resource' => url('/'),
             'authorization_servers' => [route('mcp.oauth.authorization-server')],
@@ -135,6 +136,27 @@ class Registrar
                 'token_endpoint_auth_method' => 'none',
             ]);
         });
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function maybeAddMcpScope(): array
+    {
+        if (class_exists('\laravel\Passport\Passport') === false) {
+            return [];
+        }
+
+        /** @phpstan-ignore class.notFound */
+        $current = \Laravel\Passport\Passport::$scopes ?? [];
+
+        if (! array_key_exists('mcp:use', $current)) {
+            $current['mcp:use'] = 'Use MCP server';
+            /** @phpstan-ignore class.notFound */
+            \Laravel\Passport\Passport::tokensCan($current);
+        }
+
+        return $current;
     }
 
     /**
