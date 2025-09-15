@@ -36,7 +36,7 @@ class InspectorCommand extends Command
         $route = $registrar->getWebServer($handle);
 
         $servers = $registrar->servers();
-        if (empty($servers)) {
+        if ($servers === []) {
             $this->components->error('No MCP servers found. Please run `php artisan make:mcp-server [name]`');
 
             return static::FAILURE;
@@ -47,7 +47,7 @@ class InspectorCommand extends Command
             $server = array_shift($servers);
             [$localServer, $route] = match (true) {
                 is_callable($server) => [$server, null],
-                get_class($server) === Route::class => [null, $server],
+                $server::class === Route::class => [null, $server],
                 default => [null, null],
             };
         }

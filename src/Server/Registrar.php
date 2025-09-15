@@ -30,7 +30,7 @@ class Registrar
     public function web(string $route, string $serverClass): Route
     {
         // https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#listening-for-messages-from-the-server
-        Router::get($route, fn () => response(status: 405));
+        Router::get($route, fn (): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response(status: 405));
 
         $route = Router::post($route, fn (): mixed => $this->startServer(
             $serverClass,
