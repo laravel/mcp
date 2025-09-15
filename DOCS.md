@@ -29,6 +29,7 @@
     - [Binary Resources](#binary-resources)
     - [Resource Dependency Injection](#resource-dependency-injection)
     - [Conditional Resource Registration](#conditional-resource-registration)
+- [Testing Servers](#testing-servers)
 
 <a name="introduction"></a>
 ## Introduction
@@ -1035,3 +1036,17 @@ class DetailedWeatherResource extends Resource
 ```
 
 When a resource's `shouldRegister` method returns `false`, it will not appear in the list of available resources and cannot be accessed by AI clients.
+
+
+<a name="testing-servers"></a>
+## Testing Servers
+
+The [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) is an interactive tool for testing and debugging your MCP servers. Use it to connect to your server, verify authentication, and try out tools, resources, and prompts.
+
+Run the inspector for a server you registered (for example, a local server named "weather"):
+
+```shell
+php artisan mcp:inspector weather
+```
+
+This command launches the MCP Inspector and provides the client settings you can copy into your MCP client to ensure everything is configured correctly. If your web server is protected by middleware (e.g., authentication), make sure to include the required headers (such as an Authorization bearer token) when connecting.
