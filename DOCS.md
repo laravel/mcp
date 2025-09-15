@@ -31,15 +31,11 @@
     - [Conditional Resource Registration](#conditional-resource-registration)
 
 <a name="introduction"></a>
-
 ## Introduction
 
-[Laravel MCP](https://github.com/laravel/mcp) provides a simple and elegant way for AI clients to interact with your
-Laravel application through the Model Context Protocol. It offers an expressive, fluent interface for defining servers,
-tools, resources, and prompts that enable AI-powered interactions with your application.
+[Laravel MCP](https://github.com/laravel/mcp) provides a simple and elegant way for AI clients to interact with your Laravel application through the Model Context Protocol. It offers an expressive, fluent interface for defining servers, tools, resources, and prompts that enable AI-powered interactions with your application.
 
 <a name="installation"></a>
-
 ## Installation
 
 To get started, install Laravel MCP into your project using the Composer package manager:
@@ -48,29 +44,24 @@ To get started, install Laravel MCP into your project using the Composer package
 composer require laravel/mcp
 ```
 
-After installing Laravel MCP, you may execute the `vendor:publish` Artisan command, which will publish the
-`routes/ai.php` file where you'll define your MCP servers:
+After installing Laravel MCP, you may execute the `vendor:publish` Artisan command, which will publish the `routes/ai.php` file where you'll define your MCP servers:
 
 ```shell
 php artisan vendor:publish --tag=ai-routes
 ```
 
-This command will create the `routes/ai.php` file in your application's `routes` directory that you use to register your
-MCP servers.
+This command will create the `routes/ai.php` file in your application's `routes` directory that you use to register your MCP servers.
 
 <a name="creating-servers"></a>
-
 ## Creating Servers
 
-You may create an MCP server by using the `make:mcp-server` Artisan command. Servers act as the central communication
-point that exposes MCP methods like tools, resources, and prompts to AI clients:
+You may create an MCP server by using the `make:mcp-server` Artisan command. Servers act as the central communication point that exposes MCP methods like tools, resources, and prompts to AI clients:
 
 ```shell
 php artisan make:mcp-server WeatherServer
 ```
 
-This command will create a new server class in the `app/Mcp/Servers` directory. The generated server class extends
-Laravel MCP's base `Laravel\Mcp\Server` class and provides properties for registering tools, resources, and prompts:
+This command will create a new server class in the `app/Mcp/Servers` directory. The generated server class extends Laravel MCP's base `Laravel\Mcp\Server` class and provides properties for registering tools, resources, and prompts:
 
 ```php
 <?php
@@ -111,19 +102,14 @@ class WeatherServer extends Server
 ```
 
 <a name="server-registration"></a>
-
 ### Server Registration
 
-Once you've created a server, you must register it in your `routes/ai.php` file to make it accessible. Laravel MCP
-provides two methods for registering servers: `web()` for HTTP-accessible servers and `local()` for command-line
-servers.
+Once you've created a server, you must register it in your `routes/ai.php` file to make it accessible. Laravel MCP provides two methods for registering servers: `web()` for HTTP-accessible servers and `local()` for command-line servers.
 
 <a name="web-servers"></a>
-
 ### Web Servers
 
-Web servers are accessible via HTTP POST requests, making them ideal for remote AI clients or web-based integrations.
-Register a web server using the `web()` method:
+Web servers are accessible via HTTP POST requests, making them ideal for remote AI clients or web-based integrations. Register a web server using the `web()` method:
 
 ```php
 use App\Mcp\Servers\WeatherServer;
@@ -140,11 +126,9 @@ Mcp::web('/mcp/weather', WeatherServer::class)
 ```
 
 <a name="local-servers"></a>
-
 ### Local Servers
 
-Local servers run as Artisan commands, perfect for development, testing, or local AI assistant integrations. Register a
-local server using the `local()` method:
+Local servers run as Artisan commands, perfect for development, testing, or local AI assistant integrations. Register a local server using the `local()` method:
 
 ```php
 use App\Mcp\Servers\WeatherServer;
@@ -160,11 +144,9 @@ php artisan mcp:start weather
 ```
 
 <a name="creating-tools"></a>
-
 ## Creating Tools
 
-Tools enable your server to expose functionality that AI clients can call. They allow language models to perform
-actions, run code, or interact with external systems. Create a tool using the `make:mcp-tool` Artisan command:
+Tools enable your server to expose functionality that AI clients can call. They allow language models to perform actions, run code, or interact with external systems. Create a tool using the `make:mcp-tool` Artisan command:
 
 ```shell
 php artisan make:mcp-tool CurrentWeatherTool
@@ -195,9 +177,7 @@ class WeatherServer extends Server
 
 ### Tool Name, Title, and Description
 
-By default, the tool's name and title are derived from the class name. As example, `CurrentWeatherTool` will have a
-`current_weather` name and `Current Weather Tool` title. You may customize these values by overriding the `$name` and
-`$title` properties:
+By default, the tool's name and title are derived from the class name. As example, `CurrentWeatherTool` will have a `current_weather` name and `Current Weather Tool` title. You may customize these values by overriding the `$name` and `$title` properties:
 
 ```php
 class CurrentWeatherTool extends Tool
@@ -230,11 +210,9 @@ class CurrentWeatherTool extends Tool
 ```
 
 <a name="tool-input-schemas"></a>
-
 ### Tool Input Schemas
 
-Tools can define input schemas to specify what arguments they accept from AI clients. Use Laravel's
-`Illuminate\JsonSchema\JsonSchema` builder to define your tool's input requirements:
+Tools can define input schemas to specify what arguments they accept from AI clients. Use Laravel's `Illuminate\JsonSchema\JsonSchema` builder to define your tool's input requirements:
 
 ```php
 <?php
@@ -267,14 +245,11 @@ class CurrentWeatherTool extends Tool
 ```
 
 <a name="validating-tool-arguments"></a>
-
 ### Validating Tool Arguments
 
-JSON Schema definitions provide a basic structure for tool arguments, but you may also want to enforce more complex
-validation rules.
+JSON Schema definitions provide a basic structure for tool arguments, but you may also want to enforce more complex validation rules.
 
-Laravel MCP integrates seamlessly with Laravel's validation system. You may validate incoming tool arguments within your
-tool's `handle()` method:
+Laravel MCP integrates seamlessly with Laravel's validation system. You may validate incoming tool arguments within your tool's `handle()` method:
 
 ```php
 <?php
@@ -303,12 +278,9 @@ class CurrentWeatherTool extends Tool
 ```
 
 <a name="tool-dependency-injection"></a>
-
 #### Tool Dependency Injection
 
-The Laravel service container is used to resolve all tools. As a result, you are able to type-hint any dependencies your
-tool may need in its constructor. The declared dependencies will automatically be resolved and injected into the
-controller instance:
+The Laravel service container is used to resolve all tools. As a result, you are able to type-hint any dependencies your tool may need in its constructor. The declared dependencies will automatically be resolved and injected into the controller instance:
 
 ```php
 <?php
@@ -331,8 +303,7 @@ class CurrentWeatherTool extends Tool
 }
 ```
 
-In addition to constructor injection, you may also type-hint dependencies in your tool's `handle()` method. The service
-container will automatically resolve and inject the dependencies when the method is called:
+In addition to constructor injection, you may also type-hint dependencies in your tool's `handle()` method. The service container will automatically resolve and inject the dependencies when the method is called:
 
 ```php
 <?php
@@ -360,11 +331,9 @@ class CurrentWeatherTool extends Tool
 ```
 
 <a name="tool-annotations"></a>
-
 ### Tool Annotations
 
-You may enhance your tools with annotations to provide additional metadata to AI clients. These annotations help AI
-models understand the tool's behavior and capabilities:
+You may enhance your tools with annotations to provide additional metadata to AI clients. These annotations help AI models understand the tool's behavior and capabilities:
 
 ```php
 <?php
@@ -387,20 +356,17 @@ class CurrentWeatherTool extends Tool
 
 Available annotations include:
 
-| Annotation         | Type    | Description                                                                                 |
-|--------------------|---------|---------------------------------------------------------------------------------------------|
-| `#[IsReadOnly]`    | boolean | Indicates the tool does not modify its environment                                          |
-| `#[IsDestructive]` | boolean | Indicates the tool may perform destructive updates (only meaningful when not read-only)     |
-| `#[IsIdempotent]`  | boolean | Indicates repeated calls with same arguments have no additional effect (when not read-only) |
-| `#[IsOpenWorld]`   | boolean | Indicates the tool may interact with external entities                                      |
+| Annotation         | Type    | Description                                                                                     |
+| ------------------ | ------- | ----------------------------------------------------------------------------------------------- |
+| `#[IsReadOnly]`    | boolean | Indicates the tool does not modify its environment                                            |
+| `#[IsDestructive]` | boolean | Indicates the tool may perform destructive updates (only meaningful when not read-only)       |
+| `#[IsIdempotent]`  | boolean | Indicates repeated calls with same arguments have no additional effect (when not read-only)   |
+| `#[IsOpenWorld]`   | boolean | Indicates the tool may interact with external entities                                        |
 
 <a name="conditional-tool-registration"></a>
-
 ### Conditional Tool Registration
 
-You may conditionally register tools at runtime by implementing the `shouldRegister` method in your tool class. This
-method allows you to determine whether a tool should be available based on application state, configuration, or request
-parameters:
+You may conditionally register tools at runtime by implementing the `shouldRegister` method in your tool class. This method allows you to determine whether a tool should be available based on application state, configuration, or request parameters:
 
 ```php
 <?php
@@ -422,8 +388,7 @@ class CurrentWeatherTool extends Tool
 }
 ```
 
-The `shouldRegister` method can also accept the current `Request` instance, allowing you to make registration decisions
-based on request parameters:
+The `shouldRegister` method can also accept the current `Request` instance, allowing you to make registration decisions based on request parameters:
 
 ```php
 <?php
@@ -445,15 +410,12 @@ class CurrentWeatherTool extends Tool
 }
 ```
 
-When a tool's `shouldRegister` method returns `false`, it will not appear in the list of available tools and cannot be
-invoked by AI clients.
+When a tool's `shouldRegister` method returns `false`, it will not appear in the list of available tools and cannot be invoked by AI clients.
 
 <a name="tool-responses"></a>
-
 ### Tool Responses
 
-Tools must return an instance of `Laravel\Mcp\Response`. The Response class provides several convenient methods for
-creating different types of responses:
+Tools must return an instance of `Laravel\Mcp\Response`. The Response class provides several convenient methods for creating different types of responses:
 
 #### Plain Text Responses
 
@@ -491,11 +453,9 @@ public function handle(Request $request): array
 ```
 
 <a name="streaming-responses"></a>
-
 #### Streaming Responses
 
-For long-running operations or real-time data streaming, tools can return a generator from their `handle()` method. This
-enables sending intermediate updates to the client before the final response:
+For long-running operations or real-time data streaming, tools can return a generator from their `handle()` method. This enables sending intermediate updates to the client before the final response:
 
 ```php
 <?php
@@ -536,16 +496,12 @@ class CurrentWeatherTool extends Tool
 }
 ```
 
-When using web-based servers, streaming responses automatically open an SSE (Server-Sent Events) stream, sending each
-yielded message as an event to the client.
+When using web-based servers, streaming responses automatically open an SSE (Server-Sent Events) stream, sending each yielded message as an event to the client.
 
 <a name="creating-prompts"></a>
-
 ## Creating Prompts
 
-Prompts enable your server to share reusable prompt templates that AI clients can use to interact with language models.
-They provide a standardized way to structure common queries and interactions. Create a prompt using the
-`make:mcp-prompt` Artisan command:
+Prompts enable your server to share reusable prompt templates that AI clients can use to interact with language models. They provide a standardized way to structure common queries and interactions. Create a prompt using the `make:mcp-prompt` Artisan command:
 
 ```shell
 php artisan make:mcp-prompt DescribeWeatherPrompt
@@ -575,12 +531,9 @@ class WeatherServer extends Server
 ```
 
 <a name="prompt-name-title-and-description"></a>
-
 ### Prompt Name, Title, and Description
 
-By default, the prompt's name and title are derived from the class name. As example, `AskWeatherPrompt` will have an
-`ask_weather` name and `Ask Weather Prompt` title. You may customize these values by overriding the `$name` and `$title`
-properties:
+By default, the prompt's name and title are derived from the class name. As example, `AskWeatherPrompt` will have an `ask_weather` name and `Ask Weather Prompt` title. You may customize these values by overriding the `$name` and `$title` properties:
 
 ```php
 class DescribeWeatherPrompt extends Prompt
@@ -599,8 +552,7 @@ class DescribeWeatherPrompt extends Prompt
 }
 ```
 
-On the other hand, the prompt's description is not automatically generated. You should always provide a meaningful
-description by overriding the `$description` property:
+On the other hand, the prompt's description is not automatically generated. You should always provide a meaningful description by overriding the `$description` property:
 
 ```php
 class AskWeatherPrompt extends Prompt
@@ -615,11 +567,9 @@ class AskWeatherPrompt extends Prompt
 ```
 
 <a name="prompt-arguments"></a>
-
 ### Prompt Arguments
 
-Prompts can define arguments that allow AI clients to customize the prompt template with specific values. Use the
-`arguments()` method to define what parameters your prompt accepts:
+Prompts can define arguments that allow AI clients to customize the prompt template with specific values. Use the `arguments()` method to define what parameters your prompt accepts:
 
 ```php
 <?php
@@ -650,14 +600,11 @@ class DescribeWeatherPrompt extends Prompt
 ```
 
 <a name="validating-prompt-arguments"></a>
-
 ### Validating Prompt Arguments
 
-Prompt arguments are automatically validated based on their definition, but you may also want to enforce more complex
-validation rules.
+Prompt arguments are automatically validated based on their definition, but you may also want to enforce more complex validation rules.
 
-Laravel MCP integrates seamlessly with Laravel's validation system. You may validate incoming prompt arguments within
-your prompt's `handle()` method:
+Laravel MCP integrates seamlessly with Laravel's validation system. You may validate incoming prompt arguments within your prompt's `handle()` method:
 
 ```php
 <?php
@@ -687,12 +634,9 @@ class DescribeWeatherPrompt extends Prompt
 ```
 
 <a name="prompt-dependency-injection"></a>
-
 ### Prompt Dependency Injection
 
-The Laravel service container is used to resolve all prompts. As a result, you are able to type-hint any dependencies
-your prompt may need in its constructor. The declared dependencies will automatically be resolved and injected into the
-prompt instance:
+The Laravel service container is used to resolve all prompts. As a result, you are able to type-hint any dependencies your prompt may need in its constructor. The declared dependencies will automatically be resolved and injected into the prompt instance:
 
 ```php
 <?php
@@ -715,8 +659,7 @@ class DescribeWeatherPrompt extends Prompt
 }
 ```
 
-In addition to constructor injection, you may also type-hint dependencies in your prompt's `handle()` method. The
-service container will automatically resolve and inject the dependencies when the method is called:
+In addition to constructor injection, you may also type-hint dependencies in your prompt's `handle()` method. The service container will automatically resolve and inject the dependencies when the method is called:
 
 ```php
 <?php
@@ -745,12 +688,9 @@ class DescribeWeatherPrompt extends Prompt
 ```
 
 <a name="conditional-prompt-registration"></a>
-
 ### Conditional Prompt Registration
 
-You may conditionally register prompts at runtime by implementing the `shouldRegister` method in your prompt class. This
-method allows you to determine whether a prompt should be available based on application state, configuration, or
-request parameters:
+You may conditionally register prompts at runtime by implementing the `shouldRegister` method in your prompt class. This method allows you to determine whether a prompt should be available based on application state, configuration, or request parameters:
 
 ```php
 <?php
@@ -772,8 +712,7 @@ class CurrentWeatherPrompt extends Prompt
 }
 ```
 
-The `shouldRegister` method can also accept the current `Request` instance, allowing you to make registration decisions
-based on request parameters:
+The `shouldRegister` method can also accept the current `Request` instance, allowing you to make registration decisions based on request parameters:
 
 ```php
 <?php
@@ -795,15 +734,12 @@ class CurrentWeatherPrompt extends Prompt
 }
 ```
 
-When a prompt's `shouldRegister` method returns `false`, it will not appear in the list of available prompts and cannot
-be invoked by AI clients.
+When a prompt's `shouldRegister` method returns `false`, it will not appear in the list of available prompts and cannot be invoked by AI clients.
 
 <a name="prompt-responses"></a>
-
 ### Prompt Responses
 
-Prompts must return an instance of `Laravel\Mcp\Response`. This class encapsulates the generated prompt content that
-will be sent to the AI client:
+Prompts must return an instance of `Laravel\Mcp\Response`. This class encapsulates the generated prompt content that will be sent to the AI client:
 
 ```php
 <?php
@@ -834,16 +770,12 @@ class DescribeWeatherPrompt extends Prompt
 }
 ```
 
-You can use the `asAssistant()` method to indicate that a response message should be treated as coming from the AI
-assistant, while regular messages are treated as user input.
+You can use the `asAssistant()` method to indicate that a response message should be treated as coming from the AI assistant, while regular messages are treated as user input.
 
 <a name="creating-resources"></a>
-
 ## Creating Resources
 
-Resources enable your server to expose data and content that AI clients can read and use as context when interacting
-with language models. They provide a way to share static or dynamic information like documentation, configuration, or
-any data that helps inform AI responses. Create a resource using the `make:mcp-resource` Artisan command:
+Resources enable your server to expose data and content that AI clients can read and use as context when interacting with language models. They provide a way to share static or dynamic information like documentation, configuration, or any data that helps inform AI responses. Create a resource using the `make:mcp-resource` Artisan command:
 
 ```shell
 php artisan make:mcp-resource WeatherGuidelinesResource
@@ -873,12 +805,9 @@ class WeatherServer extends Server
 ```
 
 <a name="resource-name-title-and-description"></a>
-
 ### Resource Name, Title, and Description
 
-By default, the resource's name and title are derived from the class name. As example, `WeatherGuidelinesResource` will
-have a `weather_guidelines` name and `Weather Guidelines Resource` title. You may customize these values by overriding
-the `$name` and `$title` properties:
+By default, the resource's name and title are derived from the class name. As example, `WeatherGuidelinesResource` will have a `weather_guidelines` name and `Weather Guidelines Resource` title. You may customize these values by overriding the `$name` and `$title` properties:
 
 ```php
 class WeatherGuidelinesResource extends Resource
@@ -897,8 +826,7 @@ class WeatherGuidelinesResource extends Resource
 }
 ```
 
-On the other hand, the resource's description is not automatically generated. You should always provide a meaningful
-description by overriding the `$description` property:
+On the other hand, the resource's description is not automatically generated. You should always provide a meaningful description by overriding the `$description` property:
 
 ```php
 class WeatherGuidelinesResource extends Resource
@@ -913,11 +841,9 @@ class WeatherGuidelinesResource extends Resource
 ```
 
 <a name="resource-content"></a>
-
 ### Resource Content
 
-Resources must implement the `read()` method to provide their content. This method should return the actual data that
-will be sent to AI clients:
+Resources must implement the `read()` method to provide their content. This method should return the actual data that will be sent to AI clients:
 
 ```php
 <?php
@@ -939,11 +865,9 @@ class WeatherGuidelinesResource extends Resource
 ```
 
 <a name="resource-uri-and-mime-type"></a>
-
 ### Resource URI and MIME Type
 
-Resources are identified by a URI and have an associated MIME type. You can customize these by overriding the `uri()`
-and `mimeType()` methods:
+Resources are identified by a URI and have an associated MIME type. You can customize these by overriding the `uri()` and `mimeType()` methods:
 
 ```php
 <?php
@@ -981,11 +905,9 @@ class WeatherGuidelinesResource extends Resource
 ```
 
 <a name="binary-resources"></a>
-
 ### Binary Resources
 
-Resources can also serve binary content like images or other non-text files. The framework automatically detects binary
-content and handles it appropriately:
+Resources can also serve binary content like images or other non-text files. The framework automatically detects binary content and handles it appropriately:
 
 ```php
 <?php
@@ -1028,12 +950,9 @@ class WeatherMapResource extends Resource
 ```
 
 <a name="resource-dependency-injection"></a>
-
 ### Resource Dependency Injection
 
-The Laravel service container is used to resolve all resources. As a result, you are able to type-hint any dependencies
-your resource may need in its constructor. The declared dependencies will automatically be resolved and injected into
-the resource instance:
+The Laravel service container is used to resolve all resources. As a result, you are able to type-hint any dependencies your resource may need in its constructor. The declared dependencies will automatically be resolved and injected into the resource instance:
 
 ```php
 <?php
@@ -1067,12 +986,9 @@ class WeatherHistoryResource extends Resource
 ```
 
 <a name="conditional-resource-registration"></a>
-
 ### Conditional Resource Registration
 
-You may conditionally register resources at runtime by implementing the `shouldRegister` method in your resource class.
-This method allows you to determine whether a resource should be available based on application state, configuration, or
-request parameters:
+You may conditionally register resources at runtime by implementing the `shouldRegister` method in your resource class. This method allows you to determine whether a resource should be available based on application state, configuration, or request parameters:
 
 ```php
 <?php
@@ -1094,8 +1010,7 @@ class PremiumWeatherDataResource extends Resource
 }
 ```
 
-The `shouldRegister` method can also accept the current `Request` instance, allowing you to make registration decisions
-based on request parameters:
+The `shouldRegister` method can also accept the current `Request` instance, allowing you to make registration decisions based on request parameters:
 
 ```php
 <?php
@@ -1117,5 +1032,4 @@ class DetailedWeatherResource extends Resource
 }
 ```
 
-When a resource's `shouldRegister` method returns `false`, it will not appear in the list of available resources and
-cannot be accessed by AI clients.
+When a resource's `shouldRegister` method returns `false`, it will not appear in the list of available resources and cannot be accessed by AI clients.

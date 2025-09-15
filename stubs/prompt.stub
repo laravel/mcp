@@ -23,9 +23,9 @@ class {{ class }} extends Prompt
         $request->validate([
             'code' => 'required|string',
         ]);
-    
+
         $code = $request->string('code');
-    
+
         return Response::text("Please review this code: {$code}");
     }
 
