@@ -143,7 +143,7 @@ class Registrar
      */
     protected function maybeAddMcpScope(): array
     {
-        if (class_exists('\laravel\Passport\Passport') === false) {
+        if (class_exists('Laravel\Passport\Passport') === false) {
             return [];
         }
 
