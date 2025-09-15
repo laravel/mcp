@@ -44,13 +44,16 @@ To get started, install Laravel MCP into your project using the Composer package
 composer require laravel/mcp
 ```
 
-After installing Laravel MCP, you may execute the `vendor:publish` Artisan command, which will publish the `routes/ai.php` file where you'll define your MCP servers:
+<a name="publishing-routes"></a>
+### Publishing Routes
+
+After installing Laravel MCP, execute the `vendor:publish` Artisan command to publish the `routes/ai.php` file where you will define your MCP servers:
 
 ```shell
 php artisan vendor:publish --tag=ai-routes
 ```
 
-This command will create the `routes/ai.php` file in your application's `routes` directory that you use to register your MCP servers.
+This command creates the `routes/ai.php` file in your application's `routes` directory, which you will use to register your MCP servers.
 
 <a name="creating-servers"></a>
 ## Creating Servers
@@ -177,7 +180,7 @@ class WeatherServer extends Server
 
 ### Tool Name, Title, and Description
 
-By default, the tool's name and title are derived from the class name. As example, `CurrentWeatherTool` will have a `current_weather` name and `Current Weather Tool` title. You may customize these values by overriding the `$name` and `$title` properties:
+By default, the tool's name and title are derived from the class name. For example, `CurrentWeatherTool` will have a `current_weather` name and `Current Weather Tool` title. You may customize these values by overriding the `$name` and `$title` properties:
 
 ```php
 class CurrentWeatherTool extends Tool
@@ -533,7 +536,7 @@ class WeatherServer extends Server
 <a name="prompt-name-title-and-description"></a>
 ### Prompt Name, Title, and Description
 
-By default, the prompt's name and title are derived from the class name. As example, `AskWeatherPrompt` will have an `ask_weather` name and `Ask Weather Prompt` title. You may customize these values by overriding the `$name` and `$title` properties:
+By default, the prompt's name and title are derived from the class name. For example, `DescribeWeatherPrompt` will have a `describe_weather` name and `Describe Weather Prompt` title. You may customize these values by overriding the `$name` and `$title` properties:
 
 ```php
 class DescribeWeatherPrompt extends Prompt
@@ -807,7 +810,7 @@ class WeatherServer extends Server
 <a name="resource-name-title-and-description"></a>
 ### Resource Name, Title, and Description
 
-By default, the resource's name and title are derived from the class name. As example, `WeatherGuidelinesResource` will have a `weather_guidelines` name and `Weather Guidelines Resource` title. You may customize these values by overriding the `$name` and `$title` properties:
+By default, the resource's name and title are derived from the class name. For example, `WeatherGuidelinesResource` will have a `weather_guidelines` name and `Weather Guidelines Resource` title. You may customize these values by overriding the `$name` and `$title` properties:
 
 ```php
 class WeatherGuidelinesResource extends Resource
