@@ -9,8 +9,7 @@ class {{ class }} extends Server
     /**
      * The MCP server's name.
      */
-    protected
-    string $name = '{{ serverDisplayName }}';
+    protected string $name = '{{ serverDisplayName }}';
 
     /**
      * The MCP server's version.
