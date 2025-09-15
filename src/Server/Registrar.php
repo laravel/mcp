@@ -127,8 +127,11 @@ class Registrar
 
             return response()->json([
                 'client_id' => $client->id,
-                'redirect_uris' => $client->redirect_uris,
-                'scopes' => 'mcp:use',
+                'grant_types' => $client->grantTypes,
+                'response_types' => ['code'],
+                'redirect_uris' => $client->redirectUris,
+                'scope' => 'mcp:use',
+                'token_endpoint_auth_method' => 'none',
             ]);
         });
     }
