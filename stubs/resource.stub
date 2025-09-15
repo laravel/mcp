@@ -12,7 +12,7 @@ class {{ class }} extends Resource
     protected string $description = 'A description of what this resource contains.';
 
     /**
-     * Get the resource's content.
+     * Read the resource's content.
      */
     public function read(): string
     {

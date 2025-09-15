@@ -17,6 +17,10 @@ abstract class Resource implements Arrayable
 {
     use Capable;
 
+    protected string $uri = '';
+
+    protected string $mimeType = '';
+
     protected string|Content $content;
 
     abstract public function read(): string|Content;
@@ -24,6 +28,7 @@ abstract class Resource implements Arrayable
     public function handle(): ResourceResult
     {
         $this->content = $this->content();
+
         $result = new ResourceResult($this);
 
         if ($this->content instanceof Content) {
@@ -51,12 +56,16 @@ abstract class Resource implements Arrayable
 
     public function uri(): string
     {
-        return 'file://resources/'.Str::kebab(class_basename($this));
+        return $this->uri !== ''
+            ? $this->uri
+            : 'file://resources/'.Str::kebab(class_basename($this));
     }
 
     public function mimeType(): string
     {
-        return 'text/plain';
+        return $this->mimeType !== ''
+            ? $this->mimeType
+            : 'text/plain';
     }
 
     public function toArray(): array
