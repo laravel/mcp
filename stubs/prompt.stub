@@ -6,7 +6,6 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\Argument;
-use Laravel\Mcp\Server\Prompts\PromptResult;
 
 class {{ class }} extends Prompt
 {
