@@ -19,15 +19,18 @@ use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Testing\PendingTestResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use stdClass;
 use Throwable;
 
+/**
+ * @mixin PendingTestResponse
+ */
 abstract class Server
 {
     protected string $name = 'Laravel MCP Server';
@@ -205,32 +208,6 @@ abstract class Server
         }
     }
 
-    /**
-     * @param  Tool|class-string<Tool>  $class
-     * @param  array<string, mixed>  $arguments
-     */
-    public static function tool(Tool|string $class, array $arguments = []): TestResponse
-    {
-        $container = Container::getInstance();
-
-        $server = $container->make(static::class, [
-            'transport' => new FakeTransporter,
-        ]);
-
-        $tool = is_string($class) ? $container->make($class) : $class;
-
-        /** @var Method $methodClass */
-        $methodClass = $container->make(CallTool::class);
-
-        $response = $methodClass->handle(new JsonRpcRequest(
-            uniqid(),
-            'tools/call',
-            ['name' => $tool->name(), 'arguments' => $arguments],
-        ), $server->createContext());
-
-        return new TestResponse($tool, $response);
-    }
-
     public function createContext(): ServerContext
     {
         return new ServerContext(
@@ -277,5 +254,18 @@ abstract class Server
         $response = (new Initialize)->handle($request, $context);
 
         $this->transport->send($response->toJson());
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $arguments
+     */
+    public static function __callStatic(string $name, array $arguments): PendingTestResponse|TestResponse
+    {
+        $pendingTestResponse = new PendingTestResponse(
+            Container::getInstance(),
+            static::class,
+        );
+
+        return $pendingTestResponse->$name(...$arguments);
     }
 }

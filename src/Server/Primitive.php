@@ -2,13 +2,17 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Server\Concerns;
+namespace Laravel\Mcp\Server;
 
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Request;
 
-trait Capable
+/**
+ * @implements Arrayable<string, mixed>
+ */
+abstract class Primitive implements Arrayable
 {
     protected string $name = '';
 
@@ -47,4 +51,6 @@ trait Capable
 
         return true;
     }
+
+    abstract public function toArray(): array;
 }

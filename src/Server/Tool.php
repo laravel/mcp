@@ -4,20 +4,13 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
-use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\JsonSchema\JsonSchema;
-use Laravel\Mcp\Server\Concerns\Capable;
 use Laravel\Mcp\Server\Contracts\Tools\Annotation;
 use ReflectionAttribute;
 use ReflectionClass;
 
-/**
- * @implements Arrayable<string, mixed>
- */
-abstract class Tool implements Arrayable
+abstract class Tool extends Primitive
 {
-    use Capable;
-
     /**
      * @return array<string, mixed>
      */

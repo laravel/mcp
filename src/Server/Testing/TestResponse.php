@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Testing;
 
-use Laravel\Mcp\Server\Prompt;
-use Laravel\Mcp\Server\Resource;
-use Laravel\Mcp\Server\Tool;
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use PHPUnit\Framework\Assert;
 
@@ -23,7 +23,7 @@ class TestResponse
      * @param  iterable<int, JsonRpcResponse>|JsonRpcResponse  $response
      */
     public function __construct(
-        protected Tool|Prompt|Resource $premitive,
+        protected Primitive $premitive,
         iterable|JsonRpcResponse $response,
     ) {
         $responses = is_iterable($response)
@@ -46,11 +46,8 @@ class TestResponse
      */
     public function assertSee(array|string $text): static
     {
-        $text = is_array($text) ? $text : [$text];
-
-        foreach ($text as $t) {
-            $this->assertText($t);
-        }
+        collect(is_array($text) ? $text : [$text])
+            ->each($this->assertText(...));
 
         return $this;
     }
@@ -167,5 +164,43 @@ class TestResponse
         $this->assertSee($messages);
 
         return $this;
+    }
+
+    public function assertAuthenticated(?string $guard = null): static
+    {
+        Assert::assertTrue($this->isAuthenticated($guard), 'The user is not authenticated');
+
+        return $this;
+    }
+
+    public function assertGuest(?string $guard = null): static
+    {
+        Assert::assertFalse($this->isAuthenticated($guard), 'The user is authenticated');
+
+        return $this;
+    }
+
+    public function assertAuthenticatedAs(Authenticatable $user, ?string $guard = null): static
+    {
+        $expected = Container::getInstance()->make('auth')->guard($guard)->user();
+
+        Assert::assertNotNull($expected, 'The current user is not authenticated.');
+
+        Assert::assertInstanceOf(
+            $expected::class, $user,
+            'The currently authenticated user is not who was expected'
+        );
+
+        Assert::assertSame(
+            $expected->getAuthIdentifier(), $user->getAuthIdentifier(),
+            'The currently authenticated user is not who was expected'
+        );
+
+        return $this;
+    }
+
+    protected function isAuthenticated(?string $guard = null): bool
+    {
+        return Container::getInstance()->make('auth')->guard($guard)->check();
     }
 }
