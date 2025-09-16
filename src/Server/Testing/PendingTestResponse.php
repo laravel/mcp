@@ -72,7 +72,6 @@ class PendingTestResponse
         return $this;
     }
 
-
     /**
      * @param  class-string<Primitive>|Primitive  $primitive
      * @param  array<string, mixed>  $arguments
