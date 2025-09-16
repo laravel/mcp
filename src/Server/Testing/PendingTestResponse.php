@@ -32,33 +32,6 @@ class PendingTestResponse
     }
 
     /**
-     * @param  class-string<Primitive>|Primitive  $primitive
-     * @param  array<string, mixed>  $arguments
-     */
-    public function run(string $method, Primitive|string $primitive, array $arguments = []): TestResponse
-    {
-        $container = Container::getInstance();
-
-        $primitive = is_string($primitive) ? $container->make($primitive) : $primitive;
-        $server = $container->make($this->serverClass, ['transport' => new FakeTransporter]);
-
-        /** @var Method $methodInstance = */
-        $methodInstance = $container->make(match ($method) {
-            'tools/call' => CallTool::class,
-            'prompts/get' => GetPrompt::class,
-            default => throw new InvalidArgumentException("Unsupported [{$method}] method."),
-        });
-
-        $response = $methodInstance->handle(new JsonRpcRequest(
-            uniqid(),
-            $method,
-            ['name' => $primitive->name(), 'arguments' => $arguments],
-        ), $server->createContext());
-
-        return new TestResponse($primitive, $response);
-    }
-
-    /**
      * @param  class-string<Tool>|Tool  $tool
      * @param  array<string, mixed>  $arguments
      */
@@ -97,5 +70,33 @@ class PendingTestResponse
         $this->app['auth']->shouldUse($guard);
 
         return $this;
+    }
+
+
+    /**
+     * @param  class-string<Primitive>|Primitive  $primitive
+     * @param  array<string, mixed>  $arguments
+     */
+    protected function run(string $method, Primitive|string $primitive, array $arguments = []): TestResponse
+    {
+        $container = Container::getInstance();
+
+        $primitive = is_string($primitive) ? $container->make($primitive) : $primitive;
+        $server = $container->make($this->serverClass, ['transport' => new FakeTransporter]);
+
+        /** @var Method $methodInstance = */
+        $methodInstance = $container->make(match ($method) {
+            'tools/call' => CallTool::class,
+            'prompts/get' => GetPrompt::class,
+            default => throw new InvalidArgumentException("Unsupported [{$method}] method."),
+        });
+
+        $response = $methodInstance->handle(new JsonRpcRequest(
+            uniqid(),
+            $method,
+            ['name' => $primitive->name(), 'arguments' => $arguments],
+        ), $server->createContext());
+
+        return new TestResponse($primitive, $response);
     }
 }
