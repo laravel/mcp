@@ -8,6 +8,8 @@ use Generator;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Content\Notification;
+use Laravel\Mcp\Server\Contracts\Errable;
+use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
@@ -24,6 +26,17 @@ trait InteractsWithResponses
             ? $response
             : Response::text($response),
         );
+
+        $responses->each(function (Response $response) use ($request): void {
+            if (! $this instanceof Errable && $response->isError()) {
+                throw new JsonRpcException(
+                    // @phpstan-ignore-next-line
+                    $response->content()->text,
+                    -32603,
+                    $request->id,
+                );
+            }
+        });
 
         return JsonRpcResponse::result($request->id, $serializable($responses));
     }

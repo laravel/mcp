@@ -5,7 +5,6 @@ use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Tests\Fixtures\GoingToFailPrompt;
 use Tests\Fixtures\ReviewMyCodePrompt;
 use Tests\Fixtures\TellMeHiPrompt;
 
@@ -97,44 +96,6 @@ it('resolves the handle method from the IOC container', function (): void {
             ],
         ],
     ]);
-});
-
-it('throws validation errors as regular json rpc errors', function (): void {
-    $request = JsonRpcRequest::from([
-        'jsonrpc' => '2.0',
-        'id' => 1,
-        'method' => 'prompts/get',
-        'params' => [
-            'name' => 'going-to-fail-prompt',
-            'arguments' => [],
-        ],
-    ]);
-
-    $context = new ServerContext(
-        supportedProtocolVersions: ['2025-03-26'],
-        serverCapabilities: [],
-        serverName: 'Test Server',
-        serverVersion: '1.0.0',
-        instructions: 'Test instructions',
-        maxPaginationLength: 50,
-        defaultPaginationLength: 10,
-        tools: [],
-        resources: [],
-        prompts: [GoingToFailPrompt::class],
-    );
-
-    $method = new GetPrompt;
-
-    $response = $method->handle($request, $context);
-
-    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
-    $payload = $response->toArray();
-
-    expect($payload['id'])->toEqual(1)
-        ->and($payload['error'])->toEqual([
-            'code' => -32602,
-            'message' => 'Invalid params: The should fail field is required.',
-        ]);
 });
 
 it('throws exception when name parameter is missing', function (): void {

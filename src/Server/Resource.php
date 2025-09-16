@@ -4,19 +4,12 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
-use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
-use Laravel\Mcp\Server\Concerns\Capable;
 use Laravel\Mcp\Server\Contracts\Resources\Content;
 use Laravel\Mcp\Server\Resources\ResourceResult;
 
-/**
- * @implements Arrayable<string, mixed>
- */
-abstract class Resource implements Arrayable
+abstract class Resource extends Primitive
 {
-    use Capable;
-
     protected string $uri = '';
 
     protected string $mimeType = '';
@@ -25,7 +18,10 @@ abstract class Resource implements Arrayable
 
     abstract public function read(): string|Content;
 
-    public function handle(): ResourceResult
+    /**
+     * Use the "read" instead.
+     */
+    final public function handle(): ResourceResult
     {
         $this->content = $this->content();
 

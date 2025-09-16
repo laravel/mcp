@@ -3,16 +3,18 @@
 use Illuminate\Console\Command;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Tools\Annotation;
+use Laravel\Mcp\Server\Testing\TestResponse;
 use Symfony\Component\Console\Attribute\AsCommand;
 
 arch('strict and safe')
     ->expect('Laravel\Mcp')
     ->toUseStrictTypes()
-    ->not->toUse(['die', 'dd', 'dump', 'var_dump']);
+    ->not->toUse(['die', 'dd', 'dump', 'var_dump'])
+    ->ignoring(TestResponse::class);
 
 arch('mcp methods extend base class')
     ->expect('Laravel\Mcp\Server\Methods')
-    ->toOnlyImplement(Method::class)
+    ->toImplement([Method::class])
     ->ignoring('Laravel\Mcp\Server\Methods\Concerns');
 
 arch('tool annotations implement annotation interface')

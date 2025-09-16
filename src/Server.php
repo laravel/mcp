@@ -19,6 +19,8 @@ use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Testing\PendingTestResponse;
+use Laravel\Mcp\Server\Testing\TestResponse;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
@@ -26,6 +28,9 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use stdClass;
 use Throwable;
 
+/**
+ * @mixin PendingTestResponse
+ */
 abstract class Server
 {
     protected string $name = 'Laravel MCP Server';
@@ -156,18 +161,7 @@ abstract class Server
 
     public function handle(string $rawMessage): void
     {
-        $context = new ServerContext(
-            supportedProtocolVersions: $this->supportedProtocolVersion,
-            serverCapabilities: $this->capabilities,
-            serverName: $this->name,
-            serverVersion: $this->version,
-            instructions: $this->instructions,
-            maxPaginationLength: $this->maxPaginationLength,
-            defaultPaginationLength: $this->defaultPaginationLength,
-            tools: $this->tools,
-            resources: $this->resources,
-            prompts: $this->prompts,
-        );
+        $context = $this->createContext();
 
         try {
             $jsonRequest = json_decode($rawMessage, true);
@@ -214,6 +208,22 @@ abstract class Server
         }
     }
 
+    public function createContext(): ServerContext
+    {
+        return new ServerContext(
+            supportedProtocolVersions: $this->supportedProtocolVersion,
+            serverCapabilities: $this->capabilities,
+            serverName: $this->name,
+            serverVersion: $this->version,
+            instructions: $this->instructions,
+            maxPaginationLength: $this->maxPaginationLength,
+            defaultPaginationLength: $this->defaultPaginationLength,
+            tools: $this->tools,
+            resources: $this->resources,
+            prompts: $this->prompts,
+        );
+    }
+
     /**
      * @throws JsonRpcException
      */
@@ -244,5 +254,18 @@ abstract class Server
         $response = (new Initialize)->handle($request, $context);
 
         $this->transport->send($response->toJson());
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $arguments
+     */
+    public static function __callStatic(string $name, array $arguments): PendingTestResponse|TestResponse
+    {
+        $pendingTestResponse = new PendingTestResponse(
+            Container::getInstance(),
+            static::class,
+        );
+
+        return $pendingTestResponse->$name(...$arguments);
     }
 }

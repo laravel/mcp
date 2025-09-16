@@ -61,7 +61,7 @@ class Response
 
     public function asAssistant(): static
     {
-        return new static($this->content, $this->isError, 'assistant');
+        return new static($this->content, Role::ASSISTANT, $this->isError);
     }
 
     public function isNotification(): bool
