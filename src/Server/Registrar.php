@@ -95,14 +95,14 @@ class Registrar
     public function oauthRoutes(string $oauthPrefix = 'oauth'): void
     {
         $this->maybeAddMcpScope();
-        Router::get('/.well-known/oauth-protected-resource', fn () => response()->json([
-            'resource' => url('/'),
-            'authorization_servers' => [route('mcp.oauth.authorization-server')],
+        Router::get('/.well-known/oauth-protected-resource/{path?}', fn (?string $path = '') => response()->json([
+            'resource' => url('/'.$path),
+            'authorization_servers' => [url('/'.$path)],
             'scopes_supported' => ['mcp:use'],
         ]))->name('mcp.oauth.protected-resource');
 
-        Router::get('/.well-known/oauth-authorization-server', fn () => response()->json([
-            'issuer' => url('/'),
+        Router::get('/.well-known/oauth-authorization-server/{path?}', fn (?string $path = '') => response()->json([
+            'issuer' => url('/'.$path),
             'authorization_endpoint' => route('passport.authorizations.authorize'),
             'token_endpoint' => route('passport.token'),
             'registration_endpoint' => url($oauthPrefix.'/register'),
