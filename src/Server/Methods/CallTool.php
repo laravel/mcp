@@ -14,6 +14,7 @@ use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
 use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Laravel\Mcp\Support\ValidationMessages;
@@ -29,6 +30,14 @@ class CallTool implements Errable, Method
      */
     public function handle(JsonRpcRequest $jsonRpcRequest, ServerContext $context): Generator|JsonRpcResponse
     {
+        if (is_null($jsonRpcRequest->get('name'))) {
+            throw new JsonRpcException(
+                'Missing [name] parameter.',
+                -32602,
+                $jsonRpcRequest->id,
+            );
+        }
+
         $request = $jsonRpcRequest->toRequest();
 
         $tool = $context
@@ -37,7 +46,7 @@ class CallTool implements Errable, Method
                 fn ($tool): bool => $tool->name() === $jsonRpcRequest->params['name'],
                 fn () => throw new JsonRpcException(
                     "Tool [{$jsonRpcRequest->params['name']}] not found.",
-                    -32601,
+                    -32602,
                     $jsonRpcRequest->id,
                 ));
 
@@ -51,17 +60,17 @@ class CallTool implements Errable, Method
         }
 
         return is_iterable($response)
-            ? $this->toJsonRpcStreamedResponse($jsonRpcRequest, $response, $this->serializable())
-            : $this->toJsonRpcResponse($jsonRpcRequest, $response, $this->serializable());
+            ? $this->toJsonRpcStreamedResponse($jsonRpcRequest, $response, $this->serializable($tool))
+            : $this->toJsonRpcResponse($jsonRpcRequest, $response, $this->serializable($tool));
     }
 
     /**
      * @return callable(Collection<int, Response>): array{content: array<int, array<string, mixed>>, isError: bool}
      */
-    protected function serializable(): callable
+    protected function serializable(Tool $tool): callable
     {
         return fn (Collection $responses): array => [
-            'content' => $responses->map(fn (Response $response): array => $response->content()->toArray())->all(),
+            'content' => $responses->map(fn (Response $response): array => $response->content()->toTool($tool))->all(),
             'isError' => $responses->contains(fn (Response $response): bool => $response->isError()),
         ];
     }

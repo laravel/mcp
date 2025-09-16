@@ -20,6 +20,14 @@ abstract class Prompt extends Primitive
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    public function toMethodCall(): array
+    {
+        return ['name' => $this->name()];
+    }
+
+    /**
      * @return array{name: string, title: string, description: string, arguments: array<int, array{name: string, description: string, required: bool}>}
      */
     public function toArray(): array

@@ -32,7 +32,7 @@ class GetPrompt implements Method
         if (is_null($jsonRpcRequest->get('name'))) {
             throw new JsonRpcException(
                 'Missing [name] parameter.',
-                -32601,
+                -32602,
                 $jsonRpcRequest->id,
             );
         }
@@ -44,7 +44,7 @@ class GetPrompt implements Method
                 fn ($prompt): bool => $prompt->name() === $jsonRpcRequest->get('name'),
                 fn () => throw new JsonRpcException(
                     "Prompt [{$jsonRpcRequest->get('name')}] not found.",
-                    -32601,
+                    -32602,
                     $jsonRpcRequest->id,
                 ));
 
@@ -71,7 +71,7 @@ class GetPrompt implements Method
             'description' => $prompt->description(),
             'messages' => $responses->map(fn (Response $response): array => [
                 'role' => $response->role()->value,
-                'content' => $response->content()->toArray(),
+                'content' => $response->content()->toPrompt($prompt),
             ])->all(),
         ];
     }

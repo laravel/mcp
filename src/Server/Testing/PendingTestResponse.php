@@ -12,8 +12,10 @@ use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\Methods\GetPrompt;
+use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
+use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
@@ -46,17 +48,16 @@ class PendingTestResponse
      */
     public function prompt(Prompt|string $prompt, array $arguments = []): TestResponse
     {
-        try {
-            return $this->run('prompts/get', $prompt, $arguments);
-        } catch (JsonRpcException $jsonRpcException) {
-            $prompt = is_string($prompt) ? Container::getInstance()->make($prompt) : $prompt;
+        return $this->run('prompts/get', $prompt, $arguments);
+    }
 
-            return new TestResponse($prompt, JsonRpcResponse::error(
-                uniqid(),
-                $jsonRpcException->getCode(),
-                $jsonRpcException->getMessage(),
-            ));
-        }
+    /**
+     * @param  class-string<Resource>|Resource  $prompt
+     * @param  array<string, mixed>  $arguments
+     */
+    public function resource(Resource|string $resource, array $arguments = []): TestResponse
+    {
+        return $this->run('resources/read', $resource, $arguments);
     }
 
     public function actingAs(Authenticatable $user, ?string $guard = null): static
@@ -75,6 +76,8 @@ class PendingTestResponse
     /**
      * @param  class-string<Primitive>|Primitive  $primitive
      * @param  array<string, mixed>  $arguments
+     *
+     * @throws JsonRpcException
      */
     protected function run(string $method, Primitive|string $primitive, array $arguments = []): TestResponse
     {
@@ -87,14 +90,28 @@ class PendingTestResponse
         $methodInstance = $container->make(match ($method) {
             'tools/call' => CallTool::class,
             'prompts/get' => GetPrompt::class,
+            'resources/read' => ReadResource::class,
             default => throw new InvalidArgumentException("Unsupported [{$method}] method."),
         });
 
-        $response = $methodInstance->handle(new JsonRpcRequest(
-            uniqid(),
-            $method,
-            ['name' => $primitive->name(), 'arguments' => $arguments],
-        ), $server->createContext());
+        $requestId = uniqid();
+
+        try {
+            $response = $methodInstance->handle(new JsonRpcRequest(
+                $requestId,
+                $method,
+                [
+                    ...$primitive->toMethodCall(),
+                    'arguments' => $arguments,
+                ],
+            ), $server->createContext());
+        } catch (JsonRpcException $jsonRpcException) {
+            $response = JsonRpcResponse::error(
+                $requestId,
+                $jsonRpcException->getCode(),
+                $jsonRpcException->getMessage(),
+            );
+        }
 
         return new TestResponse($primitive, $response);
     }

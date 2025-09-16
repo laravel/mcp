@@ -4,33 +4,68 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Methods;
 
-use Illuminate\Support\ItemNotFoundException;
-use InvalidArgumentException;
+use Generator;
+use Illuminate\Container\Container;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\Exceptions\JsonRpcException;
+use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Support\ValidationMessages;
 
 class ReadResource implements Method
 {
-    public function handle(JsonRpcRequest $jsonRpcRequest, ServerContext $context): JsonRpcResponse
+    use InteractsWithResponses;
+
+    /**
+     * @return Generator<JsonRpcResponse>|JsonRpcResponse
+     *
+     * @throws JsonRpcException
+     */
+    public function handle(JsonRpcRequest $jsonRpcRequest, ServerContext $context): Generator|JsonRpcResponse
     {
         if (is_null($jsonRpcRequest->get('uri'))) {
-            throw new InvalidArgumentException('Missing required parameter: uri');
+            throw new JsonRpcException(
+                'Missing [uri] parameter.',
+                -32002,
+                $jsonRpcRequest->id,
+            );
         }
 
-        $resource = $context->resources(
-            $jsonRpcRequest->toRequest(),
-        )->first(fn (Resource $resource): bool => $resource->uri() === $jsonRpcRequest->get('uri'));
+        $request = $jsonRpcRequest->toRequest();
 
-        if (is_null($resource)) {
-            throw new ItemNotFoundException('Resource not found');
+        $resource = $context->resources($request)
+            ->first(
+                fn (Resource $resource): bool => $resource->uri() === $jsonRpcRequest->get('uri'),
+                fn () => throw new JsonRpcException(
+                    "Resource [{$jsonRpcRequest->get('uri')}] not found.",
+                    -32002,
+                    $jsonRpcRequest->id,
+                ));
+
+        try {
+            // @phpstan-ignore-next-line
+            $response = Container::getInstance()->call([$resource, 'handle'], [
+                'request' => $request,
+            ]);
+        } catch (ValidationException $validationException) {
+            $response = Response::error('Invalid params: '.ValidationMessages::from($validationException));
         }
 
-        return JsonRpcResponse::result(
-            $jsonRpcRequest->id,
-            $resource->handle()->toArray(),
-        );
+        return is_iterable($response)
+            ? $this->toJsonRpcStreamedResponse($jsonRpcRequest, $response, $this->serializable($resource))
+            : $this->toJsonRpcResponse($jsonRpcRequest, $response, $this->serializable($resource));
+    }
+
+    protected function serializable(Resource $resource): callable
+    {
+        return fn (Collection $responses): array => [
+            'contents' => $responses->map(fn (Response $response): array => $response->content()->toResource($resource))->all(),
+        ];
     }
 }

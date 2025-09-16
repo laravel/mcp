@@ -34,6 +34,14 @@ abstract class Tool extends Primitive
             ->all();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function toMethodCall(): array
+    {
+        return ['name' => $this->name()];
+    }
+
     public function toArray(): array
     {
         $annotations = $this->annotations();

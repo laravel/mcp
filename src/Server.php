@@ -198,6 +198,12 @@ abstract class Server
         } catch (Throwable $e) {
             report($e);
 
+            $config = Container::getInstance()->make('config');
+
+            if ($config->get('app.debug', false)) {
+                throw $e;
+            }
+
             $jsonRpcResponse = JsonRpcResponse::error(
                 $request->id ?? null,
                 -32603,

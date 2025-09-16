@@ -79,7 +79,7 @@ abstract class TestCase extends TestbenchTestCase
         return new class($content, $description, $overrides) extends Resource
         {
             public function __construct(
-                private string|Content $contentValue,
+                private string $contentValue,
                 private string $desc,
                 private array $overrides,
             ) {
@@ -91,7 +91,7 @@ abstract class TestCase extends TestbenchTestCase
                 return $this->desc;
             }
 
-            public function read(): string|Content
+            public function handle(): string
             {
                 return $this->contentValue;
             }

@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Content;
 
+use InvalidArgumentException;
 use Laravel\Mcp\Server\Contracts\Content;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
 
-class Notification implements Content
+class Blob implements Content
 {
-    /**
-     * @param  array<string, mixed>  $params
-     */
-    public function __construct(protected string $method, protected array $params)
+    public $text;
+
+    public function __construct(protected string $content)
     {
         //
     }
@@ -24,7 +24,9 @@ class Notification implements Content
      */
     public function toTool(Tool $tool): array
     {
-        return $this->toArray();
+        throw new InvalidArgumentException(
+            'Blob content may not be used in tools.',
+        );
     }
 
     /**
@@ -32,7 +34,9 @@ class Notification implements Content
      */
     public function toPrompt(Prompt $prompt): array
     {
-        return $this->toArray();
+        throw new InvalidArgumentException(
+            'Blob content may not be used in prompts.',
+        );
     }
 
     /**
@@ -40,12 +44,18 @@ class Notification implements Content
      */
     public function toResource(Resource $resource): array
     {
-        return $this->toArray();
+        return [
+            'blob' => base64_encode($this->content),
+            'uri' => $resource->uri(),
+            'name' => $resource->name(),
+            'title' => $resource->title(),
+            'mimeType' => $resource->mimeType(),
+        ];
     }
 
     public function __toString(): string
     {
-        return $this->method;
+        return (string) $this->text;
     }
 
     /**
@@ -54,8 +64,8 @@ class Notification implements Content
     public function toArray(): array
     {
         return [
-            'method' => $this->method,
-            'params' => $this->params,
+            'type' => 'text',
+            'text' => $this->text,
         ];
     }
 }

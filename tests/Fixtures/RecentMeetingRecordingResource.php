@@ -11,7 +11,7 @@ class RecentMeetingRecordingResource extends Resource
         return 'The most recent meeting recording';
     }
 
-    public function read(): string
+    public function handle(): string
     {
         return "This is a test resource.\0dummy-binary-data";
     }

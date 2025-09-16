@@ -1,8 +1,7 @@
 <?php
 
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Resource;
-use Laravel\Mcp\Server\Resources\Content\Blob;
-use Laravel\Mcp\Server\Resources\Content\Text;
 
 it('returns a valid resource result for text resources', function (): void {
     $resource = new class extends Resource
@@ -12,27 +11,23 @@ it('returns a valid resource result for text resources', function (): void {
             return 'A test text resource.';
         }
 
-        public function read(): string
+        public function handle(): Response
         {
-            return 'This is a test resource.';
+            return Response::text('This is a test resource.');
         }
     };
 
     $result = $resource->handle();
 
     $expected = [
-        'contents' => [
-            [
-                'uri' => $resource->uri(),
-                'name' => $resource->name(),
-                'title' => $resource->title(),
-                'mimeType' => $resource->mimeType(),
-                'text' => 'This is a test resource.',
-            ],
-        ],
+        'text' => 'This is a test resource.',
+        'uri' => $resource->uri(),
+        'name' => $resource->name(),
+        'title' => $resource->title(),
+        'mimeType' => $resource->mimeType(),
     ];
 
-    expect($result->toArray())->toBe($expected);
+    expect($result->content()->toResource($resource))->toBe($expected);
 });
 
 it('returns a valid resource result for binary resources', function (): void {
@@ -55,27 +50,23 @@ it('returns a valid resource result for binary resources', function (): void {
             return 'image/png';
         }
 
-        public function read(): string
+        public function handle(): Response
         {
-            return file_get_contents(__DIR__.'/../../Fixtures/binary.png');
+            return Response::blob(file_get_contents(__DIR__.'/../../Fixtures/binary.png'));
         }
     };
 
-    $result = $resource->handle()->toArray();
+    $result = $resource->handle();
 
     $expected = [
-        'contents' => [
-            [
-                'uri' => 'file://resources/I_CAN_BE_OVERRIDDEN',
-                'name' => $resource->name(),
-                'title' => $resource->title(),
-                'mimeType' => 'image/png',
-                'blob' => base64_encode($binaryData),
-            ],
-        ],
+        'blob' => base64_encode($binaryData),
+        'uri' => 'file://resources/I_CAN_BE_OVERRIDDEN',
+        'name' => $resource->name(),
+        'title' => $resource->title(),
+        'mimeType' => 'image/png',
     ];
 
-    expect($result)->toBe($expected);
+    expect($result->content()->toResource($resource))->toBe($expected);
 });
 
 it('handles a text content object returned from read', function (): void {
@@ -86,27 +77,25 @@ it('handles a text content object returned from read', function (): void {
             return 'A test resource.';
         }
 
-        public function read(): Text
+        public function handle(): Response
         {
-            return new Text('This is a test resource.');
+            return Response::text('This is a test resource.');
         }
     };
 
-    $result = $resource->handle()->toArray();
+    $result = $resource->handle();
 
-    $expected = [
-        'contents' => [
+    $expected =
             [
+                'text' => 'This is a test resource.',
+
                 'uri' => $resource->uri(),
                 'name' => $resource->name(),
                 'title' => $resource->title(),
                 'mimeType' => $resource->mimeType(),
-                'text' => 'This is a test resource.',
-            ],
-        ],
-    ];
+            ];
 
-    expect($result)->toBe($expected);
+    expect($result->content()->toResource($resource))->toBe($expected);
 });
 
 it('handles a blob content object returned from read', function (): void {
@@ -117,44 +106,24 @@ it('handles a blob content object returned from read', function (): void {
             return 'A test resource.';
         }
 
-        public function read(): Blob
+        public function handle(): Response
         {
-            return new Blob('This is a test resource.');
+            return Response::blob('This is a test resource.');
         }
     };
 
-    $result = $resource->handle()->toArray();
-
-    $expected = [
-        'contents' => [
-            [
-                'uri' => $resource->uri(),
-                'name' => $resource->name(),
-                'title' => $resource->title(),
-                'mimeType' => $resource->mimeType(),
-                'blob' => base64_encode('This is a test resource.'),
-            ],
-        ],
-    ];
-
-    expect($result)->toBe($expected);
-});
-
-it('only calls read once', function (): void {
-    $resource = $this->getMockBuilder(Resource::class)
-        ->onlyMethods(['read', 'description'])
-        ->getMock();
-
-    $resource->method('description')
-        ->willReturn('A test resource.');
-
-    $resource->expects($this->once())
-        ->method('read')
-        ->willReturn('This is a test resource.');
-
     $result = $resource->handle();
 
-    expect($result->toArray()['contents'][0]['text'])->toBe('This is a test resource.');
+    $expected = [
+        'blob' => base64_encode('This is a test resource.'),
+
+        'uri' => $resource->uri(),
+        'name' => $resource->name(),
+        'title' => $resource->title(),
+        'mimeType' => $resource->mimeType(),
+    ];
+
+    expect($result->content()->toResource($resource))->toBe($expected);
 });
 
 test('description property works as expected', function (): void {
@@ -165,7 +134,7 @@ test('description property works as expected', function (): void {
             return 'A test resource.';
         }
 
-        public function read(): string
+        public function handle(): string
         {
             return 'This is a test resource.';
         }

@@ -66,6 +66,7 @@ it('throws error when uri is missing', function (): void {
 
 it('throws exception when resource is not found', function (): void {
     $this->expectException(JsonRpcException::class);
+    $this->expectExceptionMessage('Resource [file://resources/non-existent] not found.');
 
     $readResource = new ReadResource;
     $context = $this->getServerContext();
@@ -76,5 +77,5 @@ it('throws exception when resource is not found', function (): void {
         params: ['uri' => 'file://resources/non-existent']
     );
 
-    $readResource->handle($jsonRpcRequest, $context);
+    $response = $readResource->handle($jsonRpcRequest, $context);
 });

@@ -6,6 +6,7 @@ namespace Laravel\Mcp;
 
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
+use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
@@ -33,6 +34,11 @@ class Response
         return new static(new Text($text));
     }
 
+    public static function blob(string $content): static
+    {
+        return new static(new Blob($content));
+    }
+
     public static function error(string $text): static
     {
         return new static(new Text($text), isError: true);
@@ -46,7 +52,7 @@ class Response
     /**
      * @throws NotImplementedException
      */
-    public function audio(): Content
+    public static function audio(): Content
     {
         throw NotImplementedException::forMethod(static::class, __METHOD__);
     }
@@ -54,7 +60,7 @@ class Response
     /**
      * @throws NotImplementedException
      */
-    public function image(): Content
+    public static function image(): Content
     {
         throw NotImplementedException::forMethod(static::class, __METHOD__);
     }

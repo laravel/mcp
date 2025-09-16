@@ -3,17 +3,17 @@
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
-use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Resource;
 use PHPUnit\Framework\ExpectationFailedException;
 
-class HotelT extends Server
+class HotelR extends Server
 {
-    protected array $tools = [
-        BookingTool::class,
+    protected array $resources = [
+        BookingResource::class,
     ];
 }
 
-class BookingTool extends Tool
+class BookingResource extends Resource
 {
     public function handle(Request $request): Response|array|string
     {
@@ -40,42 +40,42 @@ class BookingTool extends Tool
 }
 
 it('may assert that text is seen when returning string content', function (): void {
-    $response = HotelT::tool(BookingTool::class);
+    $response = HotelR::resource(BookingResource::class);
 
     $response->assertSee('Your booking is confirmed!');
 });
 
 it('may assert that text is seen when providing arguments', function (): void {
-    $response = HotelT::tool(BookingTool::class, ['date' => now()->addDay()->toDateString()]);
+    $response = HotelR::resource(BookingResource::class, ['date' => now()->addDay()->toDateString()]);
 
     $response->assertSee('Your booking is confirmed!');
 });
 
 it('may assert that text is seen when providing arguments that are wrong', function (): void {
-    $response = HotelT::tool(BookingTool::class, ['date' => now()->subDay()->toDateString()]);
+    $response = HotelR::resource(BookingResource::class, ['date' => now()->subDay()->toDateString()]);
 
     $response
         ->assertSee('The booking date cannot be in the past.');
 });
 
 it('fails to assert that text is seen when not present', function (): void {
-    $response = HotelT::tool(BookingTool::class);
+    $response = HotelR::resource(BookingResource::class);
 
     $response->assertSee('This text is not present');
 })->throws(ExpectationFailedException::class);
 
 it('may assert that text is seen when returning array content', function (): void {
-    $response = HotelT::tool(BookingTool::class, ['date' => '2999-01-01']);
+    $response = HotelR::resource(BookingResource::class, ['date' => '2999-01-01']);
 
     $response
         ->assertSee('That date is too far in the future')
         ->assertSee('Please select a more reasonable date.');
 });
 
-it('fails if the tool is not registered', function (): void {
-    $response = HotelT::tool(new class extends Tool
+it('fails if the resource is not registered', function (): void {
+    $response = HotelR::resource(new class extends Resource
     {
-        protected string $name = 'unknown/tool';
+        protected string $uri = 'file://resources/hotel.md';
 
         public function handle(): string
         {
@@ -84,14 +84,14 @@ it('fails if the tool is not registered', function (): void {
     });
 
     $response->assertHasErrors([
-        'Tool [unknown/tool] not found.',
+        'Resource [file://resources/hotel.md] not found.',
     ]);
 });
 
-it('fails if the tool is not registered due the should register method', function (): void {
-    $response = HotelT::tool(BookingTool::class, ['register' => false]);
+it('fails if the resource is not registered due the should register method', function (): void {
+    $response = HotelR::resource(BookingResource::class, ['register' => false]);
 
     $response->assertHasErrors([
-        'Tool [booking-tool] not found.',
+        'Resource [file://resources/booking-resource] not found.',
     ]);
 });

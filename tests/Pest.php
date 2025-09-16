@@ -11,6 +11,8 @@ uses(TestCase::class)
         if ($filesystem->isDirectory($directory)) {
             $filesystem->deleteDirectory($directory);
         }
+
+        config()->set('app.debug', true);
     })->in('Unit', 'Feature');
 
 /*

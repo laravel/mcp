@@ -24,14 +24,14 @@ trait InteractsWithResponses
             is_array($response) ? $response : [$response]
         )->map(fn (Response|string $response): Response => $response instanceof Response
             ? $response
-            : Response::text($response),
+            : ($this->isBinary($response) ? Response::blob($response) : Response::text($response))
         );
 
         $responses->each(function (Response $response) use ($request): void {
             if (! $this instanceof Errable && $response->isError()) {
                 throw new JsonRpcException(
                     // @phpstan-ignore-next-line
-                    $response->content()->toArray()['text'],
+                    $response->content()->__toString(),
                     -32603,
                     $request->id,
                 );
@@ -73,5 +73,10 @@ trait InteractsWithResponses
         }
 
         yield $this->toJsonRpcResponse($request, $pendingResponses, $serializable);
+    }
+
+    protected function isBinary(string $content): bool
+    {
+        return str_contains($content, "\0");
     }
 }

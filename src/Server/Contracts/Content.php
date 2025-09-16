@@ -4,10 +4,28 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Contracts;
 
-interface Content
+use Illuminate\Contracts\Support\Arrayable;
+use Laravel\Mcp\Server\Prompt;
+use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Server\Tool;
+use Stringable;
+
+interface Content extends Arrayable, Stringable
 {
     /**
      * @return array<string, mixed>
      */
-    public function toArray(): array;
+    public function toTool(Tool $tool): array;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toPrompt(Prompt $prompt): array;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toResource(Resource $resource): array;
+
+    public function __toString(): string;
 }

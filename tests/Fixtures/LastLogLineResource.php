@@ -11,7 +11,7 @@ class LastLogLineResource extends Resource
         return 'The last line of the log file';
     }
 
-    public function read(): string
+    public function handle(): string
     {
         return '2025-07-02 12:00:00 Error: Something went wrong.';
     }

@@ -52,5 +52,13 @@ abstract class Primitive implements Arrayable
         return true;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    abstract public function toMethodCall(): array;
+
+    /**
+     * @return array<string, mixed>
+     */
     abstract public function toArray(): array;
 }
