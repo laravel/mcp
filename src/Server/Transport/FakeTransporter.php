@@ -23,7 +23,7 @@ class FakeTransporter implements Transport
 
     public function send(string $message, ?string $sessionId = null): void
     {
-        // Fake implementation - do nothing
+        //
     }
 
     public function run(): Response|StreamedResponse
@@ -42,6 +42,6 @@ class FakeTransporter implements Transport
 
     public function stream(Closure $stream): void
     {
-        // Fake implementation - do nothing
+        //
     }
 }
