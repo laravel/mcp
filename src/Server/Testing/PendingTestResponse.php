@@ -41,6 +41,7 @@ class PendingTestResponse
         /** @var Method $methodInstance = */
         $methodInstance = $container->make(match ($method) {
             'tools/call' => CallTool::class,
+            'prompts/get' => \Laravel\Mcp\Server\Methods\GetPrompt::class,
             default => throw new InvalidArgumentException("Unsupported [{$method}] method."),
         });
 
@@ -60,6 +61,15 @@ class PendingTestResponse
     public function tool(Tool|string $tool, array $arguments = []): TestResponse
     {
         return $this->run('tools/call', $tool, $arguments);
+    }
+
+    /**
+     * @param  class-string<\Laravel\Mcp\Server\Prompt>|\Laravel\Mcp\Server\Prompt  $prompt
+     * @param  array<string, mixed>  $arguments
+     */
+    public function prompt(\Laravel\Mcp\Server\Prompt|string $prompt, array $arguments = []): TestResponse
+    {
+        return $this->run('prompts/get', $prompt, $arguments);
     }
 
     public function actingAs(Authenticatable $user, ?string $guard = null): static

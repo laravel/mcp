@@ -18,7 +18,10 @@ abstract class Resource extends Primitive
 
     abstract public function read(): string|Content;
 
-    public function handle(): ResourceResult
+    /**
+     * Use the "read" instead.
+     */
+    final public function handle(): ResourceResult
     {
         $this->content = $this->content();
 

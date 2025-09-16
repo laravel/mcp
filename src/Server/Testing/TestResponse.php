@@ -7,8 +7,11 @@ namespace Laravel\Mcp\Server\Testing;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Laravel\Mcp\Server\Primitive;
+use Laravel\Mcp\Server\Prompt;
+use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use PHPUnit\Framework\Assert;
+use RuntimeException;
 
 class TestResponse
 {
@@ -54,7 +57,7 @@ class TestResponse
 
     public function assertText(string $text): static
     {
-        $contents = array_map(fn (array $content) => $content['text'] ?? '', array_filter($this->response->toArray()['result']['content'], fn (array $content): bool => $content['type'] === 'text'));
+        $contents = array_map(fn (array $content): string => $content['text'], $this->content());
 
         Assert::assertStringContainsString(
             $text,
@@ -67,7 +70,7 @@ class TestResponse
 
     public function assertTextCount(int $count): static
     {
-        $contents = array_filter($this->response->toArray()['result']['content'], fn (array $content): bool => $content['type'] === 'text');
+        $contents = array_filter($this->content(), fn (array $content): bool => $content['type'] === 'text');
 
         Assert::assertCount($count, $contents, "The expected number of text contents [{$count}] does not match the actual count.");
 
@@ -202,5 +205,19 @@ class TestResponse
     protected function isAuthenticated(?string $guard = null): bool
     {
         return Container::getInstance()->make('auth')->guard($guard)->check();
+    }
+
+    /**
+     * @return array<int, array{type: string, text: string}>
+     */
+    protected function content(): array
+    {
+        return match (true) {
+            $this->premitive instanceof Tool => $this->response->toArray()['result']['content'] ?? [],
+            $this->premitive instanceof Prompt => collect($this->response->toArray()['result']['messages'] ?? [])
+                ->map(fn (array $message): array => $message['content'] ?? [])
+                ->all(),
+            default => throw new RuntimeException('This primitive type is not supported.'),
+        };
     }
 }

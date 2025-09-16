@@ -57,6 +57,10 @@ class GetPrompt implements Method
             $response = Response::error('Invalid params: '.ValidationMessages::from($validationException));
         }
 
+        if (is_string($response)) {
+            $response = Response::text($response);
+        }
+
         foreach (is_iterable($response) ? $response : [$response] as $res) {
             if ($res->isError()) {
                 return JsonRpcResponse::error(
