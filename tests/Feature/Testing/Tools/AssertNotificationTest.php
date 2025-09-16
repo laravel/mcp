@@ -7,7 +7,7 @@ use Laravel\Mcp\Server\Tool;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\ExpectationFailedException;
 
-class RestaurantB extends Server
+class RestaurantT extends Server
 {
     protected array $tools = [
         ReservationTool::class,
@@ -40,13 +40,13 @@ class ReservationTool extends Tool
 }
 
 it('may assert that text is seen when returning string content', function (): void {
-    $response = RestaurantB::tool(ReservationTool::class);
+    $response = RestaurantT::tool(ReservationTool::class);
 
     $response->assertSee('Your booking is confirmed!');
 });
 
 it('may assert two notifications got sent', function (): void {
-    $response = RestaurantB::tool(ReservationTool::class);
+    $response = RestaurantT::tool(ReservationTool::class);
 
     $response->assertNotificationCount(2)
         ->assertNotification('booking/starting', ['step' => 1])
@@ -54,19 +54,19 @@ it('may assert two notifications got sent', function (): void {
 });
 
 it('may fail to assert the notification count is wrong', function (): void {
-    $response = RestaurantB::tool(ReservationTool::class);
+    $response = RestaurantT::tool(ReservationTool::class);
 
     $response->assertNotificationCount(3);
 })->throws(ExpectationFailedException::class);
 
 it('may fail to assert a notification that was not sent', function (): void {
-    $response = RestaurantB::tool(ReservationTool::class);
+    $response = RestaurantT::tool(ReservationTool::class);
 
     $response->assertNotification('booking/unknown');
 })->throws(AssertionFailedError::class);
 
 it('may fail to assert a notification that was sent with wrong params', function (): void {
-    $response = RestaurantB::tool(ReservationTool::class);
+    $response = RestaurantT::tool(ReservationTool::class);
 
     $response->assertNotification('booking/starting', ['step' => 2]);
 })->throws(AssertionFailedError::class);

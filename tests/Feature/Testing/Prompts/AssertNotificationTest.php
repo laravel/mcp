@@ -7,7 +7,7 @@ use Laravel\Mcp\Server\Prompt;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\ExpectationFailedException;
 
-class RestaurantA extends Server
+class RestaurantP extends Server
 {
     protected array $prompts = [
         ReservationPrompt::class,
@@ -40,13 +40,13 @@ class ReservationPrompt extends Prompt
 }
 
 it('may assert that text is seen when returning string content', function (): void {
-    $response = RestaurantA::prompt(ReservationPrompt::class);
+    $response = RestaurantP::prompt(ReservationPrompt::class);
 
     $response->assertSee('Your booking is confirmed!');
 });
 
 it('may assert two notifications got sent', function (): void {
-    $response = RestaurantA::prompt(ReservationPrompt::class);
+    $response = RestaurantP::prompt(ReservationPrompt::class);
 
     $response->assertNotificationCount(2)
         ->assertNotification('booking/starting', ['step' => 1])
@@ -54,19 +54,19 @@ it('may assert two notifications got sent', function (): void {
 });
 
 it('may fail to assert the notification count is wrong', function (): void {
-    $response = RestaurantA::prompt(ReservationPrompt::class);
+    $response = RestaurantP::prompt(ReservationPrompt::class);
 
     $response->assertNotificationCount(3);
 })->throws(ExpectationFailedException::class);
 
 it('may fail to assert a notification that was not sent', function (): void {
-    $response = RestaurantA::prompt(ReservationPrompt::class);
+    $response = RestaurantP::prompt(ReservationPrompt::class);
 
     $response->assertNotification('booking/unknown');
 })->throws(AssertionFailedError::class);
 
 it('may fail to assert a notification that was sent with wrong params', function (): void {
-    $response = RestaurantA::prompt(ReservationPrompt::class);
+    $response = RestaurantP::prompt(ReservationPrompt::class);
 
     $response->assertNotification('booking/starting', ['step' => 2]);
 })->throws(AssertionFailedError::class);

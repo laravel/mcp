@@ -4,7 +4,7 @@ use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Prompt;
 use PHPUnit\Framework\ExpectationFailedException;
 
-class GarageA extends Server
+class GarageP extends Server
 {
     protected array $prompts = [
         InspectionPrompt::class,
@@ -26,7 +26,7 @@ class InspectionPrompt extends Prompt
 }
 
 it('may assert the title', function (): void {
-    $response = GarageA::prompt(InspectionPrompt::class);
+    $response = GarageP::prompt(InspectionPrompt::class);
 
     $response->assertName('car/inspection')
         ->assertTitle('Car Inspection')
@@ -34,19 +34,19 @@ it('may assert the title', function (): void {
 });
 
 it('fails to assert the name is wrong', function (): void {
-    $response = GarageA::prompt(InspectionPrompt::class);
+    $response = GarageP::prompt(InspectionPrompt::class);
 
     $response->assertName('wrong/name');
 })->throws(ExpectationFailedException::class);
 
 it('fails to assert the title is wrong', function (): void {
-    $response = GarageA::prompt(InspectionPrompt::class);
+    $response = GarageP::prompt(InspectionPrompt::class);
 
     $response->assertTitle('Wrong Title');
 })->throws(ExpectationFailedException::class);
 
 it('fails to assert the description is wrong', function (): void {
-    $response = GarageA::prompt(InspectionPrompt::class);
+    $response = GarageP::prompt(InspectionPrompt::class);
 
     $response->assertDescription('Wrong description');
 })->throws(ExpectationFailedException::class);

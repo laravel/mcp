@@ -7,7 +7,7 @@ use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Tool;
 use PHPUnit\Framework\ExpectationFailedException;
 
-class HotelB extends Server
+class HotelT extends Server
 {
     protected array $tools = [
         BookingTool::class,
@@ -41,32 +41,32 @@ class BookingTool extends Tool
 }
 
 it('may assert that text is seen when returning string content', function (): void {
-    $response = HotelB::tool(BookingTool::class);
+    $response = HotelT::tool(BookingTool::class);
 
     $response->assertSee('Your booking is confirmed!');
 });
 
 it('may assert that text is seen when providing arguments', function (): void {
-    $response = HotelB::tool(BookingTool::class, ['date' => now()->addDay()->toDateString()]);
+    $response = HotelT::tool(BookingTool::class, ['date' => now()->addDay()->toDateString()]);
 
     $response->assertSee('Your booking is confirmed!');
 });
 
 it('may assert that text is seen when providing arguments that are wrong', function (): void {
-    $response = HotelB::tool(BookingTool::class, ['date' => now()->subDay()->toDateString()]);
+    $response = HotelT::tool(BookingTool::class, ['date' => now()->subDay()->toDateString()]);
 
     $response
         ->assertSee('The booking date cannot be in the past.');
 });
 
 it('fails to assert that text is seen when not present', function (): void {
-    $response = HotelB::tool(BookingTool::class);
+    $response = HotelT::tool(BookingTool::class);
 
     $response->assertSee('This text is not present');
 })->throws(ExpectationFailedException::class);
 
 it('may assert that text is seen when returning array content', function (): void {
-    $response = HotelB::tool(BookingTool::class, ['date' => '2999-01-01']);
+    $response = HotelT::tool(BookingTool::class, ['date' => '2999-01-01']);
 
     $response
         ->assertSee('That date is too far in the future')
@@ -74,7 +74,7 @@ it('may assert that text is seen when returning array content', function (): voi
 });
 
 it('fails if the tool is not registered', function (): void {
-    HotelB::tool(new class extends Tool
+    HotelT::tool(new class extends Tool
     {
         protected string $name = 'unknown/tool';
 
@@ -86,5 +86,5 @@ it('fails if the tool is not registered', function (): void {
 })->throws(JsonRpcException::class, 'Tool [unknown/tool] not found.');
 
 it('fails if the tool is not registered due the should register method', function (): void {
-    HotelB::tool(BookingTool::class, ['register' => false]);
+    HotelT::tool(BookingTool::class, ['register' => false]);
 })->throws(JsonRpcException::class, 'Tool [booking-tool] not found.');

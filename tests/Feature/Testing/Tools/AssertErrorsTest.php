@@ -5,7 +5,7 @@ use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Tool;
 use PHPUnit\Framework\AssertionFailedError;
 
-class ShopB extends Server
+class ShopT extends Server
 {
     protected array $tools = [
         BuyTool::class,
@@ -26,31 +26,31 @@ class BuyTool extends Tool
 }
 
 it('may assert validation passes', function (): void {
-    $response = ShopB::tool(BuyTool::class, ['id' => 1, 'quantity' => 3]);
+    $response = ShopT::tool(BuyTool::class, ['id' => 1, 'quantity' => 3]);
 
     $response->assertHasNoErrors();
 });
 
 it('may assert that things are ok', function (): void {
-    $response = ShopB::tool(BuyTool::class, ['id' => 1, 'quantity' => 3]);
+    $response = ShopT::tool(BuyTool::class, ['id' => 1, 'quantity' => 3]);
 
     $response->assertOk();
 });
 
 it('may fail to assert that things are ok', function (): void {
-    $response = ShopB::tool(BuyTool::class);
+    $response = ShopT::tool(BuyTool::class);
 
     $response->assertOk();
 })->throws(AssertionFailedError::class);
 
 it('may assert validation fails', function (): void {
-    $response = ShopB::tool(BuyTool::class);
+    $response = ShopT::tool(BuyTool::class);
 
     $response->assertHasErrors();
 });
 
 it('may fail to assert validation fails', function (): void {
-    $response = ShopB::tool(BuyTool::class, ['id' => 1]);
+    $response = ShopT::tool(BuyTool::class, ['id' => 1]);
 
     $response->assertHasErrors([
         'The id field is required.',
@@ -58,7 +58,7 @@ it('may fail to assert validation fails', function (): void {
 })->throws(AssertionFailedError::class);
 
 it('may assert specific validation errors', function (): void {
-    $response = ShopB::tool(BuyTool::class, ['id' => 1]);
+    $response = ShopT::tool(BuyTool::class, ['id' => 1]);
 
     $response->assertHasErrors([
         'The quantity field is required.',

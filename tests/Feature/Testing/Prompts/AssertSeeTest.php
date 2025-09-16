@@ -6,7 +6,7 @@ use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Prompt;
 use PHPUnit\Framework\ExpectationFailedException;
 
-class HotelA extends Server
+class HotelP extends Server
 {
     protected array $prompts = [
         BookingPrompt::class,
@@ -40,32 +40,32 @@ class BookingPrompt extends Prompt
 }
 
 it('may assert that text is seen when returning string content', function (): void {
-    $response = HotelA::prompt(BookingPrompt::class);
+    $response = HotelP::prompt(BookingPrompt::class);
 
     $response->assertSee('Your booking is confirmed!');
 });
 
 it('may assert that text is seen when providing arguments', function (): void {
-    $response = HotelA::prompt(BookingPrompt::class, ['date' => now()->addDay()->toDateString()]);
+    $response = HotelP::prompt(BookingPrompt::class, ['date' => now()->addDay()->toDateString()]);
 
     $response->assertSee('Your booking is confirmed!');
 });
 
 it('may assert that text is seen when providing arguments that are wrong', function (): void {
-    $response = HotelA::prompt(BookingPrompt::class, ['date' => now()->subDay()->toDateString()]);
+    $response = HotelP::prompt(BookingPrompt::class, ['date' => now()->subDay()->toDateString()]);
 
     $response
         ->assertSee('The booking date cannot be in the past.');
 });
 
 it('fails to assert that text is seen when not present', function (): void {
-    $response = HotelA::prompt(BookingPrompt::class);
+    $response = HotelP::prompt(BookingPrompt::class);
 
     $response->assertSee('This text is not present');
 })->throws(ExpectationFailedException::class);
 
 it('may assert that text is seen when returning array content', function (): void {
-    $response = HotelA::prompt(BookingPrompt::class, ['date' => '2999-01-01']);
+    $response = HotelP::prompt(BookingPrompt::class, ['date' => '2999-01-01']);
 
     $response
         ->assertSee('That date is too far in the future')
@@ -73,7 +73,7 @@ it('may assert that text is seen when returning array content', function (): voi
 });
 
 it('fails if the prompt is not registered', function (): void {
-    $response = HotelA::prompt(new class extends Prompt
+    $response = HotelP::prompt(new class extends Prompt
     {
         protected string $name = 'unknown/prompt';
 
@@ -89,7 +89,7 @@ it('fails if the prompt is not registered', function (): void {
 });
 
 it('fails if the prompt is not registered due the should register method', function (): void {
-    $response = HotelA::prompt(BookingPrompt::class, ['register' => false]);
+    $response = HotelP::prompt(BookingPrompt::class, ['register' => false]);
 
     $response->assertHasErrors([
         'Prompt [booking-prompt] not found',

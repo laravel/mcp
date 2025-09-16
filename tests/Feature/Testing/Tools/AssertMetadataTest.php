@@ -4,7 +4,7 @@ use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Tool;
 use PHPUnit\Framework\ExpectationFailedException;
 
-class GarageB extends Server
+class GarageT extends Server
 {
     protected array $tools = [
         InspectionTool::class,
@@ -26,7 +26,7 @@ class InspectionTool extends Tool
 }
 
 it('may assert the title', function (): void {
-    $response = GarageB::tool(InspectionTool::class);
+    $response = GarageT::tool(InspectionTool::class);
 
     $response->assertName('car/inspection')
         ->assertTitle('Car Inspection')
@@ -34,19 +34,19 @@ it('may assert the title', function (): void {
 });
 
 it('fails to assert the name is wrong', function (): void {
-    $response = GarageB::tool(InspectionTool::class);
+    $response = GarageT::tool(InspectionTool::class);
 
     $response->assertName('wrong/name');
 })->throws(ExpectationFailedException::class);
 
 it('fails to assert the title is wrong', function (): void {
-    $response = GarageB::tool(InspectionTool::class);
+    $response = GarageT::tool(InspectionTool::class);
 
     $response->assertTitle('Wrong Title');
 })->throws(ExpectationFailedException::class);
 
 it('fails to assert the description is wrong', function (): void {
-    $response = GarageB::tool(InspectionTool::class);
+    $response = GarageT::tool(InspectionTool::class);
 
     $response->assertDescription('Wrong description');
 })->throws(ExpectationFailedException::class);
