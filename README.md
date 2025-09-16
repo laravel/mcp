@@ -1,4 +1,7 @@
-<p align="center"><img src="/art/logo.svg" alt="Laravel MCP Package Logo"></p>
+<p align="center">
+    <img alt="Laravel MCP Logo Light Mode" src="/art/logo-light-mode.svg#gh-light-mode-only"/>
+    <img alt="Laravel MCP Logo Dark Mode" src="/art/logo-dark-mode.svg#gh-dark-mode-only"/>
+</p>
 
 <p align="center">
 <a href="https://github.com/laravel/mcp/actions"><img src="https://github.com/laravel/mcp/workflows/tests/badge.svg" alt="Build Status"></a>
