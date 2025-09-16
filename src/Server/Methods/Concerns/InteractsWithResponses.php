@@ -31,7 +31,7 @@ trait InteractsWithResponses
             if (! $this instanceof Errable && $response->isError()) {
                 throw new JsonRpcException(
                     // @phpstan-ignore-next-line
-                    $response->content()->text,
+                    $response->content()->toArray()['text'],
                     -32603,
                     $request->id,
                 );

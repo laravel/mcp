@@ -8,7 +8,7 @@ use Laravel\Mcp\Server\Contracts\Content;
 
 class Text implements Content
 {
-    public function __construct(public string $text)
+    public function __construct(protected string $text)
     {
         //
     }
