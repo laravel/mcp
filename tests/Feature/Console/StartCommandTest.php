@@ -190,7 +190,7 @@ it('returns OAuth WWW-Authenticate header when OAuth routes are enabled and resp
 
     $wwwAuth = $response->headers->get('WWW-Authenticate');
     expect($wwwAuth)->toContain('Bearer realm="mcp"');
-    expect($wwwAuth)->toContain('resource_metadata="'.url('/.well-known/oauth-protected-resource').'"');
+    expect($wwwAuth)->toContain('resource_metadata="'.url('/.well-known/oauth-protected-resource/test-oauth-401').'"');
 });
 
 it('returns Sanctum WWW-Authenticate header when OAuth routes are not enabled and response is 401', function (): void {
