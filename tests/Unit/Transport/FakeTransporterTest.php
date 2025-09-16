@@ -1,91 +1,76 @@
 <?php
 
-declare(strict_types=1);
-
-namespace Tests\Unit\Transport;
-
 use Illuminate\Http\Response;
 use Laravel\Mcp\Server\Transport\FakeTransporter;
-use Tests\TestCase;
 
-class FakeTransporterTest extends TestCase
-{
-    public function test_it_implements_transport_interface(): void
-    {
-        $transporter = new FakeTransporter;
+it('implements transport interface', function (): void {
+    $transporter = new FakeTransporter;
 
-        $this->assertInstanceOf(\Laravel\Mcp\Server\Contracts\Transport::class, $transporter);
-    }
+    expect($transporter)->toBeInstanceOf(\Laravel\Mcp\Server\Contracts\Transport::class);
+});
 
-    public function test_it_can_receive_handler(): void
-    {
-        $transporter = new FakeTransporter;
-        $called = false;
+it('can receive handler', function (): void {
+    $transporter = new FakeTransporter;
+    $called = false;
 
-        $transporter->onReceive(function (string $message) use (&$called): void {
-            $called = true;
-        });
+    $transporter->onReceive(function () use (&$called): void {
+        $called = true;
+    });
 
-        $response = $transporter->run();
+    $response = $transporter->run();
 
-        $this->assertTrue($called);
-        $this->assertInstanceOf(Response::class, $response);
-    }
+    expect($called)->toBeTrue()
+        ->and($response)->toBeInstanceOf(Response::class);
+});
 
-    public function test_run_returns_json_response(): void
-    {
-        $transporter = new FakeTransporter;
+it('returns json response when run', function (): void {
+    $transporter = new FakeTransporter;
 
-        $response = $transporter->run();
+    $response = $transporter->run();
 
-        $this->assertInstanceOf(Response::class, $response);
-        $this->assertEquals(200, $response->getStatusCode());
-        $this->assertEquals('application/json', $response->headers->get('Content-Type'));
-        $this->assertEquals('', $response->getContent());
-    }
+    expect($response)->toBeInstanceOf(Response::class)
+        ->and($response->getStatusCode())->toBe(200)
+        ->and($response->headers->get('Content-Type'))->toBe('application/json')
+        ->and($response->getContent())->toBe('');
+});
 
-    public function test_run_calls_handler_with_empty_string(): void
-    {
-        $transporter = new FakeTransporter;
-        $receivedMessage = null;
+it('calls handler with empty string', function (): void {
+    $transporter = new FakeTransporter;
+    $receivedMessage = null;
 
-        $transporter->onReceive(function (string $message) use (&$receivedMessage): void {
-            $receivedMessage = $message;
-        });
+    $transporter->onReceive(function (string $message) use (&$receivedMessage): void {
+        $receivedMessage = $message;
+    });
 
-        $transporter->run();
+    $transporter->run();
 
-        $this->assertEquals('', $receivedMessage);
-    }
+    expect($receivedMessage)->toBe('');
+});
 
-    public function test_session_id_returns_unique_string(): void
-    {
-        $transporter = new FakeTransporter;
+it('returns unique session ids', function (): void {
+    $transporter = new FakeTransporter;
 
-        $sessionId1 = $transporter->sessionId();
-        $sessionId2 = $transporter->sessionId();
+    $sessionId1 = $transporter->sessionId();
+    $sessionId2 = $transporter->sessionId();
 
-        $this->assertIsString($sessionId1);
-        $this->assertIsString($sessionId2);
-        $this->assertNotEquals($sessionId1, $sessionId2);
-    }
+    expect($sessionId1)->toBeString();
+    expect($sessionId2)->toBeString();
+    expect($sessionId1)->not->toEqual($sessionId2);
+});
 
-    public function test_send_does_nothing(): void
-    {
-        $transporter = new FakeTransporter;
+it('does nothing when sending', function (): void {
+    $transporter = new FakeTransporter;
 
-        $transporter->send('test message');
-        $transporter->send('test message', 'session-id');
+    $transporter->send('test message');
+    $transporter->send('test message', 'session-id');
 
-        $this->assertTrue(true);
-    }
+    expect(true)->toBeTrue();
+});
 
-    public function test_stream_does_nothing(): void
-    {
-        $transporter = new FakeTransporter;
+it('does nothing when streaming', function (): void {
+    $transporter = new FakeTransporter;
 
-        $transporter->stream(fn (): string => 'test');
+    $transporter->stream(fn (): string => 'test');
 
-        $this->assertTrue(true);
-    }
-}
+    expect(true)->toBeTrue();
+});
