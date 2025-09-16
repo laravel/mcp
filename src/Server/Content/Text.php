@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server\Content;
 
 use Laravel\Mcp\Server\Contracts\Content;
 
-class TextContent implements Content
+class Text implements Content
 {
     public function __construct(public string $text)
     {

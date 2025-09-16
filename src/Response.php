@@ -7,7 +7,7 @@ namespace Laravel\Mcp;
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Server\Content\Notification;
-use Laravel\Mcp\Server\Content\TextContent;
+use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
 
 class Response
@@ -30,12 +30,12 @@ class Response
 
     public static function text(string $text): static
     {
-        return new static(new TextContent($text));
+        return new static(new Text($text));
     }
 
     public static function error(string $text): static
     {
-        return new static(new TextContent($text), isError: true);
+        return new static(new Text($text), isError: true);
     }
 
     public function content(): Content
