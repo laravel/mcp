@@ -3,18 +3,18 @@
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
-use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Prompt;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\ExpectationFailedException;
 
-class RestaurantB extends Server
+class RestaurantA extends Server
 {
-    protected array $tools = [
-        ReservationTool::class,
+    protected array $prompts = [
+        ReservationPrompt::class,
     ];
 }
 
-class ReservationTool extends Tool
+class ReservationPrompt extends Prompt
 {
     public function handle(Request $request): Generator
     {
@@ -40,13 +40,13 @@ class ReservationTool extends Tool
 }
 
 it('may assert that text is seen when returning string content', function (): void {
-    $response = RestaurantB::tool(ReservationTool::class);
+    $response = RestaurantA::prompt(ReservationPrompt::class);
 
     $response->assertSee('Your booking is confirmed!');
 });
 
 it('may assert two notifications got sent', function (): void {
-    $response = RestaurantB::tool(ReservationTool::class);
+    $response = RestaurantA::prompt(ReservationPrompt::class);
 
     $response->assertNotificationCount(2)
         ->assertNotification('booking/starting', ['step' => 1])
@@ -54,19 +54,19 @@ it('may assert two notifications got sent', function (): void {
 });
 
 it('may fail to assert the notification count is wrong', function (): void {
-    $response = RestaurantB::tool(ReservationTool::class);
+    $response = RestaurantA::prompt(ReservationPrompt::class);
 
     $response->assertNotificationCount(3);
 })->throws(ExpectationFailedException::class);
 
 it('may fail to assert a notification that was not sent', function (): void {
-    $response = RestaurantB::tool(ReservationTool::class);
+    $response = RestaurantA::prompt(ReservationPrompt::class);
 
     $response->assertNotification('booking/unknown');
 })->throws(AssertionFailedError::class);
 
 it('may fail to assert a notification that was sent with wrong params', function (): void {
-    $response = RestaurantB::tool(ReservationTool::class);
+    $response = RestaurantA::prompt(ReservationPrompt::class);
 
     $response->assertNotification('booking/starting', ['step' => 2]);
 })->throws(AssertionFailedError::class);

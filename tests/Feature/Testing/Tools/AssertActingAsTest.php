@@ -7,7 +7,7 @@ use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Tool;
 use PHPUnit\Framework\ExpectationFailedException;
 
-class Airport extends Server
+class AirportB extends Server
 {
     protected array $tools = [
         TicketTool::class,
@@ -27,16 +27,16 @@ class TicketTool extends Tool
 it('may assert the user is acting as the given user', function (): void {
     $user = new class extends User {};
 
-    $response = Airport::actingAs($user)
+    $response = AirportB::actingAs($user)
         ->tool(TicketTool::class);
 
-    $response->assertText('Here is your ticket!');
+    $response->assertSee('Here is your ticket!');
 });
 
 it('may assert the user is not acting as a user', function (): void {
-    $response = Airport::tool(TicketTool::class);
+    $response = AirportB::tool(TicketTool::class);
 
-    $response->assertText('You must be logged in to get a ticket.');
+    $response->assertSee('You must be logged in to get a ticket.');
 });
 
 it('may assert authenticated and authenticated as a specific user', function (): void {
@@ -45,7 +45,7 @@ it('may assert authenticated and authenticated as a specific user', function ():
         public int $id = 1;
     };
 
-    $response = Airport::actingAs($user)
+    $response = AirportB::actingAs($user)
         ->tool(TicketTool::class);
 
     $response->assertAuthenticated()
@@ -53,7 +53,7 @@ it('may assert authenticated and authenticated as a specific user', function ():
 });
 
 it('may assert guest when no user is authenticated', function (): void {
-    $response = Airport::tool(TicketTool::class);
+    $response = AirportB::tool(TicketTool::class);
 
     $response->assertGuest();
 });
@@ -69,7 +69,7 @@ it('fails when asserting authenticated as a different user', function (): void {
         public int $id = 2;
     };
 
-    $response = Airport::actingAs($userA)
+    $response = AirportB::actingAs($userA)
         ->tool(TicketTool::class);
 
     $response->assertAuthenticatedAs($userB);

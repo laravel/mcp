@@ -1,17 +1,17 @@
 <?php
 
 use Laravel\Mcp\Server;
-use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Prompt;
 use PHPUnit\Framework\ExpectationFailedException;
 
-class GarageB extends Server
+class GarageA extends Server
 {
-    protected array $tools = [
-        InspectionTool::class,
+    protected array $prompts = [
+        InspectionPrompt::class,
     ];
 }
 
-class InspectionTool extends Tool
+class InspectionPrompt extends Prompt
 {
     protected string $name = 'car/inspection';
 
@@ -26,7 +26,7 @@ class InspectionTool extends Tool
 }
 
 it('may assert the title', function (): void {
-    $response = GarageB::tool(InspectionTool::class);
+    $response = GarageA::prompt(InspectionPrompt::class);
 
     $response->assertName('car/inspection')
         ->assertTitle('Car Inspection')
@@ -34,19 +34,19 @@ it('may assert the title', function (): void {
 });
 
 it('fails to assert the name is wrong', function (): void {
-    $response = GarageB::tool(InspectionTool::class);
+    $response = GarageA::prompt(InspectionPrompt::class);
 
     $response->assertName('wrong/name');
 })->throws(ExpectationFailedException::class);
 
 it('fails to assert the title is wrong', function (): void {
-    $response = GarageB::tool(InspectionTool::class);
+    $response = GarageA::prompt(InspectionPrompt::class);
 
     $response->assertTitle('Wrong Title');
 })->throws(ExpectationFailedException::class);
 
 it('fails to assert the description is wrong', function (): void {
-    $response = GarageB::tool(InspectionTool::class);
+    $response = GarageA::prompt(InspectionPrompt::class);
 
     $response->assertDescription('Wrong description');
 })->throws(ExpectationFailedException::class);

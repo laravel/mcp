@@ -49,30 +49,24 @@ class TestResponse
      */
     public function assertSee(array|string $text): static
     {
-        collect(is_array($text) ? $text : [$text])
-            ->each($this->assertText(...));
+        $seeable = collect([
+            ...$this->content(),
+            ...$this->errors(),
+        ])->filter()->unique()->values()->all();
 
-        return $this;
-    }
+        foreach (is_array($text) ? $text : [$text] as $segment) {
+            foreach ($seeable as $message) {
+                if (str_contains($message, $segment)) {
+                    continue 2;
+                }
+            }
 
-    public function assertText(string $text): static
-    {
-        $contents = array_map(fn (array $content): string => $content['text'], $this->content());
+            // @phpstan-ignore-next-line
+            Assert::assertTrue(false, "The expected text [{$segment}] was not found in the response content.");
+        }
 
-        Assert::assertStringContainsString(
-            $text,
-            implode("\n", $contents),
-            "The text [{$text}] was not found in the response.",
-        );
-
-        return $this;
-    }
-
-    public function assertTextCount(int $count): static
-    {
-        $contents = array_filter($this->content(), fn (array $content): bool => $content['type'] === 'text');
-
-        Assert::assertCount($count, $contents, "The expected number of text contents [{$count}] does not match the actual count.");
+        // @phpstan-ignore-next-line
+        Assert::assertTrue(true);
 
         return $this;
     }
@@ -142,12 +136,7 @@ class TestResponse
 
     public function assertHasNoErrors(): static
     {
-        $content = $this->response->toArray();
-
-        Assert::assertFalse(
-            data_get($content, 'result.isError', false),
-            'The response contains errors.',
-        );
+        Assert::assertEmpty($this->errors());
 
         return $this;
     }
@@ -157,14 +146,19 @@ class TestResponse
      */
     public function assertHasErrors(array $messages = []): static
     {
-        $content = $this->response->toArray();
+        $errors = $this->errors();
 
-        Assert::assertTrue(
-            data_get($content, 'result.isError', false),
-            'The response does not contain any errors.',
-        );
+        Assert::assertNotEmpty($errors, 'The response has no errors.');
 
-        $this->assertSee($messages);
+        foreach ($messages as $message) {
+            foreach ($errors as $error) {
+                if (str_contains($error, $message)) {
+                    continue 2;
+                }
+            }
+
+            Assert::fail("The expected error message [{$message}] was not found in the response.");
+        }
 
         return $this;
     }
@@ -207,17 +201,53 @@ class TestResponse
         return Container::getInstance()->make('auth')->guard($guard)->check();
     }
 
+    public function dd(): void
+    {
+        dd($this->response->toArray());
+    }
+
+    public function dump(): void
+    {
+        dump($this->response->toArray());
+    }
+
+    public function ddErrors(): void
+    {
+        dd($this->errors());
+    }
+
     /**
-     * @return array<int, array{type: string, text: string}>
+     * @return array<int, string>
      */
     protected function content(): array
     {
-        return match (true) {
-            $this->premitive instanceof Tool => $this->response->toArray()['result']['content'] ?? [],
+        return (match (true) {
+            // @phpstan-ignore-next-line
+            $this->premitive instanceof Tool => collect($this->response->toArray()['result']['content'] ?? [])
+                ->map(fn (array $message): string => $message['text'] ?? ''),
+            // @phpstan-ignore-next-line
             $this->premitive instanceof Prompt => collect($this->response->toArray()['result']['messages'] ?? [])
-                ->map(fn (array $message): array => $message['content'] ?? [])
-                ->all(),
+                ->map(fn (array $message): array => $message['content'])
+                ->map(fn (array $content): string => $content['text'] ?? ''),
             default => throw new RuntimeException('This primitive type is not supported.'),
-        };
+        })->filter()->unique()->values()->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function errors(): array
+    {
+        $response = $this->response->toArray();
+
+        if (data_get($response, 'result.isError', false)) {
+            return $this->content();
+        }
+
+        if (array_key_exists('error', $response)) {
+            return [$response['error']['message']];
+        }
+
+        return [];
     }
 }

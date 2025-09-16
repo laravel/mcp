@@ -7,7 +7,7 @@ use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Prompt;
 use PHPUnit\Framework\ExpectationFailedException;
 
-class AirCompany extends Server
+class AirportA extends Server
 {
     protected array $prompts = [
         TicketPrompt::class,
@@ -27,16 +27,16 @@ class TicketPrompt extends Prompt
 it('may assert the user is acting as the given user', function (): void {
     $user = new class extends User {};
 
-    $response = AirCompany::actingAs($user)
+    $response = AirportA::actingAs($user)
         ->prompt(TicketPrompt::class);
 
-    $response->assertText('Here is your ticket!');
+    $response->assertSee('Here is your ticket!');
 });
 
 it('may assert the user is not acting as a user', function (): void {
-    $response = AirCompany::prompt(TicketPrompt::class);
+    $response = AirportA::prompt(TicketPrompt::class);
 
-    $response->assertText('You must be logged in to get a ticket.');
+    $response->assertSee('You must be logged in to get a ticket.');
 });
 
 it('may assert authenticated and authenticated as a specific user', function (): void {
@@ -45,7 +45,7 @@ it('may assert authenticated and authenticated as a specific user', function ():
         public int $id = 1;
     };
 
-    $response = AirCompany::actingAs($user)
+    $response = AirportA::actingAs($user)
         ->prompt(TicketPrompt::class);
 
     $response->assertAuthenticated()
@@ -53,7 +53,7 @@ it('may assert authenticated and authenticated as a specific user', function ():
 });
 
 it('may assert guest when no user is authenticated', function (): void {
-    $response = AirCompany::prompt(TicketPrompt::class);
+    $response = AirportA::prompt(TicketPrompt::class);
 
     $response->assertGuest();
 });
@@ -69,7 +69,7 @@ it('fails when asserting authenticated as a different user', function (): void {
         public int $id = 2;
     };
 
-    $response = AirCompany::actingAs($userA)
+    $response = AirportA::actingAs($userA)
         ->prompt(TicketPrompt::class);
 
     $response->assertAuthenticatedAs($userB);

@@ -2,17 +2,17 @@
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server;
-use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Prompt;
 use PHPUnit\Framework\AssertionFailedError;
 
-class ShopB extends Server
+class ShopA extends Server
 {
-    protected array $tools = [
-        BuyTool::class,
+    protected array $prompts = [
+        BuyPrompt::class,
     ];
 }
 
-class BuyTool extends Tool
+class BuyPrompt extends Prompt
 {
     public function handle(Request $request): string
     {
@@ -26,31 +26,31 @@ class BuyTool extends Tool
 }
 
 it('may assert validation passes', function (): void {
-    $response = ShopB::tool(BuyTool::class, ['id' => 1, 'quantity' => 3]);
+    $response = ShopA::prompt(BuyPrompt::class, ['id' => 1, 'quantity' => 3]);
 
     $response->assertHasNoErrors();
 });
 
 it('may assert that things are ok', function (): void {
-    $response = ShopB::tool(BuyTool::class, ['id' => 1, 'quantity' => 3]);
+    $response = ShopA::prompt(BuyPrompt::class, ['id' => 1, 'quantity' => 3]);
 
     $response->assertOk();
 });
 
 it('may fail to assert that things are ok', function (): void {
-    $response = ShopB::tool(BuyTool::class);
+    $response = ShopA::prompt(BuyPrompt::class);
 
     $response->assertOk();
 })->throws(AssertionFailedError::class);
 
 it('may assert validation fails', function (): void {
-    $response = ShopB::tool(BuyTool::class);
+    $response = ShopA::prompt(BuyPrompt::class);
 
     $response->assertHasErrors();
 });
 
 it('may fail to assert validation fails', function (): void {
-    $response = ShopB::tool(BuyTool::class, ['id' => 1]);
+    $response = ShopA::prompt(BuyPrompt::class, ['id' => 1]);
 
     $response->assertHasErrors([
         'The id field is required.',
@@ -58,7 +58,7 @@ it('may fail to assert validation fails', function (): void {
 })->throws(AssertionFailedError::class);
 
 it('may assert specific validation errors', function (): void {
-    $response = ShopB::tool(BuyTool::class, ['id' => 1]);
+    $response = ShopA::prompt(BuyPrompt::class, ['id' => 1]);
 
     $response->assertHasErrors([
         'The quantity field is required.',

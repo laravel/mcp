@@ -9,11 +9,15 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use InvalidArgumentException;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\CallTool;
+use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\Primitive;
+use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
 class PendingTestResponse
 {
@@ -41,7 +45,7 @@ class PendingTestResponse
         /** @var Method $methodInstance = */
         $methodInstance = $container->make(match ($method) {
             'tools/call' => CallTool::class,
-            'prompts/get' => \Laravel\Mcp\Server\Methods\GetPrompt::class,
+            'prompts/get' => GetPrompt::class,
             default => throw new InvalidArgumentException("Unsupported [{$method}] method."),
         });
 
@@ -64,12 +68,22 @@ class PendingTestResponse
     }
 
     /**
-     * @param  class-string<\Laravel\Mcp\Server\Prompt>|\Laravel\Mcp\Server\Prompt  $prompt
+     * @param  class-string<Prompt>|Prompt  $prompt
      * @param  array<string, mixed>  $arguments
      */
-    public function prompt(\Laravel\Mcp\Server\Prompt|string $prompt, array $arguments = []): TestResponse
+    public function prompt(Prompt|string $prompt, array $arguments = []): TestResponse
     {
-        return $this->run('prompts/get', $prompt, $arguments);
+        try {
+            return $this->run('prompts/get', $prompt, $arguments);
+        } catch (JsonRpcException $jsonRpcException) {
+            $prompt = is_string($prompt) ? Container::getInstance()->make($prompt) : $prompt;
+
+            return new TestResponse($prompt, JsonRpcResponse::error(
+                uniqid(),
+                $jsonRpcException->getCode(),
+                $jsonRpcException->getMessage(),
+            ));
+        }
     }
 
     public function actingAs(Authenticatable $user, ?string $guard = null): static
