@@ -37,6 +37,10 @@ class McpServiceProvider extends ServiceProvider
         ], 'ai-routes');
 
         $this->publishes([
+            __DIR__.'/../../resources/views/mcp/authorize.blade.php' => resource_path('views/mcp/authorize.blade.php'),
+        ], 'mcp-views');
+
+        $this->publishes([
             __DIR__.'/../../stubs/prompt.stub' => base_path('stubs/prompt.stub'),
             __DIR__.'/../../stubs/resource.stub' => base_path('stubs/resource.stub'),
             __DIR__.'/../../stubs/server.stub' => base_path('stubs/server.stub'),
