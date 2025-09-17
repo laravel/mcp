@@ -12,7 +12,7 @@
 
 ## Introduction
 
-Laravel MCP provides a simple and elegant way for AI clients to interact with your Laravel application through the Model Context Protocol.
+Laravel MCP allows you to rapidly build MCP servers for your Laravel applications. MCP servers allow AI clients to interact with your Laravel application through the [Model Context Protocol](https://modelcontextprotocol.io/docs/getting-started/intro).
 
 ## Official Documentation
 
