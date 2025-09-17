@@ -1,6 +1,5 @@
 <?php
 
-use InvalidArgumentException;
 use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
