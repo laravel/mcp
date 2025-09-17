@@ -217,3 +217,101 @@ it('can handle a tool streaming multiple messages', function (): void {
 
     expect($messages)->toEqual(expectedStreamingToolResponse());
 });
+
+it('handles capability with non-array existing value', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    // First set a non-array value
+    $server->addCapability('feature');
+
+    // Then try to add a nested capability to it
+    $server->addCapability('feature.enabled', true);
+
+    $server->start();
+
+    $payload = json_encode(initializeMessage());
+
+    ($transport->handler)($payload);
+
+    $capabilities = (fn (): array => $this->capabilities)->call($server);
+
+    expect($capabilities['feature'])->toBeArray();
+    expect($capabilities['feature']['enabled'])->toBeTrue();
+});
+
+it('handles exceptions in debug mode', function (): void {
+    config()->set('app.debug', true);
+
+    $transport = new ArrayTransport;
+    $server = new class($transport) extends \Laravel\Mcp\Server
+    {
+        protected array $methods = [
+            'test/method' => \Tests\Fixtures\ThrowingMethodHandler::class,
+        ];
+    };
+
+    $this->app->bind(\Tests\Fixtures\ThrowingMethodHandler::class, fn (): \Laravel\Mcp\Server\Contracts\Method => new class implements \Laravel\Mcp\Server\Contracts\Method
+    {
+        public function handle(\Laravel\Mcp\Server\Transport\JsonRpcRequest $request, \Laravel\Mcp\Server\ServerContext $context): \Laravel\Mcp\Server\Transport\JsonRpcResponse
+        {
+            throw new \Exception('Test exception');
+        }
+    });
+
+    $server->start();
+
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 999,
+        'method' => 'test/method',
+        'params' => [],
+    ]);
+
+    expect(function () use ($transport, $payload): void {
+        ($transport->handler)($payload);
+    })->toThrow(\Exception::class, 'Test exception');
+});
+
+it('handles exceptions in production mode', function (): void {
+    config()->set('app.debug', false);
+
+    $transport = new ArrayTransport;
+    $server = new class($transport) extends \Laravel\Mcp\Server
+    {
+        protected array $methods = [
+            'test/method' => \Tests\Fixtures\ThrowingMethodHandler::class,
+        ];
+    };
+
+    $this->app->bind(\Tests\Fixtures\ThrowingMethodHandler::class, fn (): \Laravel\Mcp\Server\Contracts\Method => new class implements \Laravel\Mcp\Server\Contracts\Method
+    {
+        public function handle(\Laravel\Mcp\Server\Transport\JsonRpcRequest $request, \Laravel\Mcp\Server\ServerContext $context): \Laravel\Mcp\Server\Transport\JsonRpcResponse
+        {
+            throw new \Exception('Test exception');
+        }
+    });
+
+    $server->start();
+
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 999,
+        'method' => 'test/method',
+        'params' => [],
+    ]);
+
+    ($transport->handler)($payload);
+
+    expect($transport->sent)->toHaveCount(1);
+    $response = json_decode((string) $transport->sent[0], true);
+
+    expect($response)->toEqual([
+        'jsonrpc' => '2.0',
+        'id' => 999,
+        'error' => [
+            'code' => -32603,
+            'message' => 'Something went wrong while processing the request.',
+        ],
+    ]);
+});

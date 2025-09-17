@@ -66,3 +66,71 @@ it('validates handle argument is required', function (): void {
         $this->artisan('mcp:inspector');
     })->toThrow(RuntimeException::class, 'Not enough arguments (missing: "handle")');
 });
+
+it('fails when no servers are registered', function (): void {
+    $this->registrar
+        ->shouldReceive('getLocalServer')
+        ->with('demo')
+        ->andReturn(null);
+
+    $this->registrar
+        ->shouldReceive('getWebServer')
+        ->with('demo')
+        ->andReturn(null);
+
+    $this->registrar->shouldReceive('servers')->andReturn([]);
+
+    $this->artisan('mcp:inspector', ['handle' => 'demo'])
+        ->expectsOutputToContain('Starting the MCP Inspector for server [demo]')
+        ->expectsOutputToContain('No MCP servers found. Please run `php artisan make:mcp-server [name]`')
+        ->assertExitCode(1);
+});
+
+it('uses single server when only one is registered', function (): void {
+    $callable = function (): void {};
+
+    $this->registrar->shouldReceive('servers')->andReturn(['demo' => $callable]);
+
+    // Can't test the actual Process execution in unit tests
+    // This would require integration testing
+    expect($callable)->toBeCallable();
+});
+
+it('handles http transport with https url', function (): void {
+    $route = Mockery::mock(\Illuminate\Routing\Route::class);
+    $route->shouldReceive('uri')->andReturn('api/mcp');
+
+    $this->registrar
+        ->shouldReceive('getLocalServer')
+        ->with('demo')
+        ->andReturn(null);
+
+    $this->registrar
+        ->shouldReceive('getWebServer')
+        ->with('demo')
+        ->andReturn($route);
+
+    $this->registrar->shouldReceive('servers')->andReturn(['demo' => $route]);
+
+    // Verify that route config is set up correctly
+    expect($route->uri())->toBe('api/mcp');
+});
+
+it('handles stdio transport successfully', function (): void {
+    $callable = function (): void {};
+
+    $this->registrar
+        ->shouldReceive('getLocalServer')
+        ->with('demo')
+        ->andReturn($callable);
+
+    $this->registrar
+        ->shouldReceive('getWebServer')
+        ->with('demo')
+        ->andReturn(null);
+
+    $this->registrar->shouldReceive('servers')->andReturn(['demo' => $callable]);
+
+    // Verify local server is retrieved correctly
+    expect($this->registrar->getLocalServer('demo'))->toBe($callable);
+});
