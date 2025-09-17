@@ -29,10 +29,14 @@ it('may be used in prompts', function (): void {
 
 it('may be used in resources without adding metadata', function (): void {
     $notification = new Notification('status/update', ['ok' => true]);
-    $resource = new class extends Resource {
+    $resource = new class extends Resource
+    {
         protected string $uri = 'file://ignored.txt';
+
         protected string $name = 'ignored';
+
         protected string $title = 'Ignored';
+
         protected string $mimeType = 'text/plain';
     };
 

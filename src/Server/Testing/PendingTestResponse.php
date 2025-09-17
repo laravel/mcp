@@ -19,7 +19,6 @@ use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
 class PendingTestResponse
 {

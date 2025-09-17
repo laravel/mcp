@@ -7,10 +7,14 @@ use Laravel\Mcp\Server\Tool;
 
 it('encodes content to resource payload with metadata', function (): void {
     $text = new Text('Hello world');
-    $resource = new class extends Resource {
+    $resource = new class extends Resource
+    {
         protected string $uri = 'file://readme.txt';
+
         protected string $name = 'readme';
+
         protected string $title = 'Readme File';
+
         protected string $mimeType = 'text/plain';
     };
 

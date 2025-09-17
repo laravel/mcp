@@ -1,7 +1,6 @@
 <?php
 
 use Laravel\Mcp\Server\Transport\FakeTransporter;
-use LogicException;
 
 it('throws when running since it is not implemented', function (): void {
     $transporter = new FakeTransporter;

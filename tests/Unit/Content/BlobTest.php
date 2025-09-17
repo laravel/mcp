@@ -8,10 +8,14 @@ use Laravel\Mcp\Server\Tool;
 
 it('encodes content to resource payload with metadata', function (): void {
     $blob = new Blob('raw-bytes');
-    $resource = new class extends Resource {
+    $resource = new class extends Resource
+    {
         protected string $uri = 'file://avatar.png';
+
         protected string $name = 'avatar';
+
         protected string $title = 'User Avatar';
+
         protected string $mimeType = 'image/png';
     };
 
