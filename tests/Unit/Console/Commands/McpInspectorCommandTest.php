@@ -162,7 +162,7 @@ it('handles single server with Route class', function (): void {
 });
 
 it('handles single server with unknown type', function (): void {
-    $unknownServer = new stdClass();
+    $unknownServer = new stdClass;
 
     $this->registrar
         ->shouldReceive('getLocalServer')
@@ -209,6 +209,7 @@ it('handles http transport with http url', function (): void {
     app()->bind('url', function () {
         $url = Mockery::mock(\Illuminate\Routing\UrlGenerator::class);
         $url->shouldReceive('to')->andReturn('http://localhost/api/mcp');
+
         return $url;
     });
 
@@ -229,14 +230,13 @@ it('handles http transport with http url', function (): void {
 });
 
 it('retrieves php binary path correctly', function (): void {
-    $command = new \Laravel\Mcp\Console\Commands\InspectorCommand();
+    $command = new \Laravel\Mcp\Console\Commands\InspectorCommand;
     $reflection = new ReflectionClass($command);
     $method = $reflection->getMethod('phpBinary');
-    $method->setAccessible(true);
 
     $phpBinary = $method->invoke($command);
 
     // Should return either a path to php or 'php'
     expect($phpBinary)->toBeString();
-    expect(strlen($phpBinary))->toBeGreaterThan(0);
+    expect(strlen((string) $phpBinary))->toBeGreaterThan(0);
 });

@@ -6,13 +6,9 @@ namespace Laravel\Mcp\Server\Testing;
 
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
-use InvalidArgumentException;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
-use Laravel\Mcp\Server\Methods\CallTool;
-use Laravel\Mcp\Server\Methods\GetPrompt;
-use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -86,12 +82,9 @@ class PendingTestResponse
         $server = $container->make($this->serverClass, ['transport' => new FakeTransporter]);
 
         /** @var Method $methodInstance = */
-        $methodInstance = $container->make(match ($method) {
-            'tools/call' => CallTool::class,
-            'prompts/get' => GetPrompt::class,
-            'resources/read' => ReadResource::class,
-            default => throw new InvalidArgumentException("Unsupported [{$method}] method."),
-        });
+        $methodInstance = $container->make(
+            (fn () => $this->methods[$method])->call($server)
+        );
 
         $requestId = uniqid();
 
