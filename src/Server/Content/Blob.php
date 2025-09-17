@@ -12,8 +12,6 @@ use Laravel\Mcp\Server\Tool;
 
 class Blob implements Content
 {
-    public $text;
-
     public function __construct(protected string $content)
     {
         //
@@ -55,7 +53,7 @@ class Blob implements Content
 
     public function __toString(): string
     {
-        return (string) $this->text;
+        return $this->content;
     }
 
     /**
@@ -64,8 +62,8 @@ class Blob implements Content
     public function toArray(): array
     {
         return [
-            'type' => 'text',
-            'text' => $this->text,
+            'type' => 'blob',
+            'blob' => $this->content,
         ];
     }
 }

@@ -52,7 +52,7 @@ class PendingTestResponse
     }
 
     /**
-     * @param  class-string<Resource>|Resource  $prompt
+     * @param  class-string<Resource>|Resource  $resource
      * @param  array<string, mixed>  $arguments
      */
     public function resource(Resource|string $resource, array $arguments = []): TestResponse

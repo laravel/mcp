@@ -10,6 +10,9 @@ use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
 use Stringable;
 
+/**
+ * @extends Arrayable<string, mixed>
+ */
 interface Content extends Arrayable, Stringable
 {
     /**

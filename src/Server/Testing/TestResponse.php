@@ -230,6 +230,7 @@ class TestResponse
             $this->premitive instanceof Prompt => collect($this->response->toArray()['result']['messages'] ?? [])
                 ->map(fn (array $message): array => $message['content'])
                 ->map(fn (array $content): string => $content['text'] ?? ''),
+            // @phpstan-ignore-next-line
             $this->premitive instanceof Resource => collect($this->response->toArray()['result']['contents'] ?? [])
                 ->map(fn (array $item): string => $item['text'] ?? $item['blob'] ?? ''),
             default => throw new RuntimeException('This primitive type is not supported.'),
