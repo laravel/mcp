@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use JsonException;
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Server\Content\Blob;
@@ -32,6 +33,21 @@ class Response
     public static function text(string $text): static
     {
         return new static(new Text($text));
+    }
+
+    /**
+     * @internal
+     *
+     * @param  array<string, mixed>  $content
+     *
+     * @throws JsonException
+     */
+    public static function json(array $content): static
+    {
+        return static::text(json_encode(
+            $content,
+            JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT,
+        ));
     }
 
     public static function blob(string $content): static

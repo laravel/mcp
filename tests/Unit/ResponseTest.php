@@ -74,3 +74,51 @@ it('preserves error state when converting to assistant role', function (): void 
     expect($assistantResponse->role())->toBe(Role::ASSISTANT);
     expect($assistantResponse->isError())->toBeTrue();
 });
+
+it('creates a json response', function (): void {
+    $data = ['key' => 'value', 'number' => 123];
+    $response = Response::json($data);
+
+    expect($response->content())->toBeInstanceOf(Text::class);
+    expect($response->isNotification())->toBeFalse();
+    expect($response->isError())->toBeFalse();
+    expect($response->role())->toBe(Role::USER);
+
+    $content = $response->content();
+    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
+});
+
+it('handles nested arrays in json response', function (): void {
+    $data = [
+        'user' => [
+            'name' => 'John Doe',
+            'email' => 'john@example.com',
+            'roles' => ['admin', 'developer']
+        ],
+        'active' => true
+    ];
+    $response = Response::json($data);
+
+    expect($response->content())->toBeInstanceOf(Text::class);
+
+    $content = $response->content();
+    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
+});
+
+it('throws JsonException for invalid json data', function (): void {
+    $data = ['invalid' => INF];
+
+    expect(function () use ($data): void {
+        Response::json($data);
+    })->toThrow(JsonException::class);
+});
+
+it('handles empty array in json response', function (): void {
+    $data = [];
+    $response = Response::json($data);
+
+    expect($response->content())->toBeInstanceOf(Text::class);
+
+    $content = $response->content();
+    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
+});
