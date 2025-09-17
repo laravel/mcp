@@ -62,7 +62,7 @@ class PendingTestResponse
 
     public function actingAs(Authenticatable $user, ?string $guard = null): static
     {
-        if (property_exists($user, 'wasRecentlyCreated') && $user->wasRecentlyCreated !== null && $user->wasRecentlyCreated) {
+        if (property_exists($user, 'wasRecentlyCreated')) {
             $user->wasRecentlyCreated = false;
         }
 
@@ -106,11 +106,7 @@ class PendingTestResponse
                 ],
             ), $server->createContext());
         } catch (JsonRpcException $jsonRpcException) {
-            $response = JsonRpcResponse::error(
-                $requestId,
-                $jsonRpcException->getCode(),
-                $jsonRpcException->getMessage(),
-            );
+            $response = $jsonRpcException->toJsonRpcResponse();
         }
 
         return new TestResponse($primitive, $response);
