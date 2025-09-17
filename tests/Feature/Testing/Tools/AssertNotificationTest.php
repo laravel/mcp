@@ -49,8 +49,8 @@ it('may assert two notifications got sent', function (): void {
     $response = RestaurantT::tool(ReservationTool::class);
 
     $response->assertNotificationCount(2)
-        ->assertNotification('booking/starting', ['step' => 1])
-        ->assertNotification('booking/completed', ['step' => 2]);
+        ->assertSentNotification('booking/starting', ['step' => 1])
+        ->assertSentNotification('booking/completed', ['step' => 2]);
 });
 
 it('may fail to assert the notification count is wrong', function (): void {
@@ -62,11 +62,11 @@ it('may fail to assert the notification count is wrong', function (): void {
 it('may fail to assert a notification that was not sent', function (): void {
     $response = RestaurantT::tool(ReservationTool::class);
 
-    $response->assertNotification('booking/unknown');
+    $response->assertSentNotification('booking/unknown');
 })->throws(AssertionFailedError::class);
 
 it('may fail to assert a notification that was sent with wrong params', function (): void {
     $response = RestaurantT::tool(ReservationTool::class);
 
-    $response->assertNotification('booking/starting', ['step' => 2]);
+    $response->assertSentNotification('booking/starting', ['step' => 2]);
 })->throws(AssertionFailedError::class);

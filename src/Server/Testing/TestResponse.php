@@ -82,7 +82,7 @@ class TestResponse
     /**
      * @param  array<string, mixed>|null  $params
      */
-    public function assertNotification(string $method, ?array $params = null): static
+    public function assertSentNotification(string $method, ?array $params = null): static
     {
         foreach ($this->notifications as $notification) {
             $content = $notification->toArray();
