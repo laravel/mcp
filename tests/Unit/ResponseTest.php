@@ -93,9 +93,9 @@ it('handles nested arrays in json response', function (): void {
         'user' => [
             'name' => 'John Doe',
             'email' => 'john@example.com',
-            'roles' => ['admin', 'developer']
+            'roles' => ['admin', 'developer'],
         ],
-        'active' => true
+        'active' => true,
     ];
     $response = Response::json($data);
 
