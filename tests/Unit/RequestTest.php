@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 
 it('may return all data', function (): void {
@@ -75,4 +76,41 @@ it('may return null if no user is logged in', function (): void {
     $request = new Request;
 
     expect($request->user())->toBeNull();
+});
+
+it('validates and returns only validated data on success', function (): void {
+    $request = new Request([
+        'email' => 'alice@example.com',
+        'extra' => 'keep out',
+    ]);
+
+    $validated = $request->validate([
+        'email' => 'required|email',
+    ]);
+
+    expect($validated)->toBe([
+        'email' => 'alice@example.com',
+    ]);
+});
+
+it('throws ValidationException with custom messages and attributes', function (): void {
+    $request = new Request([
+        'email' => 'not-an-email',
+    ]);
+
+    $messages = [
+        'email.email' => 'Please provide a valid :attribute.',
+    ];
+
+    $attributes = [
+        'email' => 'email address',
+    ];
+
+    $closure = function () use ($request, $messages, $attributes): void {
+        $request->validate([
+            'email' => 'required|email',
+        ], $messages, $attributes);
+    };
+
+    expect($closure)->toThrow(ValidationException::class);
 });
