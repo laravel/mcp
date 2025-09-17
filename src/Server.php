@@ -137,16 +137,6 @@ abstract class Server
         $this->methods[$method] = $handler;
     }
 
-    /**
-     * Dynamically add a Tool to the server.
-     *
-     * @param  class-string<Tool>|Tool  $tool
-     */
-    public function addTool(string|Tool $tool): void
-    {
-        $this->tools[] = $tool;
-    }
-
     public function start(): void
     {
         $this->boot();

@@ -12,7 +12,7 @@ class ServerWithDynamicTools extends Server
 
     protected function boot(): void
     {
-        $this->addTool(SayHiTool::class);
-        $this->addTool(StreamingTool::class);
+        $this->tools[] = SayHiTool::class;
+        $this->tools[] = StreamingTool::class;
     }
 }
