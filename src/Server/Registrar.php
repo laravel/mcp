@@ -39,12 +39,10 @@ class Registrar
                 // @phpstan-ignore-next-line
                 (string) $request->header('Mcp-Session-Id')
             ),
-        ))
-            ->name($this->routeName(ltrim($route, '/')))
-            ->middleware([
-                ReorderJsonAccept::class,
-                AddWwwAuthenticateHeader::class,
-            ]);
+        ))->middleware([
+            ReorderJsonAccept::class,
+            AddWwwAuthenticateHeader::class,
+        ]);
 
         assert($route instanceof Route);
 
@@ -64,11 +62,6 @@ class Registrar
                 Str::uuid()->toString(),
             )
         );
-    }
-
-    public function routeName(string $path): string
-    {
-        return 'mcp-server.'.Str::kebab(str_replace('/', '-', $path));
     }
 
     public function getLocalServer(string $handle): ?callable
