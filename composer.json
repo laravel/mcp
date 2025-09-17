@@ -59,6 +59,9 @@
             }
         }
     },
+    "branch-alias": {
+        "dev-main": "0.2.x-dev"
+    },
     "scripts": {
         "post-autoload-dump": [
             "@clear",
