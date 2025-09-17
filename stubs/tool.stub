@@ -15,7 +15,7 @@ class {{ class }} extends Tool
     protected string $description = 'A description of what this tool does.';
 
     /**
-     * Handle the tool call.
+     * Handle the tool request.
      */
     public function handle(Request $request): Response
     {

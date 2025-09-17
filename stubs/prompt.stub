@@ -15,7 +15,7 @@ class {{ class }} extends Prompt
     protected string $description = 'A description of what this prompt does.';
 
     /**
-     * Handle the prompt.
+     * Handle the prompt request.
      */
     public function handle(Request $request): Response
     {

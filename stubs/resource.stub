@@ -14,7 +14,7 @@ class {{ class }} extends Resource
     protected string $description = 'A description of what this resource contains.';
 
     /**
-     * Handle the resource call.
+     * Handle the resource request.
      */
     public function handle(Request $request): Response
     {
