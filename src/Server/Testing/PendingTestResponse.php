@@ -81,6 +81,8 @@ class PendingTestResponse
         $primitive = is_string($primitive) ? $container->make($primitive) : $primitive;
         $server = $container->make($this->serverClass, ['transport' => new FakeTransporter]);
 
+        $server->start();
+
         /** @var Method $methodInstance = */
         $methodInstance = $container->make(
             (fn () => $this->methods[$method])->call($server)
