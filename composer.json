@@ -1,6 +1,6 @@
 {
     "name": "laravel/mcp",
-    "description": "The easiest way to add MCP servers to your Laravel app.",
+    "description": "Rapidly build MCP servers for your Laravel applications.",
     "keywords": [
         "mcp",
         "laravel"
