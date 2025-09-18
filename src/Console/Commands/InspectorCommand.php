@@ -66,6 +66,8 @@ class InspectorCommand extends Command
             $command = [
                 'npx',
                 '@modelcontextprotocol/inspector',
+                '--transport',
+                'stdio',
                 $this->phpBinary(),
                 $artisanPath,
                 "mcp:start {$handle}",
