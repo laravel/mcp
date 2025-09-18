@@ -38,11 +38,9 @@ class Response
     /**
      * @internal
      *
-     * @param  array<string, mixed>  $content
-     *
      * @throws JsonException
      */
-    public static function json(array $content): static
+    public static function json(mixed $content): static
     {
         return static::text(json_encode(
             $content,
