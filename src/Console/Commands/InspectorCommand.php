@@ -53,7 +53,8 @@ class InspectorCommand extends Command
         }
 
         if (is_null($localServer) && is_null($route)) {
-            $this->components->error('MCP Server with name ['.$handle.'] not found. Available servers: '.Arr::join(array_keys($servers), ', '));
+            $availableServers = Arr::map(array_keys($servers), fn ($server): string => "[{$server}]");
+            $this->components->error('MCP Server with name ['.$handle.'] not found. Available servers: '.Arr::join($availableServers, ', '));
 
             return static::FAILURE;
         }
