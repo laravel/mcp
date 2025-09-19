@@ -12,7 +12,9 @@ class {{ class }} extends Tool
     /**
      * The tool's description.
      */
-    protected string $description = 'A description of what this tool does.';
+    protected string $description = <<<'MARKDOWN'
+        A description of what this tool does.
+    MARKDOWN;
 
     /**
      * Handle the tool request.
