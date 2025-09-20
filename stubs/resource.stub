@@ -11,7 +11,9 @@ class {{ class }} extends Resource
     /**
      * The resource's description.
      */
-    protected string $description = 'A description of what this resource contains.';
+    protected string $description = <<<'MARKDOWN'
+        A description of what this resource contains.
+    MARKDOWN;
 
     /**
      * Handle the resource request.

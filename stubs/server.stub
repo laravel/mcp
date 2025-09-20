@@ -19,7 +19,9 @@ class {{ class }} extends Server
     /**
      * The MCP server's instructions for the LLM.
      */
-    protected string $instructions = 'Instructions describing how to use the server and its features.';
+    protected string $instructions = <<<'MARKDOWN'
+        Instructions describing how to use the server and its features.
+    MARKDOWN;
 
     /**
      * The tools registered with this MCP server.

@@ -12,7 +12,9 @@ class {{ class }} extends Prompt
     /**
      * The prompt's description.
      */
-    protected string $description = 'A description of what this prompt does.';
+    protected string $description = <<<'MARKDOWN'
+        A description of what this prompt does.
+    MARKDOWN;
 
     /**
      * Handle the prompt request.
