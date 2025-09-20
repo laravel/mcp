@@ -37,7 +37,9 @@ abstract class Server
 
     protected string $version = '0.0.1';
 
-    protected string $instructions = 'This MCP server lets AI agents interact with our Laravel application.';
+    protected string $instructions = <<<'MARKDOWN'
+        This MCP server lets AI agents interact with our Laravel application.
+    MARKDOWN;
 
     /**
      * @var array<int, string>
