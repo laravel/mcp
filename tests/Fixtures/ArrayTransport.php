@@ -29,7 +29,7 @@ class ArrayTransport implements Transport
         //
     }
 
-    public function send(string $message): void
+    public function send(string $message, ?string $sessionId = null): void
     {
         $this->sent[] = $message;
     }
