@@ -12,7 +12,7 @@ interface Transport
 
     public function run(); // @phpstan-ignore-line
 
-    public function send(string $message): void;
+    public function send(string $message, ?string $sessionId = null): void;
 
     public function sessionId(): ?string;
 
