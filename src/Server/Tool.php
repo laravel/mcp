@@ -42,6 +42,9 @@ abstract class Tool extends Primitive
         return ['name' => $this->name()];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function toArray(): array
     {
         $annotations = $this->annotations();
