@@ -249,9 +249,13 @@ abstract class Server
     protected function handleInitializeMessage(JsonRpcRequest $request, ServerContext $context): void
     {
         $response = (new Initialize)->handle($request, $context);
-        $sessionId = Str::uuid()->toString();
 
-        $this->transport->send($response->toJson(), $sessionId);
+        $this->transport->send($response->toJson(), $this->generateSessionId());
+    }
+
+    protected function generateSessionId(): string
+    {
+        return Str::uuid()->toString();
     }
 
     /**

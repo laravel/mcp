@@ -22,6 +22,17 @@ it('can create a message from valid json', function (): void {
         ->and($request->params)->toEqual(['name' => 'echo', 'arguments' => ['message' => 'Hello, world!']]);
 });
 
+it('stores session id when provided', function (): void {
+    $sessionId = 'i-am-your-session-luke';
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+    ], $sessionId);
+
+    expect($request->sessionId)->toBe($sessionId);
+});
+
 it('throws exception for missing jsonrpc version', function (): void {
     $this->expectException(JsonRpcException::class);
     $this->expectExceptionMessage('Invalid Request: The [jsonrpc] member must be exactly [2.0].');
