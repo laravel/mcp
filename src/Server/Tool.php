@@ -43,7 +43,15 @@ abstract class Tool extends Primitive
     }
 
     /**
-     * @return array<string, mixed>
+     * Get the tool's array representation.
+     *
+     * @return array{
+     *     name: string,
+     *     title?: string|null,
+     *     description?: string|null,
+     *     inputSchema?: array<string, mixed>,
+     *     annotations?: array<string, mixed>|object
+     * }
      */
     public function toArray(): array
     {
