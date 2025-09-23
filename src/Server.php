@@ -228,12 +228,7 @@ abstract class Server
      */
     protected function handleMessage(JsonRpcRequest $request, ServerContext $context): void
     {
-        /** @var Method $methodClass */
-        $methodClass = Container::getInstance()->make(
-            $this->methods[$request->method],
-        );
-
-        $response = $methodClass->handle($request, $context);
+        $response = $this->runMethodHandle($request, $context);
 
         if (! is_iterable($response)) {
             $this->transport->send($response->toJson());
@@ -246,6 +241,31 @@ abstract class Server
                 $this->transport->send($message->toJson());
             }
         });
+    }
+
+    /**
+     * @return iterable<JsonRpcResponse>|JsonRpcResponse
+     *
+     * @throws JsonRpcException
+     */
+    protected function runMethodHandle(JsonRpcRequest $request, ServerContext $context): iterable|JsonRpcResponse
+    {
+        $container = Container::getInstance();
+
+        /** @var Method $methodClass */
+        $methodClass = $container->make(
+            $this->methods[$request->method],
+        );
+
+        $container->instance('mcp.request', $request->toRequest());
+
+        try {
+            $response = $methodClass->handle($request, $context);
+        } finally {
+            $container->forgetInstance('mcp.request');
+        }
+
+        return $response;
     }
 
     protected function handleInitializeMessage(JsonRpcRequest $request, ServerContext $context): void

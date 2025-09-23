@@ -87,4 +87,17 @@ class Request implements Arrayable
     {
         return $this->sessionId;
     }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     */
+    public function setArguments(array $arguments): void
+    {
+        $this->arguments = $arguments;
+    }
+
+    public function setSessionId(?string $sessionId): void
+    {
+        $this->sessionId = $sessionId;
+    }
 }

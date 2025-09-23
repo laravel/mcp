@@ -6,7 +6,6 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
-use Laravel\Mcp\Request;
 
 class ServerContext
 {
@@ -35,36 +34,36 @@ class ServerContext
     /**
      * @return Collection<int, Tool>
      */
-    public function tools(Request $request): Collection
+    public function tools(): Collection
     {
         return collect($this->tools)->map(fn (Tool|string $toolClass) => is_string($toolClass)
             ? Container::getInstance()->make($toolClass)
             : $toolClass
-        )->filter(fn (Tool $tool): bool => $tool->eligibleForRegistration($request));
+        )->filter(fn (Tool $tool): bool => $tool->eligibleForRegistration());
     }
 
     /**
      * @return Collection<int, Resource>
      */
-    public function resources(Request $request): Collection
+    public function resources(): Collection
     {
         return collect($this->resources)->map(
             fn (Resource|string $resourceClass) => is_string($resourceClass)
                 ? Container::getInstance()->make($resourceClass)
                 : $resourceClass
-        )->filter(fn (Resource $tool): bool => $tool->eligibleForRegistration($request));
+        )->filter(fn (Resource $tool): bool => Container::getInstance()->call($tool->eligibleForRegistration(...)));
     }
 
     /**
      * @return Collection<int, Prompt>
      */
-    public function prompts(Request $request): Collection
+    public function prompts(): Collection
     {
         return collect($this->prompts)->map(
             fn ($promptClass) => is_string($promptClass)
                 ? Container::getInstance()->make($promptClass)
                 : $promptClass
-        )->filter(fn (Prompt $prompt): bool => $prompt->eligibleForRegistration($request));
+        )->filter(fn (Prompt $prompt): bool => Container::getInstance()->call($prompt->eligibleForRegistration(...)));
     }
 
     public function perPage(?int $requestedPerPage = null): int

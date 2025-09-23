@@ -7,7 +7,6 @@ namespace Laravel\Mcp\Server\Testing;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Laravel\Mcp\Server;
-use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
@@ -83,22 +82,19 @@ class PendingTestResponse
 
         $server->start();
 
-        /** @var Method $methodInstance = */
-        $methodInstance = $container->make(
-            (fn () => $this->methods[$method])->call($server)
-        );
-
         $requestId = uniqid();
 
+        $request = new JsonRpcRequest(
+            $requestId,
+            $method,
+            [
+                ...$primitive->toMethodCall(),
+                'arguments' => $arguments,
+            ],
+        );
+
         try {
-            $response = $methodInstance->handle(new JsonRpcRequest(
-                $requestId,
-                $method,
-                [
-                    ...$primitive->toMethodCall(),
-                    'arguments' => $arguments,
-                ],
-            ), $server->createContext());
+            $response = (fn () => $this->runMethodHandle($request, $this->createContext()))->call($server);
         } catch (JsonRpcException $jsonRpcException) {
             $response = $jsonRpcException->toJsonRpcResponse();
         }
