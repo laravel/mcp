@@ -37,10 +37,22 @@ class ServerContext
      */
     public function tools(Request $request): Collection
     {
-        return collect($this->tools)->map(fn (Tool|string $toolClass) => is_string($toolClass)
+        $items = collect($this->tools)->map(fn (Tool|string $toolClass) => is_string($toolClass)
             ? Container::getInstance()->make($toolClass)
             : $toolClass
         )->filter(fn (Tool $tool): bool => $tool->eligibleForRegistration($request));
+
+        $evaluator = new \Laravel\Mcp\Server\Auth\AuthorizationEvaluator;
+
+        return $items->filter(fn (Tool $tool): bool => $evaluator->evaluate($tool, $request)['allowed']);
+    }
+
+    public function findToolByName(Request $request, string $name): ?Tool
+    {
+        return collect($this->tools)
+            ->map(fn (Tool|string $toolClass) => is_string($toolClass) ? Container::getInstance()->make($toolClass) : $toolClass)
+            ->filter(fn (Tool $tool): bool => $tool->eligibleForRegistration($request))
+            ->first(fn (Tool $tool): bool => $tool->name() === $name);
     }
 
     /**
@@ -48,11 +60,23 @@ class ServerContext
      */
     public function resources(Request $request): Collection
     {
-        return collect($this->resources)->map(
+        $items = collect($this->resources)->map(
             fn (Resource|string $resourceClass) => is_string($resourceClass)
                 ? Container::getInstance()->make($resourceClass)
                 : $resourceClass
         )->filter(fn (Resource $tool): bool => $tool->eligibleForRegistration($request));
+
+        $evaluator = new \Laravel\Mcp\Server\Auth\AuthorizationEvaluator;
+
+        return $items->filter(fn (Resource $resource): bool => $evaluator->evaluate($resource, $request)['allowed']);
+    }
+
+    public function findResourceByUri(Request $request, string $uri): ?Resource
+    {
+        return collect($this->resources)
+            ->map(fn (Resource|string $resourceClass) => is_string($resourceClass) ? Container::getInstance()->make($resourceClass) : $resourceClass)
+            ->filter(fn (Resource $resource): bool => $resource->eligibleForRegistration($request))
+            ->first(fn (Resource $resource): bool => $resource->uri() === $uri);
     }
 
     /**
@@ -60,11 +84,23 @@ class ServerContext
      */
     public function prompts(Request $request): Collection
     {
-        return collect($this->prompts)->map(
+        $items = collect($this->prompts)->map(
             fn ($promptClass) => is_string($promptClass)
                 ? Container::getInstance()->make($promptClass)
                 : $promptClass
         )->filter(fn (Prompt $prompt): bool => $prompt->eligibleForRegistration($request));
+
+        $evaluator = new \Laravel\Mcp\Server\Auth\AuthorizationEvaluator;
+
+        return $items->filter(fn (Prompt $prompt): bool => $evaluator->evaluate($prompt, $request)['allowed']);
+    }
+
+    public function findPromptByName(Request $request, string $name): ?Prompt
+    {
+        return collect($this->prompts)
+            ->map(fn (Prompt|string $promptClass) => is_string($promptClass) ? Container::getInstance()->make($promptClass) : $promptClass)
+            ->filter(fn (Prompt $prompt): bool => $prompt->eligibleForRegistration($request))
+            ->first(fn (Prompt $prompt): bool => $prompt->name() === $name);
     }
 
     public function perPage(?int $requestedPerPage = null): int

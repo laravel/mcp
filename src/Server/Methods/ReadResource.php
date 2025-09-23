@@ -39,14 +39,20 @@ class ReadResource implements Method
 
         $request = $jsonRpcRequest->toRequest();
 
-        $resource = $context->resources($request)
-            ->first(
-                fn (Resource $resource): bool => $resource->uri() === $jsonRpcRequest->get('uri'),
-                fn () => throw new JsonRpcException(
-                    "Resource [{$jsonRpcRequest->get('uri')}] not found.",
-                    -32002,
-                    $jsonRpcRequest->id,
-                ));
+        $resource = $context->findResourceByUri($request, $jsonRpcRequest->get('uri'));
+        if (! $resource instanceof \Laravel\Mcp\Server\Resource) {
+            throw new JsonRpcException(
+                "Resource [{$jsonRpcRequest->get('uri')}] not found.",
+                -32002,
+                $jsonRpcRequest->id,
+            );
+        }
+
+        $evaluator = new \Laravel\Mcp\Server\Auth\AuthorizationEvaluator;
+        $result = $evaluator->evaluate($resource, $request);
+        if (! $result['allowed']) {
+            throw new JsonRpcException('Unauthorized', -32001, $jsonRpcRequest->id);
+        }
 
         try {
             // @phpstan-ignore-next-line

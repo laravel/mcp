@@ -39,14 +39,20 @@ class GetPrompt implements Method
 
         $request = $jsonRpcRequest->toRequest();
 
-        $prompt = $context->prompts($request)
-            ->first(
-                fn ($prompt): bool => $prompt->name() === $jsonRpcRequest->get('name'),
-                fn () => throw new JsonRpcException(
-                    "Prompt [{$jsonRpcRequest->get('name')}] not found.",
-                    -32602,
-                    $jsonRpcRequest->id,
-                ));
+        $prompt = $context->findPromptByName($request, $jsonRpcRequest->get('name'));
+        if (! $prompt instanceof \Laravel\Mcp\Server\Prompt) {
+            throw new JsonRpcException(
+                "Prompt [{$jsonRpcRequest->get('name')}] not found.",
+                -32602,
+                $jsonRpcRequest->id,
+            );
+        }
+
+        $evaluator = new \Laravel\Mcp\Server\Auth\AuthorizationEvaluator;
+        $result = $evaluator->evaluate($prompt, $request);
+        if (! $result['allowed']) {
+            throw new JsonRpcException('Unauthorized', -32001, $jsonRpcRequest->id);
+        }
 
         try {
             // @phpstan-ignore-next-line

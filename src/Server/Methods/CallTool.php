@@ -40,15 +40,20 @@ class CallTool implements Errable, Method
 
         $request = $jsonRpcRequest->toRequest();
 
-        $tool = $context
-            ->tools($request)
-            ->first(
-                fn ($tool): bool => $tool->name() === $jsonRpcRequest->params['name'],
-                fn () => throw new JsonRpcException(
-                    "Tool [{$jsonRpcRequest->params['name']}] not found.",
-                    -32602,
-                    $jsonRpcRequest->id,
-                ));
+        $tool = $context->findToolByName($request, $jsonRpcRequest->params['name']);
+        if (! $tool instanceof \Laravel\Mcp\Server\Tool) {
+            throw new JsonRpcException(
+                "Tool [{$jsonRpcRequest->params['name']}] not found.",
+                -32602,
+                $jsonRpcRequest->id,
+            );
+        }
+
+        $evaluator = new \Laravel\Mcp\Server\Auth\AuthorizationEvaluator;
+        $result = $evaluator->evaluate($tool, $request);
+        if (! $result['allowed']) {
+            throw new JsonRpcException('Unauthorized', -32001, $jsonRpcRequest->id);
+        }
 
         try {
             // @phpstan-ignore-next-line
