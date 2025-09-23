@@ -47,7 +47,6 @@ abstract class Tool extends Primitive
      *
      * @return array{
      *     name: string,
-     *     title?: string|null,
      *     description?: string|null,
      *     inputSchema?: array<string, mixed>,
      *     annotations?: array<string, mixed>|object
@@ -59,7 +58,6 @@ abstract class Tool extends Primitive
 
         return [
             'name' => $this->name(),
-            'title' => $this->title(),
             'description' => $this->description(),
             'inputSchema' => JsonSchema::object(
                 fn (JsonSchema $schema): array => $this->schema($schema),
