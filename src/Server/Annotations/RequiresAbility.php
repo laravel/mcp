@@ -34,6 +34,7 @@ class RequiresAbility implements Annotation
             return is_array($this->abilities) ? array_values($this->abilities) : [$this->abilities];
         }
 
-        return null;
+        // For unknown properties, return empty list to satisfy type expectations
+        return [];
     }
 }

@@ -97,7 +97,7 @@ class AuthorizationEvaluator
 
         $values = [];
         foreach ($attributes as $attribute) {
-            /** @var ReflectionAttribute $attribute */
+            // Avoid strict generic typing on ReflectionAttribute; instance is safe to construct
             $instance = $attribute->newInstance();
             if (method_exists($instance, 'key') && $instance->key() === $key) {
                 // Tool::annotations() expects a magic ->value; mirror that here

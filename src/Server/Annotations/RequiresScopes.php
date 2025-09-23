@@ -35,6 +35,7 @@ class RequiresScopes implements Annotation
             return is_array($this->scopes) ? array_values($this->scopes) : [$this->scopes];
         }
 
-        return null;
+        // For unknown properties, return empty list to satisfy type expectations
+        return [];
     }
 }
