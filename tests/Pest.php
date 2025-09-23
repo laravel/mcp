@@ -110,7 +110,6 @@ function expectedListToolsResponse(): array
                         'required' => ['name'],
                     ],
                     'annotations' => [],
-                    'title' => 'Say Hi Tool',
                 ],
                 [
                     'name' => 'streaming-tool',
@@ -126,7 +125,6 @@ function expectedListToolsResponse(): array
                         'required' => ['count'],
                     ],
                     'annotations' => [],
-                    'title' => 'Streaming Tool',
                 ],
             ],
         ],

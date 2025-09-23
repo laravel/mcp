@@ -5,6 +5,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
+use Laravel\Mcp\Server\Tools\Annotations\Title;
 use Laravel\Mcp\Server\Tools\ToolResult;
 
 test('the default name is in kebab case', function (): void {
@@ -25,7 +26,7 @@ it('returns no annotations by default', function (): void {
 
 it('can have a custom title', function (): void {
     $tool = new CustomTitleTool;
-    expect($tool->toArray()['title'])->toBe('Custom Title Tool');
+    expect($tool->annotations()['title'])->toBe('Custom Title Tool');
 });
 
 it('can be read only', function (): void {
@@ -69,6 +70,7 @@ it('can have multiple annotations', function (): void {
         'idempotentHint' => true,
         'destructiveHint' => false,
         'openWorldHint' => false,
+        'title' => 'The Kitchen Sink',
     ]);
 });
 
@@ -85,10 +87,8 @@ class TestTool extends Tool
     }
 }
 
-class CustomTitleTool extends TestTool
-{
-    protected string $title = 'Custom Title Tool';
-}
+#[Title('Custom Title Tool')]
+class CustomTitleTool extends TestTool {}
 
 #[IsReadOnly]
 class ReadOnlyTool extends TestTool {}
@@ -112,10 +112,8 @@ class OpenWorldTool extends TestTool {}
 #[IsIdempotent]
 #[IsDestructive(false)]
 #[IsOpenWorld(false)]
-class KitchenSinkTool extends TestTool
-{
-    protected string $title = 'The Kitchen Sink';
-}
+#[Title('The Kitchen Sink')]
+class KitchenSinkTool extends TestTool {}
 
 class AnotherComplexToolName extends TestTool {}
 
