@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
@@ -13,6 +14,7 @@ use Laravel\Mcp\Console\Commands\MakeServerCommand;
 use Laravel\Mcp\Console\Commands\MakeToolCommand;
 use Laravel\Mcp\Console\Commands\StartCommand;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Middleware\AttemptAuthenticate;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -24,6 +26,7 @@ class McpServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerRoutes();
+        $this->registerMiddlewareAliases();
         $this->registerContainerCallbacks();
 
         if ($this->app->runningInConsole()) {
@@ -63,6 +66,14 @@ class McpServiceProvider extends ServiceProvider
         }
 
         Route::group([], $path);
+    }
+
+    protected function registerMiddlewareAliases(): void
+    {
+        /** @var Router $router */
+        $router = $this->app->make('router');
+
+        $router->aliasMiddleware('mcp.auth', AttemptAuthenticate::class);
     }
 
     protected function registerContainerCallbacks(): void
