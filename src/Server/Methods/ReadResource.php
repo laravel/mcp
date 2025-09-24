@@ -27,45 +27,40 @@ class ReadResource implements Method
      *
      * @throws JsonRpcException
      */
-    public function handle(JsonRpcRequest $jsonRpcRequest, ServerContext $context): Generator|JsonRpcResponse
+    public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
-        if (is_null($jsonRpcRequest->get('uri'))) {
+        if (is_null($request->get('uri'))) {
             throw new JsonRpcException(
                 'Missing [uri] parameter.',
                 -32002,
-                $jsonRpcRequest->id,
+                $request->id,
             );
         }
 
-        $request = $jsonRpcRequest->toRequest();
-
-        $resource = $context->findResourceByUri($request, $jsonRpcRequest->get('uri'));
-        if (! $resource instanceof \Laravel\Mcp\Server\Resource) {
-            throw new JsonRpcException(
-                "Resource [{$jsonRpcRequest->get('uri')}] not found.",
-                -32002,
-                $jsonRpcRequest->id,
-            );
-        }
+        $resource = $context->resources()
+            ->first(
+                fn (Resource $resource): bool => $resource->uri() === $request->get('uri'),
+                fn () => throw new JsonRpcException(
+                    "Resource [{$request->get('uri')}] not found.",
+                    -32002,
+                    $request->id,
+                ));
 
         $evaluator = new \Laravel\Mcp\Server\Auth\AuthorizationEvaluator;
-        $result = $evaluator->evaluate($resource, $request);
-        if (! $result['allowed']) {
-            throw new JsonRpcException('Unauthorized', -32001, $jsonRpcRequest->id);
+        if (! $evaluator->evaluate($resource, $request->toRequest())) {
+            throw new JsonRpcException('Unauthorized', -32001, $request->id);
         }
-
+      
         try {
             // @phpstan-ignore-next-line
-            $response = Container::getInstance()->call([$resource, 'handle'], [
-                'request' => $request,
-            ]);
+            $response = Container::getInstance()->call([$resource, 'handle']);
         } catch (ValidationException $validationException) {
             $response = Response::error('Invalid params: '.ValidationMessages::from($validationException));
         }
 
         return is_iterable($response)
-            ? $this->toJsonRpcStreamedResponse($jsonRpcRequest, $response, $this->serializable($resource))
-            : $this->toJsonRpcResponse($jsonRpcRequest, $response, $this->serializable($resource));
+            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($resource))
+            : $this->toJsonRpcResponse($request, $response, $this->serializable($resource));
     }
 
     protected function serializable(Resource $resource): callable

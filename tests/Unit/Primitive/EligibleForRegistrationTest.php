@@ -19,7 +19,7 @@ it('returns true by default when shouldRegister is not defined', function (): vo
 
     $request = new Request([]);
 
-    expect($primitive->eligibleForRegistration($request))->toBeTrue();
+    expect($primitive->eligibleForRegistration())->toBeTrue();
 });
 
 it('calls shouldRegister with the Request and honors its return value', function (): void {
@@ -47,8 +47,9 @@ it('calls shouldRegister with the Request and honors its return value', function
 
     $request = new Request(['foo' => 'bar']);
 
-    $result = $primitive->eligibleForRegistration($request);
+    $this->instance('mcp.request', $request);
+    $result = $primitive->eligibleForRegistration();
 
     expect($result)->toBeFalse()
-        ->and($primitive->received)->toBe($request);
+        ->and($primitive->received->all())->toBe($request->all());
 });

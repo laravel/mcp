@@ -2,6 +2,7 @@
 /vendor
 /composer.lock
 /phpunit.xml
+/.junie
 /.phpunit.cache
 .claude
 .DS_Store

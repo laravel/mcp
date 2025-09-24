@@ -34,6 +34,7 @@ it('returns a valid call tool response', function (): void {
 
     $method = new CallTool;
 
+    $this->instance('mcp.request', $request->toRequest());
     $response = $method->handle($request, $context);
 
     expect($response)->toBeInstanceOf(JsonRpcResponse::class);
@@ -78,6 +79,7 @@ it('returns a valid call tool response that contains two messages', function ():
 
     $method = new CallTool;
 
+    $this->instance('mcp.request', $request->toRequest());
     $responses = $method->handle($request, $context);
 
     [$response] = iterator_to_array($responses);
@@ -126,6 +128,7 @@ it('returns a valid call tool response with validation error', function (): void
 
     $method = new CallTool;
 
+    $this->instance('mcp.request', $request->toRequest());
     $response = $method->handle($request, $context);
 
     expect($response)->toBeInstanceOf(JsonRpcResponse::class);
@@ -168,6 +171,7 @@ it('may resolve dependencies out of the container', function (): void {
 
     $method = new CallTool;
 
+    $this->instance('mcp.request', $request->toRequest());
     $response = $method->handle($request, $context);
 
     $payload = $response->toArray();

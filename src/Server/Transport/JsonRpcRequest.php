@@ -16,6 +16,7 @@ class JsonRpcRequest
         public int|string $id,
         public string $method,
         public array $params,
+        public ?string $sessionId = null
     ) {
         //
     }
@@ -25,7 +26,7 @@ class JsonRpcRequest
      *
      * @throws JsonRpcException
      */
-    public static function from(array $jsonRequest): static
+    public static function from(array $jsonRequest, ?string $sessionId = null): static
     {
         $requestId = $jsonRequest['id'];
 
@@ -44,7 +45,8 @@ class JsonRpcRequest
         return new static(
             id: $requestId,
             method: $jsonRequest['method'],
-            params: $jsonRequest['params'] ?? []
+            params: $jsonRequest['params'] ?? [],
+            sessionId: $sessionId,
         );
     }
 
@@ -60,6 +62,6 @@ class JsonRpcRequest
 
     public function toRequest(): Request
     {
-        return new Request($this->params['arguments'] ?? []);
+        return new Request($this->params['arguments'] ?? [], $this->sessionId);
     }
 }

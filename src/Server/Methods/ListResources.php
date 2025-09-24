@@ -12,14 +12,14 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
 class ListResources implements Method
 {
-    public function handle(JsonRpcRequest $jsonRpcRequest, ServerContext $context): JsonRpcResponse
+    public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
         $paginator = new CursorPaginator(
-            items: $context->resources($jsonRpcRequest->toRequest()),
-            perPage: $context->perPage($jsonRpcRequest->get('per_page')),
-            cursor: $jsonRpcRequest->cursor(),
+            items: $context->resources(),
+            perPage: $context->perPage($request->get('per_page')),
+            cursor: $request->cursor(),
         );
 
-        return JsonRpcResponse::result($jsonRpcRequest->id, $paginator->paginate('resources'));
+        return JsonRpcResponse::result($request->id, $paginator->paginate('resources'));
     }
 }

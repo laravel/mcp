@@ -12,6 +12,7 @@ use Laravel\Mcp\Console\Commands\MakeResourceCommand;
 use Laravel\Mcp\Console\Commands\MakeServerCommand;
 use Laravel\Mcp\Console\Commands\MakeToolCommand;
 use Laravel\Mcp\Console\Commands\StartCommand;
+use Laravel\Mcp\Request;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -23,6 +24,7 @@ class McpServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerRoutes();
+        $this->registerContainerCallbacks();
 
         if ($this->app->runningInConsole()) {
             $this->registerCommands();
@@ -61,6 +63,19 @@ class McpServiceProvider extends ServiceProvider
         }
 
         Route::group([], $path);
+    }
+
+    protected function registerContainerCallbacks(): void
+    {
+        $this->app->resolving(Request::class, function (Request $request, $app): void {
+            if ($app->bound('mcp.request')) {
+                /** @var Request $currentRequest */
+                $currentRequest = $app->make('mcp.request');
+
+                $request->setArguments($currentRequest->all());
+                $request->setSessionId($currentRequest->sessionId());
+            }
+        });
     }
 
     protected function registerCommands(): void
