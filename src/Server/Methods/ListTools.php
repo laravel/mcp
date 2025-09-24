@@ -12,16 +12,14 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
 class ListTools implements Method
 {
-    public function handle(JsonRpcRequest $jsonRpcRequest, ServerContext $context): JsonRpcResponse
+    public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
-        $request = $jsonRpcRequest->toRequest();
-
         $paginator = new CursorPaginator(
-            items: $context->tools($request),
-            perPage: $context->perPage($jsonRpcRequest->get('per_page')),
-            cursor: $jsonRpcRequest->cursor(),
+            items: $context->tools(),
+            perPage: $context->perPage($request->get('per_page')),
+            cursor: $request->cursor(),
         );
 
-        return JsonRpcResponse::result($jsonRpcRequest->id, $paginator->paginate('tools'));
+        return JsonRpcResponse::result($request->id, $paginator->paginate('tools'));
     }
 }
