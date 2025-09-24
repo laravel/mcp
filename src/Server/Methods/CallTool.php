@@ -52,7 +52,7 @@ class CallTool implements Errable, Method
         if (! $evaluator->evaluate($tool, $request->toRequest())) {
             throw new JsonRpcException('Unauthorized', -32001, $request->id);
         }
-      
+
         try {
             // @phpstan-ignore-next-line
             $response = Container::getInstance()->call([$tool, 'handle']);

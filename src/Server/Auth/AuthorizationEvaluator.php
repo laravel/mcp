@@ -12,11 +12,6 @@ use ReflectionClass;
 
 class AuthorizationEvaluator
 {
-    /**
-     * @param object $subject
-     * @param Request $request
-     * @return bool
-     */
     public function evaluate(object $subject, Request $request): bool
     {
         $requiredScopes = $this->extractAnnotationValues($subject, 'required_scopes');

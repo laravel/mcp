@@ -36,7 +36,7 @@ class ServerContext
      */
     public function tools(): Collection
     {
-        $items = collect($this->tools)->map(fn (Tool|string $toolClass) => is_string($toolClass)
+        collect($this->tools)->map(fn (Tool|string $toolClass) => is_string($toolClass)
             ? Container::getInstance()->make($toolClass)
             : $toolClass
         )->filter(fn (Tool $tool): bool => $tool->eligibleForRegistration());
@@ -47,7 +47,7 @@ class ServerContext
      */
     public function resources(): Collection
     {
-        $items = collect($this->resources)->map(
+        collect($this->resources)->map(
             fn (Resource|string $resourceClass) => is_string($resourceClass)
                 ? Container::getInstance()->make($resourceClass)
                 : $resourceClass
@@ -59,7 +59,7 @@ class ServerContext
      */
     public function prompts(): Collection
     {
-        $items = collect($this->prompts)->map(
+        collect($this->prompts)->map(
             fn ($promptClass) => is_string($promptClass)
                 ? Container::getInstance()->make($promptClass)
                 : $promptClass

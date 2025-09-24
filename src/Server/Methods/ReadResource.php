@@ -50,7 +50,7 @@ class ReadResource implements Method
         if (! $evaluator->evaluate($resource, $request->toRequest())) {
             throw new JsonRpcException('Unauthorized', -32001, $request->id);
         }
-      
+
         try {
             // @phpstan-ignore-next-line
             $response = Container::getInstance()->call([$resource, 'handle']);
