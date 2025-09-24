@@ -11,12 +11,12 @@ use Symfony\Component\HttpFoundation\Response;
 class AddWwwAuthenticateHeader
 {
     /**
-     * Handle an incoming request.
-     *
-     * @param  Closure(\Illuminate\Http\Request): (\Illuminate\Http\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
+        /** @var \Illuminate\Http\Response $response */
+
         $response = $next($request);
         if ($response->getStatusCode() !== 401) {
             return $response;
@@ -32,7 +32,6 @@ class AddWwwAuthenticateHeader
             return $response;
         }
 
-        // Sanctum, can't share discover URL
         $response->header(
             'WWW-Authenticate',
             'Bearer realm="mcp", error="invalid_token"'
