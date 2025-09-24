@@ -76,4 +76,3 @@ it('can use the custom request class on resources', function (): void {
 
     $response->assertSee('Hello, Resource!');
 });
-

@@ -51,7 +51,7 @@ class ServerContext
             fn (Resource|string $resourceClass) => is_string($resourceClass)
                 ? Container::getInstance()->make($resourceClass)
                 : $resourceClass
-        )->filter(fn (Resource $tool): bool => Container::getInstance()->call($tool->eligibleForRegistration(...)));
+        )->filter(fn (Resource $resource): bool => $resource->eligibleForRegistration());
     }
 
     /**
@@ -63,7 +63,7 @@ class ServerContext
             fn ($promptClass) => is_string($promptClass)
                 ? Container::getInstance()->make($promptClass)
                 : $promptClass
-        )->filter(fn (Prompt $prompt): bool => Container::getInstance()->call($prompt->eligibleForRegistration(...)));
+        )->filter(fn (Prompt $prompt): bool => $prompt->eligibleForRegistration());
     }
 
     public function perPage(?int $requestedPerPage = null): int
