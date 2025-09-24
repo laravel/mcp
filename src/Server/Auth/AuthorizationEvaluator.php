@@ -13,9 +13,11 @@ use ReflectionClass;
 class AuthorizationEvaluator
 {
     /**
-     * @return array{allowed: bool}
+     * @param object $subject
+     * @param Request $request
+     * @return bool
      */
-    public function evaluate(object $subject, Request $request): array
+    public function evaluate(object $subject, Request $request): bool
     {
         $requiredScopes = $this->extractAnnotationValues($subject, 'required_scopes');
         $requiredAbilities = $this->extractAnnotationValues($subject, 'required_abilities');
@@ -25,9 +27,7 @@ class AuthorizationEvaluator
         $missingScopes = $this->missingScopes($user, $requiredScopes);
         $missingAbilities = $this->missingAbilities($user, $requiredAbilities);
 
-        return [
-            'allowed' => ($missingScopes === []) && ($missingAbilities === []),
-        ];
+        return ($missingScopes === []) && ($missingAbilities === []);
     }
 
     protected function resolveUser(Request $request): ?Authenticatable

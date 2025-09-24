@@ -43,6 +43,11 @@ abstract class Primitive implements Arrayable
 
     public function eligibleForRegistration(Request $request): bool
     {
+        $evaluator = new \Laravel\Mcp\Server\Auth\AuthorizationEvaluator;
+        if (! $evaluator->evaluate($this, $request)) {
+            return false;
+        }
+
         if (method_exists($this, 'shouldRegister')) {
             return Container::getInstance()->call([$this, 'shouldRegister'], [
                 'request' => $request,
