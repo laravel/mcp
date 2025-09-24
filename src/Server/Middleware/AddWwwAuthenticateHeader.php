@@ -16,7 +16,6 @@ class AddWwwAuthenticateHeader
     public function handle(Request $request, Closure $next): Response
     {
         /** @var \Illuminate\Http\Response $response */
-
         $response = $next($request);
         if ($response->getStatusCode() !== 401) {
             return $response;
