@@ -8,6 +8,7 @@ use JsonException;
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Server\Content\Blob;
+use Laravel\Mcp\Server\Content\Link;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
@@ -33,6 +34,11 @@ class Response
     public static function text(string $text): static
     {
         return new static(new Text($text));
+    }
+
+    public function link(string $text, string $href): static
+    {
+        return new static(new Link($text, $href));
     }
 
     /**
