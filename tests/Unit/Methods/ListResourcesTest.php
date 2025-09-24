@@ -124,6 +124,7 @@ it('returns empty list when the single prompt is not eligible for registration v
 
     $listResources = new ListResources;
 
+    $this->instance('mcp.request', $request->toRequest());
     $response = $listResources->handle($request, $context);
 
     expect($response)->toBeInstanceOf(JsonRpcResponse::class);

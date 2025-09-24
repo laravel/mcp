@@ -27,45 +27,40 @@ class GetPrompt implements Method
      *
      * @throws JsonRpcException
      */
-    public function handle(JsonRpcRequest $jsonRpcRequest, ServerContext $context): Generator|JsonRpcResponse
+    public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
-        if (is_null($jsonRpcRequest->get('name'))) {
+        if (is_null($request->get('name'))) {
             throw new JsonRpcException(
                 'Missing [name] parameter.',
                 -32602,
-                $jsonRpcRequest->id,
+                $request->id,
             );
         }
 
-        $request = $jsonRpcRequest->toRequest();
-
-        $prompt = $context->findPromptByName($request, $jsonRpcRequest->get('name'));
-        if (! $prompt instanceof \Laravel\Mcp\Server\Prompt) {
-            throw new JsonRpcException(
-                "Prompt [{$jsonRpcRequest->get('name')}] not found.",
-                -32602,
-                $jsonRpcRequest->id,
-            );
-        }
+        $prompt = $context->prompts()
+            ->first(
+                fn ($prompt): bool => $prompt->name() === $request->get('name'),
+                fn () => throw new JsonRpcException(
+                    "Prompt [{$request->get('name')}] not found.",
+                    -32602,
+                    $request->id,
+                ));
 
         $evaluator = new \Laravel\Mcp\Server\Auth\AuthorizationEvaluator;
-        $result = $evaluator->evaluate($prompt, $request);
-        if (! $result['allowed']) {
-            throw new JsonRpcException('Unauthorized', -32001, $jsonRpcRequest->id);
+        if (! $evaluator->evaluate($prompt, $request->toRequest())) {
+            throw new JsonRpcException('Unauthorized', -32001, $request->id);
         }
 
         try {
             // @phpstan-ignore-next-line
-            $response = Container::getInstance()->call([$prompt, 'handle'], [
-                'request' => $request,
-            ]);
+            $response = Container::getInstance()->call([$prompt, 'handle']);
         } catch (ValidationException $validationException) {
             $response = Response::error('Invalid params: '.ValidationMessages::from($validationException));
         }
 
         return is_iterable($response)
-            ? $this->toJsonRpcStreamedResponse($jsonRpcRequest, $response, $this->serializable($prompt))
-            : $this->toJsonRpcResponse($jsonRpcRequest, $response, $this->serializable($prompt));
+            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($prompt))
+            : $this->toJsonRpcResponse($request, $response, $this->serializable($prompt));
     }
 
     /**

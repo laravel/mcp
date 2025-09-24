@@ -7,7 +7,6 @@ namespace Laravel\Mcp\Server;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
-use Laravel\Mcp\Request;
 
 /**
  * @implements Arrayable<string, mixed>
@@ -41,12 +40,10 @@ abstract class Primitive implements Arrayable
             : $this->description;
     }
 
-    public function eligibleForRegistration(Request $request): bool
+    public function eligibleForRegistration(): bool
     {
         if (method_exists($this, 'shouldRegister')) {
-            return Container::getInstance()->call([$this, 'shouldRegister'], [
-                'request' => $request,
-            ]);
+            return Container::getInstance()->call([$this, 'shouldRegister']);
         }
 
         return true;

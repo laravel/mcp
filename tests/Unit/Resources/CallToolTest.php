@@ -34,6 +34,7 @@ it('returns a valid call tool response', function (): void {
 
     $method = new CallTool;
 
+    $this->instance('mcp.request', $request->toRequest());
     $response = $method->handle($request, $context);
 
     expect($response)->toBeInstanceOf(JsonRpcResponse::class);
@@ -78,6 +79,7 @@ it('returns a valid call tool response that contains two messages', function ():
 
     $method = new CallTool;
 
+    $this->instance('mcp.request', $request->toRequest());
     $responses = $method->handle($request, $context);
 
     [$response] = iterator_to_array($responses);

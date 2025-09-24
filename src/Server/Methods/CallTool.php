@@ -28,45 +28,41 @@ class CallTool implements Errable, Method
      *
      * @throws JsonRpcException
      */
-    public function handle(JsonRpcRequest $jsonRpcRequest, ServerContext $context): Generator|JsonRpcResponse
+    public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
-        if (is_null($jsonRpcRequest->get('name'))) {
+        if (is_null($request->get('name'))) {
             throw new JsonRpcException(
                 'Missing [name] parameter.',
                 -32602,
-                $jsonRpcRequest->id,
+                $request->id,
             );
         }
 
-        $request = $jsonRpcRequest->toRequest();
-
-        $tool = $context->findToolByName($request, $jsonRpcRequest->params['name']);
-        if (! $tool instanceof \Laravel\Mcp\Server\Tool) {
-            throw new JsonRpcException(
-                "Tool [{$jsonRpcRequest->params['name']}] not found.",
-                -32602,
-                $jsonRpcRequest->id,
-            );
-        }
+        $tool = $context
+            ->tools()
+            ->first(
+                fn ($tool): bool => $tool->name() === $request->params['name'],
+                fn () => throw new JsonRpcException(
+                    "Tool [{$request->params['name']}] not found.",
+                    -32602,
+                    $request->id,
+                ));
 
         $evaluator = new \Laravel\Mcp\Server\Auth\AuthorizationEvaluator;
-        $result = $evaluator->evaluate($tool, $request);
-        if (! $result['allowed']) {
-            throw new JsonRpcException('Unauthorized', -32001, $jsonRpcRequest->id);
+        if (! $evaluator->evaluate($tool, $request->toRequest())) {
+            throw new JsonRpcException('Unauthorized', -32001, $request->id);
         }
-
+      
         try {
             // @phpstan-ignore-next-line
-            $response = Container::getInstance()->call([$tool, 'handle'], [
-                'request' => $request,
-            ]);
+            $response = Container::getInstance()->call([$tool, 'handle']);
         } catch (ValidationException $validationException) {
             $response = Response::error(ValidationMessages::from($validationException));
         }
 
         return is_iterable($response)
-            ? $this->toJsonRpcStreamedResponse($jsonRpcRequest, $response, $this->serializable($tool))
-            : $this->toJsonRpcResponse($jsonRpcRequest, $response, $this->serializable($tool));
+            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($tool))
+            : $this->toJsonRpcResponse($request, $response, $this->serializable($tool));
     }
 
     /**

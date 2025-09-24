@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
+use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
@@ -37,7 +38,9 @@ abstract class Server
 
     protected string $version = '0.0.1';
 
-    protected string $instructions = 'This MCP server lets AI agents interact with our Laravel application.';
+    protected string $instructions = <<<'MARKDOWN'
+        This MCP server lets AI agents interact with our Laravel application.
+    MARKDOWN;
 
     /**
      * @var array<int, string>
@@ -161,7 +164,7 @@ abstract class Server
             }
 
             $request = isset($jsonRequest['id'])
-                ? JsonRpcRequest::from($jsonRequest)
+                ? JsonRpcRequest::from($jsonRequest, $this->transport->sessionId())
                 : JsonRpcNotification::from($jsonRequest);
 
             if ($request instanceof JsonRpcNotification) {
@@ -225,12 +228,7 @@ abstract class Server
      */
     protected function handleMessage(JsonRpcRequest $request, ServerContext $context): void
     {
-        /** @var Method $methodClass */
-        $methodClass = Container::getInstance()->make(
-            $this->methods[$request->method],
-        );
-
-        $response = $methodClass->handle($request, $context);
+        $response = $this->runMethodHandle($request, $context);
 
         if (! is_iterable($response)) {
             $this->transport->send($response->toJson());
@@ -245,11 +243,41 @@ abstract class Server
         });
     }
 
+    /**
+     * @return iterable<JsonRpcResponse>|JsonRpcResponse
+     *
+     * @throws JsonRpcException
+     */
+    protected function runMethodHandle(JsonRpcRequest $request, ServerContext $context): iterable|JsonRpcResponse
+    {
+        $container = Container::getInstance();
+
+        /** @var Method $methodClass */
+        $methodClass = $container->make(
+            $this->methods[$request->method],
+        );
+
+        $container->instance('mcp.request', $request->toRequest());
+
+        try {
+            $response = $methodClass->handle($request, $context);
+        } finally {
+            $container->forgetInstance('mcp.request');
+        }
+
+        return $response;
+    }
+
     protected function handleInitializeMessage(JsonRpcRequest $request, ServerContext $context): void
     {
         $response = (new Initialize)->handle($request, $context);
 
-        $this->transport->send($response->toJson());
+        $this->transport->send($response->toJson(), $this->generateSessionId());
+    }
+
+    protected function generateSessionId(): string
+    {
+        return Str::uuid()->toString();
     }
 
     /**

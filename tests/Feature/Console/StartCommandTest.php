@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Testing\TestResponse;
 use Symfony\Component\Process\Process;
 
 it('can initialize a connection over http', function (): void {
@@ -9,6 +10,16 @@ it('can initialize a connection over http', function (): void {
     $response->assertStatus(200);
 
     expect($response->json())->toEqual(expectedInitializeResponse());
+});
+
+it('receives a session id over http', function (): void {
+    /** @var TestResponse $response */
+    $response = $this->postJson('test-mcp', initializeMessage());
+
+    $response->assertHeader('Mcp-Session-Id');
+
+    // https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#session-management
+    expect($response->headers->get('Mcp-Session-Id'))->toMatch('/^[\x21-\x7E]+$/');
 });
 
 it('can list resources over http', function (): void {
