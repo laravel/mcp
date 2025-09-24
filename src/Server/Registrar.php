@@ -32,7 +32,7 @@ class Registrar
         // https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#listening-for-messages-from-the-server
         Router::get($route, fn (): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response(status: 405));
 
-        $route = Router::post($route, fn (): mixed => $this->startServer(
+        $route = Router::post($route, fn (): mixed => static::startServer(
             $serverClass,
             fn (): HttpTransport => new HttpTransport(
                 $request = request(),
@@ -56,12 +56,9 @@ class Registrar
      */
     public function local(string $handle, string $serverClass): void
     {
-        $this->localServers[$handle] = fn (): mixed => $this->startServer(
-            $serverClass,
-            fn (): StdioTransport => new StdioTransport(
-                Str::uuid()->toString(),
-            )
-        );
+        $this->localServers[$handle] = fn (): mixed => static::startServer($serverClass, fn (): StdioTransport => new StdioTransport(
+            Str::uuid()->toString(),
+        ));
     }
 
     public function getLocalServer(string $handle): ?callable
@@ -154,7 +151,7 @@ class Registrar
      * @param  class-string<Server>  $serverClass
      * @param  callable(): Transport  $transportFactory
      */
-    protected function startServer(string $serverClass, callable $transportFactory): mixed
+    protected static function startServer(string $serverClass, callable $transportFactory): mixed
     {
         $transport = $transportFactory();
 
