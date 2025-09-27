@@ -101,7 +101,6 @@ class InspectorCommand extends Command
             $guidance = [
                 'Transport Type' => 'Streamable HTTP',
                 'URL' => $serverUrl,
-                'Secure' => 'Your project must be accessible on HTTP for this to work due to how node manages SSL trust',
             ];
         }
 
