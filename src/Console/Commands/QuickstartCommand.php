@@ -16,7 +16,9 @@ class QuickstartCommand extends Command
 {
     public function handle(): void
     {
-        $serverName = Str::pascal(preg_replace('/[^a-zA-Z \-]/', '', config('app.name', 'Quickstart')));
+        $appName = config('app.name', 'Quickstart');
+        $sanitized = trim((string) preg_replace('/[^a-zA-Z \-]/', '', (string) $appName));
+        $serverName = $sanitized === '' ? 'Quickstart' : Str::pascal($sanitized);
 
         $this->callSilently('vendor:publish', ['--tag' => 'ai-routes', '--no-interaction' => true]);
         $this->make('server', $serverName);
@@ -40,7 +42,7 @@ class QuickstartCommand extends Command
         $this->info('Routes file, server, tool, resource, and prompt all setup. Time to test.');
 
         if ($isSecure) {
-            $this->line('Please note many AI agents use node and won\'t work with self-signed certificates locally. You may need to use http:// explicitly if you encounter issues.');
+            $this->line("Please note many AI agents use node and won't work with self-signed certificates locally. You may need to use http:// explicitly if you encounter issues.");
         }
     }
 

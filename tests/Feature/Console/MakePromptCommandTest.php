@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Facades\File;
+
 it('can create a prompt class', function (): void {
     $response = $this->artisan('make:mcp-prompt', [
         'name' => 'TestPrompt',
@@ -17,4 +19,9 @@ it('may publish a custom stub', function (): void {
     ])->assertExitCode(0)->run();
 
     $this->assertFileExists(base_path('stubs/prompt.stub'));
+
+    // Clean up published stubs
+    if (File::exists(base_path('stubs'))) {
+        File::deleteDirectory(base_path('stubs'));
+    }
 });
