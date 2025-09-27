@@ -18,7 +18,7 @@ class QuickstartCommand extends Command
     {
         $appName = config('app.name', 'Quickstart');
         $sanitized = trim((string) preg_replace('/[^a-zA-Z \-]/', '', (string) $appName));
-        $serverName = $sanitized === '' ? 'Quickstart' : Str::pascal($sanitized);
+        $serverName = $sanitized === '' ? 'Quickstart' : Str::studly($sanitized);
 
         $this->callSilently('vendor:publish', ['--tag' => 'ai-routes', '--no-interaction' => true]);
         $this->make('server', $serverName);
