@@ -1,0 +1,63 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
+use Illuminate\Support\Facades\Log;
+use Monolog\Handler\StreamHandler;
+use Monolog\Handler\RotatingFileHandler;
+
+class {{ class }} extends Resource
+{
+    /**
+     * The resource's description.
+     */
+    protected string $description = <<<'MARKDOWN'
+        Get latest logs from the app
+    MARKDOWN;
+
+    /**
+     * Handle the resource request.
+     */
+    public function handle(Request $request): Response
+    {
+        return Response::text($this->read($this->filename()));
+    }
+
+    protected function filename(): string|null
+    {
+        $filenames = array_map(
+            fn($handler) => match (true) {
+                $handler instanceof StreamHandler => $handler->getUrl(),
+                $handler instanceof RotatingFileHandler => $handler->getFilename(),
+                default => null
+            },
+            Log::driver()->getHandlers()
+        );
+
+        return array_filter($filenames)[0] ?? null;
+    }
+
+    protected function read(?string $filename, int $bytes = 4000): string
+    {
+        if (is_null($filename)) {
+            return '';
+        }
+
+        if (!file_exists($filename) || !is_readable($filename)) {
+            return '';
+        }
+
+        $size = filesize($filename);
+        $bytes = min($bytes, $size);
+        $fp = fopen($filename, 'r');
+        fseek($fp, -$bytes, SEEK_END);
+        $content = fread($fp, $bytes);
+        fclose($fp);
+
+        return $content;
+
+    }
+}

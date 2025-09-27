@@ -1,0 +1,40 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Prompt;
+use Laravel\Mcp\Server\Prompts\Argument;
+
+class {{ class }} extends Prompt
+{
+    /**
+     * The prompt's description.
+     */
+    protected string $description = <<<'MARKDOWN'
+        Test the tool and resource in combination
+    MARKDOWN;
+
+    /**
+     * Handle the prompt request.
+     */
+    public function handle(Request $request): Response
+    {
+        $request->validate(['test_count' => 'required|numeric|min:1|max:20']);
+
+        return Response::text("Test this MCP server by creating {$request->get('test_count')} debug log entries, then reading the QuickstartResource for the user, or asking the user to attach or read it themselves. Your debug log entries should be fun Laravel facts.");
+    }
+
+    /**
+     * Get the prompt's arguments.
+     *
+     * @return array<int, \Laravel\Mcp\Server\Prompts\Argument>
+     */
+    public function arguments(): array
+    {
+        return [
+            new Argument('test_count', 'How many log entries should be created to test the tool and resource?', true),
+        ];
+    }
+}

@@ -60,7 +60,7 @@ abstract class Tool extends Primitive
         return [
             'name' => $this->name(),
             'title' => $this->title(),
-            'description' => $this->description(),
+            'description' => trim($this->description()),
             'inputSchema' => JsonSchema::object(
                 fn (JsonSchema $schema): array => $this->schema($schema),
             )->toArray(),

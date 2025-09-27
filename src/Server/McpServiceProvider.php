@@ -11,6 +11,7 @@ use Laravel\Mcp\Console\Commands\MakePromptCommand;
 use Laravel\Mcp\Console\Commands\MakeResourceCommand;
 use Laravel\Mcp\Console\Commands\MakeServerCommand;
 use Laravel\Mcp\Console\Commands\MakeToolCommand;
+use Laravel\Mcp\Console\Commands\QuickstartCommand;
 use Laravel\Mcp\Console\Commands\StartCommand;
 use Laravel\Mcp\Request;
 
@@ -81,12 +82,13 @@ class McpServiceProvider extends ServiceProvider
     protected function registerCommands(): void
     {
         $this->commands([
-            StartCommand::class,
+            InspectorCommand::class,
+            QuickstartCommand::class,
             MakeServerCommand::class,
             MakeToolCommand::class,
             MakePromptCommand::class,
             MakeResourceCommand::class,
-            InspectorCommand::class,
+            StartCommand::class,
         ]);
     }
 }

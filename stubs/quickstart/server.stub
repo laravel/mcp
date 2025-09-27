@@ -1,0 +1,53 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravel\Mcp\Server;
+
+class {{ class }} extends Server
+{
+    /**
+     * The MCP server's name.
+     */
+    protected string $name = '{{ serverDisplayName }}';
+
+    /**
+     * The MCP server's version.
+     */
+    protected string $version = '0.0.1';
+
+    /**
+     * The MCP server's instructions for the LLM.
+     */
+    protected string $instructions = <<<'MARKDOWN'
+        Instructions describing how to use the server and its features.
+        Use {{ serverDisplayName }} to learn more about the app.
+    MARKDOWN;
+
+    /**
+     * The tools registered with this MCP server.
+     *
+     * @var array<int, class-string<\Laravel\Mcp\Server\Tool>>
+     */
+    protected array $tools = [
+        \App\Mcp\Tools\QuickstartTool::class,
+    ];
+
+    /**
+     * The resources registered with this MCP server.
+     *
+     * @var array<int, class-string<\Laravel\Mcp\Server\Resource>>
+     */
+    protected array $resources = [
+        \App\Mcp\Resources\QuickstartResource::class,
+    ];
+
+    /**
+     * The prompts registered with this MCP server.
+     *
+     * @var array<int, class-string<\Laravel\Mcp\Server\Prompt>>
+     */
+    protected array $prompts = [
+        \App\Mcp\Prompts\QuickstartPrompt::class,
+    ];
+}

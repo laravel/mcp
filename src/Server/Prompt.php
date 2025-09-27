@@ -35,7 +35,7 @@ abstract class Prompt extends Primitive
         return [
             'name' => $this->name(),
             'title' => $this->title(),
-            'description' => $this->description(),
+            'description' => trim($this->description()),
             'arguments' => array_map(
                 fn (Argument $argument): array => $argument->toArray(),
                 $this->arguments(),
