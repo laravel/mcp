@@ -39,7 +39,7 @@ abstract class Resource extends Primitive
         return [
             'name' => $this->name(),
             'title' => $this->title(),
-            'description' => $this->description(),
+            'description' => trim($this->description()),
             'uri' => $this->uri(),
             'mimeType' => $this->mimeType(),
         ];
