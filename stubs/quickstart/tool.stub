@@ -1,0 +1,48 @@
+<?php
+
+namespace {{ namespace }};
+
+use Illuminate\JsonSchema\JsonSchema;
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Tool;
+use Illuminate\Support\Facades\Log;
+
+class {{ class }} extends Tool
+{
+    /**
+     * The tool's description.
+     */
+    protected string $description = <<<'MARKDOWN'
+        Add debug log entries
+    MARKDOWN;
+
+    /**
+     * Handle the tool request.
+     */
+    public function handle(Request $request): Response
+    {
+        $request->validate(['messages' => 'required|array']);
+
+        foreach ($request->get('messages') as $message) {
+            Log::debug($message);
+        }
+
+        return Response::text('Added ' . count($request->get('messages')) . ' log entries');
+    }
+
+    /**
+     * Get the tool's input schema.
+     *
+     * @return array<string, \Illuminate\JsonSchema\JsonSchema>
+     */
+    public function schema(JsonSchema $schema): array
+    {
+        return [
+            'messages' => $schema->array()
+                ->items($schema->string()->description('Log message'))
+                ->description('Messages to add to the log as debug entries')
+                ->required()
+        ];
+    }
+}
