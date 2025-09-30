@@ -12,6 +12,14 @@ class GreetingRequest extends Request
             'name' => 'required|string',
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'The name field is required.',
+            'name.string' => 'The name must be a string.',
+        ];
+    }
 }
 
 class GreetingServer extends Server
@@ -40,8 +48,8 @@ it('can use the custom request validation', function (): void {
     $response->assertSee('Hello, World!');
 });
 
-it('can throw validation errors', function (): void {
+it('can throw validation errors when required fields are missing', function (): void {
     $response = GreetingServer::tool(Greet::class, []);
 
-    $response->assertHasErrors();
+    $response->assertHasErrors(['name' => 'The name field is required.']);
 });
