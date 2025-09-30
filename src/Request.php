@@ -78,8 +78,6 @@ class Request implements Arrayable
 
     /**
      * Get custom rules for validator errors.
-     *
-     * @return array
      */
     public function rules(): array
     {
@@ -88,8 +86,6 @@ class Request implements Arrayable
 
     /**
      * Get custom messages for validator errors.
-     *
-     * @return array
      */
     public function messages(): array
     {
@@ -98,8 +94,6 @@ class Request implements Arrayable
 
     /**
      * Get custom attributes for validator errors.
-     *
-     * @return array
      */
     public function attributes(): array
     {
