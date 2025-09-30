@@ -42,8 +42,8 @@ class Greet extends Tool
     {
         $validated = $request->validated();
         $name = $validated['name'];
-        $response = "Hello, {$name}!";
-        return $response;
+
+        return "Hello, {$name}!";
     }
 }
 
