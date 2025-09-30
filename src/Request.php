@@ -81,7 +81,7 @@ class Request implements Arrayable
      *
      * @return array
      */
-    public function rules()
+    public function rules(): array
     {
         return [];
     }
@@ -91,7 +91,7 @@ class Request implements Arrayable
      *
      * @return array
      */
-    public function messages()
+    public function messages(): array
     {
         return [];
     }
@@ -101,7 +101,7 @@ class Request implements Arrayable
      *
      * @return array
      */
-    public function attributes()
+    public function attributes(): array
     {
         return [];
     }
@@ -113,7 +113,7 @@ class Request implements Arrayable
      *
      * @throws ValidationException
      */
-    public function validated()
+    public function validated(): array
     {
         return $this->validate($this->rules(), $this->messages(), $this->attributes());
     }
