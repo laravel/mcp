@@ -47,8 +47,8 @@ class Greet extends Tool
     }
 }
 
-it('returns empty arrays for default validation helpers', function () {
-    $request = new Request();
+it('returns empty arrays for default validation helpers', function (): void {
+    $request = new Request;
 
     expect($request->rules())->toBe([]);
     expect($request->messages())->toBe([]);
