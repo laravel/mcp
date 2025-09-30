@@ -78,6 +78,8 @@ class Request implements Arrayable
 
     /**
      * Get custom rules for validator errors.
+     *
+     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -86,6 +88,8 @@ class Request implements Arrayable
 
     /**
      * Get custom messages for validator errors.
+     *
+     * @return array<string, string>
      */
     public function messages(): array
     {
@@ -94,6 +98,8 @@ class Request implements Arrayable
 
     /**
      * Get custom attributes for validator errors.
+     *
+     * @return array<string, string>
      */
     public function attributes(): array
     {
