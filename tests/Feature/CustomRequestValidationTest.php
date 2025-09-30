@@ -47,6 +47,15 @@ class Greet extends Tool
     }
 }
 
+it('returns empty arrays for default validation helpers', function () {
+    $request = new Request();
+
+    expect($request->rules())->toBe([]);
+    expect($request->messages())->toBe([]);
+    expect($request->attributes())->toBe([]);
+    expect($request->validated())->toBe([]);
+});
+
 it('can use the custom request validation', function (): void {
     $response = GreetingServer::tool(Greet::class, [
         'name' => 'World',
