@@ -76,6 +76,48 @@ class Request implements Arrayable
         return Validator::validate($this->all(), $rules, $messages, $attributes);
     }
 
+    /**
+     * Get custom rules for validator errors.
+     *
+     * @return array
+     */
+    public function rules()
+    {
+        return [];
+    }
+
+    /**
+     * Get custom messages for validator errors.
+     *
+     * @return array
+     */
+    public function messages()
+    {
+        return [];
+    }
+
+    /**
+     * Get custom attributes for validator errors.
+     *
+     * @return array
+     */
+    public function attributes()
+    {
+        return [];
+    }
+
+    /**
+     * Get the validated data from the request.
+     *
+     * @return array<string, mixed>
+     *
+     * @throws ValidationException
+     */
+    public function validated()
+    {
+        return $this->validate($this->rules(), $this->messages(), $this->attributes());
+    }
+
     public function user(?string $guard = null): ?Authenticatable
     {
         $auth = Container::getInstance()->make('auth');
