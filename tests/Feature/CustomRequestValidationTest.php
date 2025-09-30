@@ -16,8 +16,15 @@ class GreetingRequest extends Request
     public function messages(): array
     {
         return [
-            'name.required' => 'The name field is required.',
-            'name.string' => 'The name must be a string.',
+            'name.required' => 'The :attribute field is required.',
+            'name.string' => 'The :attribute must be a string.',
+        ];
+    }
+
+    public function attributes(): array
+    {
+        return [
+            'name' => 'Name',
         ];
     }
 }
@@ -51,5 +58,5 @@ it('can use the custom request validation', function (): void {
 it('can throw validation errors when required fields are missing', function (): void {
     $response = GreetingServer::tool(Greet::class, []);
 
-    $response->assertHasErrors(['name' => 'The name field is required.']);
+    $response->assertHasErrors(['name' => 'The Name field is required.']);
 });
