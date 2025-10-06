@@ -72,6 +72,33 @@ class TestResponse
         return $this;
     }
 
+    /**
+     * @param  array<string>|string  $text
+     */
+    public function assertDontSee(array|string $text): static
+    {
+        $seeable = collect([
+            ...$this->content(),
+            ...$this->errors(),
+        ])->filter()->unique()->values()->all();
+
+        foreach (is_array($text) ? $text : [$text] as $segment) {
+            foreach ($seeable as $message) {
+                if (str_contains($message, $segment)) {
+                    // @phpstan-ignore-next-line
+                    Assert::assertTrue(false, "The unexpected text [{$segment}] was found in the response content.");
+
+                    return $this;
+                }
+            }
+        }
+
+        // @phpstan-ignore-next-line
+        Assert::assertTrue(true);
+
+        return $this;
+    }
+
     public function assertNotificationCount(int $count): static
     {
         Assert::assertCount($count, $this->notifications, "The expected number of notifications [{$count}] does not match the actual count.");

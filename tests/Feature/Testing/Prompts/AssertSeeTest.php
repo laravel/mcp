@@ -42,20 +42,26 @@ class BookingPrompt extends Prompt
 it('may assert that text is seen when returning string content', function (): void {
     $response = HotelP::prompt(BookingPrompt::class);
 
-    $response->assertSee('Your booking is confirmed!');
+    $response->assertSee('Your booking is confirmed!')
+        ->assertDontSee('The booking date cannot be in the past.')
+        ->assertDontSee('Please select a more reasonable date.');
 });
 
 it('may assert that text is seen when providing arguments', function (): void {
     $response = HotelP::prompt(BookingPrompt::class, ['date' => now()->addDay()->toDateString()]);
 
-    $response->assertSee('Your booking is confirmed!');
+    $response->assertSee('Your booking is confirmed!')
+        ->assertDontSee('The booking date cannot be in the past.')
+        ->assertDontSee('Please select a more reasonable date.');
 });
 
 it('may assert that text is seen when providing arguments that are wrong', function (): void {
     $response = HotelP::prompt(BookingPrompt::class, ['date' => now()->subDay()->toDateString()]);
 
     $response
-        ->assertSee('The booking date cannot be in the past.');
+        ->assertSee('The booking date cannot be in the past.')
+        ->assertDontSee('Your booking is confirmed!')
+        ->assertDontSee('Please select a more reasonable date.');
 });
 
 it('fails to assert that text is seen when not present', function (): void {
@@ -64,12 +70,19 @@ it('fails to assert that text is seen when not present', function (): void {
     $response->assertSee('This text is not present');
 })->throws(ExpectationFailedException::class);
 
+it('fails to assert that text is not seen when it is present', function (): void {
+    $response = HotelP::prompt(BookingPrompt::class);
+
+    $response->assertDontSee('Your booking is confirmed!');
+})->throws(ExpectationFailedException::class);
+
 it('may assert that text is seen when returning array content', function (): void {
     $response = HotelP::prompt(BookingPrompt::class, ['date' => '2999-01-01']);
 
     $response
         ->assertSee('That date is too far in the future')
-        ->assertSee('Please select a more reasonable date.');
+        ->assertSee('Please select a more reasonable date.')
+        ->assertDontSee('Your booking is confirmed!');
 });
 
 it('fails if the prompt is not registered', function (): void {
