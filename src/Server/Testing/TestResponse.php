@@ -86,7 +86,7 @@ class TestResponse
             foreach ($seeable as $message) {
                 if (str_contains($message, $segment)) {
                     // @phpstan-ignore-next-line
-                    Assert::assertTrue(false, "The expected text [{$segment}] was found in the response content.");
+                    Assert::assertTrue(false, "The unexpected text [{$segment}] was found in the response content.");
 
                     return $this;
                 }
