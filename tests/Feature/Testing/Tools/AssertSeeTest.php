@@ -42,26 +42,38 @@ class BookingTool extends Tool
 it('may assert that text is seen when returning string content', function (): void {
     $response = HotelT::tool(BookingTool::class);
 
-    $response->assertSee('Your booking is confirmed!');
+    $response->assertSee('Your booking is confirmed!')
+        ->assertDontSee('The booking date cannot be in the past.')
+        ->assertDontSee('Please select a more reasonable date.');
 });
 
 it('may assert that text is seen when providing arguments', function (): void {
     $response = HotelT::tool(BookingTool::class, ['date' => now()->addDay()->toDateString()]);
 
-    $response->assertSee('Your booking is confirmed!');
+    $response->assertSee('Your booking is confirmed!')
+        ->assertDontSee('The booking date cannot be in the past.')
+        ->assertDontSee('Please select a more reasonable date.');
 });
 
 it('may assert that text is seen when providing arguments that are wrong', function (): void {
     $response = HotelT::tool(BookingTool::class, ['date' => now()->subDay()->toDateString()]);
 
     $response
-        ->assertSee('The booking date cannot be in the past.');
+        ->assertSee('The booking date cannot be in the past.')
+        ->assertDontSee('Your booking is confirmed!')
+        ->assertDontSee('Please select a more reasonable date.');
 });
 
 it('fails to assert that text is seen when not present', function (): void {
     $response = HotelT::tool(BookingTool::class);
 
     $response->assertSee('This text is not present');
+})->throws(ExpectationFailedException::class);
+
+it('fails to assert that text is not seen when it is present', function (): void {
+    $response = HotelT::tool(BookingTool::class);
+
+    $response->assertDontSee('Your booking is confirmed!');
 })->throws(ExpectationFailedException::class);
 
 it('may assert that text is seen when returning array content', function (): void {
