@@ -29,6 +29,7 @@ abstract class Tool extends Primitive
         // @phpstan-ignore-next-line
         return collect($reflection->getAttributes())
             ->map(fn (ReflectionAttribute $attributeReflection): object => $attributeReflection->newInstance())
+            ->filter(fn (object $attribute): bool => $attribute instanceof Annotation)
             // @phpstan-ignore-next-line
             ->mapWithKeys(fn (Annotation $attribute): array => [$attribute->key() => $attribute->value])
             ->all();
