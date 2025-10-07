@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Illuminate\Support\Traits\Conditionable;
+use Illuminate\Support\Traits\Macroable;
 use JsonException;
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
@@ -14,6 +16,9 @@ use Laravel\Mcp\Server\Contracts\Content;
 
 class Response
 {
+    use Conditionable;
+    use Macroable;
+
     protected function __construct(
         protected Content $content,
         protected Role $role = Role::USER,

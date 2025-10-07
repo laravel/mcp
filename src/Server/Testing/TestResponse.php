@@ -6,6 +6,8 @@ namespace Laravel\Mcp\Server\Testing;
 
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Traits\Conditionable;
+use Illuminate\Support\Traits\Macroable;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -16,6 +18,9 @@ use RuntimeException;
 
 class TestResponse
 {
+    use Conditionable;
+    use Macroable;
+
     protected JsonRpcResponse $response;
 
     /**
