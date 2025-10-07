@@ -122,3 +122,39 @@ it('handles empty array in json response', function (): void {
     $content = $response->content();
     expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
 });
+
+it('supports macros', function (): void {
+    Response::macro('foo', fn (): string => 'bar');
+
+    $response = Response::text('Hello world');
+
+    expect($response->foo())->toBe('bar');
+});
+
+it('supports conditionals', function (): void {
+    $response = Response::text('bar');
+
+    $whenTrue = false;
+    $response->when(true, function () use (&$whenTrue): void {
+        $whenTrue = true;
+    });
+    expect($whenTrue)->toBeTrue();
+
+    $whenFalse = false;
+    $response->when(false, function () use (&$whenFalse): void {
+        $whenFalse = true;
+    });
+    expect($whenFalse)->toBeFalse();
+
+    $unlessTrue = false;
+    $response->unless(true, function () use (&$unlessTrue): void {
+        $unlessTrue = true;
+    });
+    expect($unlessTrue)->toBeFalse();
+
+    $unlessFalse = false;
+    $response->unless(false, function () use (&$unlessFalse): void {
+        $unlessFalse = true;
+    });
+    expect($unlessFalse)->toBeTrue();
+});

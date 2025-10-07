@@ -8,7 +8,9 @@ use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\InteractsWithData;
+use Illuminate\Support\Traits\Macroable;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -16,7 +18,9 @@ use Illuminate\Validation\ValidationException;
  */
 class Request implements Arrayable
 {
+    use Conditionable;
     use InteractsWithData;
+    use Macroable;
 
     /**
      * @param  array<string, mixed>  $arguments

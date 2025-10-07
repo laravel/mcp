@@ -114,3 +114,39 @@ it('throws ValidationException with custom messages and attributes', function ()
 
     expect($closure)->toThrow(ValidationException::class);
 });
+
+it('supports macros', function (): void {
+    Request::macro('foo', fn (): string => 'bar');
+
+    $request = new Request;
+
+    expect($request->foo())->toBe('bar');
+});
+
+it('supports conditionals', function (): void {
+    $request = new Request;
+
+    $whenTrue = false;
+    $request->when(true, function () use (&$whenTrue): void {
+        $whenTrue = true;
+    });
+    expect($whenTrue)->toBeTrue();
+
+    $whenFalse = false;
+    $request->when(false, function () use (&$whenFalse): void {
+        $whenFalse = true;
+    });
+    expect($whenFalse)->toBeFalse();
+
+    $unlessTrue = false;
+    $request->unless(true, function () use (&$unlessTrue): void {
+        $unlessTrue = true;
+    });
+    expect($unlessTrue)->toBeFalse();
+
+    $unlessFalse = false;
+    $request->unless(false, function () use (&$unlessFalse): void {
+        $unlessFalse = true;
+    });
+    expect($unlessFalse)->toBeTrue();
+});
