@@ -1,6 +1,12 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.2.1...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.3.0...main)
+
+## [v0.3.0](https://github.com/laravel/mcp/compare/v0.2.1...v0.3.0) - 2025-10-07
+
+* Add assertDontSee() to TestResponse and extend test coverage by [@mattwells-coex](https://github.com/mattwells-coex) in https://github.com/laravel/mcp/pull/74
+* Fix tool annotation type error when using custom Attributes by [@Daanra](https://github.com/Daanra) in https://github.com/laravel/mcp/pull/75
+* Add Macroable and Conditionable traits to some core classes by [@mattwells-coex](https://github.com/mattwells-coex) in https://github.com/laravel/mcp/pull/76
 
 ## [v0.2.1](https://github.com/laravel/mcp/compare/v0.2.0...v0.2.1) - 2025-09-24
 
