@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Content;
 use Laravel\Mcp\Server\Contracts\Content;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Server\ResourceTemplate;
 use Laravel\Mcp\Server\Tool;
 
 class Notification implements Content
@@ -38,7 +39,7 @@ class Notification implements Content
     /**
      * @return array<string, mixed>
      */
-    public function toResource(Resource $resource): array
+    public function toResource(Resource|ResourceTemplate $resource): array
     {
         return $this->toArray();
     }

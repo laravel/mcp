@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Contracts;
 use Illuminate\Contracts\Support\Arrayable;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Server\ResourceTemplate;
 use Laravel\Mcp\Server\Tool;
 use Stringable;
 
@@ -28,7 +29,7 @@ interface Content extends Arrayable, Stringable
     /**
      * @return array<string, mixed>
      */
-    public function toResource(Resource $resource): array;
+    public function toResource(Resource|ResourceTemplate $resource): array;
 
     public function __toString(): string;
 }

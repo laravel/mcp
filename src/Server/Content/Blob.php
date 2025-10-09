@@ -8,6 +8,7 @@ use InvalidArgumentException;
 use Laravel\Mcp\Server\Contracts\Content;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Server\ResourceTemplate;
 use Laravel\Mcp\Server\Tool;
 
 class Blob implements Content
@@ -40,11 +41,11 @@ class Blob implements Content
     /**
      * @return array<string, mixed>
      */
-    public function toResource(Resource $resource): array
+    public function toResource(Resource|ResourceTemplate $resource): array
     {
         return [
             'blob' => base64_encode($this->content),
-            'uri' => $resource->uri(),
+            'uri' => $resource instanceof ResourceTemplate ? $resource->uriTemplate() : $resource->uri(),
             'name' => $resource->name(),
             'title' => $resource->title(),
             'mimeType' => $resource->mimeType(),
