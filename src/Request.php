@@ -100,6 +100,19 @@ class Request implements Arrayable
         $this->arguments = $arguments;
     }
 
+    /**
+     * Merge new data into the current request data.
+     *
+     * @param  array<string, mixed>  $data
+     * @return $this
+     */
+    public function merge(array $data): static
+    {
+        $this->arguments = array_merge($this->arguments, $data);
+
+        return $this;
+    }
+
     public function setSessionId(?string $sessionId): void
     {
         $this->sessionId = $sessionId;
