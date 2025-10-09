@@ -34,7 +34,7 @@ it('fails if uri format has characters other than UTF-8', function (): void {
 
 it('fails if uri format only has characters other then UTF-8', function (): void {
     $this->expectException(LogicException::class);
-    $uri = '👍';
+    $uri = "\u{1F44D}";
     $path = Uri::pathRegex($uri);
 });
 
