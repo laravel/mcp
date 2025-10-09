@@ -14,6 +14,7 @@ class ServerContext
      * @param  array<string, mixed>  $serverCapabilities
      * @param  array<int, Tool|string>  $tools
      * @param  array<int, Resource|string>  $resources
+     * @param  array<int, ResourceTemplate|string>  $resourceTemplates
      * @param  array<int, Prompt|string>  $prompts
      */
     public function __construct(
@@ -26,6 +27,7 @@ class ServerContext
         public int $defaultPaginationLength,
         protected array $tools,
         protected array $resources,
+        protected array $resourceTemplates,
         protected array $prompts,
     ) {
         //
@@ -52,6 +54,18 @@ class ServerContext
                 ? Container::getInstance()->make($resourceClass)
                 : $resourceClass
         )->filter(fn (Resource $resource): bool => $resource->eligibleForRegistration());
+    }
+
+    /**
+     * @return Collection<int, ResourceTemplate>
+     */
+    public function resourceTemplates(): Collection
+    {
+        return collect($this->resourceTemplates)->map(
+            fn (ResourceTemplate|string $resourceTemplateClass) => is_string($resourceTemplateClass)
+                ? Container::getInstance()->make($resourceTemplateClass)
+                : $resourceTemplateClass
+        )->filter(fn (ResourceTemplate $resourceTemplate): bool => $resourceTemplate->eligibleForRegistration());
     }
 
     /**
