@@ -41,7 +41,7 @@ class Uri
     /**
      * @return array<string, mixed>
      */
-    public static function pathRegex(string $uri, bool $utf8 = true): array
+    public static function pathRegex(string $uri): array
     {
         $path = Uri::path($uri);
 
@@ -51,15 +51,6 @@ class Uri
         $pos = 0;
         $defaultSeparator = '/';
         $useUtf8 = preg_match('//u', $path) !== false;
-        $needsUtf8 = $utf8;
-
-        if (! $needsUtf8 && $useUtf8 && preg_match('/[\x80-\xFF]/', $path) !== false) {
-            throw new LogicException('Cannot use UTF-8 uri patterns without the UTF-8 requirement.');
-        }
-
-        if (! $useUtf8 && $needsUtf8) {
-            throw new LogicException(sprintf('Cannot mix UTF-8 requirements with non-UTF-8 pattern "%s".', $path));
-        }
 
         // Match all variables enclosed in "{}" and iterate over them. But we only want to match the innermost variable
         // in case of nested "{}", e.g. {foo{bar}}. This in ensured because \w does not match "{" or "}" itself.
@@ -164,13 +155,11 @@ class Uri
 
         $regexp = '{^'.$regexp.'$}sD';
 
-        // enable Utf8 matching if really required
-        if ($needsUtf8) {
-            $regexp .= 'u';
-            for ($i = 0, $nbToken = \count($tokens); $i < $nbToken; $i++) {
-                if ($tokens[$i][0] === 'variable') {
-                    $tokens[$i][4] = true;
-                }
+        // enable Utf8 matching
+        $regexp .= 'u';
+        for ($i = 0, $nbToken = \count($tokens); $i < $nbToken; $i++) {
+            if ($tokens[$i][0] === 'variable') {
+                $tokens[$i][4] = true;
             }
         }
 
@@ -185,10 +174,10 @@ class Uri
     /**
      * @return array<string, mixed>
      */
-    public static function pathVariables(string $templateUri, string $uri, bool $utf8 = true): array
+    public static function pathVariables(string $templateUri, string $uri): array
     {
         $path = static::path($uri);
-        $regex = static::pathRegex($templateUri, $utf8);
+        $regex = static::pathRegex($templateUri);
 
         if (count($regex['variables']) === 0) {
             return [];
