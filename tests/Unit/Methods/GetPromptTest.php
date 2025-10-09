@@ -29,6 +29,7 @@ it('returns a valid get prompt response', function (): void {
         defaultPaginationLength: 10,
         tools: [],
         resources: [],
+        resourceTemplates: [],
         prompts: [ReviewMyCodePrompt::class],
     );
 
@@ -74,6 +75,7 @@ it('resolves the handle method from the IOC container', function (): void {
         defaultPaginationLength: 10,
         tools: [],
         resources: [],
+        resourceTemplates: [],
         prompts: [TellMeHiPrompt::class],
     );
 
@@ -118,6 +120,7 @@ it('throws exception when name parameter is missing', function (): void {
         defaultPaginationLength: 10,
         tools: [],
         resources: [],
+        resourceTemplates: [],
         prompts: [ReviewMyCodePrompt::class],
     );
 
@@ -150,6 +153,7 @@ it('throws exception when prompt not found', function (): void {
         defaultPaginationLength: 10,
         tools: [],
         resources: [],
+        resourceTemplates: [],
         prompts: [ReviewMyCodePrompt::class],
     );
 
@@ -182,6 +186,7 @@ it('passes arguments to prompt handler', function (): void {
         defaultPaginationLength: 10,
         tools: [],
         resources: [],
+        resourceTemplates: [],
         prompts: [ReviewMyCodePrompt::class],
     );
 
