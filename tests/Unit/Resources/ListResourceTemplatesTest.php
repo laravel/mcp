@@ -38,7 +38,7 @@ it('returns a valid populated list resource templates response', function (): vo
                 'title' => $resource->title(),
                 'description' => $resource->description(),
                 'uri' => $resource->uri(),
-                'uriTemplate' => $resource->templateUri(),
+                'uriTemplate' => $resource->originalUri(),
                 'mimeType' => $resource->mimeType(),
             ],
         ],
@@ -140,4 +140,4 @@ it('returns empty list when the single resource template is not eligible for reg
         ->and($payload['result'])->toEqual([
             'resourceTemplates' => [],
         ]);
-})->group('now');
+});
