@@ -52,13 +52,10 @@ class ReadResource implements Method
             if ($resource instanceof ResourceTemplate) {
                 $variables = UriTemplateMatcher::extract($resource->uriTemplate(), $uri);
 
-                Container::getInstance()->bind(Request::class, function () use ($request, $variables): \Laravel\Mcp\Request {
-                    $mcpRequest = $request->toRequest();
+                Container::getInstance()->afterResolving(Request::class, function (Request $mcpRequest) use ($variables): void {
                     foreach ($variables as $key => $value) {
                         $mcpRequest->merge([$key => $value]);
                     }
-
-                    return $mcpRequest;
                 });
             }
         }
