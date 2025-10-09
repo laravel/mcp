@@ -84,11 +84,20 @@ class PendingTestResponse
 
         $requestId = uniqid();
 
+        $parameters = $primitive->toMethodCall();
+
+        foreach ($arguments as $key => $value) {
+            if (array_key_exists($key, $parameters)) {
+                $parameters[$key] = $value;
+                unset($arguments[$key]);
+            }
+        }
+
         $request = new JsonRpcRequest(
             $requestId,
             $method,
             [
-                ...$primitive->toMethodCall(),
+                ...$parameters,
                 'arguments' => $arguments,
             ],
         );
