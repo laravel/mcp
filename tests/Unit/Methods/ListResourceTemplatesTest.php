@@ -161,3 +161,23 @@ it('handles multiple resource templates', function (): void {
         ->and($payload['result']['resourceTemplates'][0]['uriTemplate'])->toBe('file://resources/user/{id}')
         ->and($payload['result']['resourceTemplates'][1]['uriTemplate'])->toBe('file://resources/post/{id}');
 });
+
+it('handles pagination correctly', function (): void {
+    $listResourceTemplates = new ListResourceTemplates;
+    $templates = [];
+    for ($i = 1; $i <= 10; $i++) {
+        $templates[] = $this->makeResourceTemplate("file://resources/item/{$i}", "Template {$i}");
+    }
+
+    $context = $this->getServerContext([
+        'resourceTemplates' => $templates,
+    ]);
+
+    // Request first page with 3 items
+    $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/templates/list', params: ['per_page' => 3]);
+    $result = $listResourceTemplates->handle($jsonRpcRequest, $context);
+    $payload = $result->toArray();
+
+    expect($payload['result']['resourceTemplates'])->toHaveCount(3)
+        ->and($payload['result'])->toHaveKey('nextCursor');
+});
