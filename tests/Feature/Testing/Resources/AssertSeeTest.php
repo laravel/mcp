@@ -10,6 +10,8 @@ class HotelR extends Server
 {
     protected array $resources = [
         BookingResource::class,
+        ServiceConfirmationCheckResource::class,
+        InvalidResourceTemplateResource::class,
     ];
 }
 
@@ -39,6 +41,44 @@ class BookingResource extends Resource
     }
 }
 
+class ServiceConfirmationCheckResource extends Resource
+{
+    protected string $uri = 'service://confirmation-check/{type}';
+
+    public function handle(Request $request): string
+    {
+        $type = $request->get('type');
+
+        if (in_array($type, ['restaurant', 'massage'], true)) {
+            return "Sorry, we could not the reservation for your {$type}.";
+        }
+
+        return "Your {$type} reservation is confirmed!";
+    }
+
+    public function shouldRegister(Request $request): bool
+    {
+        return $request->boolean('register', true);
+    }
+}
+
+class InvalidResourceTemplateResource extends Resource
+{
+    protected string $uri = 'invalid://optional-param/{param?}';
+
+    public function handle(Request $request): string
+    {
+        $param = $request->get('param');
+
+        return "Oops! something happened because optional param [{$param}] on resource templates are not allowed.";
+    }
+
+    public function shouldRegister(Request $request): bool
+    {
+        return $request->boolean('register', true);
+    }
+}
+
 it('may assert that text is seen when returning string content', function (): void {
     $response = HotelR::resource(BookingResource::class);
 
@@ -55,6 +95,30 @@ it('may assert that text is seen when providing arguments', function (): void {
         ->assertDontSee('Please select a more reasonable date.');
 });
 
+it('may assert that text is seen when using templates', function (string $uri, string $message): void {
+    $response = HotelR::resource(ServiceConfirmationCheckResource::class, ['uri' => $uri]);
+
+    $response
+        ->assertSee($message)
+        ->assertSee($uri)
+        ->assertUri('service://confirmation-check/{type}');
+})->with([
+    ['service://confirmation-check/spa', 'Your spa reservation is confirmed!'],
+    ['service://confirmation-check/beach-dinner', 'Your beach-dinner reservation is confirmed!'],
+    ['service://confirmation-check/restaurant', 'Sorry, we could not the reservation for your restaurant.'],
+    ['service://confirmation-check/massage', 'Sorry, we could not the reservation for your massage.'],
+]);
+
+it('may assert that resource is not found when using templates and not matching uris', function (): void {
+    $uri = 'service://confirmation-check/spa/extra-value';
+
+    $response = HotelR::resource(ServiceConfirmationCheckResource::class, ['uri' => $uri]);
+
+    $response
+        ->assertHasErrors(["Resource [{$uri}] not found."]);
+});
+
+
 it('may assert that text is seen when providing arguments that are wrong', function (): void {
     $response = HotelR::resource(BookingResource::class, ['date' => now()->subDay()->toDateString()]);
 
@@ -68,6 +132,12 @@ it('fails to assert that text is seen when not present', function (): void {
     $response = HotelR::resource(BookingResource::class);
 
     $response->assertSee('This text is not present');
+})->throws(ExpectationFailedException::class);
+
+it('fails to assert that text is seen when optional params are used for the resource uri', function (): void {
+    $response = HotelR::resource(ServiceConfirmationCheckResource::class, ['uri' => 'invalid://optional-param/value']);
+
+    $response->assertSee('Oops! something happened because optional param [value] on resource templates are not allowed.');
 })->throws(ExpectationFailedException::class);
 
 it('fails to assert that text is not seen when it is present', function (): void {
