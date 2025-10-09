@@ -24,18 +24,18 @@ class UriTemplateMatcher
      *
      * @param  string  $uriTemplate  The URI template with {variable} placeholders
      * @param  string  $uri  The actual URI to extract variables from
-     * @return array<string, string>  Array of variable name => value pairs
+     * @return array<string, string> Array of variable name => value pairs
      */
     public static function extract(string $uriTemplate, string $uri): array
     {
         $pattern = self::templateToRegex($uriTemplate, capture: true);
 
-        if (! preg_match($pattern, $uri, $matches)) {
+        if (in_array(preg_match($pattern, $uri, $matches), [0, false], true)) {
             return [];
         }
 
         // Remove numeric keys, keep only named captures
-        return array_filter($matches, fn ($key) => is_string($key), ARRAY_FILTER_USE_KEY);
+        return array_filter($matches, fn ($key): bool => is_string($key), ARRAY_FILTER_USE_KEY);
     }
 
     /**
@@ -57,10 +57,10 @@ class UriTemplateMatcher
         // Replace {variable} with regex pattern
         if ($capture) {
             // Named capture groups for variable extraction
-            $pattern = preg_replace('/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/', '(?<$1>[^/]+)', $pattern);
+            $pattern = preg_replace('/\{([a-zA-Z_]\w*)\}/', '(?<$1>[^/]+)', $pattern);
         } else {
             // Non-capturing groups for matching only
-            $pattern = preg_replace('/\{[a-zA-Z_][a-zA-Z0-9_]*\}/', '[^/]+', $pattern);
+            $pattern = preg_replace('/\{[a-zA-Z_]\w*\}/', '[^/]+', $pattern);
         }
 
         return '#^'.$pattern.'$#';

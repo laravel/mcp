@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Content;
 
 use Laravel\Mcp\Server\Contracts\Content;
-use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ResourceTemplate;

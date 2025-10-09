@@ -13,7 +13,6 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
-use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ResourceTemplate;
 use Laravel\Mcp\Server\ServerContext;
@@ -53,8 +52,7 @@ class ReadResource implements Method
             if ($resource instanceof ResourceTemplate) {
                 $variables = UriTemplateMatcher::extract($resource->uriTemplate(), $uri);
 
-
-                Container::getInstance()->bind(Request::class, function () use ($request, $variables) {
+                Container::getInstance()->bind(Request::class, function () use ($request, $variables): \Laravel\Mcp\Request {
                     $mcpRequest = $request->toRequest();
                     foreach ($variables as $key => $value) {
                         $mcpRequest->merge([$key => $value]);
