@@ -83,7 +83,13 @@ abstract class TestCase extends TestbenchTestCase
                 private string $desc,
                 private array $overrides,
             ) {
-                //
+                if ($this->overrides['uri'] ?? false) {
+                    $this->uri = $this->overrides['uri'];
+                }
+
+                if ($this->overrides['mimeType'] ?? false) {
+                    $this->mimeType = $this->overrides['mimeType'];
+                }
             }
 
             public function description(): string
@@ -94,16 +100,6 @@ abstract class TestCase extends TestbenchTestCase
             public function handle(): string
             {
                 return $this->contentValue;
-            }
-
-            public function uri(): string
-            {
-                return $this->overrides['uri'] ?? parent::uri();
-            }
-
-            public function mimeType(): string
-            {
-                return $this->overrides['mimeType'] ?? parent::mimeType();
             }
         };
     }
