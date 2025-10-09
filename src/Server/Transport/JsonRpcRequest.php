@@ -6,7 +6,6 @@ namespace Laravel\Mcp\Server\Transport;
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
-use Laravel\Mcp\Server\Resources\Uri;
 
 class JsonRpcRequest
 {
@@ -63,21 +62,6 @@ class JsonRpcRequest
 
     public function toRequest(): Request
     {
-        $pathVariables = [];
-
-        // We only add the path variables to the request if the method
-        // is 'resources/read' since this is the only method that
-        // could potentially have variables defined on its URI
-        if ($this->method === 'resources/read' && ($uriTemplate = $this->get('uriTemplate')) !== null && ($uri = $this->get('uri')) !== null) {
-            $pathVariables = Uri::pathVariables($uriTemplate, $uri);
-        }
-
-        return new Request(
-            [
-                ...($this->params['arguments'] ?? []),
-                ...$pathVariables,
-            ],
-            $this->sessionId
-        );
+        return new Request($this->params['arguments'] ?? [], $this->sessionId);
     }
 }

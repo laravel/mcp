@@ -8,11 +8,13 @@ use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
 use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Server\Resources\Uri;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
@@ -44,6 +46,22 @@ class ReadResource implements Method
 
                     if ($matches) {
                         $resource->setActualUri($request->get('uri'));
+
+                        // Add the path variables to the mcp request only if
+                        // the resource is a template since resources can
+                        // only have path variables if they are templates
+                        if (
+                            $resource->isTemplate()
+                            && ($pathVariables = Uri::pathVariables($resource->originalUri(), $resource->uri())) !== []
+                        ) {
+                            /** @var Request $request */
+                            $request = Container::getInstance()->get('mcp.request');
+
+                            $request->setArguments([
+                                ...$request->all(),
+                                ...$pathVariables,
+                            ]);
+                        }
                     }
 
                     return $matches;

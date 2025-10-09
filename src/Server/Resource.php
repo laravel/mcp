@@ -48,10 +48,10 @@ abstract class Resource extends Primitive
         return
             $this->actualUri !== ''
                 ? $this->actualUri
-                : $this->templateUri();
+                : $this->originalUri();
     }
 
-    public function templateUri(): string
+    public function originalUri(): string
     {
         return $this->uri !== ''
             ? $this->uri
@@ -89,7 +89,7 @@ abstract class Resource extends Primitive
 
     public function isTemplate(): bool
     {
-        return $this->isTemplate ?? count(Uri::pathRegex($this->uri())['variables']) > 0;
+        return $this->isTemplate ?? count(Uri::pathRegex($this->originalUri())['variables']) > 0;
     }
 
     public function getUriPath(): string
@@ -110,7 +110,7 @@ abstract class Resource extends Primitive
         $response = ['uri' => $this->uri()];
 
         if ($this->isTemplate()) {
-            $response['uriTemplate'] = $this->templateUri();
+            $response['uriTemplate'] = $this->originalUri();
         }
 
         return $response;
