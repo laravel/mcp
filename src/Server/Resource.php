@@ -89,7 +89,7 @@ abstract class Resource extends Primitive
 
     public function isTemplate(): bool
     {
-        return $this->isTemplate ?? $this->uri !== '' && count(Uri::pathRegex($this->uri())['variables']) > 0;
+        return $this->isTemplate ?? count(Uri::pathRegex($this->uri())['variables']) > 0;
     }
 
     public function getUriPath(): string
