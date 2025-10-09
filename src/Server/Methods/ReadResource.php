@@ -37,9 +37,17 @@ class ReadResource implements Method
             );
         }
 
-        $resource = $context->resources()
+        $resource = $context->resources(true)
             ->first(
-                fn (Resource $resource): bool => $resource->uri() === $request->get('uri'),
+                function (Resource $resource) use ($request): bool {
+                    $matches = $resource->match($request->get('uri'));
+
+                    if ($matches) {
+                        $resource->setActualUri($request->get('uri'));
+                    }
+
+                    return $matches;
+                },
                 fn () => throw new JsonRpcException(
                     "Resource [{$request->get('uri')}] not found.",
                     -32002,
