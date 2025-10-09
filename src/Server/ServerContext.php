@@ -45,13 +45,25 @@ class ServerContext
     /**
      * @return Collection<int, Resource>
      */
-    public function resources(): Collection
+    public function resources(bool $includeTemplates = false): Collection
     {
         return collect($this->resources)->map(
             fn (Resource|string $resourceClass) => is_string($resourceClass)
                 ? Container::getInstance()->make($resourceClass)
                 : $resourceClass
-        )->filter(fn (Resource $resource): bool => $resource->eligibleForRegistration());
+        )->filter(fn (Resource $resource): bool => ($includeTemplates || ! $resource->isTemplate()) && $resource->eligibleForRegistration());
+    }
+
+    /**
+     * @return Collection<int, Resource>
+     */
+    public function resourceTemplates(): Collection
+    {
+        return collect($this->resources)->map(
+            fn (Resource|string $resourceClass) => is_string($resourceClass)
+                ? Container::getInstance()->make($resourceClass)
+                : $resourceClass
+        )->filter(fn (Resource $resource): bool => $resource->isTemplate() && $resource->eligibleForRegistration());
     }
 
     /**
