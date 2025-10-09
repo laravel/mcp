@@ -26,6 +26,27 @@ it('returns a valid resource result', function (): void {
         ],
     ], $resourceResult);
 });
+
+it('returns a valid resource result from template', function (): void {
+    $resource = $this->makeResource(overrides: ['uri' => 'file://resource/{type}']);
+    $readResource = new ReadResource;
+    $context = $this->getServerContext([
+        'resources' => [
+            $resource,
+        ],
+    ]);
+    $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/read', params: ['uri' => 'file://resource/template']);
+    $resourceResult = $readResource->handle($jsonRpcRequest, $context);
+
+    $this->assertPartialMethodResult([
+        'contents' => [
+            [
+                'text' => 'resource-content',
+            ],
+        ],
+    ], $resourceResult);
+});
+
 it('returns a valid resource result for blob resources', function (): void {
     $resource = $this->makeBinaryResource(__DIR__.'/../../Fixtures/binary.png');
     $readResource = new ReadResource;
@@ -75,6 +96,27 @@ it('throws exception when resource is not found', function (): void {
         id: 1,
         method: 'resources/read',
         params: ['uri' => 'file://resources/non-existent']
+    );
+
+    $response = $readResource->handle($jsonRpcRequest, $context);
+});
+
+it('throws exception when resource template is not found', function (): void {
+    $this->expectException(JsonRpcException::class);
+    $this->expectExceptionMessage('Resource [file://resource/template/extra] not found.');
+
+    $resource = $this->makeResource(overrides: ['uri' => 'file://resource/{type}']);
+    $readResource = new ReadResource;
+    $context = $this->getServerContext([
+        'resources' => [
+            $resource,
+        ],
+    ]);
+
+    $jsonRpcRequest = new JsonRpcRequest(
+        id: 1,
+        method: 'resources/read',
+        params: ['uri' => 'file://resource/template/extra']
     );
 
     $response = $readResource->handle($jsonRpcRequest, $context);
