@@ -33,10 +33,6 @@ class Uri
     {
         $components = parse_url($uri);
 
-        if (! is_array($components)) {
-            throw new RuntimeException('Unable to parse URI: '.$uri);
-        }
-
         $path = rtrim(($components['host'] ?? '').($components['path'] ?? ''), '/');
 
         return $path === '' ? '/' : $path;
@@ -57,7 +53,7 @@ class Uri
         $useUtf8 = preg_match('//u', $path) !== false;
         $needsUtf8 = $utf8;
 
-        if (! $needsUtf8 && $useUtf8 && preg_match('/[\x80-\xFF]/', $path)) {
+        if (! $needsUtf8 && $useUtf8 && preg_match('/[\x80-\xFF]/', $path) !== false) {
             throw new LogicException('Cannot use UTF-8 uri patterns without the UTF-8 requirement.');
         }
 
