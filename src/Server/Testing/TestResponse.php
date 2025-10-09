@@ -168,7 +168,7 @@ class TestResponse
     public function assertUri(string $uri): static
     {
         if (! ($this->premitive instanceof Resource)) {
-            throw new LogicException('You can\'t assert the URI on primitive other than ['.Resource::class.'].');
+            throw new LogicException("You can't assert the URI on primitive other than [".Resource::class.'].');
         }
 
         Assert::assertEquals(

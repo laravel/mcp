@@ -118,7 +118,6 @@ it('may assert that resource is not found when using templates and not matching 
         ->assertHasErrors(["Resource [{$uri}] not found."]);
 });
 
-
 it('may assert that text is seen when providing arguments that are wrong', function (): void {
     $response = HotelR::resource(BookingResource::class, ['date' => now()->subDay()->toDateString()]);
 
