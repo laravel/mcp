@@ -14,11 +14,13 @@ use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\Methods\Initialize;
 use Laravel\Mcp\Server\Methods\ListPrompts;
 use Laravel\Mcp\Server\Methods\ListResources;
+use Laravel\Mcp\Server\Methods\ListResourceTemplates;
 use Laravel\Mcp\Server\Methods\ListTools;
 use Laravel\Mcp\Server\Methods\Ping;
 use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Server\ResourceTemplate;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Testing\PendingTestResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
@@ -77,6 +79,11 @@ abstract class Server
     protected array $resources = [];
 
     /**
+     * @var array<int, ResourceTemplate|class-string<ResourceTemplate>>
+     */
+    protected array $resourceTemplates = [];
+
+    /**
      * @var array<int, Prompt|class-string<Prompt>>
      */
     protected array $prompts = [];
@@ -92,6 +99,7 @@ abstract class Server
         'tools/list' => ListTools::class,
         'tools/call' => CallTool::class,
         'resources/list' => ListResources::class,
+        'resources/templates/list' => ListResourceTemplates::class,
         'resources/read' => ReadResource::class,
         'prompts/list' => ListPrompts::class,
         'prompts/get' => GetPrompt::class,
@@ -219,6 +227,7 @@ abstract class Server
             defaultPaginationLength: $this->defaultPaginationLength,
             tools: $this->tools,
             resources: $this->resources,
+            resourceTemplates: $this->resourceTemplates,
             prompts: $this->prompts,
         );
     }

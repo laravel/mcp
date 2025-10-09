@@ -13,6 +13,7 @@ it('clamps perPage to default and max values', function (): void {
         defaultPaginationLength: 10,
         tools: [],
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 

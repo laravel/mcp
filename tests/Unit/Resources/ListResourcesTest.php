@@ -72,6 +72,7 @@ it('returns empty list when the single tool is not eligible for registration', f
                 return false;
             }
         }],
+        resourceTemplates: [],
         prompts: [],
     );
 
@@ -119,6 +120,7 @@ it('returns empty list when the single prompt is not eligible for registration v
                 return $request->get('register_resources', true);
             }
         }],
+        resourceTemplates: [],
         prompts: [],
     );
 

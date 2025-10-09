@@ -41,6 +41,7 @@ it('returns a valid list tools response', function (): void {
         defaultPaginationLength: 5,
         tools: [SayHiTool::class],
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 
@@ -89,6 +90,7 @@ it('handles pagination correctly', function (): void {
         defaultPaginationLength: 10,
         tools: $toolClasses,
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 
@@ -148,6 +150,7 @@ it('uses default per page when not provided', function (): void {
         defaultPaginationLength: 7,
         tools: $toolClasses,
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 
@@ -182,6 +185,7 @@ it('uses requested per page when valid', function (): void {
         defaultPaginationLength: 10,
         tools: $toolClasses,
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 
@@ -216,6 +220,7 @@ it('caps per page at max pagination length', function (): void {
         defaultPaginationLength: 7,
         tools: $toolClasses,
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 
@@ -250,6 +255,7 @@ it('respects per page when bigger than default', function (): void {
         defaultPaginationLength: 5,
         tools: $toolClasses,
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 
@@ -292,6 +298,7 @@ it('returns empty list when the single tool is not eligible for registration', f
             }
         }],
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 
@@ -334,6 +341,7 @@ it('returns empty list when the single prompt is not eligible for registration v
             }
         }],
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 

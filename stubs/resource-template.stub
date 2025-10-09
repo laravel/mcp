@@ -1,0 +1,32 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravel\Mcp\Server\ResourceTemplate;
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
+
+class {{ class }} extends ResourceTemplate
+{
+    /**
+     * The resource template's URI template.
+     */
+    protected string $uriTemplate = 'file://resources/{{ classKebab }}/{id}';
+
+    /**
+     * The resource template's description.
+     */
+    protected string $description = <<<'MARKDOWN'
+        A description of what this resource template provides.
+    MARKDOWN;
+
+    /**
+     * Handle the resource request.
+     */
+    public function handle(Request $request): Response
+    {
+        //
+
+        return Response::text('The resource content.');
+    }
+}

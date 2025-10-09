@@ -29,6 +29,7 @@ it('returns a valid call tool response', function (): void {
         defaultPaginationLength: 10,
         tools: [SayHiTool::class],
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 
@@ -74,6 +75,7 @@ it('returns a valid call tool response that contains two messages', function ():
         defaultPaginationLength: 10,
         tools: [SayHiTwiceTool::class],
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 
@@ -123,6 +125,7 @@ it('returns a valid call tool response with validation error', function (): void
         defaultPaginationLength: 10,
         tools: [SayHiTool::class],
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 
@@ -166,6 +169,7 @@ it('may resolve dependencies out of the container', function (): void {
         defaultPaginationLength: 10,
         tools: [CurrentTimeTool::class],
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 

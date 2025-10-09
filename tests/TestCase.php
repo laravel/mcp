@@ -5,6 +5,7 @@ namespace Tests;
 use Laravel\Mcp\Server\Contracts\Resources\Content;
 use Laravel\Mcp\Server\McpServiceProvider;
 use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Server\ResourceTemplate;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Orchestra\Testbench\TestCase as TestbenchTestCase;
@@ -32,6 +33,7 @@ abstract class TestCase extends TestbenchTestCase
             'defaultPaginationLength' => 3,
             'tools' => [],
             'resources' => [],
+            'resourceTemplates' => [],
             'prompts' => [],
         ], $properties);
 
@@ -117,5 +119,42 @@ abstract class TestCase extends TestbenchTestCase
         $overrides['mimeType'] ??= mime_content_type($filePath) ?: 'application/octet-stream';
 
         return $this->makeResource($content, $description, $overrides);
+    }
+
+    protected function makeResourceTemplate(
+        string $uriTemplate = 'file://resources/test/{id}',
+        string $description = 'A test resource template',
+        array $overrides = [],
+    ): ResourceTemplate {
+        return new class($uriTemplate, $description, $overrides) extends ResourceTemplate
+        {
+            public function __construct(
+                private string $uriTemplateValue,
+                private string $desc,
+                private array $overrides,
+            ) {
+                //
+            }
+
+            public function description(): string
+            {
+                return $this->desc;
+            }
+
+            public function handle(): string
+            {
+                return 'template-content';
+            }
+
+            public function uriTemplate(): string
+            {
+                return $this->overrides['uriTemplate'] ?? $this->uriTemplateValue;
+            }
+
+            public function mimeType(): string
+            {
+                return $this->overrides['mimeType'] ?? parent::mimeType();
+            }
+        };
     }
 }

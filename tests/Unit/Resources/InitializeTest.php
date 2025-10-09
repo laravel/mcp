@@ -24,6 +24,7 @@ it('returns a valid initialize response', function (): void {
         defaultPaginationLength: 10,
         tools: [],
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 
@@ -68,6 +69,7 @@ it('throws exception for unsupported protocol version', function (): void {
         defaultPaginationLength: 10,
         tools: [],
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 
@@ -116,6 +118,7 @@ it('uses requested protocol version if supported', function (): void {
         defaultPaginationLength: 10,
         tools: [],
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 
