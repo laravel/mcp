@@ -13,6 +13,7 @@ use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use LogicException;
 use PHPUnit\Framework\Assert;
 use RuntimeException;
 
@@ -58,6 +59,7 @@ class TestResponse
         $seeable = collect([
             ...$this->content(),
             ...$this->errors(),
+            ...$this->responseUri(),
         ])->filter()->unique()->values()->all();
 
         foreach (is_array($text) ? $text : [$text] as $segment) {
@@ -85,6 +87,7 @@ class TestResponse
         $seeable = collect([
             ...$this->content(),
             ...$this->errors(),
+            ...$this->responseUri(),
         ])->filter()->unique()->values()->all();
 
         foreach (is_array($text) ? $text : [$text] as $segment) {
@@ -157,6 +160,21 @@ class TestResponse
             $description,
             $this->premitive->description(),
             "The expected description [{$description}] does not match the actual description [{$this->premitive->description()}].",
+        );
+
+        return $this;
+    }
+
+    public function assertUri(string $uri): static
+    {
+        if (! ($this->premitive instanceof Resource)) {
+            throw new LogicException('You can\'t assert the URI on primitive other than ['.Resource::class.'].');
+        }
+
+        Assert::assertEquals(
+            $uri,
+            $this->premitive->uri(),
+            "The expected uri [{$uri}] does not match the actual uri [{$this->premitive->uri()}].",
         );
 
         return $this;
@@ -265,6 +283,21 @@ class TestResponse
             // @phpstan-ignore-next-line
             $this->premitive instanceof Resource => collect($this->response->toArray()['result']['contents'] ?? [])
                 ->map(fn (array $item): string => $item['text'] ?? $item['blob'] ?? ''),
+            default => throw new RuntimeException('This primitive type is not supported.'),
+        })->filter()->unique()->values()->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function responseUri(): array
+    {
+        return (match (true) {
+            $this->premitive instanceof Tool,
+            $this->premitive instanceof Prompt => collect(),
+            // @phpstan-ignore-next-line
+            $this->premitive instanceof Resource => collect($this->response->toArray()['result']['contents'] ?? [])
+                ->map(fn (array $item): string => $item['uri'] ?? ''),
             default => throw new RuntimeException('This primitive type is not supported.'),
         })->filter()->unique()->values()->all();
     }
