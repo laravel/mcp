@@ -25,6 +25,7 @@ it('returns a valid list prompts response', function (): void {
         defaultPaginationLength: 5,
         tools: [],
         resources: [],
+        resourceTemplates: [],
         prompts: [ReviewMyCodePrompt::class],
     );
 
@@ -67,6 +68,7 @@ it('returns empty list when no prompts registered', function (): void {
         defaultPaginationLength: 5,
         tools: [],
         resources: [],
+        resourceTemplates: [],
         prompts: [],
     );
 
@@ -100,6 +102,7 @@ it('returns empty list when the single prompt is not eligible for registration',
         defaultPaginationLength: 5,
         tools: [],
         resources: [],
+        resourceTemplates: [],
         prompts: [new class extends ReviewMyCodePrompt
         {
             public function shouldRegister(): bool
@@ -141,6 +144,7 @@ it('returns empty list when the single prompt is not eligible for registration v
         defaultPaginationLength: 5,
         tools: [],
         resources: [],
+        resourceTemplates: [],
         prompts: [new class extends ReviewMyCodePrompt
         {
             public function shouldRegister(Request $request): bool
