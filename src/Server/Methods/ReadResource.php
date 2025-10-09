@@ -54,13 +54,17 @@ class ReadResource implements Method
                             $resource->isTemplate()
                             && ($pathVariables = Uri::pathVariables($resource->originalUri(), $resource->uri())) !== []
                         ) {
-                            /** @var Request $request */
-                            $request = Container::getInstance()->get('mcp.request');
+                            $container = Container::getInstance();
 
-                            $request->setArguments([
-                                ...$request->all(),
-                                ...$pathVariables,
-                            ]);
+                            if ($container->has('mcp.request')) {
+                                /** @var Request $request */
+                                $request = $container->make('mcp.request');
+
+                                $request->setArguments([
+                                    ...$request->all(),
+                                    ...$pathVariables,
+                                ]);
+                            }
                         }
                     }
 
