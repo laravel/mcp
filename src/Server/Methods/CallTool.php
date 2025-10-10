@@ -68,6 +68,10 @@ class CallTool implements Errable, Method
         return fn (Collection $responses): array => [
             'content' => $responses->map(fn (Response $response): array => $response->content()->toTool($tool))->all(),
             'isError' => $responses->contains(fn (Response $response): bool => $response->isError()),
+            'structuredContent' => $responses
+                ->map(fn (Response $response): mixed => $response->structuredContent())
+                ->filter(fn (mixed $content): bool => ! is_null($content))
+                ->values(),
         ];
     }
 }
