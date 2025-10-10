@@ -71,7 +71,8 @@ class CallTool implements Errable, Method
             'structuredContent' => $responses
                 ->map(fn (Response $response): mixed => $response->structuredContent())
                 ->filter(fn (mixed $content): bool => ! is_null($content))
-                ->values(),
+                ->values()
+                ->all(),
         ];
     }
 }
