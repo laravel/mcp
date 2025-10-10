@@ -23,6 +23,7 @@ class Response
         protected Content $content,
         protected Role $role = Role::USER,
         protected bool $isError = false,
+        protected mixed $structuredContent = null,
     ) {
         //
     }
@@ -86,7 +87,17 @@ class Response
 
     public function asAssistant(): static
     {
-        return new static($this->content, Role::ASSISTANT, $this->isError);
+        return new static($this->content, Role::ASSISTANT, $this->isError, $this->structuredContent);
+    }
+
+    public function withStructuredContent(mixed $content): static
+    {
+        return new static($this->content, $this->role, $this->isError, $content);
+    }
+
+    public function structuredContent(): mixed
+    {
+        return $this->structuredContent;
     }
 
     public function isNotification(): bool

@@ -50,6 +50,7 @@ it('returns a valid call tool response', function (): void {
                 ],
             ],
             'isError' => false,
+            'structuredContent' => [],
         ]);
 });
 
@@ -99,6 +100,7 @@ it('returns a valid call tool response that contains two messages', function ():
                 ],
             ],
             'isError' => false,
+            'structuredContent' => [],
         ]);
 });
 
@@ -141,6 +143,7 @@ it('returns a valid call tool response with validation error', function (): void
                 ],
             ],
             'isError' => true,
+            'structuredContent' => [],
         ]);
 });
 

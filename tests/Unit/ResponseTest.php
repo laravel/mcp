@@ -122,3 +122,117 @@ it('handles empty array in json response', function (): void {
     $content = $response->content();
     expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
 });
+
+it('creates a response with structured content', function (): void {
+    $structuredData = ['type' => 'user_profile', 'data' => ['name' => 'John', 'age' => 30]];
+    $response = Response::text('User profile data')
+        ->withStructuredContent($structuredData);
+
+    expect($response->content())->toBeInstanceOf(Text::class);
+    expect($response->structuredContent())->toBe($structuredData);
+    expect($response->isNotification())->toBeFalse();
+    expect($response->isError())->toBeFalse();
+    expect($response->role())->toBe(Role::USER);
+});
+
+it('preserves structured content when converting to assistant role', function (): void {
+    $structuredData = ['type' => 'analysis', 'results' => ['score' => 95]];
+    $response = Response::text('Analysis complete')
+        ->withStructuredContent($structuredData)
+        ->asAssistant();
+
+    expect($response->content())->toBeInstanceOf(Text::class);
+    expect($response->structuredContent())->toBe($structuredData);
+    expect($response->role())->toBe(Role::ASSISTANT);
+    expect($response->isError())->toBeFalse();
+});
+
+it('preserves structured content in error responses', function (): void {
+    $structuredData = ['type' => 'error_details', 'code' => 'VALIDATION_FAILED'];
+    $response = Response::error('Validation failed')
+        ->withStructuredContent($structuredData);
+
+    expect($response->content())->toBeInstanceOf(Text::class);
+    expect($response->structuredContent())->toBe($structuredData);
+    expect($response->isError())->toBeTrue();
+    expect($response->role())->toBe(Role::USER);
+});
+
+it('handles null structured content', function (): void {
+    $response = Response::text('Simple message')
+        ->withStructuredContent(null);
+
+    expect($response->content())->toBeInstanceOf(Text::class);
+    expect($response->structuredContent())->toBeNull();
+    expect($response->isNotification())->toBeFalse();
+    expect($response->isError())->toBeFalse();
+});
+
+it('handles complex structured content with nested arrays', function (): void {
+    $structuredData = [
+        'type' => 'search_results',
+        'query' => 'Laravel MCP',
+        'results' => [
+            ['title' => 'Laravel MCP Documentation', 'url' => 'https://example.com/docs'],
+            ['title' => 'Laravel MCP GitHub', 'url' => 'https://github.com/example/laravel-mcp'],
+        ],
+        'metadata' => [
+            'total' => 2,
+            'page' => 1,
+            'per_page' => 10,
+        ],
+    ];
+    $response = Response::text('Search completed')
+        ->withStructuredContent($structuredData);
+
+    expect($response->content())->toBeInstanceOf(Text::class);
+    expect($response->structuredContent())->toBe($structuredData);
+    expect($response->structuredContent()['type'])->toBe('search_results');
+    expect($response->structuredContent()['results'])->toHaveCount(2);
+});
+
+it('handles structured content with different data types', function (): void {
+    $structuredData = [
+        'string' => 'test',
+        'integer' => 42,
+        'float' => 3.14,
+        'boolean' => true,
+        'array' => [1, 2, 3],
+        'object' => (object) ['key' => 'value'],
+    ];
+    $response = Response::text('Mixed data types')
+        ->withStructuredContent($structuredData);
+
+    expect($response->content())->toBeInstanceOf(Text::class);
+    expect($response->structuredContent())->toBe($structuredData);
+    expect($response->structuredContent()['string'])->toBe('test');
+    expect($response->structuredContent()['integer'])->toBe(42);
+    expect($response->structuredContent()['float'])->toBe(3.14);
+    expect($response->structuredContent()['boolean'])->toBeTrue();
+    expect($response->structuredContent()['array'])->toBe([1, 2, 3]);
+    expect($response->structuredContent()['object'])->toBeInstanceOf(stdClass::class);
+});
+
+it('can chain withStructuredContent with other methods', function (): void {
+    $structuredData = ['type' => 'chained_response'];
+    $response = Response::text('Chained response')
+        ->withStructuredContent($structuredData)
+        ->asAssistant();
+
+    expect($response->content())->toBeInstanceOf(Text::class);
+    expect($response->structuredContent())->toBe($structuredData);
+    expect($response->role())->toBe(Role::ASSISTANT);
+    expect($response->isError())->toBeFalse();
+});
+
+it('overwrites structured content when called multiple times', function (): void {
+    $firstData = ['type' => 'first'];
+    $secondData = ['type' => 'second', 'updated' => true];
+
+    $response = Response::text('Multiple structured content calls')
+        ->withStructuredContent($firstData)
+        ->withStructuredContent($secondData);
+
+    expect($response->structuredContent())->toBe($secondData);
+    expect($response->structuredContent())->not->toBe($firstData);
+});
