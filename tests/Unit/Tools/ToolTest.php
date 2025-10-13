@@ -62,6 +62,18 @@ it('can be open world', function (): void {
     expect($tool->annotations()['openWorldHint'])->toBeTrue();
 });
 
+it('returns empty array when meta not defined', function (): void {
+    $tool = new TestTool;
+    expect($tool->meta())->toEqual([]);
+});
+
+it('returns meta when defined', function (): void {
+    $tool = new ToolWithMeta;
+    expect($tool->meta())->toEqual([
+        'foo' => 'bar',
+    ]);
+});
+
 it('can have multiple annotations', function (): void {
     $tool = new KitchenSinkTool;
     expect($tool->annotations())->toEqual([
@@ -122,4 +134,14 @@ class AnotherComplexToolName extends TestTool {}
 class CustomToolName extends TestTool
 {
     protected string $name = 'my_custom_tool_name';
+}
+
+class ToolWithMeta extends TestTool
+{
+    public function meta(): array
+    {
+        return [
+            'foo' => 'bar',
+        ];
+    }
 }

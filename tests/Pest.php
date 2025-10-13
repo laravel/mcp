@@ -111,6 +111,7 @@ function expectedListToolsResponse(): array
                     ],
                     'annotations' => [],
                     'title' => 'Say Hi Tool',
+                    '_meta' => [],
                 ],
                 [
                     'name' => 'streaming-tool',
@@ -127,6 +128,7 @@ function expectedListToolsResponse(): array
                     ],
                     'annotations' => [],
                     'title' => 'Streaming Tool',
+                    '_meta' => [],
                 ],
             ],
         ],

@@ -20,6 +20,14 @@ abstract class Tool extends Primitive
     }
 
     /**
+     * @return array<string, string>
+     */
+    public function meta(): array
+    {
+        return [];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function annotations(): array
@@ -51,7 +59,8 @@ abstract class Tool extends Primitive
      *     title?: string|null,
      *     description?: string|null,
      *     inputSchema?: array<string, mixed>,
-     *     annotations?: array<string, mixed>|object
+     *     annotations?: array<string, mixed>|object,
+     *     _meta?: array<string, string>
      * }
      */
     public function toArray(): array
@@ -66,6 +75,7 @@ abstract class Tool extends Primitive
                 fn (JsonSchema $schema): array => $this->schema($schema),
             )->toArray(),
             'annotations' => $annotations === [] ? (object) [] : $annotations,
+            '_meta' => $this->meta(),
         ];
     }
 }
