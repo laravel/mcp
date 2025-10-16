@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server;
 
 use Illuminate\Container\Container;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Transport;
+use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController;
 use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
 use Laravel\Mcp\Server\Middleware\ReorderJsonAccept;
 use Laravel\Mcp\Server\Transport\HttpTransport;
@@ -102,30 +102,7 @@ class Registrar
             'grant_types_supported' => ['authorization_code', 'refresh_token'],
         ]))->name('mcp.oauth.authorization-server');
 
-        Router::post($oauthPrefix.'/register', function (Request $request) {
-            $clients = Container::getInstance()->make(
-                "Laravel\Passport\ClientRepository"
-            );
-
-            $payload = $request->json()->all();
-
-            $client = $clients->createAuthorizationCodeGrantClient(
-                name: $payload['client_name'],
-                redirectUris: $payload['redirect_uris'],
-                confidential: false,
-                user: null,
-                enableDeviceFlow: false,
-            );
-
-            return response()->json([
-                'client_id' => $client->id,
-                'grant_types' => $client->grantTypes,
-                'response_types' => ['code'],
-                'redirect_uris' => $client->redirectUris,
-                'scope' => 'mcp:use',
-                'token_endpoint_auth_method' => 'none',
-            ]);
-        });
+        Router::post($oauthPrefix.'/register', OAuthRegisterController::class);
     }
 
     /**
