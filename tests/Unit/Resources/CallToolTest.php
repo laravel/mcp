@@ -5,6 +5,7 @@ use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\CurrentTimeTool;
+use Tests\Fixtures\ReturnStructuredContentTool;
 use Tests\Fixtures\SayHiTool;
 use Tests\Fixtures\SayHiTwiceTool;
 
@@ -50,7 +51,6 @@ it('returns a valid call tool response', function (): void {
                 ],
             ],
             'isError' => false,
-            'structuredContent' => [],
         ]);
 });
 
@@ -100,7 +100,53 @@ it('returns a valid call tool response that contains two messages', function ():
                 ],
             ],
             'isError' => false,
-            'structuredContent' => [],
+        ]);
+});
+
+it('returns a valid call tool response that merges structured content', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'return-structured-content-tool',
+            'arguments' => ['name' => 'John Doe', 'age' => 30],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [ReturnStructuredContentTool::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $method = new CallTool;
+
+    $this->instance('mcp.request', $request->toRequest());
+    $responses = $method->handle($request, $context);
+
+    [$response] = iterator_to_array($responses);
+
+    $payload = $response->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'content' => json_encode([
+                'name' => 'John Doe',
+                'age' => 30,
+            ]),
+            'isError' => false,
+            'structuredContent' => [
+                'name' => 'John Doe',
+                'age' => 30,
+            ],
         ]);
 });
 
@@ -143,7 +189,6 @@ it('returns a valid call tool response with validation error', function (): void
                 ],
             ],
             'isError' => true,
-            'structuredContent' => [],
         ]);
 });
 

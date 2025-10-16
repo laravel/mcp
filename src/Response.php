@@ -11,6 +11,7 @@ use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Notification;
+use Laravel\Mcp\Server\Content\StructuredContent;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
 
@@ -23,7 +24,6 @@ class Response
         protected Content $content,
         protected Role $role = Role::USER,
         protected bool $isError = false,
-        protected mixed $structuredContent = null,
     ) {
         //
     }
@@ -59,6 +59,16 @@ class Response
         return new static(new Blob($content));
     }
 
+    /**
+     * Return structured content. Note that multiple structured content responses will be merged into a single object.
+     *
+     * @param  array<string, mixed>|object  $content  Must be an associative array or object.
+     */
+    public static function structured(array|object $content): static
+    {
+        return new static(new StructuredContent($content));
+    }
+
     public static function error(string $text): static
     {
         return new static(new Text($text), isError: true);
@@ -87,17 +97,7 @@ class Response
 
     public function asAssistant(): static
     {
-        return new static($this->content, Role::ASSISTANT, $this->isError, $this->structuredContent);
-    }
-
-    public function withStructuredContent(mixed $content): static
-    {
-        return new static($this->content, $this->role, $this->isError, $content);
-    }
-
-    public function structuredContent(): mixed
-    {
-        return $this->structuredContent;
+        return new static($this->content, Role::ASSISTANT, $this->isError);
     }
 
     public function isNotification(): bool

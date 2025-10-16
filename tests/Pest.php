@@ -238,7 +238,6 @@ function expectedCallToolResponse(): array
                 'text' => 'Hello, John Doe!',
             ]],
             'isError' => false,
-            'structuredContent' => [],
         ],
     ];
 }
@@ -294,7 +293,6 @@ function expectedStreamingToolResponse(int $count = 2): array
         'result' => [
             'content' => [['type' => 'text', 'text' => "Finished streaming {$count} messages."]],
             'isError' => false,
-            'structuredContent' => [],
         ],
     ];
 
