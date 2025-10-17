@@ -78,14 +78,22 @@ class CallTool implements Errable, Method
                 ?->map(fn (Response $response): array => $response->content()->toTool($tool))
                 ->collapse();
 
+            if ($structuredContent?->isNotEmpty()) {
+                return [
+                    'content' => [
+                        [
+                            'type' => 'text',
+                            'text' => $structuredContent->toJson(),
+                        ],
+                    ],
+                    'isError' => $responses->contains(fn (Response $response): bool => $response->isError()),
+                    'structuredContent' => $structuredContent->all(),
+                ];
+            }
+
             return [
-                'content' => $structuredContent?->isNotEmpty()
-                    ? $structuredContent->toJson()
-                    : $content?->all(),
+                'content' => $content?->all(),
                 'isError' => $responses->contains(fn (Response $response): bool => $response->isError()),
-                ...$structuredContent?->isNotEmpty()
-                    ? ['structuredContent' => $structuredContent->all()]
-                    : [],
             ];
         };
     }

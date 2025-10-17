@@ -138,10 +138,15 @@ it('returns a valid call tool response that merges structured content', function
 
     expect($payload['id'])->toEqual(1)
         ->and($payload['result'])->toEqual([
-            'content' => json_encode([
-                'name' => 'John Doe',
-                'age' => 30,
-            ]),
+            'content' => [
+                [
+                    'type' => 'text',
+                    'text' => json_encode([
+                        'name' => 'John Doe',
+                        'age' => 30,
+                    ]),
+                ],
+            ],
             'isError' => false,
             'structuredContent' => [
                 'name' => 'John Doe',
