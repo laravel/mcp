@@ -63,7 +63,7 @@ abstract class Tool extends Primitive
             'title' => $this->title(),
             'description' => $this->description(),
             'inputSchema' => JsonSchema::object(
-                fn (JsonSchema $schema): array => $this->schema($schema),
+                $this->schema(...),
             )->toArray(),
             'annotations' => $annotations === [] ? (object) [] : $annotations,
         ];
