@@ -144,7 +144,7 @@ abstract class Server
     {
         $this->boot();
 
-        $this->transport->onReceive(fn (string $message) => $this->handle($message));
+        $this->transport->onReceive($this->handle(...));
     }
 
     protected function boot(): void
