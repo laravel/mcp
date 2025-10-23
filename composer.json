@@ -35,7 +35,7 @@
         "orchestra/testbench": "^8.36.0|^9.15.0|^10.6.0",
         "pestphp/pest": "^2.36.0|^3.8.4|^4.1.0",
         "phpstan/phpstan": "^2.1.27",
-        "rector/rector": "^2.1.7"
+        "rector/rector": "^2.2.4"
     },
     "autoload": {
         "psr-4": {
