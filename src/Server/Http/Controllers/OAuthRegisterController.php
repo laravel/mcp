@@ -45,7 +45,7 @@ class OAuthRegisterController
         );
 
         return response()->json([
-            'client_id' => $client->id,
+            'client_id' => (string) $client->id,
             'grant_types' => $client->grantTypes,
             'response_types' => ['code'],
             'redirect_uris' => $client->redirectUris,
