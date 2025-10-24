@@ -68,6 +68,7 @@ it('returns a valid list tools response', function (): void {
                     ],
                     'annotations' => (object) [],
                     'title' => 'Say Hi Tool',
+                    '_meta' => [],
                 ],
             ],
         ]);
