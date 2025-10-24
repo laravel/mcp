@@ -197,3 +197,75 @@ it('handles oauth registration endpoint', function (): void {
         'token_endpoint_auth_method' => 'none',
     ]);
 });
+
+it('handles oauth registration with allowed domains', function (): void {
+    if (! class_exists('Laravel\Passport\ClientRepository')) {
+        // Create a mock ClientRepository class for testing
+        eval('
+            namespace Laravel\Passport;
+            class ClientRepository {
+                public function createAuthorizationCodeGrantClient($name, $redirectUris, $confidential, $user, $enableDeviceFlow) {
+                    return (object) [
+                        "id" => "test-client-id",
+                        "grantTypes" => ["authorization_code"],
+                        "redirectUris" => $redirectUris,
+                    ];
+                }
+            }
+        ');
+    }
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.redirect_domains', ['http://localhost:3000/']);
+
+    $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ]);
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'client_id' => 'test-client-id',
+        'grant_types' => ['authorization_code'],
+        'response_types' => ['code'],
+        'redirect_uris' => ['http://localhost:3000/callback'],
+        'scope' => 'mcp:use',
+        'token_endpoint_auth_method' => 'none',
+    ]);
+});
+
+it('handles oauth registration with incorrect redirect domain', function (): void {
+    if (! class_exists('Laravel\Passport\ClientRepository')) {
+        // Create a mock ClientRepository class for testing
+        eval('
+            namespace Laravel\Passport;
+            class ClientRepository {
+                public function createAuthorizationCodeGrantClient($name, $redirectUris, $confidential, $user, $enableDeviceFlow) {
+                    return (object) [
+                        "id" => "test-client-id",
+                        "grantTypes" => ["authorization_code"],
+                        "redirectUris" => $redirectUris,
+                    ];
+                }
+            }
+        ');
+    }
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.redirect_domains', ['http://allowed-domain.com/']);
+
+    $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['http://not-allowed.com/callback'],
+    ]);
+
+    $response->assertStatus(422);
+});

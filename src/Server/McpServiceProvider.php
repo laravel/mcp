@@ -19,6 +19,8 @@ class McpServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(Registrar::class, fn (): Registrar => new Registrar);
+
+        $this->mergeConfigFrom(__DIR__.'/../../config/mcp.php', 'mcp');
     }
 
     public function boot(): void
@@ -48,6 +50,10 @@ class McpServiceProvider extends ServiceProvider
             __DIR__.'/../../stubs/server.stub' => base_path('stubs/server.stub'),
             __DIR__.'/../../stubs/tool.stub' => base_path('stubs/tool.stub'),
         ], 'mcp-stubs');
+
+        $this->publishes([
+            __DIR__.'/../../config/mcp.php' => config_path('mcp.php'),
+        ], 'mcp-config');
     }
 
     protected function registerRoutes(): void
