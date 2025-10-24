@@ -19,7 +19,7 @@ class ReorderJsonAccept
     {
         $accept = $request->header('Accept');
         if (is_string($accept) && str_contains($accept, ',')) {
-            $accept = array_map('trim', explode(',', $accept));
+            $accept = array_map(trim(...), explode(',', $accept));
         }
 
         if (! is_array($accept)) {
