@@ -57,10 +57,11 @@ class OAuthRegisterController
     /**
      * Get the allowed redirect domains.
      *
-     * @return array<string>
+     * @return array<int, string>
      */
     protected function allowedDomains(): array
     {
+        /** @var array<int, string> */
         $allowedDomains = config('mcp.redirect_domains', []);
 
         return collect($allowedDomains)
