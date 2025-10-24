@@ -22,7 +22,7 @@ class OAuthRegisterController
         $validated = $request->validate([
             'redirect_uris' => ['required', 'array', 'min:1'],
             'redirect_uris.*' => ['required', 'url', function (string $attribute, $value, $fail): void {
-                if (in_array('*', config('mcp.redirect_domains', []))) {
+                if (in_array('*', config('mcp.redirect_domains', []), true)) {
                     return;
                 }
 
