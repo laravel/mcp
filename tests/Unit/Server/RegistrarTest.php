@@ -218,8 +218,7 @@ it('handles oauth registration with allowed domains', function (): void {
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    config()->set('mcp.allow_all_redirect_domains', false);
-    config()->set('mcp.allowed_redirect_domains', ['http://localhost:3000/']);
+    config()->set('mcp.redirect_domains', ['http://localhost:3000/']);
 
     $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
 
@@ -259,8 +258,7 @@ it('handles oauth registration with incorrect redirect domain', function (): voi
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    config()->set('mcp.allow_all_redirect_domains', false);
-    config()->set('mcp.allowed_redirect_domains', ['http://allowed-domain.com/']);
+    config()->set('mcp.redirect_domains', ['http://allowed-domain.com/']);
 
     $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
 

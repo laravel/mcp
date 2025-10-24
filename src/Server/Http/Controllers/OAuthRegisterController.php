@@ -22,12 +22,12 @@ class OAuthRegisterController
         $validated = $request->validate([
             'redirect_uris' => ['required', 'array', 'min:1'],
             'redirect_uris.*' => ['required', 'url', function (string $attribute, $value, $fail): void {
-                if (config('mcp.allow_all_redirect_domains')) {
+                if (in_array('*', config('mcp.redirect_domains', []))) {
                     return;
                 }
 
                 if (! Str::startsWith($value, $this->allowedDomains())) {
-                    $fail($attribute.' must be an allowed domain.');
+                    $fail($attribute.' is not a permitted redirect domain.');
                 }
             }],
         ]);
@@ -55,19 +55,19 @@ class OAuthRegisterController
     }
 
     /**
+     * Get the allowed redirect domains.
+     *
      * @return array<string>
      */
     protected function allowedDomains(): array
     {
-        /** @var array<string> $allowedDomains */
-        $allowedDomains = config('mcp.allowed_redirect_domains', []);
+        $allowedDomains = config('mcp.redirect_domains', []);
 
-        // Check if each domain ends in a slash, if not add it
         return collect($allowedDomains)
             ->map(fn (string $domain): string => Str::endsWith($domain, '/')
                 ? $domain
                 : "{$domain}/"
             )
-            ->toArray();
+            ->all();
     }
 }
