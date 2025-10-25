@@ -11,6 +11,7 @@ use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Notification;
+use Laravel\Mcp\Server\Content\StructuredContent;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
 
@@ -56,6 +57,16 @@ class Response
     public static function blob(string $content): static
     {
         return new static(new Blob($content));
+    }
+
+    /**
+     * Return structured content. Note that multiple structured content responses will be merged into a single object.
+     *
+     * @param  array<string, mixed>|object  $content  Must be an associative array or object.
+     */
+    public static function structured(array|object $content): static
+    {
+        return new static(new StructuredContent($content));
     }
 
     public static function error(string $text): static
