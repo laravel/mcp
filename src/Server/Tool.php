@@ -58,7 +58,7 @@ abstract class Tool extends Primitive
     {
         $annotations = $this->annotations();
 
-        return [
+        return array_filter([
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
@@ -66,6 +66,7 @@ abstract class Tool extends Primitive
                 $this->schema(...),
             )->toArray(),
             'annotations' => $annotations === [] ? (object) [] : $annotations,
-        ];
+            '_meta' => filled($this->meta) ? $this->meta : null,
+        ], fn ($value) => $value !== null);
     }
 }
