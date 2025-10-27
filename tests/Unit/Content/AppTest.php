@@ -32,7 +32,7 @@ it('encodes content to resource payload with metadata', function (): void {
 });
 
 it('it can configure meta information for the app', function (): void {
-    $text = new App('Hello world')->prefersBorder();
+    $text = (new App('Hello world'))->prefersBorder();
     $resource = new class extends Resource
     {
         protected string $uri = 'file://readme.txt';
