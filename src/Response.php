@@ -52,7 +52,7 @@ class Response
         return new static(new Text($text));
     }
 
-    public static function app(string|View $view, ?callable $config): static
+    public static function app(string|View $view, ?callable $config = null): static
     {
         $view = $view instanceof View ? $view->render() : $view;
 
