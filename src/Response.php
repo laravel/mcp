@@ -123,7 +123,7 @@ class Response
 
     public function meta(?array $meta = null): array|self
     {
-        if (empty($meta)) {
+        if (blank($meta)) {
             return $this->meta;
         }
 
@@ -134,7 +134,7 @@ class Response
 
     public function structuredContent(?array $structuredContent = null): array|self
     {
-        if (empty($structuredContent)) {
+        if (blank($structuredContent)) {
             return $this->structured_content;
         }
 

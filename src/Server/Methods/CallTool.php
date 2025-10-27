@@ -70,6 +70,6 @@ class CallTool implements Errable, Method
             'content' => $responses->map(fn (Response $response): array => $response->content()->toTool($tool))->all(),
             'structuredContent' => $responses->flatMap(fn (Response $response): array => $response->structuredContent()),
             'isError' => $responses->contains(fn (Response $response): bool => $response->isError()),
-        ], fn ($value): bool => filled($value));
+        ], filled(...));
     }
 }

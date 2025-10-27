@@ -36,7 +36,7 @@ class App implements Content
 
     public function meta(?array $meta = null): self|array
     {
-        if (empty($this->meta)) {
+        if (blank($meta)) {
             return $this->meta;
         }
 
@@ -85,7 +85,7 @@ class App implements Content
             'title' => $resource->title(),
             'mimeType' => $resource->mimeType(),
             '_meta' => $this->meta,
-        ], fn ($value) => filled($value));
+        ], filled(...));
     }
 
     public function __toString(): string
