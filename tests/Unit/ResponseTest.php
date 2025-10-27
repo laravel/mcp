@@ -136,3 +136,31 @@ it('handles empty array in json response', function (): void {
     $content = $response->content();
     expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
 });
+
+it('handles adding meta to a text response', function (): void {
+    $response = Response::text('Hello world')
+        ->meta(['key1' => 'value1', 'key2' => 2]);
+
+    expect($response->content())->toBeInstanceOf(Text::class);
+    expect($response->isNotification())->toBeFalse();
+    expect($response->isError())->toBeFalse();
+    expect($response->role())->toBe(Role::USER);
+    expect($response->meta())->toEqual(['key1' => 'value1', 'key2' => 2]);
+});
+
+it('handles adding structured content to a text response', function (): void {
+    $response = Response::text('Hello world')
+        ->structuredContent([
+            'section1' => ['item1', 'item2'],
+            'section2' => ['item3', 'item4'],
+        ]);
+
+    expect($response->content())->toBeInstanceOf(Text::class);
+    expect($response->isNotification())->toBeFalse();
+    expect($response->isError())->toBeFalse();
+    expect($response->role())->toBe(Role::USER);
+    expect($response->structuredContent())->toEqual([
+        'section1' => ['item1', 'item2'],
+        'section2' => ['item3', 'item4'],
+    ]);
+});
