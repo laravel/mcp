@@ -66,7 +66,7 @@ abstract class Tool extends Primitive
                 $this->schema(...),
             )->toArray(),
             'annotations' => $annotations === [] ? (object) [] : $annotations,
-            '_meta' => filled($this->meta) ? $this->meta : null,
+            '_meta' => filled($this->meta()) ? $this->meta() : null,
         ], fn ($value) => $value !== null);
     }
 }
