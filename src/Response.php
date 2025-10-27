@@ -19,6 +19,10 @@ class Response
     use Conditionable;
     use Macroable;
 
+    protected array $meta = [];
+
+    protected array $structured_content = [];
+
     protected function __construct(
         protected Content $content,
         protected Role $role = Role::USER,
@@ -102,5 +106,27 @@ class Response
     public function role(): Role
     {
         return $this->role;
+    }
+
+    public function meta(?array $meta = null): array|self
+    {
+        if (empty($meta)) {
+            return $this->meta;
+        }
+
+        $this->meta = array_merge($this->meta, $meta ?? []);
+
+        return $this;
+    }
+
+    public function structuredContent(?array $structuredContent = null): array|self
+    {
+        if (empty($structuredContent)) {
+            return $this->structured_content;
+        }
+
+        $this->structured_content = array_merge($this->structured_content, $structuredContent ?? []);
+
+        return $this;
     }
 }
