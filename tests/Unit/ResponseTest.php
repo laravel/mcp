@@ -30,7 +30,7 @@ it('creates a text response', function (): void {
 });
 
 it('creates an app response', function (): void {
-    $response = Response::app('<div id="app"></div>', fn (App $app) => $app->prefersBorder());
+    $response = Response::app('<div id="app"></div>', fn (App $app): App => $app->prefersBorder());
 
     expect($response->content()->meta())->toEqual([
         OpenAI::WIDGET_PREFERS_BORDER->value => true,
