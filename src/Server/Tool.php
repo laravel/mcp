@@ -59,15 +59,19 @@ abstract class Tool extends Primitive
     {
         $annotations = $this->annotations();
 
-        return array_filter([
-            'name' => $this->name(),
-            'title' => $this->title(),
-            'description' => $this->description(),
-            'inputSchema' => JsonSchema::object(
-                $this->schema(...),
-            )->toArray(),
-            'annotations' => $annotations === [] ? (object) [] : $annotations,
-            '_meta' => filled($this->meta()) ? $this->meta() : null,
-        ], filled(...));
+        return array_merge(
+            [
+                'name' => $this->name(),
+                'title' => $this->title(),
+                'description' => $this->description(),
+                'inputSchema' => JsonSchema::object(
+                    $this->schema(...),
+                )->toArray(),
+                'annotations' => $annotations === [] ? (object) [] : $annotations,
+            ],
+            array_filter([
+                '_meta' => filled($this->meta()) ? $this->meta() : null,
+            ], filled(...))
+        );
     }
 }
