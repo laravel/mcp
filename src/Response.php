@@ -21,8 +21,14 @@ class Response
     use Conditionable;
     use Macroable;
 
+    /**
+     * @var array<string, mixed>
+     */
     protected array $meta = [];
 
+    /**
+     * @var array<string, mixed>
+     */
     protected array $structured_content = [];
 
     protected function __construct(
@@ -121,24 +127,32 @@ class Response
         return $this->role;
     }
 
+    /**
+     * @param  array<string, mixed>|null  $meta
+     * @return array<string, mixed>|self
+     */
     public function meta(?array $meta = null): array|self
     {
         if (blank($meta)) {
             return $this->meta;
         }
 
-        $this->meta = array_merge($this->meta, $meta ?? []);
+        $this->meta = array_merge($this->meta, $meta);
 
         return $this;
     }
 
+    /**
+     * @param  array<string, mixed>|null  $structuredContent
+     * @return array<string, mixed>|self
+     */
     public function structuredContent(?array $structuredContent = null): array|self
     {
         if (blank($structuredContent)) {
             return $this->structured_content;
         }
 
-        $this->structured_content = array_merge($this->structured_content, $structuredContent ?? []);
+        $this->structured_content = array_merge($this->structured_content, $structuredContent);
 
         return $this;
     }

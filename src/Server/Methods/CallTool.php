@@ -61,7 +61,7 @@ class CallTool implements Errable, Method
     }
 
     /**
-     * @return callable(Collection<int, Response>): array{content: array<int, array<string, mixed>>, isError: bool}
+     * @return callable(Collection<int, Response>): array{_meta: array<string, mixed>, content: array<int, array<string, mixed>>, structuredContent: array<int, array<string, mixed>>, isError: bool}
      */
     protected function serializable(Tool $tool): callable
     {
