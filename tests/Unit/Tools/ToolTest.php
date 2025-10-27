@@ -28,6 +28,16 @@ it('can have a custom title', function (): void {
     expect($tool->toArray()['title'])->toBe('Custom Title Tool');
 });
 
+it('returns no meta by default', function (): void {
+    $tool = new TestTool;
+    expect($tool->meta())->toEqual([]);
+});
+
+it('can have custom meta', function (): void {
+    $tool = new CustomMetaTool;
+    expect($tool->toArray()['_meta'])->toEqual(['key' => 'value']);
+});
+
 it('can be read only', function (): void {
     $tool = new ReadOnlyTool;
     $annotations = $tool->annotations();
@@ -88,6 +98,13 @@ class TestTool extends Tool
 class CustomTitleTool extends TestTool
 {
     protected string $title = 'Custom Title Tool';
+}
+
+class CustomMetaTool extends TestTool
+{
+    protected array $meta = [
+        'key' => 'value',
+    ];
 }
 
 #[IsReadOnly]
