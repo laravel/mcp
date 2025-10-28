@@ -1,6 +1,12 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.3.0...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.3.1...main)
+
+## [v0.3.1](https://github.com/laravel/mcp/compare/v0.3.0...v0.3.1) - 2025-10-24
+
+* refactor: move to first class callable by [@ashleyhindle](https://github.com/ashleyhindle) in https://github.com/laravel/mcp/pull/94
+* Cast `client_id` to string in JSON response by [@mostafa-rz](https://github.com/mostafa-rz) in https://github.com/laravel/mcp/pull/93
+* Feature: adds security to the OAuth registration endpoint by [@jsandfordhughescoop](https://github.com/jsandfordhughescoop) in https://github.com/laravel/mcp/pull/87
 
 ## [v0.3.0](https://github.com/laravel/mcp/compare/v0.2.1...v0.3.0) - 2025-10-07
 
