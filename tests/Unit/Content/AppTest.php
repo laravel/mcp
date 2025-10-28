@@ -104,23 +104,13 @@ it('may be used in tools', function (): void {
     $text = new App('Run me');
 
     $payload = $text->toTool(new class extends Tool {});
-
-    expect($payload)->toEqual([
-        'type' => 'text',
-        'text' => 'Run me',
-    ]);
-});
+})->throws(Exception::class);
 
 it('may be used in prompts', function (): void {
     $text = new App('Say hi');
 
     $payload = $text->toPrompt(new class extends Prompt {});
-
-    expect($payload)->toEqual([
-        'type' => 'text',
-        'text' => 'Say hi',
-    ]);
-});
+})->throws(Exception::class);
 
 it('casts to string as raw text', function (): void {
     $text = new App('plain');
