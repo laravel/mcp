@@ -64,7 +64,7 @@ class CallTool implements Errable, Method
      * @return callable(Collection<int, Response>):array{
      *     _meta?: array<string, mixed>,
      *     content?: array<int, array<string, mixed>>,
-     *     isError?: bool
+     *     isError?: bool,
      *     structuredContent?: array<string, mixed>,
      * }
      */
