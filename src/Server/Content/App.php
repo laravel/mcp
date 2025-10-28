@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Content;
 
+use Exception;
 use Laravel\Mcp\Enums\OpenAI;
 use Laravel\Mcp\Server\Contracts\Content;
 use Laravel\Mcp\Server\Prompt;
@@ -26,7 +27,7 @@ class App implements Content
      */
     public function toTool(Tool $tool): array
     {
-        return $this->toArray();
+        throw new Exception('App should only be used from a Resource.');
     }
 
     /**
@@ -34,16 +35,31 @@ class App implements Content
      */
     public function toPrompt(Prompt $prompt): array
     {
-        return $this->toArray();
+        throw new Exception('App should only be used from a Resource.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toResource(Resource $resource): array
+    {
+        return array_filter([
+            'text' => $this->text,
+            'uri' => $resource->uri(),
+            'name' => $resource->name(),
+            'title' => $resource->title(),
+            'mimeType' => $resource->mimeType(),
+            '_meta' => $this->meta,
+        ], filled(...));
     }
 
     /**
      * @param  array<string, mixed>|null  $meta
-     * @return array<string, mixed>|self
+     * @return ($meta is null ? array<string, mixed> : self)
      */
     public function meta(?array $meta = null): self|array
     {
-        if (blank($meta)) {
+        if (is_null($meta)) {
             return $this->meta;
         }
 
@@ -81,21 +97,6 @@ class App implements Content
         $this->meta[OpenAI::WIDGET_DOMAIN->value] = $value;
 
         return $this;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function toResource(Resource $resource): array
-    {
-        return array_filter([
-            'text' => $this->text,
-            'uri' => $resource->uri(),
-            'name' => $resource->name(),
-            'title' => $resource->title(),
-            'mimeType' => $resource->mimeType(),
-            '_meta' => $this->meta,
-        ], filled(...));
     }
 
     public function __toString(): string

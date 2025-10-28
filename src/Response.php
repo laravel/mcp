@@ -129,11 +129,11 @@ class Response
 
     /**
      * @param  array<string, mixed>|null  $meta
-     * @return array<string, mixed>|self
+     * @return ($meta is null ? array<string, mixed> : self)
      */
     public function meta(?array $meta = null): array|self
     {
-        if (blank($meta)) {
+        if (is_null($meta)) {
             return $this->meta;
         }
 
@@ -144,11 +144,11 @@ class Response
 
     /**
      * @param  array<string, mixed>|null  $structuredContent
-     * @return array<string, mixed>|self
+     * @return ($structuredContent is null ? array<string, mixed> : self)
      */
     public function structuredContent(?array $structuredContent = null): array|self
     {
-        if (blank($structuredContent)) {
+        if (is_null($structuredContent)) {
             return $this->structured_content;
         }
 
