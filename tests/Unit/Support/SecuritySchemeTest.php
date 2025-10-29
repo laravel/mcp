@@ -78,3 +78,32 @@ it('can set a basic auth', function (): void {
         'scheme' => 'basic',
     ]);
 });
+
+it('can make a set of schemes', function (): void {
+    $schemes = SecurityScheme::make([
+        SecurityScheme::basic(),
+        SecurityScheme::bearer('JWT'),
+        [
+            'type' => 'apiKey',
+            'name' => 'X-API-KEY',
+            'in' => 'header',
+        ],
+    ]);
+
+    expect($schemes)->toBe([
+        [
+            'type' => 'http',
+            'scheme' => 'basic',
+        ],
+        [
+            'type' => 'http',
+            'scheme' => 'bearer',
+            'bearerFormat' => 'JWT',
+        ],
+        [
+            'type' => 'apiKey',
+            'name' => 'X-API-KEY',
+            'in' => 'header',
+        ],
+    ]);
+});

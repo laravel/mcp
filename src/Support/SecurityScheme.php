@@ -34,14 +34,14 @@ class SecurityScheme
      * @param  (Closure(SecurityScheme): array<string, SecurityScheme|array<string, mixed>>)|array<string, SecurityScheme|array<string, mixed>>  $schemes
      * @return array<string, array<string, mixed>>
      */
-    public static function object(Closure|array $schemes = []): array
+    public static function make(Closure|array $schemes = []): array
     {
         if ($schemes instanceof Closure) {
             $schemes = $schemes(new self);
         }
 
         $result = collect($schemes)->map(
-            fn ($scheme): array => $scheme instanceof self ? $scheme->toArray() : $scheme
+            fn ($scheme) => $scheme instanceof self ? $scheme->toArray() : $scheme
         );
 
         return $result->toArray();
@@ -98,8 +98,7 @@ class SecurityScheme
      */
     public static function oauth2(string|array ...$scopes): self
     {
-        $instance = new self;
-        $instance->type = 'oauth2';
+        $instance = self::type('oauth2');
 
         if ($scopes !== []) {
             $instance->scopes(...$scopes);

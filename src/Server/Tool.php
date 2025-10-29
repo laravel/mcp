@@ -80,7 +80,7 @@ abstract class Tool extends Primitive
                 'annotations' => $annotations === [] ? (object) [] : $annotations,
             ],
             array_filter([
-                'securitySchemes' => SecurityScheme::object(
+                'securitySchemes' => SecurityScheme::make(
                     $this->securitySchemes(...),
                 ),
                 '_meta' => filled($this->meta()) ? $this->meta() : null,
