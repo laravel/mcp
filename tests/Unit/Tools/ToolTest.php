@@ -6,6 +6,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use Laravel\Mcp\Server\Tools\ToolResult;
+use Laravel\Mcp\Support\SecurityScheme;
 
 test('the default name is in kebab case', function (): void {
     $tool = new AnotherComplexToolName;
@@ -26,6 +27,23 @@ it('returns no annotations by default', function (): void {
 it('can have a custom title', function (): void {
     $tool = new CustomTitleTool;
     expect($tool->toArray()['title'])->toBe('Custom Title Tool');
+});
+
+it('returns no meta by default', function (): void {
+    $tool = new TestTool;
+    expect($tool->meta())->toEqual([]);
+});
+
+it('can have custom meta', function (): void {
+    $tool = new CustomMetaTool;
+    expect($tool->toArray()['_meta'])->toEqual(['key' => 'value']);
+});
+
+it('can set security schemes', function (): void {
+    $tool = new SecuritySchemesTool;
+    expect($tool->toArray()['securitySchemes'])->toEqual([
+        ['type' => 'oauth2', 'scopes' => ['read', 'write']],
+    ]);
 });
 
 it('can be read only', function (): void {
@@ -110,6 +128,23 @@ class TestTool extends Tool
 class CustomTitleTool extends TestTool
 {
     protected string $title = 'Custom Title Tool';
+}
+
+class CustomMetaTool extends TestTool
+{
+    protected array $meta = [
+        'key' => 'value',
+    ];
+}
+
+class SecuritySchemesTool extends TestTool
+{
+    public function securitySchemes(SecurityScheme $scheme): array
+    {
+        return [
+            $scheme::oauth2('read', 'write'),
+        ];
+    }
 }
 
 #[IsReadOnly]
