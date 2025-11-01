@@ -1,6 +1,18 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.3.1...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.3.2...main)
+
+## [v0.3.2](https://github.com/laravel/mcp/compare/v0.3.1...v0.3.2) - 2025-10-29
+
+### What's Changed
+
+* Ensure the property field exists in tool input schemas by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/97
+
+### New Contributors
+
+* [@pushpak1300](https://github.com/pushpak1300) made their first contribution in https://github.com/laravel/mcp/pull/97
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.3.1...v0.3.2
 
 ## [v0.3.1](https://github.com/laravel/mcp/compare/v0.3.0...v0.3.1) - 2025-10-24
 

@@ -68,15 +68,18 @@ abstract class Tool extends Primitive
     public function toArray(): array
     {
         $annotations = $this->annotations();
+        $schema = JsonSchema::object(
+            $this->schema(...),
+        )->toArray();
+
+        $schema['properties'] ??= (object) [];
 
         return array_merge(
             [
                 'name' => $this->name(),
                 'title' => $this->title(),
                 'description' => $this->description(),
-                'inputSchema' => JsonSchema::object(
-                    $this->schema(...),
-                )->toArray(),
+                'inputSchema' => $schema,
                 'annotations' => $annotations === [] ? (object) [] : $annotations,
             ],
             array_filter([
