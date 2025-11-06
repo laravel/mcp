@@ -160,7 +160,7 @@ abstract class Server
             $jsonRequest = json_decode($rawMessage, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', -32700, null);
+                throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', -32700);
             }
 
             $request = isset($jsonRequest['id'])
