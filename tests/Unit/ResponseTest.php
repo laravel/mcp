@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Enums\OpenAI;
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Content\App;
 use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
@@ -121,4 +123,16 @@ it('handles empty array in json response', function (): void {
 
     $content = $response->content();
     expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
+});
+
+it('creates an app response', function (): void {
+    $response = Response::app('<div id="app"></div>', fn (App $app): App => $app->prefersBorder());
+
+    expect($response->content()->meta())->toEqual([
+        OpenAI::WIDGET_PREFERS_BORDER->value => true,
+    ]);
+    expect($response->content())->toBeInstanceOf(App::class);
+    expect($response->isNotification())->toBeFalse();
+    expect($response->isError())->toBeFalse();
+    expect($response->role())->toBe(Role::USER);
 });
