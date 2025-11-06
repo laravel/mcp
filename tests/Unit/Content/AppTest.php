@@ -2,7 +2,6 @@
 
 use Laravel\Mcp\Enums\OpenAI;
 use Laravel\Mcp\Server\Content\App;
-use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
@@ -61,6 +60,122 @@ it('it can configure meta information for the app', function (): void {
     ]);
 });
 
+it('can use the prefersBorder meta helper', function (): void {
+    $text = (new App('Hello world'))->prefersBorder();
+
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://readme.txt';
+
+        protected string $name = 'readme';
+
+        protected string $title = 'Readme File';
+
+        protected string $mimeType = 'text/plain';
+    };
+
+    $payload = $text->toResource($resource);
+
+    expect($payload)->toEqual([
+        'text' => 'Hello world',
+        'uri' => 'file://readme.txt',
+        'name' => 'readme',
+        'title' => 'Readme File',
+        'mimeType' => 'text/plain',
+        '_meta' => [
+            OpenAI::WIDGET_PREFERS_BORDER->value => true,
+        ],
+    ]);
+});
+
+it('can use the widgetDescription meta helper', function (): void {
+    $text = (new App('Hello world'))->widgetDescription('A simple text widget');
+
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://readme.txt';
+
+        protected string $name = 'readme';
+
+        protected string $title = 'Readme File';
+
+        protected string $mimeType = 'text/plain';
+    };
+
+    $payload = $text->toResource($resource);
+
+    expect($payload)->toEqual([
+        'text' => 'Hello world',
+        'uri' => 'file://readme.txt',
+        'name' => 'readme',
+        'title' => 'Readme File',
+        'mimeType' => 'text/plain',
+        '_meta' => [
+            OpenAI::WIDGET_DESCRIPTION->value => 'A simple text widget',
+        ],
+    ]);
+});
+
+it('can use the widgetCSP meta helper', function (): void {
+    $text = (new App('Hello world'))->widgetCSP([
+        'default-src' => "'self'",
+    ]);
+
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://readme.txt';
+
+        protected string $name = 'readme';
+
+        protected string $title = 'Readme File';
+
+        protected string $mimeType = 'text/plain';
+    };
+
+    $payload = $text->toResource($resource);
+
+    expect($payload)->toEqual([
+        'text' => 'Hello world',
+        'uri' => 'file://readme.txt',
+        'name' => 'readme',
+        'title' => 'Readme File',
+        'mimeType' => 'text/plain',
+        '_meta' => [
+            OpenAI::WIDGET_CSP->value => [
+                'default-src' => "'self'",
+            ],
+        ],
+    ]);
+});
+
+it('can use the widgetDomain meta helper', function (): void {
+    $text = (new App('Hello world'))->widgetDomain('example.com');
+
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://readme.txt';
+
+        protected string $name = 'readme';
+
+        protected string $title = 'Readme File';
+
+        protected string $mimeType = 'text/plain';
+    };
+
+    $payload = $text->toResource($resource);
+
+    expect($payload)->toEqual([
+        'text' => 'Hello world',
+        'uri' => 'file://readme.txt',
+        'name' => 'readme',
+        'title' => 'Readme File',
+        'mimeType' => 'text/plain',
+        '_meta' => [
+            OpenAI::WIDGET_DOMAIN->value => 'example.com',
+        ],
+    ]);
+});
+
 it('may use helper methods to assign meta info', function (): void {
     $text = (new App('Hello world'))
         ->prefersBorder()
@@ -100,13 +215,13 @@ it('may use helper methods to assign meta info', function (): void {
     ]);
 });
 
-it('may be used in tools', function (): void {
+it('may not be used in tools', function (): void {
     $text = new App('Run me');
 
     $payload = $text->toTool(new class extends Tool {});
 })->throws(Exception::class);
 
-it('may be used in prompts', function (): void {
+it('may not be used in prompts', function (): void {
     $text = new App('Say hi');
 
     $payload = $text->toPrompt(new class extends Prompt {});
@@ -119,7 +234,7 @@ it('casts to string as raw text', function (): void {
 });
 
 it('converts to array with type and text', function (): void {
-    $text = new Text('abc');
+    $text = new App('abc');
 
     expect($text->toArray())->toEqual([
         'type' => 'text',
