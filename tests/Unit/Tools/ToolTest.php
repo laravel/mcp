@@ -6,6 +6,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use Laravel\Mcp\Server\Tools\ToolResult;
+use Laravel\Mcp\Support\SecurityScheme;
 
 test('the default name is in kebab case', function (): void {
     $tool = new AnotherComplexToolName;
@@ -94,6 +95,23 @@ it('includes schema properties when defined', function (): void {
         ->and($array['inputSchema']['required'])->toEqual(['message']);
 });
 
+it('returns no meta by default', function (): void {
+    $tool = new TestTool;
+    expect($tool->meta())->toEqual([]);
+});
+
+it('can have custom meta', function (): void {
+    $tool = new CustomMetaTool;
+    expect($tool->toArray()['_meta'])->toEqual(['key' => 'value']);
+});
+
+it('can set security schemes', function (): void {
+    $tool = new SecuritySchemesTool;
+    expect($tool->toArray()['securitySchemes'])->toEqual([
+        ['type' => 'oauth2', 'scopes' => ['read', 'write']],
+    ]);
+});
+
 class TestTool extends Tool
 {
     public function description(): string
@@ -152,6 +170,23 @@ class ToolWithSchema extends TestTool
     {
         return [
             'message' => $schema->string()->description('The message to echo')->required(),
+        ];
+    }
+}
+
+class CustomMetaTool extends TestTool
+{
+    protected array $meta = [
+        'key' => 'value',
+    ];
+}
+
+class SecuritySchemesTool extends TestTool
+{
+    public function securitySchemes(SecurityScheme $scheme): array
+    {
+        return [
+            $scheme::oauth2('read', 'write'),
         ];
     }
 }

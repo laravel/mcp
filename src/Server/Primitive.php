@@ -19,6 +19,11 @@ abstract class Primitive implements Arrayable
 
     protected string $description = '';
 
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $meta = [];
+
     public function name(): string
     {
         return $this->name === ''
@@ -38,6 +43,14 @@ abstract class Primitive implements Arrayable
         return $this->description === ''
             ? Str::headline(class_basename($this))
             : $this->description;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function meta(): array
+    {
+        return $this->meta;
     }
 
     public function eligibleForRegistration(): bool
