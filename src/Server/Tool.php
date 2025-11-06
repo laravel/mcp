@@ -61,6 +61,8 @@ abstract class Tool extends Primitive
      *     description?: string|null,
      *     inputSchema?: array<string, mixed>,
      *     annotations?: array<string, mixed>|object
+     *     securitySchemes?: array<string, mixed>,
+     *     _meta?: array<string, mixed>
      * }
      */
     public function toArray(): array
