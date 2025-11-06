@@ -60,7 +60,7 @@ abstract class Tool extends Primitive
      *     title?: string|null,
      *     description?: string|null,
      *     inputSchema?: array<string, mixed>,
-     *     annotations?: array<string, mixed>|object
+     *     annotations?: array<string, mixed>|object,
      *     securitySchemes?: array<string, mixed>,
      *     _meta?: array<string, mixed>
      * }
