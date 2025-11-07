@@ -166,7 +166,7 @@ it('handles oauth registration endpoint', function (): void {
         eval('
             namespace Laravel\Passport;
             class ClientRepository {
-                public function createAuthorizationCodeGrantClient($name, $redirectUris, $confidential, $user, $enableDeviceFlow) {
+                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
                     return (object) [
                         "id" => "test-client-id",
                         "grantTypes" => ["authorization_code"],
@@ -204,7 +204,7 @@ it('handles oauth registration with allowed domains', function (): void {
         eval('
             namespace Laravel\Passport;
             class ClientRepository {
-                public function createAuthorizationCodeGrantClient($name, $redirectUris, $confidential, $user, $enableDeviceFlow) {
+                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
                     return (object) [
                         "id" => "test-client-id",
                         "grantTypes" => ["authorization_code"],
@@ -244,7 +244,7 @@ it('handles oauth registration with incorrect redirect domain', function (): voi
         eval('
             namespace Laravel\Passport;
             class ClientRepository {
-                public function createAuthorizationCodeGrantClient($name, $redirectUris, $confidential, $user, $enableDeviceFlow) {
+                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
                     return (object) [
                         "id" => "test-client-id",
                         "grantTypes" => ["authorization_code"],
