@@ -37,7 +37,7 @@ class OAuthRegisterController
         );
 
         $client = $clients->createAuthorizationCodeGrantClient(
-            name: $request->get('name'),
+            name: $request->get('client_name', $request->get('name')),
             redirectUris: $validated['redirect_uris'],
             confidential: false,
             user: null,
