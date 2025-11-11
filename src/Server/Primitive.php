@@ -20,9 +20,9 @@ abstract class Primitive implements Arrayable
     protected string $description = '';
 
     /**
-     * @var array<string, mixed>
+     * @var array<string, mixed>|null
      */
-    protected array $meta = [];
+    protected ?array $meta = null;
 
     public function name(): string
     {
@@ -46,9 +46,9 @@ abstract class Primitive implements Arrayable
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<string, mixed>|null
      */
-    public function meta(): array
+    public function meta(): ?array
     {
         return $this->meta;
     }
@@ -60,6 +60,19 @@ abstract class Primitive implements Arrayable
         }
 
         return true;
+    }
+
+    /**
+     * @template T of array<string, mixed>
+     *
+     * @param  T  $baseArray
+     * @return T&array{_meta?: array<string, mixed>}
+     */
+    protected function withMeta(array $baseArray): array
+    {
+        return ($meta = $this->meta())
+            ? [...$baseArray, '_meta' => $meta]
+            : $baseArray;
     }
 
     /**

@@ -7,6 +7,7 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\CurrentTimeTool;
 use Tests\Fixtures\SayHiTool;
 use Tests\Fixtures\SayHiTwiceTool;
+use Tests\Fixtures\SayHiWithMetaTool;
 
 it('returns a valid call tool response', function (): void {
     $request = JsonRpcRequest::from([
@@ -142,6 +143,53 @@ it('returns a valid call tool response with validation error', function (): void
                 ],
             ],
             'isError' => true,
+        ]);
+});
+
+it('includes result meta when responses provide it', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'say-hi-with-meta-tool',
+            'arguments' => ['name' => 'John Doe'],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [SayHiWithMetaTool::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $method = new CallTool;
+
+    $this->instance('mcp.request', $request->toRequest());
+    $response = $method->handle($request, $context);
+
+    $payload = $response->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'content' => [
+                [
+                    'type' => 'text',
+                    'text' => 'Hello, John Doe!',
+                ],
+            ],
+            'isError' => false,
+            '_meta' => [
+                'requestId' => 'abc-123',
+                'source' => 'tests/fixtures',
+            ],
         ]);
 });
 

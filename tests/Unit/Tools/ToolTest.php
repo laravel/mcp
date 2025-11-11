@@ -6,7 +6,6 @@ use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
 use Laravel\Mcp\Server\Tools\ToolResult;
-use Laravel\Mcp\Support\SecurityScheme;
 
 test('the default name is in kebab case', function (): void {
     $tool = new AnotherComplexToolName;
@@ -97,19 +96,12 @@ it('includes schema properties when defined', function (): void {
 
 it('returns no meta by default', function (): void {
     $tool = new TestTool;
-    expect($tool->meta())->toEqual([]);
+    expect($tool->meta())->toBeNull();
 });
 
 it('can have custom meta', function (): void {
     $tool = new CustomMetaTool;
     expect($tool->toArray()['_meta'])->toEqual(['key' => 'value']);
-});
-
-it('can set security schemes', function (): void {
-    $tool = new SecuritySchemesTool;
-    expect($tool->toArray()['securitySchemes'])->toEqual([
-        ['type' => 'oauth2', 'scopes' => ['read', 'write']],
-    ]);
 });
 
 class TestTool extends Tool
@@ -176,17 +168,7 @@ class ToolWithSchema extends TestTool
 
 class CustomMetaTool extends TestTool
 {
-    protected array $meta = [
+    protected ?array $meta = [
         'key' => 'value',
     ];
-}
-
-class SecuritySchemesTool extends TestTool
-{
-    public function securitySchemes(SecurityScheme $scheme): array
-    {
-        return [
-            $scheme::oauth2('read', 'write'),
-        ];
-    }
 }

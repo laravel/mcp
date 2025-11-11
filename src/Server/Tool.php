@@ -6,7 +6,6 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\JsonSchema\JsonSchema;
 use Laravel\Mcp\Server\Contracts\Tools\Annotation;
-use Laravel\Mcp\Support\SecurityScheme;
 use ReflectionAttribute;
 use ReflectionClass;
 
@@ -16,14 +15,6 @@ abstract class Tool extends Primitive
      * @return array<string, mixed>
      */
     public function schema(JsonSchema $schema): array
-    {
-        return [];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function securitySchemes(SecurityScheme $scheme): array
     {
         return [];
     }
@@ -61,30 +52,27 @@ abstract class Tool extends Primitive
      *     description?: string|null,
      *     inputSchema?: array<string, mixed>,
      *     annotations?: array<string, mixed>|object,
-     *     securitySchemes?: array<string, mixed>,
      *     _meta?: array<string, mixed>
      * }
      */
     public function toArray(): array
     {
         $annotations = $this->annotations();
+
         $schema = JsonSchema::object(
             $this->schema(...),
         )->toArray();
 
         $schema['properties'] ??= (object) [];
 
-        return array_merge([
+        // @phpstan-ignore return.type
+        return $this->withMeta([
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
             'inputSchema' => $schema,
             'annotations' => $annotations === [] ? (object) [] : $annotations,
-        ], array_filter([
-            'securitySchemes' => SecurityScheme::make(
-                $this->securitySchemes(...),
-            ),
-            '_meta' => filled($this->meta()) ? $this->meta() : null,
-        ], filled(...)));
+        ]);
+
     }
 }

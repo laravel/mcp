@@ -29,6 +29,31 @@ it('encodes content to resource payload with metadata', function (): void {
     ]);
 });
 
+it('preserves meta when converting to a resource payload', function (): void {
+    $text = new Text('Hello world', ['author' => 'John']);
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://readme.txt';
+
+        protected string $name = 'readme';
+
+        protected string $title = 'Readme File';
+
+        protected string $mimeType = 'text/plain';
+    };
+
+    $payload = $text->toResource($resource);
+
+    expect($payload)->toEqual([
+        'text' => 'Hello world',
+        'uri' => 'file://readme.txt',
+        'name' => 'readme',
+        'title' => 'Readme File',
+        'mimeType' => 'text/plain',
+        '_meta' => ['author' => 'John'],
+    ]);
+});
+
 it('may be used in tools', function (): void {
     $text = new Text('Run me');
 
@@ -63,5 +88,24 @@ it('converts to array with type and text', function (): void {
     expect($text->toArray())->toEqual([
         'type' => 'text',
         'text' => 'abc',
+    ]);
+});
+
+it('supports meta in constructor', function (): void {
+    $text = new Text('Hello', ['author' => 'John']);
+
+    expect($text->toArray())->toEqual([
+        'type' => 'text',
+        'text' => 'Hello',
+        '_meta' => ['author' => 'John'],
+    ]);
+});
+
+it('does not include meta if null', function (): void {
+    $text = new Text('Hello');
+
+    expect($text->toArray())->toEqual([
+        'type' => 'text',
+        'text' => 'Hello',
     ]);
 });

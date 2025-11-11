@@ -62,3 +62,68 @@ it('converts to array with method and params', function (): void {
         'params' => ['x' => 1, 'y' => 2],
     ]);
 });
+
+it('supports constructor meta', function (): void {
+    $notification = new Notification('test/event', ['data' => 'value'], ['author' => 'system']);
+
+    expect($notification->toArray())->toEqual([
+        'method' => 'test/event',
+        'params' => [
+            'data' => 'value',
+            '_meta' => ['author' => 'system'],
+        ],
+    ]);
+});
+
+it('supports params _meta', function (): void {
+    $notification = new Notification('test/event', [
+        'data' => 'value',
+        '_meta' => ['source' => 'params'],
+    ]);
+
+    expect($notification->toArray())->toEqual([
+        'method' => 'test/event',
+        'params' => [
+            'data' => 'value',
+            '_meta' => ['source' => 'params'],
+        ],
+    ]);
+});
+
+it('keeps params _meta when both params and constructor have meta', function (): void {
+    $notification = new Notification('test/event', [
+        'data' => 'value',
+        '_meta' => ['source' => 'params', 'keep' => 'this'],
+    ], ['source' => 'constructor', 'author' => 'system']);
+
+    expect($notification->toArray())->toEqual([
+        'method' => 'test/event',
+        'params' => [
+            'data' => 'value',
+            '_meta' => [
+                'source' => 'params', // Params _meta is kept
+                'keep' => 'this',
+            ],
+        ],
+    ]);
+});
+
+it('does not include _meta if null', function (): void {
+    $notification = new Notification('test/event', ['data' => 'value']);
+
+    expect($notification->toArray())->toEqual([
+        'method' => 'test/event',
+        'params' => ['data' => 'value'],
+    ])
+        ->and($notification->toArray())->not->toHaveKey('_meta');
+});
+
+it('does not include _meta if empty', function (): void {
+    $notification = new Notification('test/event', ['data' => 'value'], []);
+
+    expect($notification->toArray())->toEqual([
+        'method' => 'test/event',
+        'params' => ['data' => 'value'],
+    ])
+        ->and($notification->toArray()['params'])->not->toHaveKey('_meta');
+});

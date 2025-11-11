@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Content;
 
+use Laravel\Mcp\Server\Content\Concerns\HasMeta;
 use Laravel\Mcp\Server\Contracts\Content;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -11,12 +12,15 @@ use Laravel\Mcp\Server\Tool;
 
 class Notification implements Content
 {
+    use HasMeta;
+
     /**
      * @param  array<string, mixed>  $params
+     * @param  array<string, mixed>|null  $meta
      */
-    public function __construct(protected string $method, protected array $params)
+    public function __construct(protected string $method, protected array $params, ?array $meta = null)
     {
-        //
+        $this->meta = $meta;
     }
 
     /**
@@ -53,9 +57,15 @@ class Notification implements Content
      */
     public function toArray(): array
     {
+        $params = $this->params;
+
+        if ($this->meta !== null && $this->meta !== [] && ! isset($params['_meta'])) {
+            $params['_meta'] = $this->meta;
+        }
+
         return [
             'method' => $this->method,
-            'params' => $this->params,
+            'params' => $params,
         ];
     }
 }

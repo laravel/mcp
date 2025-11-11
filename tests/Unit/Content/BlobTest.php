@@ -29,6 +29,31 @@ it('encodes content to resource payload with metadata', function (): void {
     ]);
 });
 
+it('preserves meta when converting to a resource payload', function (): void {
+    $blob = new Blob('raw-bytes', ['encoding' => 'base64']);
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://avatar.png';
+
+        protected string $name = 'avatar';
+
+        protected string $title = 'User Avatar';
+
+        protected string $mimeType = 'image/png';
+    };
+
+    $payload = $blob->toResource($resource);
+
+    expect($payload)->toEqual([
+        'blob' => base64_encode('raw-bytes'),
+        'uri' => 'file://avatar.png',
+        'name' => 'avatar',
+        'title' => 'User Avatar',
+        'mimeType' => 'image/png',
+        '_meta' => ['encoding' => 'base64'],
+    ]);
+});
+
 it('throws when used in tools', function (): void {
     $blob = new Blob('anything');
 
@@ -53,5 +78,24 @@ it('converts to array with type and raw blob', function (): void {
     expect($blob->toArray())->toEqual([
         'type' => 'blob',
         'blob' => 'bytes',
+    ]);
+});
+
+it('supports meta in constructor', function (): void {
+    $blob = new Blob('binary-data', ['encoding' => 'base64']);
+
+    expect($blob->toArray())->toEqual([
+        'type' => 'blob',
+        'blob' => 'binary-data',
+        '_meta' => ['encoding' => 'base64'],
+    ]);
+});
+
+it('does not include meta if null', function (): void {
+    $blob = new Blob('data');
+
+    expect($blob->toArray())->toEqual([
+        'type' => 'blob',
+        'blob' => 'data',
     ]);
 });

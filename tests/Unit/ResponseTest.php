@@ -122,3 +122,33 @@ it('handles empty array in json response', function (): void {
     $content = $response->content();
     expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
 });
+
+it('creates text response with content meta', function (): void {
+    $response = Response::text('Hello', ['author' => 'John']);
+
+    expect($response->content())->toBeInstanceOf(Text::class)
+        ->and($response->content()->toArray())->toHaveKey('_meta')
+        ->and($response->content()->toArray()['_meta'])->toEqual(['author' => 'John']);
+});
+
+it('creates blob response with content meta', function (): void {
+    $response = Response::blob('binary', ['encoding' => 'utf-8']);
+
+    expect($response->content())->toBeInstanceOf(Blob::class)
+        ->and($response->content()->toArray())->toHaveKey('_meta')
+        ->and($response->content()->toArray()['_meta'])->toEqual(['encoding' => 'utf-8']);
+});
+
+it('creates notification response with content meta', function (): void {
+    $response = Response::notification('test/event', ['data' => 'value'], ['author' => 'system']);
+
+    expect($response->content())->toBeInstanceOf(Notification::class)
+        ->and($response->content()->toArray()['params'])->toHaveKey('_meta')
+        ->and($response->content()->toArray()['params']['_meta'])->toEqual(['author' => 'system']);
+});
+
+it('has no result meta by default', function (): void {
+    $response = Response::text('Hello');
+
+    expect($response->meta())->toBeNull();
+});
