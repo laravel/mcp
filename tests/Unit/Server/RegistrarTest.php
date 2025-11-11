@@ -269,3 +269,96 @@ it('handles oauth registration with incorrect redirect domain', function (): voi
 
     $response->assertStatus(422);
 });
+
+it('handles oauth discovery with multi-segment paths', function (): void {
+    // Fake Passport's routes so the oauthRoutes() helper can resolve them.
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    // Test protected resource endpoint with multi-segment path
+    $response = $this->getJson('/.well-known/oauth-protected-resource/mcp/weather');
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'resource' => url('/mcp/weather'),
+        'authorization_servers' => [url('/mcp/weather')],
+        'scopes_supported' => ['mcp:use'],
+    ]);
+
+    // Test authorization server endpoint with multi-segment path
+    $response = $this->getJson('/.well-known/oauth-authorization-server/mcp/weather');
+
+    $response->assertStatus(200);
+    $response->assertJsonStructure([
+        'issuer',
+        'authorization_endpoint',
+        'token_endpoint',
+        'registration_endpoint',
+        'response_types_supported',
+        'code_challenge_methods_supported',
+        'scopes_supported',
+        'grant_types_supported',
+    ]);
+    $response->assertJson([
+        'issuer' => url('/mcp/weather'),
+        'scopes_supported' => ['mcp:use'],
+        'response_types_supported' => ['code'],
+        'code_challenge_methods_supported' => ['S256'],
+        'grant_types_supported' => ['authorization_code', 'refresh_token'],
+    ]);
+});
+
+it('handles oauth discovery with single segment paths', function (): void {
+    // Fake Passport's routes so the oauthRoutes() helper can resolve them.
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    // Test backward compatibility with single-segment paths
+    $response = $this->getJson('/.well-known/oauth-protected-resource/mcp');
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'resource' => url('/mcp'),
+        'authorization_servers' => [url('/mcp')],
+        'scopes_supported' => ['mcp:use'],
+    ]);
+
+    $response = $this->getJson('/.well-known/oauth-authorization-server/mcp');
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'issuer' => url('/mcp'),
+    ]);
+});
+
+it('handles oauth discovery with no path', function (): void {
+    // Fake Passport's routes so the oauthRoutes() helper can resolve them.
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    // Test with no path (root)
+    $response = $this->getJson('/.well-known/oauth-protected-resource');
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'resource' => url('/'),
+        'authorization_servers' => [url('/')],
+        'scopes_supported' => ['mcp:use'],
+    ]);
+
+    $response = $this->getJson('/.well-known/oauth-authorization-server');
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'issuer' => url('/'),
+    ]);
+});

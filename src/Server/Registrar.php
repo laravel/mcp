@@ -89,7 +89,7 @@ class Registrar
             'resource' => url('/'.$path),
             'authorization_servers' => [url('/'.$path)],
             'scopes_supported' => ['mcp:use'],
-        ]))->name('mcp.oauth.protected-resource');
+        ]))->where('path', '.*')->name('mcp.oauth.protected-resource');
 
         Router::get('/.well-known/oauth-authorization-server/{path?}', fn (?string $path = '') => response()->json([
             'issuer' => url('/'.$path),
@@ -100,7 +100,7 @@ class Registrar
             'code_challenge_methods_supported' => ['S256'],
             'scopes_supported' => ['mcp:use'],
             'grant_types_supported' => ['authorization_code', 'refresh_token'],
-        ]))->name('mcp.oauth.authorization-server');
+        ]))->where('path', '.*')->name('mcp.oauth.authorization-server');
 
         Router::post($oauthPrefix.'/register', OAuthRegisterController::class);
     }
