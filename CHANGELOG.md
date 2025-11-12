@@ -1,6 +1,12 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.3.2...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.3.3...main)
+
+## [v0.3.3](https://github.com/laravel/mcp/compare/v0.3.2...v0.3.3) - 2025-11-11
+
+* Add MCP service provider to testbench config by [@zacksmash](https://github.com/zacksmash) in https://github.com/laravel/mcp/pull/100
+* Fix client_name rename in oauth registrar by [@mikebouwmans](https://github.com/mikebouwmans) in https://github.com/laravel/mcp/pull/104
+* fix: allow multi-segment issuer paths by [@isaac-bowen](https://github.com/isaac-bowen) in https://github.com/laravel/mcp/pull/105
 
 ## [v0.3.2](https://github.com/laravel/mcp/compare/v0.3.1...v0.3.2) - 2025-10-29
 
