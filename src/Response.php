@@ -19,12 +19,52 @@ class Response
     use Conditionable;
     use Macroable;
 
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $meta = [];
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $structured_content = [];
+
     protected function __construct(
         protected Content $content,
         protected Role $role = Role::USER,
         protected bool $isError = false,
     ) {
         //
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $meta
+     * @return ($meta is null ? array<string, mixed> : self)
+     */
+    public function meta(?array $meta = null): array|self
+    {
+        if (is_null($meta)) {
+            return $this->meta;
+        }
+
+        $this->meta = array_merge($this->meta, $meta);
+
+        return $this;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $structuredContent
+     * @return ($structuredContent is null ? array<string, mixed> : self)
+     */
+    public function structuredContent(?array $structuredContent = null): array|self
+    {
+        if (is_null($structuredContent)) {
+            return $this->structured_content;
+        }
+
+        $this->structured_content = array_merge($this->structured_content, $structuredContent);
+
+        return $this;
     }
 
     /**

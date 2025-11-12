@@ -61,13 +61,20 @@ class CallTool implements Errable, Method
     }
 
     /**
-     * @return callable(Collection<int, Response>): array{content: array<int, array<string, mixed>>, isError: bool}
+     * @return callable(Collection<int, Response>):array{
+     *     _meta?: array<string, mixed>,
+     *     content?: array<int, array<string, mixed>>,
+     *     isError?: bool,
+     *     structuredContent?: array<string, mixed>,
+     * }
      */
     protected function serializable(Tool $tool): callable
     {
-        return fn (Collection $responses): array => [
+        return fn (Collection $responses): array => array_filter([
             'content' => $responses->map(fn (Response $response): array => $response->content()->toTool($tool))->all(),
             'isError' => $responses->contains(fn (Response $response): bool => $response->isError()),
-        ];
+            'structuredContent' => $responses->flatMap(fn (Response $response): array => $response->structuredContent())->all(),
+            '_meta' => $responses->flatMap(fn (Response $response): array => $response->meta())->all(),
+        ], filled(...));
     }
 }
