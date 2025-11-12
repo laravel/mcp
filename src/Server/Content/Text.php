@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Content;
 
-use Laravel\Mcp\Server\Content\Concerns\HasMeta;
+use Laravel\Mcp\Server\Concerns\HasMeta;
 use Laravel\Mcp\Server\Contracts\Content;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -14,14 +14,10 @@ class Text implements Content
 {
     use HasMeta;
 
-    /**
-     * @param  array<string, mixed>|null  $meta
-     */
     public function __construct(
-        protected string $text,
-        ?array $meta = null
+        protected string $text
     ) {
-        $this->meta = $meta;
+        //
     }
 
     /**

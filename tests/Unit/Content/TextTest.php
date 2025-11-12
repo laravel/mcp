@@ -30,7 +30,9 @@ it('encodes content to resource payload with metadata', function (): void {
 });
 
 it('preserves meta when converting to a resource payload', function (): void {
-    $text = new Text('Hello world', ['author' => 'John']);
+    $text = new Text('Hello world');
+    $text->setMeta(['author' => 'John']);
+
     $resource = new class extends Resource
     {
         protected string $uri = 'file://readme.txt';
@@ -91,8 +93,9 @@ it('converts to array with type and text', function (): void {
     ]);
 });
 
-it('supports meta in constructor', function (): void {
-    $text = new Text('Hello', ['author' => 'John']);
+it('supports meta via setMeta', function (): void {
+    $text = new Text('Hello');
+    $text->setMeta(['author' => 'John']);
 
     expect($text->toArray())->toEqual([
         'type' => 'text',

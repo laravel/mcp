@@ -18,6 +18,38 @@ Laravel MCP allows you to rapidly build MCP servers for your Laravel application
 
 Documentation for Laravel MCP can be found on the [Laravel website](https://laravel.com/docs/mcp).
 
+## Adding Metadata to Tool Responses
+
+You can include custom metadata in tool responses using the `$meta` property:
+
+```php
+class MyTool extends Tool
+{
+    protected string $description = 'My tool description';
+
+    protected ?array $meta = [
+        'requestId' => 'abc-123',
+        'source' => 'my-app',
+    ];
+
+    public function handle(Request $request): Response
+    {
+        return Response::text('Hello!');
+    }
+}
+```
+
+You can also add metadata at the content level:
+
+```php
+public function handle(Request $request): Response
+{
+    return Response::text('Hello!', meta: [
+        'version' => '1.0.0',
+    ]);
+}
+```
+
 ## Contributing
 
 Thank you for considering contributing to Laravel MCP! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).

@@ -63,19 +63,18 @@ it('converts to array with method and params', function (): void {
     ]);
 });
 
-it('supports constructor meta', function (): void {
-    $notification = new Notification('test/event', ['data' => 'value'], ['author' => 'system']);
+it('supports _meta via setMeta', function (): void {
+    $notification = new Notification('test/event', ['data' => 'value']);
+    $notification->setMeta(['author' => 'system']);
 
     expect($notification->toArray())->toEqual([
         'method' => 'test/event',
-        'params' => [
-            'data' => 'value',
-            '_meta' => ['author' => 'system'],
-        ],
+        'params' => ['data' => 'value'],
+        '_meta' => ['author' => 'system'],
     ]);
 });
 
-it('supports params _meta', function (): void {
+it('supports _meta in params', function (): void {
     $notification = new Notification('test/event', [
         'data' => 'value',
         '_meta' => ['source' => 'params'],
@@ -90,21 +89,20 @@ it('supports params _meta', function (): void {
     ]);
 });
 
-it('keeps params _meta when both params and constructor have meta', function (): void {
+it('allows both top-level _meta and params _meta independently', function (): void {
     $notification = new Notification('test/event', [
         'data' => 'value',
         '_meta' => ['source' => 'params', 'keep' => 'this'],
-    ], ['source' => 'constructor', 'author' => 'system']);
+    ]);
+    $notification->setMeta(['author' => 'system', 'level' => 'top']);
 
     expect($notification->toArray())->toEqual([
         'method' => 'test/event',
         'params' => [
             'data' => 'value',
-            '_meta' => [
-                'source' => 'params', // Params _meta is kept
-                'keep' => 'this',
-            ],
+            '_meta' => ['source' => 'params', 'keep' => 'this'],
         ],
+        '_meta' => ['author' => 'system', 'level' => 'top'],
     ]);
 });
 
@@ -118,12 +116,12 @@ it('does not include _meta if null', function (): void {
         ->and($notification->toArray())->not->toHaveKey('_meta');
 });
 
-it('does not include _meta if empty', function (): void {
-    $notification = new Notification('test/event', ['data' => 'value'], []);
+it('does not include _meta if not set', function (): void {
+    $notification = new Notification('test/event', ['data' => 'value']);
 
     expect($notification->toArray())->toEqual([
         'method' => 'test/event',
         'params' => ['data' => 'value'],
     ])
-        ->and($notification->toArray()['params'])->not->toHaveKey('_meta');
+        ->and($notification->toArray())->not->toHaveKey('_meta');
 });

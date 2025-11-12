@@ -30,7 +30,9 @@ it('encodes content to resource payload with metadata', function (): void {
 });
 
 it('preserves meta when converting to a resource payload', function (): void {
-    $blob = new Blob('raw-bytes', ['encoding' => 'base64']);
+    $blob = new Blob('raw-bytes');
+    $blob->setMeta(['encoding' => 'base64']);
+
     $resource = new class extends Resource
     {
         protected string $uri = 'file://avatar.png';
@@ -81,8 +83,9 @@ it('converts to array with type and raw blob', function (): void {
     ]);
 });
 
-it('supports meta in constructor', function (): void {
-    $blob = new Blob('binary-data', ['encoding' => 'base64']);
+it('supports meta via setMeta', function (): void {
+    $blob = new Blob('binary-data');
+    $blob->setMeta(['encoding' => 'base64']);
 
     expect($blob->toArray())->toEqual([
         'type' => 'blob',

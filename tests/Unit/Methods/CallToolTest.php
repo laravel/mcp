@@ -183,13 +183,12 @@ it('includes result meta when responses provide it', function (): void {
                 [
                     'type' => 'text',
                     'text' => 'Hello, John Doe!',
+                    '_meta' => [
+                        'test' => 'metadata',
+                    ],
                 ],
             ],
             'isError' => false,
-            '_meta' => [
-                'requestId' => 'abc-123',
-                'source' => 'tests/fixtures',
-            ],
         ]);
 });
 

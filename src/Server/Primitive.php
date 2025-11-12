@@ -7,22 +7,20 @@ namespace Laravel\Mcp\Server;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Concerns\HasMeta;
 
 /**
  * @implements Arrayable<string, mixed>
  */
 abstract class Primitive implements Arrayable
 {
+    use HasMeta;
+
     protected string $name = '';
 
     protected string $title = '';
 
     protected string $description = '';
-
-    /**
-     * @var array<string, mixed>|null
-     */
-    protected ?array $meta = null;
 
     public function name(): string
     {
@@ -60,19 +58,6 @@ abstract class Primitive implements Arrayable
         }
 
         return true;
-    }
-
-    /**
-     * @template T of array<string, mixed>
-     *
-     * @param  T  $baseArray
-     * @return T&array{_meta?: array<string, mixed>}
-     */
-    protected function withMeta(array $baseArray): array
-    {
-        return ($meta = $this->meta())
-            ? [...$baseArray, '_meta' => $meta]
-            : $baseArray;
     }
 
     /**

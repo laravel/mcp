@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Content;
 
 use InvalidArgumentException;
-use Laravel\Mcp\Server\Content\Concerns\HasMeta;
+use Laravel\Mcp\Server\Concerns\HasMeta;
 use Laravel\Mcp\Server\Contracts\Content;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -15,14 +15,10 @@ class Blob implements Content
 {
     use HasMeta;
 
-    /**
-     * @param  array<string, mixed>|null  $meta
-     */
     public function __construct(
-        protected string $content,
-        ?array $meta = null
+        protected string $content
     ) {
-        $this->meta = $meta;
+        //
     }
 
     /**

@@ -19,56 +19,43 @@ class Response
     use Conditionable;
     use Macroable;
 
-    /**
-     * @param  array<string, mixed>|null  $meta
-     */
     protected function __construct(
         protected Content $content,
         protected Role $role = Role::USER,
         protected bool $isError = false,
-        protected ?array $meta = null,
     ) {
         //
     }
 
     /**
      * @param  array<string, mixed>  $params
-     * @param  array<string, mixed>|null  $meta
      */
-    public static function notification(string $method, array $params = [], ?array $meta = null): static
+    public static function notification(string $method, array $params = []): static
     {
-        return new static(new Notification($method, $params, $meta));
+        return new static(new Notification($method, $params));
     }
 
-    /**
-     * @param  array<string, mixed>|null  $meta
-     */
-    public static function text(string $text, ?array $meta = null): static
+    public static function text(string $text): static
     {
-        return new static(new Text($text, $meta));
+        return new static(new Text($text));
     }
 
     /**
      * @internal
      *
-     * @param  array<string, mixed>|null  $meta
-     *
      * @throws JsonException
      */
-    public static function json(mixed $content, ?array $meta = null): static
+    public static function json(mixed $content): static
     {
         return static::text(json_encode(
             $content,
             JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT,
-        ), $meta);
+        ));
     }
 
-    /**
-     * @param  array<string, mixed>|null  $meta
-     */
-    public static function blob(string $content, ?array $meta = null): static
+    public static function blob(string $content): static
     {
-        return new static(new Blob($content, $meta));
+        return new static(new Blob($content));
     }
 
     public static function error(string $text): static
@@ -79,6 +66,20 @@ class Response
     public function content(): Content
     {
         return $this->content;
+    }
+
+    /**
+     * Set meta data on the response content.
+     * Supports both array and key-value signatures.
+     * Multiple calls will merge the meta data.
+     *
+     * @param  string|array<string, mixed>  $keyOrArray
+     */
+    public function withMeta(string|array $keyOrArray, mixed $value = null): static
+    {
+        $this->content->setMeta($keyOrArray, $value);
+
+        return $this;
     }
 
     /**
@@ -99,7 +100,7 @@ class Response
 
     public function asAssistant(): static
     {
-        return new static($this->content, Role::ASSISTANT, $this->isError, $this->meta);
+        return new static($this->content, Role::ASSISTANT, $this->isError);
     }
 
     public function isNotification(): bool
