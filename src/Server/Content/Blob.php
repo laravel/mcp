@@ -15,9 +15,8 @@ class Blob implements Content
 {
     use HasMeta;
 
-    public function __construct(
-        protected string $content
-    ) {
+    public function __construct(protected string $content)
+    {
         //
     }
 

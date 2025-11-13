@@ -80,8 +80,8 @@
             "pint --test",
             "rector --dry-run"
         ],
-        "test:unit": "pest",
-        "test:types": "phpstan --memory-limit=-1",
+        "test:unit": "pest --ci --coverage --min=91.4",
+        "test:types": "phpstan",
         "test": [
             "@test:lint",
             "@test:unit",

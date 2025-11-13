@@ -14,9 +14,8 @@ class Text implements Content
 {
     use HasMeta;
 
-    public function __construct(
-        protected string $text
-    ) {
+    public function __construct(protected string $text)
+    {
         //
     }
 

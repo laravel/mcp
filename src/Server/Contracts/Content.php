@@ -31,8 +31,6 @@ interface Content extends Arrayable, Stringable
     public function toResource(Resource $resource): array;
 
     /**
-     * Set meta data, supporting both array and key-value signatures.
-     *
      * @param  string|array<string, mixed>  $meta
      */
     public function setMeta(string|array $meta, mixed $value = null): void;

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Concerns;
 
+use InvalidArgumentException;
+
 trait HasMeta
 {
     /**
@@ -19,6 +21,10 @@ trait HasMeta
         $this->meta ??= [];
 
         if (! is_array($meta)) {
+            if (! $value) {
+                throw new InvalidArgumentException('Value is required when using key-value signature.');
+            }
+
             $this->meta[$meta] = $value;
 
             return;
