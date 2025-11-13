@@ -83,7 +83,7 @@ it('throws exception when array contains non-Response object', function (): void
         Response::text('Valid'),
         'Invalid string',
     ]))->toThrow(
-        UnexpectedValueException::class,
+        InvalidArgumentException::class,
     );
 });
 
@@ -95,7 +95,7 @@ it('throws exception when array contains nested ResponseFactory', function (): v
         $nestedFactory,
         Response::text('Third'),
     ]))->toThrow(
-        UnexpectedValueException::class,
+        InvalidArgumentException::class,
     );
 });
 
@@ -104,7 +104,7 @@ it('throws exception when an array contains null', function (): void {
         Response::text('Valid'),
         null,
     ]))->toThrow(
-        UnexpectedValueException::class,
+        InvalidArgumentException::class,
     );
 });
 

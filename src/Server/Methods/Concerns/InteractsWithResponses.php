@@ -24,6 +24,10 @@ trait InteractsWithResponses
      */
     protected function toJsonRpcResponse(JsonRpcRequest $request, array|Response|ResponseFactory|string $response, callable $serializable): JsonRpcResponse
     {
+        if (is_array($response) && count($response) === 1) {
+            $response = Arr::first($response);
+        }
+
         if (! ($response instanceof ResponseFactory)) {
             $responses = collect(Arr::wrap($response))->map(fn ($item): Response => $item instanceof Response
                 ? $item
