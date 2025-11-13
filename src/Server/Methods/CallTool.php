@@ -9,6 +9,7 @@ use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Content\StructuredContent;
 use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
@@ -61,13 +62,39 @@ class CallTool implements Errable, Method
     }
 
     /**
-     * @return callable(Collection<int, Response>): array{content: array<int, array<string, mixed>>, isError: bool}
+     * @return callable(Collection<int, Response>): array{content: array<int, array<string, mixed>>, isError: bool, ?structuredContent: array<string, mixed>}
      */
     protected function serializable(Tool $tool): callable
     {
-        return fn (Collection $responses): array => [
-            'content' => $responses->map(fn (Response $response): array => $response->content()->toTool($tool))->all(),
-            'isError' => $responses->contains(fn (Response $response): bool => $response->isError()),
-        ];
+        return function (Collection $responses) use ($tool): array {
+            $groups = $responses->groupBy(fn (Response $response): string => $response->content() instanceof StructuredContent ? 'structuredContent' : 'content');
+
+            $content = $groups
+                ->get('content')
+                ?->map(fn (Response $response): array => $response->content()->toTool($tool));
+
+            $structuredContent = $groups
+                ->get('structuredContent')
+                ?->map(fn (Response $response): array => $response->content()->toTool($tool))
+                ->collapse();
+
+            if ($structuredContent?->isNotEmpty()) {
+                return [
+                    'content' => [
+                        [
+                            'type' => 'text',
+                            'text' => $structuredContent->toJson(),
+                        ],
+                    ],
+                    'isError' => $responses->contains(fn (Response $response): bool => $response->isError()),
+                    'structuredContent' => $structuredContent->all(),
+                ];
+            }
+
+            return [
+                'content' => $content?->all(),
+                'isError' => $responses->contains(fn (Response $response): bool => $response->isError()),
+            ];
+        };
     }
 }
