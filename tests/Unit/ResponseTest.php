@@ -139,10 +139,10 @@ it('creates blob response with content meta', function (): void {
         ->and($response->content()->toArray()['_meta'])->toEqual(['encoding' => 'utf-8']);
 });
 
-it('creates notification response with content meta', function (): void {
+it('creates a notification response with content meta', function (): void {
     $response = Response::notification('test/event', ['data' => 'value'])->withMeta(['author' => 'system']);
 
     expect($response->content())->toBeInstanceOf(Notification::class)
-        ->and($response->content()->toArray())->toHaveKey('_meta')
-        ->and($response->content()->toArray()['_meta'])->toEqual(['author' => 'system']);
+        ->and($response->content()->toArray()['params'])->toHaveKey('_meta')
+        ->and($response->content()->toArray()['params']['_meta'])->toEqual(['author' => 'system']);
 });

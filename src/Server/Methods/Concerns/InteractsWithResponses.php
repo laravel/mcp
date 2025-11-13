@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods\Concerns;
 
 use Generator;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
@@ -16,37 +18,41 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 trait InteractsWithResponses
 {
     /**
-     * @param  array<int, Response|string>|Response|string  $response
+     * @param  array<int, Response|ResponseFactory|string>|Response|ResponseFactory|string  $response
+     *
+     * @throws JsonRpcException
      */
-    protected function toJsonRpcResponse(JsonRpcRequest $request, array|Response|string $response, callable $serializable): JsonRpcResponse
+    protected function toJsonRpcResponse(JsonRpcRequest $request, array|Response|ResponseFactory|string $response, callable $serializable): JsonRpcResponse
     {
-        $responses = collect(
-            is_array($response) ? $response : [$response]
-        )->map(fn (Response|string $response): Response => $response instanceof Response
-            ? $response
-            : ($this->isBinary($response) ? Response::blob($response) : Response::text($response))
-        );
+        if (! ($response instanceof ResponseFactory)) {
+            $responses = collect(Arr::wrap($response))->map(fn ($item): Response => $item instanceof Response
+                ? $item
+                : ($this->isBinary($item) ? Response::blob($item) : Response::text($item))
+            );
 
-        $responses->each(function (Response $response) use ($request): void {
+            $response = ResponseFactory::make($responses->all());
+        }
+
+        $response->responses()->each(function (Response $response) use ($request): void {
             if (! $this instanceof Errable && $response->isError()) {
                 throw new JsonRpcException(
-                    // @phpstan-ignore-next-line
-                    $response->content()->__toString(),
+                    $response->content()->__toString(), // @phpstan-ignore-line
                     -32603,
                     $request->id,
                 );
             }
         });
 
-        return JsonRpcResponse::result($request->id, $serializable($responses));
+        return JsonRpcResponse::result($request->id, $serializable($response));
     }
 
     /**
-     * @param  iterable<Response|string>  $responses
+     * @param  iterable<Response|ResponseFactory|string>  $responses
      * @return Generator<JsonRpcResponse>
      */
     protected function toJsonRpcStreamedResponse(JsonRpcRequest $request, iterable $responses, callable $serializable): Generator
     {
+        /** @var array<int, Response|ResponseFactory|string> $pendingResponses */
         $pendingResponses = [];
 
         try {

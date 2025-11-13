@@ -47,7 +47,7 @@ abstract class Resource extends Primitive
     public function toArray(): array
     {
         // @phpstan-ignore return.type
-        return $this->withMeta([
+        return $this->mergeMeta([
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),

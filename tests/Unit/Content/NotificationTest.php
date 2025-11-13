@@ -69,8 +69,10 @@ it('supports _meta via setMeta', function (): void {
 
     expect($notification->toArray())->toEqual([
         'method' => 'test/event',
-        'params' => ['data' => 'value'],
-        '_meta' => ['author' => 'system'],
+        'params' => [
+            'data' => 'value',
+            '_meta' => ['author' => 'system'],
+        ],
     ]);
 });
 
@@ -102,7 +104,6 @@ it('allows both top-level _meta and params _meta independently', function (): vo
             'data' => 'value',
             '_meta' => ['source' => 'params', 'keep' => 'this'],
         ],
-        '_meta' => ['author' => 'system', 'level' => 'top'],
     ]);
 });
 

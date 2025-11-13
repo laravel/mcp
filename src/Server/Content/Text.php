@@ -41,7 +41,7 @@ class Text implements Content
      */
     public function toResource(Resource $resource): array
     {
-        return $this->withMeta([
+        return $this->mergeMeta([
             'text' => $this->text,
             'uri' => $resource->uri(),
             'name' => $resource->name(),
@@ -60,7 +60,7 @@ class Text implements Content
      */
     public function toArray(): array
     {
-        return $this->withMeta([
+        return $this->mergeMeta([
             'type' => 'text',
             'text' => $this->text,
         ]);

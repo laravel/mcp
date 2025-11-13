@@ -46,7 +46,7 @@ class Blob implements Content
      */
     public function toResource(Resource $resource): array
     {
-        return $this->withMeta([
+        return $this->mergeMeta([
             'blob' => base64_encode($this->content),
             'uri' => $resource->uri(),
             'name' => $resource->name(),
@@ -65,7 +65,7 @@ class Blob implements Content
      */
     public function toArray(): array
     {
-        return $this->withMeta([
+        return $this->mergeMeta([
             'type' => 'blob',
             'blob' => $this->content,
         ]);

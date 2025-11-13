@@ -66,7 +66,7 @@ abstract class Tool extends Primitive
         $schema['properties'] ??= (object) [];
 
         // @phpstan-ignore return.type
-        return $this->withMeta([
+        return $this->mergeMeta([
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
