@@ -8,7 +8,6 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
-use InvalidArgumentException;
 use Laravel\Mcp\Server\Concerns\HasMeta;
 
 class ResponseFactory
@@ -20,33 +19,14 @@ class ResponseFactory
     /**
      * @var Collection<int, Response>
      */
-    protected Collection $responses;
+    public Collection $responses;
 
     /**
      * @param  Response|array<int, Response>  $responses
      */
-    protected function __construct(Response|array $responses)
+    public function __construct(Response|array $responses)
     {
         $this->responses = collect(Arr::wrap($responses));
-    }
-
-    /**
-     * @param  Response|array<int, Response>  $responses
-     */
-    public static function make(Response|array $responses): static
-    {
-        if (is_array($responses)) {
-            foreach ($responses as $index => $response) {
-                // @phpstan-ignore instanceof.alwaysTrue
-                if (! $response instanceof Response) {
-                    throw new InvalidArgumentException(
-                        "Invalid response type at index {$index}: Expected ".Response::class.', but received '.get_debug_type($response).'.'
-                    );
-                }
-            }
-        }
-
-        return new static($responses);
     }
 
     /**

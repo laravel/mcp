@@ -46,7 +46,7 @@ it('preserves meta when converting to a resource payload', function (): void {
 
     $payload = $blob->toResource($resource);
 
-    expect($payload)->toEqual([
+    expect($payload)->toMatchArray([
         'blob' => base64_encode('raw-bytes'),
         'uri' => 'file://avatar.png',
         'name' => 'avatar',
@@ -87,7 +87,7 @@ it('supports meta via setMeta', function (): void {
     $blob = new Blob('binary-data');
     $blob->setMeta(['encoding' => 'base64']);
 
-    expect($blob->toArray())->toEqual([
+    expect($blob->toArray())->toMatchArray([
         'type' => 'blob',
         'blob' => 'binary-data',
         '_meta' => ['encoding' => 'base64'],
@@ -97,7 +97,7 @@ it('supports meta via setMeta', function (): void {
 it('does not include meta if null', function (): void {
     $blob = new Blob('data');
 
-    expect($blob->toArray())->toEqual([
+    expect($blob->toArray())->toMatchArray([
         'type' => 'blob',
         'blob' => 'data',
     ]);

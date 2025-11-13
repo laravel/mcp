@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
@@ -145,4 +146,34 @@ it('creates a notification response with content meta', function (): void {
     expect($response->content())->toBeInstanceOf(Notification::class)
         ->and($response->content()->toArray()['params'])->toHaveKey('_meta')
         ->and($response->content()->toArray()['params']['_meta'])->toEqual(['author' => 'system']);
+});
+
+it('throws exception when array contains a non-Response object', function (): void {
+    expect(fn (): ResponseFactory => Response::make([
+        Response::text('Valid'),
+        'Invalid string',
+    ]))->toThrow(
+        InvalidArgumentException::class,
+    );
+});
+
+it('throws exception when array contains nested ResponseFactory', function (): void {
+    $nestedFactory = Response::make(Response::text('Nested'));
+
+    expect(fn (): ResponseFactory => Response::make([
+        Response::text('First'),
+        $nestedFactory,
+        Response::text('Third'),
+    ]))->toThrow(
+        InvalidArgumentException::class,
+    );
+});
+
+it('throws exception when an array contains null', function (): void {
+    expect(fn (): ResponseFactory => Response::make([
+        Response::text('Valid'),
+        null,
+    ]))->toThrow(
+        InvalidArgumentException::class,
+    );
 });

@@ -6,6 +6,7 @@ namespace Laravel\Mcp;
 
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
+use InvalidArgumentException;
 use JsonException;
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
@@ -69,15 +70,30 @@ class Response
     }
 
     /**
-     * Set meta data on the response content.
-     * Supports both array and key-value signatures.
-     * Multiple calls will merge the meta data.
-     *
-     * @param  string|array<string, mixed>  $keyOrArray
+     * @param  Response|array<int, Response>  $responses
      */
-    public function withMeta(string|array $keyOrArray, mixed $value = null): static
+    public static function make(Response|array $responses): ResponseFactory
     {
-        $this->content->setMeta($keyOrArray, $value);
+        if (is_array($responses)) {
+            foreach ($responses as $index => $response) {
+                // @phpstan-ignore instanceof.alwaysTrue
+                if (! $response instanceof Response) {
+                    throw new InvalidArgumentException(
+                        "Invalid response type at index {$index}: Expected ".Response::class.', but received '.get_debug_type($response).'.'
+                    );
+                }
+            }
+        }
+
+        return new ResponseFactory($responses);
+    }
+
+    /**
+     * @param  string|array<string, mixed>  $meta
+     */
+    public function withMeta(string|array $meta, mixed $value = null): static
+    {
+        $this->content->setMeta($meta, $value);
 
         return $this;
     }

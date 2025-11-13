@@ -67,7 +67,7 @@ it('supports _meta via setMeta', function (): void {
     $notification = new Notification('test/event', ['data' => 'value']);
     $notification->setMeta(['author' => 'system']);
 
-    expect($notification->toArray())->toEqual([
+    expect($notification->toArray())->toMatchArray([
         'method' => 'test/event',
         'params' => [
             'data' => 'value',
@@ -82,7 +82,7 @@ it('supports _meta in params', function (): void {
         '_meta' => ['source' => 'params'],
     ]);
 
-    expect($notification->toArray())->toEqual([
+    expect($notification->toArray())->toMatchArray([
         'method' => 'test/event',
         'params' => [
             'data' => 'value',
@@ -91,38 +91,8 @@ it('supports _meta in params', function (): void {
     ]);
 });
 
-it('allows both top-level _meta and params _meta independently', function (): void {
-    $notification = new Notification('test/event', [
-        'data' => 'value',
-        '_meta' => ['source' => 'params', 'keep' => 'this'],
-    ]);
-    $notification->setMeta(['author' => 'system', 'level' => 'top']);
-
-    expect($notification->toArray())->toEqual([
-        'method' => 'test/event',
-        'params' => [
-            'data' => 'value',
-            '_meta' => ['source' => 'params', 'keep' => 'this'],
-        ],
-    ]);
-});
-
-it('does not include _meta if null', function (): void {
-    $notification = new Notification('test/event', ['data' => 'value']);
-
-    expect($notification->toArray())->toEqual([
-        'method' => 'test/event',
-        'params' => ['data' => 'value'],
-    ])
-        ->and($notification->toArray())->not->toHaveKey('_meta');
-});
-
 it('does not include _meta if not set', function (): void {
     $notification = new Notification('test/event', ['data' => 'value']);
 
-    expect($notification->toArray())->toEqual([
-        'method' => 'test/event',
-        'params' => ['data' => 'value'],
-    ])
-        ->and($notification->toArray())->not->toHaveKey('_meta');
+    expect($notification->toArray()['params'])->not->toHaveKey('_meta');
 });

@@ -21,7 +21,7 @@ trait HasMeta
         $this->meta ??= [];
 
         if (! is_array($meta)) {
-            if (! $value) {
+            if (is_null($value)) {
                 throw new InvalidArgumentException('Value is required when using key-value signature.');
             }
 

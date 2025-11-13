@@ -15,7 +15,7 @@ class ResourceWithResultMetaResource extends Resource
 
     public function handle(): ResponseFactory
     {
-        return ResponseFactory::make(
+        return Response::make(
             Response::text('Resource content with result meta')
         )->withMeta([
             'last_modified' => now()->toIso8601String(),

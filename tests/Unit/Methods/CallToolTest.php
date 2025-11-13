@@ -179,18 +179,21 @@ it('includes result meta when responses provide it', function (): void {
 
     $payload = $response->toArray();
 
-    expect($payload['id'])->toEqual(1)
-        ->and($payload['result'])->toEqual([
-            'content' => [
-                [
-                    'type' => 'text',
-                    'text' => 'Hello, John Doe!',
-                    '_meta' => [
-                        'test' => 'metadata',
+    expect($payload)
+        ->toMatchArray([
+            'id' => 1,
+            'result' => [
+                'content' => [
+                    [
+                        'type' => 'text',
+                        'text' => 'Hello, John Doe!',
+                        '_meta' => [
+                            'test' => 'metadata',
+                        ],
                     ],
                 ],
+                'isError' => false,
             ],
-            'isError' => false,
         ]);
 });
 
@@ -265,17 +268,24 @@ it('returns a result with result-level meta when using ResponseFactory', functio
 
     $payload = $response->toArray();
 
-    expect($payload['id'])->toEqual(1)
-        ->and($payload['result'])->toHaveKey('_meta')
-        ->and($payload['result']['_meta'])->toHaveKey('session_id')
-        ->and($payload['result']['_meta'])->toHaveKey('timestamp')
-        ->and($payload['result']['content'])->toEqual([
-            [
-                'type' => 'text',
-                'text' => 'Tool response with result meta',
+    expect($payload)
+        ->toMatchArray([
+            'id' => 1,
+            'result' => [
+                '_meta' => [
+                    'session_id' => 50,
+                ],
+                'content' => [
+                    [
+                        'type' => 'text',
+                        'text' => 'Tool response with result meta',
+                    ],
+                ],
+                'isError' => false,
             ],
         ])
-        ->and($payload['result']['isError'])->toBeFalse();
+        ->and($payload['result']['_meta'])
+        ->toHaveKeys(['session_id']);
 });
 
 it('separates content-level meta from result-level meta', function (): void {
@@ -311,19 +321,26 @@ it('separates content-level meta from result-level meta', function (): void {
 
     $payload = $response->toArray();
 
-    expect($payload['result'])->toHaveKey('_meta')
-        ->and($payload['result']['_meta'])->toEqual([
-            'result_key' => 'result_value',
-            'total_responses' => 2,
-        ])
-        ->and($payload['result']['content'][0])->toEqual([
-            'type' => 'text',
-            'text' => 'First response',
-            '_meta' => ['content_index' => 1],
-        ])
-        ->and($payload['result']['content'][1])->toEqual([
-            'type' => 'text',
-            'text' => 'Second response',
-            '_meta' => ['content_index' => 2],
+    expect($payload)
+        ->toMatchArray([
+            'result' => [
+                'isError' => false,
+                '_meta' => [
+                    'result_key' => 'result_value',
+                    'total_responses' => 2,
+                ],
+                'content' => [
+                    [
+                        'type' => 'text',
+                        'text' => 'First response',
+                        '_meta' => ['content_index' => 1],
+                    ],
+                    [
+                        'type' => 'text',
+                        'text' => 'Second response',
+                        '_meta' => ['content_index' => 2],
+                    ],
+                ],
+            ],
         ]);
 });

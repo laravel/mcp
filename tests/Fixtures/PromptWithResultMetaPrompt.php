@@ -14,7 +14,7 @@ class PromptWithResultMetaPrompt extends Prompt
 
     public function handle(): ResponseFactory
     {
-        return ResponseFactory::make(
+        return Response::make(
             Response::text('Prompt instructions with result meta')->withMeta(['key' => 'value'])
         )->withMeta([
             'prompt_version' => '2.0',

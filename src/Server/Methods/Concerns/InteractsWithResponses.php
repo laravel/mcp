@@ -34,7 +34,7 @@ trait InteractsWithResponses
                 : ($this->isBinary($item) ? Response::blob($item) : Response::text($item))
             );
 
-            $response = ResponseFactory::make($responses->all());
+            $response = new ResponseFactory($responses->all());
         }
 
         $response->responses()->each(function (Response $response) use ($request): void {

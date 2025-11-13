@@ -14,11 +14,10 @@ class ToolWithResultMetaTool extends Tool
 
     public function handle(Request $request): ResponseFactory
     {
-        return ResponseFactory::make(
+        return Response::make(
             Response::text('Tool response with result meta')
         )->withMeta([
-            'session_id' => $request->sessionId(),
-            'timestamp' => now()->toIso8601String(),
+            'session_id' => 50,
         ]);
     }
 

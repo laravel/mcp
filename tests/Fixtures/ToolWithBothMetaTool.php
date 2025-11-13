@@ -14,7 +14,7 @@ class ToolWithBothMetaTool extends Tool
 
     public function handle(Request $request): ResponseFactory
     {
-        return ResponseFactory::make([
+        return Response::make([
             Response::text('First response')->withMeta(['content_index' => 1]),
             Response::text('Second response')->withMeta(['content_index' => 2]),
         ])->withMeta([
