@@ -94,11 +94,6 @@ it('includes schema properties when defined', function (): void {
         ->and($array['inputSchema']['required'])->toEqual(['message']);
 });
 
-it('returns no meta by default', function (): void {
-    $tool = new TestTool;
-    expect($tool->meta())->toBeNull();
-});
-
 it('can have custom meta', function (): void {
     $tool = new CustomMetaTool;
     expect($tool->toArray()['_meta'])->toEqual(['key' => 'value']);

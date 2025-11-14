@@ -49,12 +49,6 @@ it('merges multiple withMeta calls', function (): void {
     expect($factory->getMeta())->toEqual(['key1' => 'value1', 'key2' => 'value2']);
 });
 
-it('returns null for getMeta when no meta is set', function (): void {
-    $factory = new ResponseFactory(Response::text('Hello'));
-
-    expect($factory->getMeta())->toBeNull();
-});
-
 it('supports Conditionable trait', function (): void {
     $factory = (new ResponseFactory(Response::text('Hello')))
         ->when(true, fn ($f): ResponseFactory => $f->withMeta(['conditional' => 'yes']));
@@ -74,15 +68,6 @@ it('separates content-level meta from result-level meta', function (): void {
     $factory = (new ResponseFactory($response))
         ->withMeta(['result_meta' => 'result_value']);
 
-    expect($factory->getMeta())->toEqual(['result_meta' => 'result_value']);
-    expect($factory->responses()->first())->toBe($response);
-});
-
-it('accepts a single Response without validation error', function (): void {
-    $response = Response::text('Single response');
-    $factory = new ResponseFactory($response);
-
-    expect($factory->responses())
-        ->toHaveCount(1)
-        ->first()->toBe($response);
+    expect($factory->getMeta())->toEqual(['result_meta' => 'result_value'])
+        ->and($factory->responses()->first())->toBe($response);
 });

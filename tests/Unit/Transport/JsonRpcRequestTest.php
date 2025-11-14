@@ -128,14 +128,12 @@ it('extracts _meta from params', function (): void {
         ],
     ]);
 
-    expect($request->params['_meta'] ?? null)->toEqual([
+    expect($request->meta())->toEqual([
         'progressToken' => 'token-123',
         'customKey' => 'customValue',
     ])
         ->and($request->params)->toHaveKey('_meta')
         ->and($request->params)->toHaveKey('name', 'echo');
-
-    // _meta should remain in params (matches official SDK)
 });
 
 it('has null meta when not provided', function (): void {
@@ -148,7 +146,7 @@ it('has null meta when not provided', function (): void {
         ],
     ]);
 
-    expect($request->params['_meta'] ?? null)->toBeNull();
+    expect($request->meta())->toBeNull();
 });
 
 it('passes meta to Request object', function (): void {
