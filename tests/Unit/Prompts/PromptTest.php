@@ -41,10 +41,12 @@ it('can have custom meta', function (): void {
         }
     };
 
-    expect($prompt->toArray()['_meta'])->toEqual([
-        'category' => 'greeting',
-        'tags' => ['hello', 'welcome'],
-    ]);
+    expect($prompt->toArray())
+        ->toHaveKey('_meta')
+        ->_meta->toEqual([
+            'category' => 'greeting',
+            'tags' => ['hello', 'welcome'],
+        ]);
 });
 
 it('includes meta in array representation with other fields', function (): void {
@@ -81,7 +83,8 @@ it('includes meta in array representation with other fields', function (): void 
         ->toHaveKey('description', 'A friendly greeting')
         ->toHaveKey('arguments')
         ->toHaveKey('_meta')
-        ->and($array['_meta'])->toEqual(['version' => '1.0'])
-        ->and($array['arguments'])->toHaveCount(1);
+        ->and($array)
+        ->_meta->toEqual(['version' => '1.0'])
+        ->arguments->toHaveCount(1);
 
 });

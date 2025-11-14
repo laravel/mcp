@@ -114,15 +114,21 @@ it('returns resource result with result-level meta when using ResponseFactory', 
     $payload = $response->toArray();
 
     expect($payload['id'])->toEqual(1)
-        ->and($payload['result'])->toHaveKey('_meta')
-        ->and($payload['result']['_meta'])->toHaveKey('last_modified')
-        ->and($payload['result']['_meta'])->toHaveKey('version')
-        ->and($payload['result']['_meta']['version'])->toBe('1.0')
-        ->and($payload['result']['contents'][0])->toEqual([
-            'text' => 'Resource content with result meta',
-            'uri' => 'file://resources/with-result-meta.txt',
-            'name' => 'resource-with-result-meta-resource',
-            'title' => 'Resource With Result Meta Resource',
-            'mimeType' => 'text/plain',
+        ->and($payload)->toMatchArray([
+            'result' => [
+                '_meta' => [
+                    'last_modified' => '2025-01-01',
+                    'version' => '1.0',
+                ],
+                'contents' => [
+                    [
+                        'text' => 'Resource content with result meta',
+                        'uri' => 'file://resources/with-result-meta.txt',
+                        'name' => 'resource-with-result-meta-resource',
+                        'title' => 'Resource With Result Meta Resource',
+                        'mimeType' => 'text/plain',
+                    ],
+                ],
+            ],
         ]);
 });

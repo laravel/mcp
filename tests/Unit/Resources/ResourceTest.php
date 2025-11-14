@@ -179,8 +179,10 @@ it('can have custom meta', function (): void {
         }
     };
 
-    expect($resource->toArray()['_meta'])->toEqual([
-        'author' => 'John Doe',
-        'version' => '1.0',
-    ]);
+    expect($resource->toArray())
+        ->toHaveKey('_meta')
+        ->_meta->toEqual([
+            'author' => 'John Doe',
+            'version' => '1.0',
+        ]);
 });

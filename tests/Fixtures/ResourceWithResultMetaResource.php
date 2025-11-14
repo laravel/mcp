@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Fixtures;
 
 use Laravel\Mcp\Response;
@@ -18,7 +20,7 @@ class ResourceWithResultMetaResource extends Resource
         return Response::make(
             Response::text('Resource content with result meta')
         )->withMeta([
-            'last_modified' => now()->toIso8601String(),
+            'last_modified' => '2025-01-01',
             'version' => '1.0',
         ]);
     }
