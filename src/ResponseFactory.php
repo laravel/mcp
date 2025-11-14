@@ -8,6 +8,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
+use InvalidArgumentException;
 use Laravel\Mcp\Server\Concerns\HasMeta;
 
 class ResponseFactory
@@ -26,7 +27,17 @@ class ResponseFactory
      */
     public function __construct(Response|array $responses)
     {
-        $this->responses = collect(Arr::wrap($responses));
+        $wrapped = Arr::wrap($responses);
+
+        foreach ($wrapped as $index => $response) {
+            if (! $response instanceof Response) {
+                throw new InvalidArgumentException(
+                    "Invalid response type at index {$index}: Expected ".Response::class.', but received '.get_debug_type($response).'.'
+                );
+            }
+        }
+
+        $this->responses = collect($wrapped);
     }
 
     /**

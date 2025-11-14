@@ -19,25 +19,12 @@ trait InteractsWithResponses
 {
     /**
      * @param  array<int, Response|ResponseFactory|string>|Response|ResponseFactory|string  $response
-     *
-     * @throws JsonRpcException
      */
     protected function toJsonRpcResponse(JsonRpcRequest $request, array|Response|ResponseFactory|string $response, callable $serializable): JsonRpcResponse
     {
-        if (is_array($response) && count($response) === 1) {
-            $response = Arr::first($response);
-        }
+        $responseFactory = $this->toResponseFactory($response);
 
-        if (! ($response instanceof ResponseFactory)) {
-            $responses = collect(Arr::wrap($response))->map(fn ($item): Response => $item instanceof Response
-                ? $item
-                : ($this->isBinary($item) ? Response::blob($item) : Response::text($item))
-            );
-
-            $response = new ResponseFactory($responses->all());
-        }
-
-        $response->responses()->each(function (Response $response) use ($request): void {
+        $responseFactory->responses()->each(function (Response $response) use ($request): void {
             if (! $this instanceof Errable && $response->isError()) {
                 throw new JsonRpcException(
                     $response->content()->__toString(), // @phpstan-ignore-line
@@ -47,7 +34,7 @@ trait InteractsWithResponses
             }
         });
 
-        return JsonRpcResponse::result($request->id, $serializable($response));
+        return JsonRpcResponse::result($request->id, $serializable($responseFactory));
     }
 
     /**
@@ -88,5 +75,32 @@ trait InteractsWithResponses
     protected function isBinary(string $content): bool
     {
         return str_contains($content, "\0");
+    }
+
+    /**
+     * @param  array<int, Response|ResponseFactory|string>|Response|ResponseFactory|string  $response
+     */
+    private function toResponseFactory(array|Response|ResponseFactory|string $response): ResponseFactory
+    {
+        $responseFactory = is_array($response) && count($response) === 1
+            ? Arr::first($response)
+            : $response;
+
+        if ($responseFactory instanceof ResponseFactory) {
+            return $responseFactory;
+        }
+
+        $responses = collect(Arr::wrap($responseFactory))
+            ->map(function ($item): mixed {
+                if ($item instanceof Response) {
+                    return $item;
+                }
+
+                return $this->isBinary($item)
+                    ? Response::blob($item)
+                    : Response::text($item);
+            });
+
+        return new ResponseFactory($responses->all());
     }
 }

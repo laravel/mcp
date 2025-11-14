@@ -6,7 +6,6 @@ namespace Laravel\Mcp;
 
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
-use InvalidArgumentException;
 use JsonException;
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
@@ -74,17 +73,6 @@ class Response
      */
     public static function make(Response|array $responses): ResponseFactory
     {
-        if (is_array($responses)) {
-            foreach ($responses as $index => $response) {
-                // @phpstan-ignore instanceof.alwaysTrue
-                if (! $response instanceof Response) {
-                    throw new InvalidArgumentException(
-                        "Invalid response type at index {$index}: Expected ".Response::class.', but received '.get_debug_type($response).'.'
-                    );
-                }
-            }
-        }
-
         return new ResponseFactory($responses);
     }
 
