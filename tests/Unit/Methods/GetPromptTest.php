@@ -232,7 +232,7 @@ it('returns a prompt result with result-level meta when using ResponseFactory', 
         ->result->toMatchArray([
             '_meta' => [
                 'prompt_version' => '2.0',
-                'last_updated' => now()->toDateString(),
+                'last_updated' => '2025-01-01',
             ],
             'description' => 'Prompt with result-level meta',
             'messages' => [

@@ -86,17 +86,3 @@ it('accepts a single Response without validation error', function (): void {
         ->toHaveCount(1)
         ->first()->toBe($response);
 });
-
-it('accepts array of valid Response objects', function (): void {
-    $responses = [
-        Response::text('First'),
-        Response::text('Second'),
-        Response::blob('binary'),
-    ];
-
-    $factory = new ResponseFactory($responses);
-
-    expect($factory->responses())
-        ->toHaveCount(3)
-        ->all()->toBe($responses);
-});

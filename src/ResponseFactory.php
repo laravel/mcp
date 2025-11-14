@@ -19,7 +19,7 @@ class ResponseFactory
     /**
      * @var Collection<int, Response>
      */
-    public Collection $responses;
+    protected Collection $responses;
 
     /**
      * @param  Response|array<int, Response>  $responses

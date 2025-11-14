@@ -18,7 +18,7 @@ class PromptWithResultMetaPrompt extends Prompt
             Response::text('Prompt instructions with result meta')->withMeta(['key' => 'value'])
         )->withMeta([
             'prompt_version' => '2.0',
-            'last_updated' => now()->toDateString(),
+            'last_updated' => '2025-01-01',
         ]);
     }
 }
