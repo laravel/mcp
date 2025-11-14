@@ -24,10 +24,12 @@ class Request implements Arrayable
 
     /**
      * @param  array<string, mixed>  $arguments
+     * @param  array<string, mixed>|null  $meta
      */
     public function __construct(
         protected array $arguments = [],
-        protected ?string $sessionId = null
+        protected ?string $sessionId = null,
+        protected ?array $meta = null,
     ) {
         //
     }
@@ -93,6 +95,14 @@ class Request implements Arrayable
     }
 
     /**
+     * @return array<string, mixed>|null
+     */
+    public function meta(): ?array
+    {
+        return $this->meta;
+    }
+
+    /**
      * @param  array<string, mixed>  $arguments
      */
     public function setArguments(array $arguments): void
@@ -103,5 +113,13 @@ class Request implements Arrayable
     public function setSessionId(?string $sessionId): void
     {
         $this->sessionId = $sessionId;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $meta
+     */
+    public function setMeta(?array $meta): void
+    {
+        $this->meta = $meta;
     }
 }

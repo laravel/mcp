@@ -6,9 +6,9 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
 use Illuminate\Container\Container;
-use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
@@ -60,8 +60,8 @@ class ReadResource implements Method
 
     protected function serializable(Resource $resource): callable
     {
-        return fn (Collection $responses): array => [
-            'contents' => $responses->map(fn (Response $response): array => $response->content()->toResource($resource))->all(),
-        ];
+        return fn (ResponseFactory $factory): array => $factory->mergeMeta([
+            'contents' => $factory->responses()->map(fn (Response $response): array => $response->content()->toResource($resource))->all(),
+        ]);
     }
 }

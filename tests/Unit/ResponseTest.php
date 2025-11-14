@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
@@ -121,4 +122,58 @@ it('handles empty array in json response', function (): void {
 
     $content = $response->content();
     expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
+});
+
+it('creates text response with content meta', function (): void {
+    $response = Response::text('Hello')->withMeta(['author' => 'John']);
+
+    expect($response->content())->toBeInstanceOf(Text::class)
+        ->and($response->content()->toArray())->toHaveKey('_meta')
+        ->and($response->content()->toArray()['_meta'])->toEqual(['author' => 'John']);
+});
+
+it('creates blob response with content meta', function (): void {
+    $response = Response::blob('binary')->withMeta(['encoding' => 'utf-8']);
+
+    expect($response->content())->toBeInstanceOf(Blob::class)
+        ->and($response->content()->toArray())->toHaveKey('_meta')
+        ->and($response->content()->toArray()['_meta'])->toEqual(['encoding' => 'utf-8']);
+});
+
+it('creates a notification response with content meta', function (): void {
+    $response = Response::notification('test/event', ['data' => 'value'])->withMeta(['author' => 'system']);
+
+    expect($response->content())->toBeInstanceOf(Notification::class)
+        ->and($response->content()->toArray()['params'])->toHaveKey('_meta')
+        ->and($response->content()->toArray()['params']['_meta'])->toEqual(['author' => 'system']);
+});
+
+it('throws exception when array contains a non-Response object', function (): void {
+    expect(fn (): ResponseFactory => Response::make([
+        Response::text('Valid'),
+        'Invalid string',
+    ]))->toThrow(
+        InvalidArgumentException::class,
+    );
+});
+
+it('throws exception when array contains nested ResponseFactory', function (): void {
+    $nestedFactory = Response::make(Response::text('Nested'));
+
+    expect(fn (): ResponseFactory => Response::make([
+        Response::text('First'),
+        $nestedFactory,
+        Response::text('Third'),
+    ]))->toThrow(
+        InvalidArgumentException::class,
+    );
+});
+
+it('throws exception when an array contains null', function (): void {
+    expect(fn (): ResponseFactory => Response::make([
+        Response::text('Valid'),
+        null,
+    ]))->toThrow(
+        InvalidArgumentException::class,
+    );
 });

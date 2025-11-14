@@ -94,6 +94,11 @@ it('includes schema properties when defined', function (): void {
         ->and($array['inputSchema']['required'])->toEqual(['message']);
 });
 
+it('can have custom meta', function (): void {
+    $tool = new CustomMetaTool;
+    expect($tool->toArray()['_meta'])->toEqual(['key' => 'value']);
+});
+
 class TestTool extends Tool
 {
     public function description(): string
@@ -154,4 +159,11 @@ class ToolWithSchema extends TestTool
             'message' => $schema->string()->description('The message to echo')->required(),
         ];
     }
+}
+
+class CustomMetaTool extends TestTool
+{
+    protected ?array $meta = [
+        'key' => 'value',
+    ];
 }

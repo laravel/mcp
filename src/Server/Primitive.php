@@ -7,12 +7,15 @@ namespace Laravel\Mcp\Server;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Concerns\HasMeta;
 
 /**
  * @implements Arrayable<string, mixed>
  */
 abstract class Primitive implements Arrayable
 {
+    use HasMeta;
+
     protected string $name = '';
 
     protected string $title = '';
@@ -38,6 +41,14 @@ abstract class Primitive implements Arrayable
         return $this->description === ''
             ? Str::headline(class_basename($this))
             : $this->description;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function meta(): ?array
+    {
+        return $this->meta;
     }
 
     public function eligibleForRegistration(): bool

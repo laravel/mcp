@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Content;
 
+use Laravel\Mcp\Server\Concerns\HasMeta;
 use Laravel\Mcp\Server\Contracts\Content;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -11,6 +12,8 @@ use Laravel\Mcp\Server\Tool;
 
 class Text implements Content
 {
+    use HasMeta;
+
     public function __construct(protected string $text)
     {
         //
@@ -37,13 +40,13 @@ class Text implements Content
      */
     public function toResource(Resource $resource): array
     {
-        return [
+        return $this->mergeMeta([
             'text' => $this->text,
             'uri' => $resource->uri(),
             'name' => $resource->name(),
             'title' => $resource->title(),
             'mimeType' => $resource->mimeType(),
-        ];
+        ]);
     }
 
     public function __toString(): string
@@ -56,9 +59,9 @@ class Text implements Content
      */
     public function toArray(): array
     {
-        return [
+        return $this->mergeMeta([
             'type' => 'text',
             'text' => $this->text,
-        ];
+        ]);
     }
 }

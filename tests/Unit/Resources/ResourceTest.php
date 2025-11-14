@@ -141,3 +141,48 @@ test('description property works as expected', function (): void {
     };
     expect($resource->description())->toBe('A test resource.');
 });
+
+it('returns no meta by default', function (): void {
+    $resource = new class extends Resource
+    {
+        public function description(): string
+        {
+            return 'Test resource';
+        }
+
+        public function handle(): string
+        {
+            return 'Content';
+        }
+    };
+
+    expect($resource->meta())->toBeNull()
+        ->and($resource->toArray())->not->toHaveKey('_meta');
+});
+
+it('can have custom meta', function (): void {
+    $resource = new class extends Resource
+    {
+        protected ?array $meta = [
+            'author' => 'John Doe',
+            'version' => '1.0',
+        ];
+
+        public function description(): string
+        {
+            return 'Test resource';
+        }
+
+        public function handle(): string
+        {
+            return 'Content';
+        }
+    };
+
+    expect($resource->toArray())
+        ->toHaveKey('_meta')
+        ->_meta->toEqual([
+            'author' => 'John Doe',
+            'version' => '1.0',
+        ]);
+});
