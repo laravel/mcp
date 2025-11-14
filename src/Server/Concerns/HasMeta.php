@@ -14,9 +14,9 @@ trait HasMeta
     protected ?array $meta = null;
 
     /**
-     * @param  string|array<string, mixed>  $meta
+     * @param  array<string, mixed>|string  $meta
      */
-    public function setMeta(string|array $meta, mixed $value = null): void
+    public function setMeta(array|string $meta, mixed $value = null): void
     {
         $this->meta ??= [];
 

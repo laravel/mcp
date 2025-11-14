@@ -31,9 +31,9 @@ interface Content extends Arrayable, Stringable
     public function toResource(Resource $resource): array;
 
     /**
-     * @param  string|array<string, mixed>  $meta
+     * @param  array<string, mixed>|string  $meta
      */
-    public function setMeta(string|array $meta, mixed $value = null): void;
+    public function setMeta(array|string $meta, mixed $value = null): void;
 
     public function __toString(): string;
 }

@@ -20,7 +20,7 @@ trait InteractsWithResponses
     /**
      * @param  array<int, Response|ResponseFactory|string>|Response|ResponseFactory|string  $response
      */
-    protected function toJsonRpcResponse(JsonRpcRequest $request, array|Response|ResponseFactory|string $response, callable $serializable): JsonRpcResponse
+    protected function toJsonRpcResponse(JsonRpcRequest $request, Response|ResponseFactory|array|string $response, callable $serializable): JsonRpcResponse
     {
         $responseFactory = $this->toResponseFactory($response);
 
@@ -80,7 +80,7 @@ trait InteractsWithResponses
     /**
      * @param  array<int, Response|ResponseFactory|string>|Response|ResponseFactory|string  $response
      */
-    private function toResponseFactory(array|Response|ResponseFactory|string $response): ResponseFactory
+    private function toResponseFactory(Response|ResponseFactory|array|string $response): ResponseFactory
     {
         $responseFactory = is_array($response) && count($response) === 1
             ? Arr::first($response)

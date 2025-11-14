@@ -77,9 +77,9 @@ class Response
     }
 
     /**
-     * @param  string|array<string, mixed>  $meta
+     * @param  array<string, mixed>|string  $meta
      */
-    public function withMeta(string|array $meta, mixed $value = null): static
+    public function withMeta(array|string $meta, mixed $value = null): static
     {
         $this->content->setMeta($meta, $value);
 
