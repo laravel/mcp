@@ -113,3 +113,54 @@ it('defaults params to empty array and supports getters', function (): void {
     expect($requestWithCursor->cursor())->toEqual('CUR123')
         ->and($requestWithCursor->get('foo'))->toEqual('bar');
 });
+
+it('extracts _meta from params', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'echo',
+            '_meta' => [
+                'progressToken' => 'token-123',
+                'customKey' => 'customValue',
+            ],
+        ],
+    ]);
+
+    expect($request->meta())->toEqual([
+        'progressToken' => 'token-123',
+        'customKey' => 'customValue',
+    ])
+        ->and($request->params)->toHaveKey('_meta')
+        ->and($request->params)->toHaveKey('name', 'echo');
+});
+
+it('has null meta when not provided', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'echo',
+        ],
+    ]);
+
+    expect($request->meta())->toBeNull();
+});
+
+it('passes meta to Request object', function (): void {
+    $jsonRpcRequest = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'arguments' => ['message' => 'Hello'],
+            '_meta' => ['requestId' => '456'],
+        ],
+    ]);
+
+    $request = $jsonRpcRequest->toRequest();
+
+    expect($request->meta())->toEqual(['requestId' => '456']);
+});
