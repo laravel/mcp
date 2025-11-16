@@ -6,9 +6,9 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
 use Illuminate\Container\Container;
-use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
@@ -59,16 +59,16 @@ class GetPrompt implements Method
     }
 
     /**
-     * @return callable(Collection<int, Response>): array{description?: string, messages: array<int, array{role: string, content: array<int, array<string, mixed>}>}
+     * @return callable(ResponseFactory): array<string, mixed>
      */
     protected function serializable(Prompt $prompt): callable
     {
-        return fn (Collection $responses): array => [
+        return fn (ResponseFactory $factory): array => $factory->mergeMeta([
             'description' => $prompt->description(),
-            'messages' => $responses->map(fn (Response $response): array => [
+            'messages' => $factory->responses()->map(fn (Response $response): array => [
                 'role' => $response->role()->value,
                 'content' => $response->content()->toPrompt($prompt),
             ])->all(),
-        ];
+        ]);
     }
 }

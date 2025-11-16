@@ -5,6 +5,7 @@ use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Tests\Fixtures\PromptWithResultMetaPrompt;
 use Tests\Fixtures\ReviewMyCodePrompt;
 use Tests\Fixtures\TellMeHiPrompt;
 
@@ -194,4 +195,57 @@ it('passes arguments to prompt handler', function (): void {
     expect($payload['id'])->toEqual(1);
     expect($payload['result'])->toHaveKey('description');
     expect($payload['result'])->toHaveKey('messages');
+});
+
+it('returns a prompt result with result-level meta when using ResponseFactory', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'prompts/get',
+        'params' => [
+            'name' => 'prompt-with-result-meta-prompt',
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [],
+        resources: [],
+        prompts: [PromptWithResultMetaPrompt::class],
+    );
+
+    $method = new GetPrompt;
+
+    $response = $method->handle($request, $context);
+
+    $payload = $response->toArray();
+
+    expect($payload)
+        ->toBeArray()
+        ->id->toBe(1)
+        ->result->toMatchArray([
+            '_meta' => [
+                'prompt_version' => '2.0',
+                'last_updated' => '2025-01-01',
+            ],
+            'description' => 'Prompt with result-level meta',
+            'messages' => [
+                [
+                    'role' => 'user',
+                    'content' => [
+                        'type' => 'text',
+                        'text' => 'Prompt instructions with result meta',
+                        '_meta' => [
+                            'key' => 'value',
+                        ],
+                    ],
+                ],
+            ],
+        ]);
 });

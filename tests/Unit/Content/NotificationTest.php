@@ -62,3 +62,37 @@ it('converts to array with method and params', function (): void {
         'params' => ['x' => 1, 'y' => 2],
     ]);
 });
+
+it('supports _meta via setMeta', function (): void {
+    $notification = new Notification('test/event', ['data' => 'value']);
+    $notification->setMeta(['author' => 'system']);
+
+    expect($notification->toArray())->toMatchArray([
+        'method' => 'test/event',
+        'params' => [
+            'data' => 'value',
+            '_meta' => ['author' => 'system'],
+        ],
+    ]);
+});
+
+it('supports _meta in params', function (): void {
+    $notification = new Notification('test/event', [
+        'data' => 'value',
+        '_meta' => ['source' => 'params'],
+    ]);
+
+    expect($notification->toArray())->toMatchArray([
+        'method' => 'test/event',
+        'params' => [
+            'data' => 'value',
+            '_meta' => ['source' => 'params'],
+        ],
+    ]);
+});
+
+it('does not include _meta if not set', function (): void {
+    $notification = new Notification('test/event', ['data' => 'value']);
+
+    expect($notification->toArray()['params'])->not->toHaveKey('_meta');
+});

@@ -69,6 +69,24 @@ class Response
     }
 
     /**
+     * @param  Response|array<int, Response>  $responses
+     */
+    public static function make(Response|array $responses): ResponseFactory
+    {
+        return new ResponseFactory($responses);
+    }
+
+    /**
+     * @param  array<string, mixed>|string  $meta
+     */
+    public function withMeta(array|string $meta, mixed $value = null): static
+    {
+        $this->content->setMeta($meta, $value);
+
+        return $this;
+    }
+
+    /**
      * @throws NotImplementedException
      */
     public static function audio(): Content

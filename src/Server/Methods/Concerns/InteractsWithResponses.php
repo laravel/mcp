@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods\Concerns;
 
 use Generator;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
@@ -16,37 +18,32 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 trait InteractsWithResponses
 {
     /**
-     * @param  array<int, Response|string>|Response|string  $response
+     * @param  array<int, Response|ResponseFactory|string>|Response|ResponseFactory|string  $response
      */
-    protected function toJsonRpcResponse(JsonRpcRequest $request, array|Response|string $response, callable $serializable): JsonRpcResponse
+    protected function toJsonRpcResponse(JsonRpcRequest $request, Response|ResponseFactory|array|string $response, callable $serializable): JsonRpcResponse
     {
-        $responses = collect(
-            is_array($response) ? $response : [$response]
-        )->map(fn (Response|string $response): Response => $response instanceof Response
-            ? $response
-            : ($this->isBinary($response) ? Response::blob($response) : Response::text($response))
-        );
+        $responseFactory = $this->toResponseFactory($response);
 
-        $responses->each(function (Response $response) use ($request): void {
+        $responseFactory->responses()->each(function (Response $response) use ($request): void {
             if (! $this instanceof Errable && $response->isError()) {
                 throw new JsonRpcException(
-                    // @phpstan-ignore-next-line
-                    $response->content()->__toString(),
+                    $response->content()->__toString(), // @phpstan-ignore-line
                     -32603,
                     $request->id,
                 );
             }
         });
 
-        return JsonRpcResponse::result($request->id, $serializable($responses));
+        return JsonRpcResponse::result($request->id, $serializable($responseFactory));
     }
 
     /**
-     * @param  iterable<Response|string>  $responses
+     * @param  iterable<Response|ResponseFactory|string>  $responses
      * @return Generator<JsonRpcResponse>
      */
     protected function toJsonRpcStreamedResponse(JsonRpcRequest $request, iterable $responses, callable $serializable): Generator
     {
+        /** @var array<int, Response|ResponseFactory|string> $pendingResponses */
         $pendingResponses = [];
 
         try {
@@ -78,5 +75,32 @@ trait InteractsWithResponses
     protected function isBinary(string $content): bool
     {
         return str_contains($content, "\0");
+    }
+
+    /**
+     * @param  array<int, Response|ResponseFactory|string>|Response|ResponseFactory|string  $response
+     */
+    private function toResponseFactory(Response|ResponseFactory|array|string $response): ResponseFactory
+    {
+        $responseFactory = is_array($response) && count($response) === 1
+            ? Arr::first($response)
+            : $response;
+
+        if ($responseFactory instanceof ResponseFactory) {
+            return $responseFactory;
+        }
+
+        $responses = collect(Arr::wrap($responseFactory))
+            ->map(function ($item): mixed {
+                if ($item instanceof Response) {
+                    return $item;
+                }
+
+                return $this->isBinary($item)
+                    ? Response::blob($item)
+                    : Response::text($item);
+            });
+
+        return new ResponseFactory($responses->all());
     }
 }

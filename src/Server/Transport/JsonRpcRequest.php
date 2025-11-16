@@ -60,8 +60,16 @@ class JsonRpcRequest
         return $this->params[$key] ?? $default;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function meta(): ?array
+    {
+        return isset($this->params['_meta']) && is_array($this->params['_meta']) ? $this->params['_meta'] : null;
+    }
+
     public function toRequest(): Request
     {
-        return new Request($this->params['arguments'] ?? [], $this->sessionId);
+        return new Request($this->params['arguments'] ?? [], $this->sessionId, $this->meta());
     }
 }
