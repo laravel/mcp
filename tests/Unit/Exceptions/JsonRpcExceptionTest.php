@@ -27,7 +27,6 @@ it('converts to JsonRpc error with id and without data', function (): void {
         message: 'Not found',
         code: -32601,
         requestId: 'abc-123',
-        data: null,
     );
 
     $response = $exception->toJsonRpcResponse();

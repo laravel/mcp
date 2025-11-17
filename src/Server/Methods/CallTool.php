@@ -6,9 +6,9 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
 use Illuminate\Container\Container;
-use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Content\StructuredContent;
 use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Contracts\Method;
@@ -62,12 +62,12 @@ class CallTool implements Errable, Method
     }
 
     /**
-     * @return callable(Collection<int, Response>): array{content: array<int, array<string, mixed>>, isError: bool, ?structuredContent: array<string, mixed>}
+     * @return callable(ResponseFactor): array{content: array<int, array<string, mixed>>, isError: bool, ?structuredContent: array<string, mixed>}
      */
     protected function serializable(Tool $tool): callable
     {
-        return function (Collection $responses) use ($tool): array {
-            $groups = $responses->groupBy(fn (Response $response): string => $response->content() instanceof StructuredContent ? 'structuredContent' : 'content');
+        return function (ResponseFactory $factory) use ($tool): array {
+            $groups = $factory->responses()->groupBy(fn (Response $response): string => $response->content() instanceof StructuredContent ? 'structuredContent' : 'content');
 
             $content = $groups
                 ->get('content')
@@ -79,22 +79,22 @@ class CallTool implements Errable, Method
                 ->collapse();
 
             if ($structuredContent?->isNotEmpty()) {
-                return [
+                return $factory->mergeMeta([
                     'content' => [
                         [
                             'type' => 'text',
                             'text' => $structuredContent->toJson(),
                         ],
                     ],
-                    'isError' => $responses->contains(fn (Response $response): bool => $response->isError()),
+                    'isError' => $factory->responses()->contains(fn (Response $response): bool => $response->isError()),
                     'structuredContent' => $structuredContent->all(),
-                ];
+                ]);
             }
 
-            return [
+            return $factory->mergeMeta([
                 'content' => $content?->all(),
-                'isError' => $responses->contains(fn (Response $response): bool => $response->isError()),
-            ];
+                'isError' => $factory->responses()->contains(fn (Response $response): bool => $response->isError()),
+            ]);
         };
     }
 }

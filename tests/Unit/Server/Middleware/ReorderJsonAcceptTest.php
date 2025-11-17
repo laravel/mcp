@@ -56,7 +56,7 @@ it('handles multiple json types correctly', function (): void {
     $middleware->handle($request, fn ($req): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response('test'));
 
     $accept = $request->header('Accept');
-    $parts = array_map('trim', explode(',', $accept));
+    $parts = array_map(trim(...), explode(',', $accept));
 
     expect($parts)->toMatchArray(['application/json', 'text/html', 'application/vnd.api+json', 'text/plain'])
         ->and(count($parts))->toBe(4);
@@ -71,7 +71,7 @@ it('handles accept header with quality values', function (): void {
     $middleware->handle($request, fn ($req): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response('test'));
 
     $accept = $request->header('Accept');
-    $parts = array_map('trim', explode(',', $accept));
+    $parts = array_map(trim(...), explode(',', $accept));
 
     expect($parts[0])->toBe('application/json;q=0.8');
 });

@@ -72,6 +72,33 @@ it('can have multiple annotations', function (): void {
     ]);
 });
 
+it('includes an empty properties object when the schema has no properties', function (): void {
+    $tool = new TestTool;
+    $array = $tool->toArray();
+
+    expect($array['inputSchema'])
+        ->toHaveKey('type', 'object')
+        ->toHaveKey('properties')
+        ->and($array['inputSchema']['properties'])->toEqual((object) []);
+});
+
+it('includes schema properties when defined', function (): void {
+    $tool = new ToolWithSchema;
+    $array = $tool->toArray();
+
+    expect($array['inputSchema']['properties'])
+        ->toHaveKey('message')
+        ->and($array['inputSchema']['properties']['message'])
+        ->toHaveKey('type', 'string')
+        ->toHaveKey('description', 'The message to echo')
+        ->and($array['inputSchema']['required'])->toEqual(['message']);
+});
+
+it('can have custom meta', function (): void {
+    $tool = new CustomMetaTool;
+    expect($tool->toArray()['_meta'])->toEqual(['key' => 'value']);
+});
+
 class TestTool extends Tool
 {
     public function description(): string
@@ -122,4 +149,21 @@ class AnotherComplexToolName extends TestTool {}
 class CustomToolName extends TestTool
 {
     protected string $name = 'my_custom_tool_name';
+}
+
+class ToolWithSchema extends TestTool
+{
+    public function schema(\Illuminate\JsonSchema\JsonSchema $schema): array
+    {
+        return [
+            'message' => $schema->string()->description('The message to echo')->required(),
+        ];
+    }
+}
+
+class CustomMetaTool extends TestTool
+{
+    protected ?array $meta = [
+        'key' => 'value',
+    ];
 }

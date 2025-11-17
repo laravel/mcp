@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Content;
 
+use Laravel\Mcp\Server\Concerns\HasMeta;
 use Laravel\Mcp\Server\Contracts\Content;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -11,6 +12,8 @@ use Laravel\Mcp\Server\Tool;
 
 class StructuredContent implements Content
 {
+    use HasMeta;
+
     /**
      * @param  array<string, mixed>|object  $structuredContent
      */
