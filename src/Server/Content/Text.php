@@ -43,8 +43,6 @@ class Text implements Content
         return $this->mergeMeta([
             'text' => $this->text,
             'uri' => $resource->uri(),
-            'name' => $resource->name(),
-            'title' => $resource->title(),
             'mimeType' => $resource->mimeType(),
         ]);
     }

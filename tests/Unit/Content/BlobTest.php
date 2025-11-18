@@ -23,8 +23,6 @@ it('encodes content to resource payload with metadata', function (): void {
     expect($payload)->toEqual([
         'blob' => base64_encode('raw-bytes'),
         'uri' => 'file://avatar.png',
-        'name' => 'avatar',
-        'title' => 'User Avatar',
         'mimeType' => 'image/png',
     ]);
 });
@@ -49,8 +47,6 @@ it('preserves meta when converting to a resource payload', function (): void {
     expect($payload)->toMatchArray([
         'blob' => base64_encode('raw-bytes'),
         'uri' => 'file://avatar.png',
-        'name' => 'avatar',
-        'title' => 'User Avatar',
         'mimeType' => 'image/png',
         '_meta' => ['encoding' => 'base64'],
     ]);

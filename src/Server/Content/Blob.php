@@ -48,8 +48,6 @@ class Blob implements Content
         return $this->mergeMeta([
             'blob' => base64_encode($this->content),
             'uri' => $resource->uri(),
-            'name' => $resource->name(),
-            'title' => $resource->title(),
             'mimeType' => $resource->mimeType(),
         ]);
     }
