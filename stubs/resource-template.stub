@@ -1,0 +1,37 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\ResourceTemplate;
+use Laravel\Mcp\Support\UriTemplate;
+
+class {{ class }} extends ResourceTemplate
+{
+
+    /**
+     * The resource's description.
+     */
+    protected string $description = <<<'MARKDOWN'
+        A description of what this resource template provides.
+    MARKDOWN;
+
+    /**
+     * Get the URI template pattern.
+     */
+    public function uriTemplate(): UriTemplate
+    {
+        return new UriTemplate('file://resource/{id}');
+    }
+
+    /**
+     * Handle the resource template request.
+     */
+    public function handle(Request $request): Response
+    {
+        $id = $request->get('id');
+
+        return Response::text("Resource content for ID: {$id}");
+    }
+}
