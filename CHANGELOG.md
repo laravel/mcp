@@ -1,6 +1,11 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.3.3...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.3.4...main)
+
+## [v0.3.4](https://github.com/laravel/mcp/compare/v0.3.3...v0.3.4) - 2025-11-18
+
+* Add _meta support  by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/106
+* Remove non-spec fields from resource content responses by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/110
 
 ## [v0.3.3](https://github.com/laravel/mcp/compare/v0.3.2...v0.3.3) - 2025-11-11
 
