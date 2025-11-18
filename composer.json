@@ -80,7 +80,7 @@
             "pint --test",
             "rector --dry-run"
         ],
-        "test:unit": "pest --ci --coverage --min=91.4",
+        "test:unit": "pest --ci --coverage --min=91.7",
         "test:types": "phpstan",
         "test": [
             "@test:lint",

@@ -211,9 +211,7 @@ function expectedReadResourceResponse(): array
             'contents' => [[
                 'text' => '2025-07-02 12:00:00 Error: Something went wrong.',
                 'uri' => 'file://resources/last-log-line-resource',
-                'title' => 'Last Log Line Resource',
                 'mimeType' => 'text/plain',
-                'name' => 'last-log-line-resource',
             ]],
         ],
     ];

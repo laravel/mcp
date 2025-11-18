@@ -22,8 +22,6 @@ it('returns a valid resource result for text resources', function (): void {
     $expected = [
         'text' => 'This is a test resource.',
         'uri' => $resource->uri(),
-        'name' => $resource->name(),
-        'title' => $resource->title(),
         'mimeType' => $resource->mimeType(),
     ];
 
@@ -61,8 +59,6 @@ it('returns a valid resource result for binary resources', function (): void {
     $expected = [
         'blob' => base64_encode($binaryData),
         'uri' => 'file://resources/I_CAN_BE_OVERRIDDEN',
-        'name' => $resource->name(),
-        'title' => $resource->title(),
         'mimeType' => 'image/png',
     ];
 
@@ -90,8 +86,6 @@ it('handles a text content object returned from read', function (): void {
                 'text' => 'This is a test resource.',
 
                 'uri' => $resource->uri(),
-                'name' => $resource->name(),
-                'title' => $resource->title(),
                 'mimeType' => $resource->mimeType(),
             ];
 
@@ -118,8 +112,6 @@ it('handles a blob content object returned from read', function (): void {
         'blob' => base64_encode('This is a test resource.'),
 
         'uri' => $resource->uri(),
-        'name' => $resource->name(),
-        'title' => $resource->title(),
         'mimeType' => $resource->mimeType(),
     ];
 

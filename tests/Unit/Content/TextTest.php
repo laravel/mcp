@@ -23,8 +23,6 @@ it('encodes content to resource payload with metadata', function (): void {
     expect($payload)->toEqual([
         'text' => 'Hello world',
         'uri' => 'file://readme.txt',
-        'name' => 'readme',
-        'title' => 'Readme File',
         'mimeType' => 'text/plain',
     ]);
 });
@@ -49,8 +47,6 @@ it('preserves meta when converting to a resource payload', function (): void {
     expect($payload)->toEqual([
         'text' => 'Hello world',
         'uri' => 'file://readme.txt',
-        'name' => 'readme',
-        'title' => 'Readme File',
         'mimeType' => 'text/plain',
         '_meta' => ['author' => 'John'],
     ]);

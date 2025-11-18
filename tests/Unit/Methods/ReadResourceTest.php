@@ -124,8 +124,6 @@ it('returns resource result with result-level meta when using ResponseFactory', 
                     [
                         'text' => 'Resource content with result meta',
                         'uri' => 'file://resources/with-result-meta.txt',
-                        'name' => 'resource-with-result-meta-resource',
-                        'title' => 'Resource With Result Meta Resource',
                         'mimeType' => 'text/plain',
                     ],
                 ],
