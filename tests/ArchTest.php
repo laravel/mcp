@@ -26,7 +26,7 @@ arch('resource annotations implement annotation interface')
     ->toOnlyImplement(Annotation::class);
 
 arch('contracts are interfaces')
-    ->expect('Laravel\Mcp\Server\Contracts\*')
+    ->expect('Laravel\Mcp\Server\Contracts')
     ->toBeInterfaces();
 
 arch('exceptions extend')
