@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server;
 
 use Illuminate\JsonSchema\JsonSchema;
-use Laravel\Mcp\Server\Annotations\Traits\HasAnnotations;
+use Laravel\Mcp\Server\Concerns\HasAnnotations;
 
 abstract class Tool extends Primitive
 {

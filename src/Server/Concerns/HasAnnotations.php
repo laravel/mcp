@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Server\Annotations\Traits;
+namespace Laravel\Mcp\Server\Concerns;
 
 use InvalidArgumentException;
 use Laravel\Mcp\Server\Contracts\Annotation;

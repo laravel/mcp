@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server;
 
 use Illuminate\Support\Str;
-use Laravel\Mcp\Server\Annotations\Traits\HasAnnotations;
+use Laravel\Mcp\Server\Concerns\HasAnnotations;
 
 abstract class Resource extends Primitive
 {
