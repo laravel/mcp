@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Server\Annotations;
+namespace Laravel\Mcp\Server\Tools\Annotations;
 
 use Laravel\Mcp\Server\Contracts\Annotation;
 use Laravel\Mcp\Server\Tool;
