@@ -21,6 +21,7 @@ class LastModified extends Annotation
 
         foreach ($formats as $format) {
             $dateTime = DateTime::createFromFormat($format, $value);
+
             if ($dateTime !== false) {
                 return;
             }

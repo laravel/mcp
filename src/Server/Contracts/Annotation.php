@@ -10,9 +10,4 @@ namespace Laravel\Mcp\Server\Contracts;
 interface Annotation
 {
     public function key(): string;
-
-    /**
-     * @return array<int, class-string>
-     */
-    public function allowedOn(): array;
 }
