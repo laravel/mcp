@@ -5,11 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Concerns;
 
 use InvalidArgumentException;
-use Laravel\Mcp\Server\Annotations\Annotation;
 use Laravel\Mcp\Server\Contracts\Annotation as AnnotationContract;
-use Laravel\Mcp\Server\Resource;
-use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\Annotations\ToolAnnotation;
 use ReflectionAttribute;
 use ReflectionClass;
 
@@ -39,31 +35,15 @@ trait HasAnnotations
             ->all();
     }
 
-    /**
-     * @return array<class-string, class-string>
-     */
-    private function annotationMapping(): array
-    {
-        return [
-            Resource::class => Annotation::class,
-            Tool::class => ToolAnnotation::class,
-        ];
-    }
-
     private function validateAnnotationUsage(AnnotationContract $attribute): void
     {
-        $mapping = $this->annotationMapping();
+        $allowedAnnotations = $this->allowedAnnotations();
 
-        foreach ($mapping as $primitiveClass => $annotationBaseClass) {
-            if ($this instanceof $primitiveClass && $attribute instanceof $annotationBaseClass) {
+        foreach ($allowedAnnotations as $allowedAnnotationClass) {
+            if ($attribute instanceof $allowedAnnotationClass) {
                 return;
             }
         }
-
-        $allowedAnnotations = collect($mapping)
-            ->filter(fn ($annotationClass, $primitiveClass): bool => $this instanceof $primitiveClass)
-            ->values()
-            ->all();
 
         $allowedClasses = empty($allowedAnnotations)
             ? 'none'
@@ -77,5 +57,13 @@ trait HasAnnotations
                 $allowedClasses
             )
         );
+    }
+
+    /**
+     * @return array<int, class-string>
+     */
+    protected function allowedAnnotations(): array
+    {
+        return [];
     }
 }

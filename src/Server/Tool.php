@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\JsonSchema\JsonSchema;
 use Laravel\Mcp\Server\Concerns\HasAnnotations;
+use Laravel\Mcp\Server\Tools\Annotations\ToolAnnotation;
 
 abstract class Tool extends Primitive
 {
@@ -57,6 +58,15 @@ abstract class Tool extends Primitive
             'inputSchema' => $schema,
             'annotations' => $annotations === [] ? (object) [] : $annotations,
         ]);
+    }
 
+    /**
+     * @return array<int, class-string>
+     */
+    protected function allowedAnnotations(): array
+    {
+        return [
+            ToolAnnotation::class,
+        ];
     }
 }

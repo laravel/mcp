@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server;
 
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Annotations\Annotation;
 use Laravel\Mcp\Server\Concerns\HasAnnotations;
 
 abstract class Resource extends Primitive
@@ -65,5 +66,15 @@ abstract class Resource extends Primitive
 
         // @phpstan-ignore return.type
         return $this->mergeMeta($data);
+    }
+
+    /**
+     * @return array<int, class-string>
+     */
+    protected function allowedAnnotations(): array
+    {
+        return [
+            Annotation::class,
+        ];
     }
 }
