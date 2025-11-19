@@ -5,34 +5,18 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server;
 
 use Illuminate\JsonSchema\JsonSchema;
-use Laravel\Mcp\Server\Contracts\Tools\Annotation;
-use ReflectionAttribute;
-use ReflectionClass;
+use Laravel\Mcp\Server\Annotations\Traits\HasAnnotations;
 
 abstract class Tool extends Primitive
 {
+    use HasAnnotations;
+
     /**
      * @return array<string, mixed>
      */
     public function schema(JsonSchema $schema): array
     {
         return [];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function annotations(): array
-    {
-        $reflection = new ReflectionClass($this);
-
-        // @phpstan-ignore-next-line
-        return collect($reflection->getAttributes())
-            ->map(fn (ReflectionAttribute $attributeReflection): object => $attributeReflection->newInstance())
-            ->filter(fn (object $attribute): bool => $attribute instanceof Annotation)
-            // @phpstan-ignore-next-line
-            ->mapWithKeys(fn (Annotation $attribute): array => [$attribute->key() => $attribute->value])
-            ->all();
     }
 
     /**

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Tools\Annotations;
 
 use Attribute;
-use Laravel\Mcp\Server\Contracts\Tools\Annotation;
+use Laravel\Mcp\Server\Annotations\ToolAnnotation;
 
 #[Attribute(Attribute::TARGET_CLASS)]
-class IsIdempotent implements Annotation
+class IsIdempotent extends ToolAnnotation
 {
     public function __construct(public bool $value = true)
     {
