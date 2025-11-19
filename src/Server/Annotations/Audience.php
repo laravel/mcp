@@ -20,14 +20,17 @@ class Audience extends Annotation
      */
     public function __construct(Role|array $roles)
     {
-        $this->value = array_map(
-            fn ($role) => $role instanceof Role
-                ? $role->value
-                : throw new InvalidArgumentException(
+        $roles = Arr::wrap($roles);
+
+        foreach ($roles as $role) {
+            if (! $role instanceof Role) {
+                throw new InvalidArgumentException(
                     'All values of '.Audience::class.' attributes must be instances of '.Role::class
-                ),
-            Arr::wrap($roles)
-        );
+                );
+            }
+        }
+
+        $this->value = array_map(fn (Role $role) => $role->value, $roles);
     }
 
     public function key(): string

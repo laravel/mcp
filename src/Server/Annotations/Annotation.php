@@ -6,9 +6,6 @@ namespace Laravel\Mcp\Server\Annotations;
 
 use Laravel\Mcp\Server\Contracts\Annotation as AnnotationContract;
 
-/**
- * @property mixed $value
- */
 abstract class Annotation implements AnnotationContract
 {
     //
