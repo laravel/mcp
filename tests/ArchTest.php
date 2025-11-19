@@ -22,7 +22,7 @@ arch('tool annotations implement annotation interface')
     ->toOnlyImplement(Annotation::class);
 
 arch('resource annotations implement annotation interface')
-    ->expect('Laravel\Mcp\Server\Resources\Annotations')
+    ->expect('Laravel\Mcp\Server\Annotations')
     ->toOnlyImplement(Annotation::class);
 
 arch('contracts are interfaces')
