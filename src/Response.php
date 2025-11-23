@@ -11,7 +11,6 @@ use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Notification;
-use Laravel\Mcp\Server\Content\StructuredContent;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
 
@@ -60,13 +59,18 @@ class Response
     }
 
     /**
-     * Return structured content. Note that multiple structured content responses will be merged into a single object.
+     * @param  array<string, mixed>  $response
      *
-     * @param  array<string, mixed>|object  $content  Must be an associative array or object.
+     * @throws JsonException
      */
-    public static function structured(array|object $content): static
+    public static function structured(array $response): ResponseFactory
     {
-        return new static(new StructuredContent($content));
+        $content = Response::text(json_encode(
+            $response,
+            JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT,
+        ));
+
+        return (new ResponseFactory($content))->withStructuredContent($response);
     }
 
     public static function error(string $text): static

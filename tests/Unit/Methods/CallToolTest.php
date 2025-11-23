@@ -5,9 +5,12 @@ use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\CurrentTimeTool;
+use Tests\Fixtures\ResponseFactoryWithStructuredContentTool;
 use Tests\Fixtures\SayHiTool;
 use Tests\Fixtures\SayHiTwiceTool;
 use Tests\Fixtures\SayHiWithMetaTool;
+use Tests\Fixtures\StructuredContentTool;
+use Tests\Fixtures\StructuredContentWithMetaTool;
 use Tests\Fixtures\ToolWithBothMetaTool;
 use Tests\Fixtures\ToolWithResultMetaTool;
 
@@ -343,4 +346,139 @@ it('separates content-level meta from result-level meta', function (): void {
                 ],
             ],
         ]);
+});
+
+it('returns structured content in tool response', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'structured-content-tool',
+            'arguments' => [],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [StructuredContentTool::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $method = new CallTool;
+
+    $this->instance('mcp.request', $request->toRequest());
+    $response = $method->handle($request, $context);
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+
+    $payload = $response->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toHaveKey('structuredContent')
+        ->and($payload['result']['structuredContent'])->toEqual([
+            'temperature' => 22.5,
+            'conditions' => 'Partly cloudy',
+            'humidity' => 65,
+        ])
+        ->and($payload['result']['content'])->toHaveCount(1)
+        ->and($payload['result']['content'][0]['type'])->toBe('text')
+        ->and($payload['result']['content'][0]['text'])->toContain('"temperature": 22.5')
+        ->and($payload['result']['isError'])->toBeFalse();
+});
+
+it('returns structured content with meta in tool response', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'structured-content-with-meta-tool',
+            'arguments' => [],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [StructuredContentWithMetaTool::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $method = new CallTool;
+
+    $this->instance('mcp.request', $request->toRequest());
+    $response = $method->handle($request, $context);
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+
+    $payload = $response->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toHaveKey('structuredContent')
+        ->and($payload['result']['structuredContent'])->toEqual([
+            'result' => 'The operation completed successfully',
+        ])
+        ->and($payload['result'])->toHaveKey('_meta')
+        ->and($payload['result']['_meta'])->toEqual(['requestId' => 'abc123'])
+        ->and($payload['result']['content'])->toHaveCount(1)
+        ->and($payload['result']['isError'])->toBeFalse();
+});
+
+it('returns ResponseFactory with structured content added via withStructuredContent', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'response-factory-with-structured-content-tool',
+            'arguments' => [],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [ResponseFactoryWithStructuredContentTool::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $method = new CallTool;
+
+    $this->instance('mcp.request', $request->toRequest());
+    $response = $method->handle($request, $context);
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+
+    $payload = $response->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toHaveKey('structuredContent')
+        ->and($payload['result']['structuredContent'])->toEqual([
+            'status' => 'success',
+            'code' => 200,
+        ])
+        ->and($payload['result']['content'])->toHaveCount(1)
+        ->and($payload['result']['content'][0]['type'])->toBe('text')
+        ->and($payload['result']['content'][0]['text'])->toBe('Processing complete with status: success')
+        ->and($payload['result']['isError'])->toBeFalse();
 });

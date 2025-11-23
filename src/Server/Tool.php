@@ -22,6 +22,14 @@ abstract class Tool extends Primitive
     /**
      * @return array<string, mixed>
      */
+    public function outputSchema(JsonSchema $schema): array
+    {
+        return [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function annotations(): array
     {
         $reflection = new ReflectionClass($this);
@@ -63,6 +71,10 @@ abstract class Tool extends Primitive
             $this->schema(...),
         )->toArray();
 
+        $outputSchema = JsonSchema::object(
+            $this->outputSchema(...),
+        )->toArray();
+
         $schema['properties'] ??= (object) [];
 
         // @phpstan-ignore return.type
@@ -71,6 +83,7 @@ abstract class Tool extends Primitive
             'title' => $this->title(),
             'description' => $this->description(),
             'inputSchema' => $schema,
+            'outputSchema' => $outputSchema === [] ? null : $outputSchema,
             'annotations' => $annotations === [] ? (object) [] : $annotations,
         ]);
 

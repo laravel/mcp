@@ -8,9 +8,7 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Notification;
-use Laravel\Mcp\Server\Content\StructuredContent;
 use Laravel\Mcp\Server\Content\Text;
-use Laravel\Mcp\Server\Tool;
 
 it('creates a notification response', function (): void {
     $response = Response::notification('test.method', ['key' => 'value']);
@@ -178,27 +176,4 @@ it('throws exception when an array contains null', function (): void {
     ]))->toThrow(
         InvalidArgumentException::class,
     );
-});
-
-it('creates a response with structured content', function (): void {
-    $structuredData = ['type' => 'user_profile', 'data' => ['name' => 'John', 'age' => 30]];
-    $response = Response::structured($structuredData);
-
-    $genericTool = new class extends Tool
-    {
-        public function name(): string
-        {
-            return 'generic_tool';
-        }
-    };
-
-    expect($response->content())->toBeInstanceOf(StructuredContent::class);
-    expect($response->content()->toTool($genericTool))->toBe($structuredData);
-    expect($response->content()->toArray())->toBe([
-        'type' => 'text',
-        'text' => json_encode($structuredData, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT),
-    ]);
-    expect($response->isNotification())->toBeFalse();
-    expect($response->isError())->toBeFalse();
-    expect($response->role())->toBe(Role::USER);
 });

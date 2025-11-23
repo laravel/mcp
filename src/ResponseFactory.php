@@ -10,11 +10,13 @@ use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
 use InvalidArgumentException;
 use Laravel\Mcp\Server\Concerns\HasMeta;
+use Laravel\Mcp\Server\Concerns\HasStructuredContent;
 
 class ResponseFactory
 {
     use Conditionable;
     use HasMeta;
+    use HasStructuredContent;
     use Macroable;
 
     /**
@@ -51,6 +53,16 @@ class ResponseFactory
     }
 
     /**
+     * @param  string|array<string, mixed>  $structuredContent
+     */
+    public function withStructuredContent(string|array $structuredContent, mixed $value = null): static
+    {
+        $this->setStructuredContent($structuredContent, $value);
+
+        return $this;
+    }
+
+    /**
      * @return Collection<int, Response>
      */
     public function responses(): Collection
@@ -64,5 +76,13 @@ class ResponseFactory
     public function getMeta(): ?array
     {
         return $this->meta;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getStructuredContent(): ?array
+    {
+        return $this->structuredContent;
     }
 }
