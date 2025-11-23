@@ -77,15 +77,20 @@ abstract class Tool extends Primitive
 
         $schema['properties'] ??= (object) [];
 
-        // @phpstan-ignore return.type
-        return $this->mergeMeta([
+        $result = [
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
             'inputSchema' => $schema,
-            'outputSchema' => $outputSchema === [] ? null : $outputSchema,
             'annotations' => $annotations === [] ? (object) [] : $annotations,
-        ]);
+        ];
+
+        if ($outputSchema !== [] && $outputSchema !== ['type' => 'object']) {
+            $result['outputSchema'] = $outputSchema;
+        }
+
+        // @phpstan-ignore return.type
+        return $this->mergeMeta($result);
 
     }
 }
