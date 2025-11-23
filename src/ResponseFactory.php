@@ -53,11 +53,11 @@ class ResponseFactory
     }
 
     /**
-     * @param  string|array<string, mixed>  $structuredContent
+     * @param  array<string, mixed>  $structuredContent
      */
-    public function withStructuredContent(string|array $structuredContent, mixed $value = null): static
+    public function withStructuredContent(array $structuredContent): static
     {
-        $this->setStructuredContent($structuredContent, $value);
+        $this->setStructuredContent($structuredContent);
 
         return $this;
     }

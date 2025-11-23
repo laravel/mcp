@@ -118,14 +118,6 @@ it('adds structured content with meta to ResponseFactory', function (): void {
         ->and($factory->responses())->toHaveCount(1);
 });
 
-it('supports withStructuredContent with key-value signature', function (): void {
-    $factory = (new ResponseFactory(Response::text('Hello')))
-        ->withStructuredContent('key1', 'value1')
-        ->withStructuredContent('key2', 'value2');
-
-    expect($factory->getStructuredContent())->toEqual(['key1' => 'value1', 'key2' => 'value2']);
-});
-
 it('merges multiple withStructuredContent calls', function (): void {
     $factory = (new ResponseFactory(Response::text('Hello')))
         ->withStructuredContent(['key1' => 'value1'])

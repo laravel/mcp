@@ -21,36 +21,6 @@ it('can set structured content with array', function (): void {
     ]);
 });
 
-it('can set structured content with key-value signature', function (): void {
-    $object = new class
-    {
-        use HasStructuredContent;
-
-        public function getStructuredContent(): ?array
-        {
-            return $this->structuredContent;
-        }
-    };
-
-    $object->setStructuredContent('key1', 'value1');
-    $object->setStructuredContent('key2', 'value2');
-
-    expect($object->getStructuredContent())->toEqual([
-        'key1' => 'value1',
-        'key2' => 'value2',
-    ]);
-});
-
-it('throws exception when using key-value signature without value', function (): void {
-    $object = new class
-    {
-        use HasStructuredContent;
-    };
-
-    expect(fn () => $object->setStructuredContent('key1'))
-        ->toThrow(InvalidArgumentException::class, 'Value is required when using key-value signature.');
-});
-
 it('merges structured content into base array', function (): void {
     $object = new class
     {

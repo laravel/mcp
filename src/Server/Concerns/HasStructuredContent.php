@@ -14,21 +14,11 @@ trait HasStructuredContent
     protected ?array $structuredContent = null;
 
     /**
-     * @param  array<string, mixed>|string  $structuredContent
+     * @param  array<string, mixed>  $structuredContent
      */
-    public function setStructuredContent(array|string $structuredContent, mixed $value = null): void
+    public function setStructuredContent(array $structuredContent): void
     {
         $this->structuredContent ??= [];
-
-        if (! is_array($structuredContent)) {
-            if (is_null($value)) {
-                throw new InvalidArgumentException('Value is required when using key-value signature.');
-            }
-
-            $this->structuredContent[$structuredContent] = $value;
-
-            return;
-        }
 
         $this->structuredContent = array_merge($this->structuredContent, $structuredContent);
     }
