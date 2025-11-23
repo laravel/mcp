@@ -13,6 +13,7 @@ use Tests\Fixtures\StructuredContentTool;
 use Tests\Fixtures\StructuredContentWithMetaTool;
 use Tests\Fixtures\ToolWithBothMetaTool;
 use Tests\Fixtures\ToolWithResultMetaTool;
+use Tests\Fixtures\WeatherTool;
 
 it('returns a valid call tool response', function (): void {
     $request = JsonRpcRequest::from([
@@ -481,4 +482,98 @@ it('returns ResponseFactory with structured content added via withStructuredCont
         ->and($payload['result']['content'][0]['type'])->toBe('text')
         ->and($payload['result']['content'][0]['text'])->toBe('Processing complete with status: success')
         ->and($payload['result']['isError'])->toBeFalse();
+});
+
+it('tool with outputSchema returns matching structuredContent', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'weather-tool',
+            'arguments' => [
+                'location' => 'San Francisco',
+            ],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [WeatherTool::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $method = new CallTool;
+
+    $this->instance('mcp.request', $request->toRequest());
+    $response = $method->handle($request, $context);
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+
+    $payload = $response->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toHaveKey('structuredContent')
+        ->and($payload['result']['structuredContent'])->toHaveKey('temperature')
+        ->and($payload['result']['structuredContent'])->toHaveKey('conditions')
+        ->and($payload['result']['structuredContent'])->toHaveKey('humidity')
+        ->and($payload['result']['structuredContent']['temperature'])->toBe(22.5)
+        ->and($payload['result']['structuredContent']['conditions'])->toBe('Partly cloudy')
+        ->and($payload['result']['structuredContent']['humidity'])->toBe(65)
+        ->and($payload['result']['isError'])->toBeFalse();
+});
+
+it('validates weather tool response matches outputSchema from spec', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 5,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'weather-tool',
+            'arguments' => [
+                'location' => 'Los Angeles',
+            ],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [WeatherTool::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $method = new CallTool;
+
+    $this->instance('mcp.request', $request->toRequest());
+    $response = $method->handle($request, $context);
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+
+    $payload = $response->toArray();
+
+    expect($payload['id'])->toEqual(5)
+        ->and($payload['result']['content'])->toHaveCount(1)
+        ->and($payload['result']['content'][0]['type'])->toBe('text')
+        ->and($payload['result']['content'][0]['text'])->toContain('"temperature": 22.5')
+        ->and($payload['result']['content'][0]['text'])->toContain('"conditions": "Partly cloudy"')
+        ->and($payload['result']['content'][0]['text'])->toContain('"humidity": 65')
+        ->and($payload['result']['structuredContent'])->toEqual([
+            'temperature' => 22.5,
+            'conditions' => 'Partly cloudy',
+            'humidity' => 65,
+        ]);
 });

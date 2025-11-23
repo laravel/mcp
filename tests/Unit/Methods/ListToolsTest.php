@@ -7,6 +7,9 @@ use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\SayHiTool;
 use Tests\Fixtures\SayHiWithMetaTool;
+use Tests\Fixtures\ToolWithoutOutputSchema;
+use Tests\Fixtures\ToolWithOutputSchema;
+use Tests\Fixtures\WeatherTool;
 
 if (! class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
     for ($i = 1; $i <= 12; $i++) {
@@ -403,5 +406,182 @@ it('includes meta in tool response when tool has meta property', function (): vo
                     ],
                 ],
             ],
+        ]);
+});
+
+it('includes outputSchema when tool defines it', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'list-tools',
+        'params' => [],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 5,
+        tools: [WeatherTool::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $listTools = new ListTools;
+
+    $response = $listTools->handle($request, $context);
+
+    $payload = $response->toArray();
+    $tool = $payload['result']['tools'][0];
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class)
+        ->and($payload)->toMatchArray(['id' => 1])
+        ->and($payload['result']['tools'])->toHaveCount(1)
+        ->and($tool)->toHaveKey('outputSchema')
+        ->and($tool['outputSchema'])->toMatchArray([
+            'type' => 'object',
+            'properties' => [
+                'temperature' => [
+                    'type' => 'number',
+                    'description' => 'Temperature in celsius',
+                ],
+                'conditions' => [
+                    'type' => 'string',
+                    'description' => 'Weather conditions description',
+                ],
+                'humidity' => [
+                    'type' => 'number',
+                    'description' => 'Humidity percentage',
+                ],
+            ],
+            'required' => ['temperature', 'conditions', 'humidity'],
+        ]);
+});
+
+it('excludes outputSchema when tool returns empty schema', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'list-tools',
+        'params' => [],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 5,
+        tools: [ToolWithoutOutputSchema::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $listTools = new ListTools;
+
+    $response = $listTools->handle($request, $context);
+
+    $payload = $response->toArray();
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class)
+        ->and($payload)->toMatchArray(['id' => 1])
+        ->and($payload['result']['tools'])->toHaveCount(1)
+        ->and($payload['result']['tools'][0])->not->toHaveKey('outputSchema');
+});
+
+it('excludes outputSchema for default object type only', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'list-tools',
+        'params' => [],
+    ]);
+
+    $toolWithDefaultObjectType = new class extends SayHiTool
+    {
+        public function outputSchema(\Illuminate\JsonSchema\JsonSchema $schema): array
+        {
+            return [];
+        }
+    };
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 5,
+        tools: [$toolWithDefaultObjectType],
+        resources: [],
+        prompts: [],
+    );
+
+    $listTools = new ListTools;
+
+    $response = $listTools->handle($request, $context);
+
+    $payload = $response->toArray();
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class)
+        ->and($payload)->toMatchArray(['id' => 1])
+        ->and($payload['result']['tools'])->toHaveCount(1)
+        ->and($payload['result']['tools'][0])->not->toHaveKey('outputSchema');
+});
+
+it('outputSchema structure matches JSON Schema format with required fields', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'list-tools',
+        'params' => [],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 5,
+        tools: [ToolWithOutputSchema::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $listTools = new ListTools;
+
+    $response = $listTools->handle($request, $context);
+
+    $payload = $response->toArray();
+    $outputSchema = $payload['result']['tools'][0]['outputSchema'];
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class)
+        ->and($payload)->toMatchArray(['id' => 1])
+        ->and($payload['result']['tools'])->toHaveCount(1)
+        ->and($outputSchema)->toBeArray()
+        ->toHaveKeys(['type', 'properties', 'required'])
+        ->and($outputSchema['type'])->toBe('object')
+        ->and($outputSchema['required'])->toBeArray()
+        ->toContain('id', 'name', 'email')
+        ->and($outputSchema['properties'])->toHaveKeys(['id', 'name', 'email'])
+        ->and($outputSchema['properties']['id'])->toMatchArray([
+            'type' => 'integer',
+            'description' => 'User ID',
+        ])
+        ->and($outputSchema['properties']['name'])->toMatchArray([
+            'type' => 'string',
+            'description' => 'User name',
+        ])
+        ->and($outputSchema['properties']['email'])->toMatchArray([
+            'type' => 'string',
+            'description' => 'User email',
         ]);
 });

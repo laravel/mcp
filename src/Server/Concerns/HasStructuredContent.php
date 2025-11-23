@@ -34,15 +34,15 @@ trait HasStructuredContent
     }
 
     /**
-     * @template T of array<string, mixed>
-     *
-     * @param  T  $baseArray
-     * @return T&array{structuredContent?: array<string, mixed>}
+     * @param  array<string, mixed>  $baseArray
+     * @return array<string, mixed>
      */
     public function mergeStructuredContent(array $baseArray): array
     {
-        return ($structuredContent = $this->structuredContent)
-            ? [...$baseArray, 'structuredContent' => $structuredContent]
-            : $baseArray;
+        if ($this->structuredContent === null) {
+            return $baseArray;
+        }
+
+        return array_merge($baseArray, ['structuredContent' => $this->structuredContent]);
     }
 }

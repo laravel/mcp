@@ -20,6 +20,8 @@ abstract class Tool extends Primitive
     }
 
     /**
+     * Define the output schema for this tool's results.
+     *
      * @return array<string, mixed>
      */
     public function outputSchema(JsonSchema $schema): array
@@ -59,6 +61,7 @@ abstract class Tool extends Primitive
      *     title?: string|null,
      *     description?: string|null,
      *     inputSchema?: array<string, mixed>,
+     *     outputSchema?: array<string, mixed>,
      *     annotations?: array<string, mixed>|object,
      *     _meta?: array<string, mixed>
      * }
@@ -91,6 +94,5 @@ abstract class Tool extends Primitive
 
         // @phpstan-ignore return.type
         return $this->mergeMeta($result);
-
     }
 }
