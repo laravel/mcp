@@ -577,3 +577,68 @@ it('validates weather tool response matches outputSchema from spec', function ()
             'humidity' => 65,
         ]);
 });
+
+it('throws an exception when the name parameter is missing', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'arguments' => ['name' => 'John Doe'],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [SayHiTool::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $method = new CallTool;
+
+    expect(fn (): Generator|JsonRpcResponse => $method->handle($request, $context))
+        ->toThrow(
+            Laravel\Mcp\Server\Exceptions\JsonRpcException::class,
+            'Missing [name] parameter.'
+        );
+});
+
+it('throws exception when tool is not found', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'non-existent-tool',
+            'arguments' => ['name' => 'John Doe'],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [SayHiTool::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $method = new CallTool;
+
+    expect(fn (): Generator|JsonRpcResponse => $method->handle($request, $context))
+        ->toThrow(
+            Laravel\Mcp\Server\Exceptions\JsonRpcException::class,
+            'Tool [non-existent-tool] not found.'
+        );
+});
