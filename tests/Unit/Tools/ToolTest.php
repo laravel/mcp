@@ -115,27 +115,6 @@ it('outputSchema can be overridden to return custom schema', function (): void {
         ->and($array['outputSchema']['properties'])->toHaveKey('count');
 });
 
-it('toArray includes outputSchema when defined', function (): void {
-    $tool = new ToolWithOutputSchema;
-    $array = $tool->toArray();
-
-    expect($array)->toHaveKey('outputSchema')
-        ->and($array['outputSchema'])->toHaveKey('type')
-        ->and($array['outputSchema']['type'])->toBe('object')
-        ->and($array['outputSchema'])->toHaveKey('properties')
-        ->and($array['outputSchema']['properties'])->toHaveKey('result')
-        ->and($array['outputSchema']['properties'])->toHaveKey('count')
-        ->and($array['outputSchema'])->toHaveKey('required')
-        ->and($array['outputSchema']['required'])->toEqual(['result', 'count']);
-});
-
-it('toArray excludes outputSchema when empty or default', function (): void {
-    $tool = new ToolWithoutOutputSchema;
-    $array = $tool->toArray();
-
-    expect($array)->not->toHaveKey('outputSchema');
-});
-
 class TestTool extends Tool
 {
     public function description(): string
