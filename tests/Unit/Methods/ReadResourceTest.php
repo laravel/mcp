@@ -6,12 +6,12 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\ReadResource;
-use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\ResourceTemplate;
+use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Tests\Fixtures\ResourceWithResultMetaResource;
 use Laravel\Mcp\Support\UriTemplate;
+use Tests\Fixtures\ResourceWithResultMetaResource;
 
 it('returns a valid resource result', function (): void {
     $resource = $this->makeResource('resource-content');

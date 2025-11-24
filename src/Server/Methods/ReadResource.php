@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
 use Illuminate\Container\Container;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -82,6 +83,7 @@ class ReadResource implements Method
             $variables = $resource->uriTemplate()->match($uri) ?? [];
             $templateRequest = new Request(['uri' => $uri, ...$variables]);
 
+            // @phpstan-ignore-next-line
             return Container::getInstance()->call($resource->handle(...), ['request' => $templateRequest]);
         }
 
