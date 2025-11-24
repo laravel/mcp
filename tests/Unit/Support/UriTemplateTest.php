@@ -197,8 +197,8 @@ describe('UriTemplate security and edge cases', function (): void {
     it('should handle extremely long input strings', function (): void {
         $longString = str_repeat('x', 100000);
         $template = new UriTemplate('/api/{param}');
-        expect($template->expand(['param' => $longString]))->toBe('/api/' . $longString)
-            ->and($template->match('/api/' . $longString))->toBe(['param' => $longString]);
+        expect($template->expand(['param' => $longString]))->toBe('/api/'.$longString)
+            ->and($template->match('/api/'.$longString))->toBe(['param' => $longString]);
     });
 
     it('should handle deeply nested template expressions', function (): void {
@@ -218,10 +218,10 @@ describe('UriTemplate security and edge cases', function (): void {
     });
 
     it('should handle malformed template expressions', function (): void {
-        expect(fn(): \Laravel\Mcp\Support\UriTemplate => new UriTemplate('{unclosed'))->toThrow(InvalidArgumentException::class)
-            ->and(fn(): \Laravel\Mcp\Support\UriTemplate => new UriTemplate('{}'))->not->toThrow(Exception::class)
-            ->and(fn(): \Laravel\Mcp\Support\UriTemplate => new UriTemplate('{,}'))->not->toThrow(Exception::class)
-            ->and(fn(): \Laravel\Mcp\Support\UriTemplate => new UriTemplate('{a}{'))->toThrow(InvalidArgumentException::class);
+        expect(fn (): \Laravel\Mcp\Support\UriTemplate => new UriTemplate('{unclosed'))->toThrow(InvalidArgumentException::class)
+            ->and(fn (): \Laravel\Mcp\Support\UriTemplate => new UriTemplate('{}'))->not->toThrow(Exception::class)
+            ->and(fn (): \Laravel\Mcp\Support\UriTemplate => new UriTemplate('{,}'))->not->toThrow(Exception::class)
+            ->and(fn (): \Laravel\Mcp\Support\UriTemplate => new UriTemplate('{a}{'))->toThrow(InvalidArgumentException::class);
     });
 
     it('should handle pathological regex patterns', function (): void {
@@ -233,8 +233,8 @@ describe('UriTemplate security and edge cases', function (): void {
     it('should handle invalid UTF-8 sequences', function (): void {
         $template = new UriTemplate('/api/{param}');
         $invalidUtf8 = '���';
-        expect(fn(): string => $template->expand(['param' => $invalidUtf8]))->not->toThrow(Exception::class)
-            ->and(fn(): ?array => $template->match('/api/' . $invalidUtf8))->not->toThrow(Exception::class);
+        expect(fn (): string => $template->expand(['param' => $invalidUtf8]))->not->toThrow(Exception::class)
+            ->and(fn (): ?array => $template->match('/api/'.$invalidUtf8))->not->toThrow(Exception::class);
     });
 
     it('should handle template/URI length mismatches', function (): void {
