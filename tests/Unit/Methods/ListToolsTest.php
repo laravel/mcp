@@ -9,7 +9,6 @@ use Tests\Fixtures\SayHiTool;
 use Tests\Fixtures\SayHiWithMetaTool;
 use Tests\Fixtures\ToolWithoutOutputSchema;
 use Tests\Fixtures\ToolWithOutputSchema;
-use Tests\Fixtures\WeatherTool;
 
 if (! class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
     for ($i = 1; $i <= 12; $i++) {
@@ -409,7 +408,7 @@ it('includes meta in tool response when tool has meta property', function (): vo
         ]);
 });
 
-it('includes outputSchema when tool defines it', function (): void {
+it('includes outputSchema when the tool defines it', function (): void {
     $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
@@ -425,7 +424,7 @@ it('includes outputSchema when tool defines it', function (): void {
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 5,
-        tools: [WeatherTool::class],
+        tools: [ToolWithOutputSchema::class],
         resources: [],
         prompts: [],
     );
@@ -444,24 +443,24 @@ it('includes outputSchema when tool defines it', function (): void {
         ->and($tool['outputSchema'])->toMatchArray([
             'type' => 'object',
             'properties' => [
-                'temperature' => [
-                    'type' => 'number',
-                    'description' => 'Temperature in celsius',
+                'id' => [
+                    'type' => 'integer',
+                    'description' => 'User ID',
                 ],
-                'conditions' => [
+                'name' => [
                     'type' => 'string',
-                    'description' => 'Weather conditions description',
+                    'description' => 'User name',
                 ],
-                'humidity' => [
-                    'type' => 'number',
-                    'description' => 'Humidity percentage',
+                'email' => [
+                    'type' => 'string',
+                    'description' => 'User email',
                 ],
             ],
-            'required' => ['temperature', 'conditions', 'humidity'],
+            'required' => ['id', 'name'],
         ]);
 });
 
-it('excludes outputSchema when tool returns empty schema', function (): void {
+it('excludes outputSchema when the tool returns empty schema', function (): void {
     $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
@@ -570,7 +569,7 @@ it('outputSchema structure matches JSON Schema format with required fields', fun
         ->toHaveKeys(['type', 'properties', 'required'])
         ->and($outputSchema['type'])->toBe('object')
         ->and($outputSchema['required'])->toBeArray()
-        ->toContain('id', 'name', 'email')
+        ->toContain('id', 'name')
         ->and($outputSchema['properties'])->toHaveKeys(['id', 'name', 'email'])
         ->and($outputSchema['properties']['id'])->toMatchArray([
             'type' => 'integer',

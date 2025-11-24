@@ -33,7 +33,7 @@ class ToolWithOutputSchema extends Tool
         return [
             'id' => $schema->integer()->description('User ID')->required(),
             'name' => $schema->string()->description('User name')->required(),
-            'email' => $schema->string()->description('User email')->required(),
+            'email' => $schema->string()->description('User email'),
         ];
     }
 }
