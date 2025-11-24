@@ -11,6 +11,9 @@ use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Laravel\Mcp\Support\UriTemplate;
+use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\ResourceWithResultMetaResource;
 
 it('returns a valid resource result', function (): void {
