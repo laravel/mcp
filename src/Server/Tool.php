@@ -88,7 +88,7 @@ abstract class Tool extends Primitive
             'annotations' => $annotations === [] ? (object) [] : $annotations,
         ];
 
-        if ($outputSchema !== [] && $outputSchema !== ['type' => 'object']) {
+        if (isset($outputSchema['properties'])) {
             $result['outputSchema'] = $outputSchema;
         }
 
