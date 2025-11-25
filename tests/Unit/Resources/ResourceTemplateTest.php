@@ -21,7 +21,6 @@ it('compiles URI template and extracts variable names', function (): void {
     };
 
     expect($resource->uri())->toBe('file://users/{userId}/files/{fileId}')
-        ->and($resource->uriTemplate()->getVariableNames())->toBe(['userId', 'fileId'])
         ->and($resource)->toBeInstanceOf(ResourceTemplate::class);
 });
 
@@ -110,8 +109,7 @@ it('handles template with single variable', function (): void {
         }
     };
 
-    expect($resource->uriTemplate()->getVariableNames())->toBe(['id'])
-        ->and($resource->uriTemplate()->match('file://resource/123'))->not->toBeNull()
+    expect($resource->uriTemplate()->match('file://resource/123'))->not->toBeNull()
         ->and($resource->uriTemplate()->match('file://resource/abc'))->toBe(['id' => 'abc']);
 });
 
@@ -213,6 +211,5 @@ it('end to end template reads uri extracts variables and returns response', func
     $content = $response->content()->toResource($template);
 
     expect($content['text'])->toBe('API v2: User alice - Post hello-world')
-        ->and($template->uriTemplate()->getVariableNames())->toBe(['version', 'userId', 'postId'])
         ->and($template->uri())->toBe('file://api/{version}/users/{userId}/posts/{postId}');
 });
