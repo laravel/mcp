@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Container\Container;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
@@ -16,7 +17,6 @@ use Tests\Fixtures\ResourceWithResultMetaResource;
 it('returns a valid resource result', function (): void {
     $resource = $this->makeResource('resource-content');
     $readResource = new ReadResource;
-    $context = $this->getServerContext();
     $context = $this->getServerContext([
         'resources' => [
             $resource,
@@ -36,7 +36,6 @@ it('returns a valid resource result', function (): void {
 it('returns a valid resource result for blob resources', function (): void {
     $resource = $this->makeBinaryResource(__DIR__.'/../../Fixtures/binary.png');
     $readResource = new ReadResource;
-    $context = $this->getServerContext();
     $context = $this->getServerContext([
         'resources' => [
             $resource,
@@ -267,12 +266,11 @@ it('includes uri parameter along with extracted variables in request', function 
     $readResource->handle($jsonRpcRequest, $context);
 
     expect($capturedAll)->toBe([
-        'uri' => $uri,
         'userId' => '789',
     ]);
 });
 
-it('preserves sessionId and meta from original request for template resources', function (): void {
+it('preserves sessionId and meta from the original request for template resources', function (): void {
     $capturedSessionId = null;
     $capturedMeta = null;
     $capturedArguments = null;
@@ -317,8 +315,7 @@ it('preserves sessionId and meta from original request for template resources', 
         sessionId: $sessionId
     );
 
-    // Bind the mcp.request in container as the Server would do
-    $container = \Illuminate\Container\Container::getInstance();
+    $container = Container::getInstance();
     $container->instance('mcp.request', $jsonRpcRequest->toRequest());
 
     try {
@@ -328,7 +325,6 @@ it('preserves sessionId and meta from original request for template resources', 
         expect($capturedSessionId)->toBe($sessionId)
             ->and($capturedMeta)->toBe($meta)
             ->and($capturedArguments)->toHaveKey('userId', '42')
-            ->and($capturedArguments)->toHaveKey('uri', 'file://users/42')
             ->and($capturedArguments)->toHaveKey('format', 'json');
     } finally {
         $container->forgetInstance('mcp.request');
@@ -488,7 +484,7 @@ it('throws exception when URI does not match any template pattern', function ():
     $readResource->handle($jsonRpcRequest, $context);
 });
 
-it('returns resource result with result-level meta when using ResponseFactory', function (): void {
+it('returns a resource result with result-level meta when using ResponseFactory', function (): void {
     $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,

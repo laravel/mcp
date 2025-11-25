@@ -198,7 +198,6 @@ it('end to end template reads uri extracts variables and returns response', func
 
     $uri = 'file://api/v2/users/alice/posts/hello-world';
 
-    // Extract variables from URI using template
     $extractedVars = $template->uriTemplate()->match($uri);
 
     expect($extractedVars)->toBe([
@@ -207,13 +206,10 @@ it('end to end template reads uri extracts variables and returns response', func
         'postId' => 'hello-world',
     ]);
 
-    // Create request with uri and extracted variables
     $request = new Request(['uri' => $uri, ...$extractedVars]);
 
-    // Handle request (this will verify variables inside handle method)
     $response = $template->handle($request);
 
-    // Verify response content
     $content = $response->content()->toResource($template);
 
     expect($content['text'])->toBe('API v2: User alice - Post hello-world')

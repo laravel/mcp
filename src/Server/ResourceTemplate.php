@@ -12,7 +12,14 @@ abstract class ResourceTemplate extends Resource
 
     public function uri(): string
     {
-        return (string) $this->uriTemplate();
+        return $this->uri !== ''
+            ? $this->uri
+            : (string) $this->uriTemplate();
+    }
+
+    public function setUri(string $uri): void
+    {
+        $this->uri = $uri;
     }
 
     /**

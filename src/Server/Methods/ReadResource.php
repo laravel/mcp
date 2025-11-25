@@ -6,7 +6,6 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
 use Illuminate\Container\Container;
-use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -27,24 +26,17 @@ class ReadResource implements Method
 
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
-        if (is_null($request->get('uri'))) {
-            throw new JsonRpcException(
-                'Missing [uri] parameter.',
-                -32002,
-                $request->id,
-            );
-        }
+        $uri = $request->get('uri') ?? throw new JsonRpcException(
+            'Missing [uri] parameter.',
+            -32002,
+            $request->id,
+        );
 
-        $uri = $request->get('uri');
+        $resource = $context->resources()->first(fn (Resource $resource): bool => $resource->uri() === $uri)
+            ?? $context->resourceTemplates()->first(fn (ResourceTemplate $template): bool => ! is_null($template->uriTemplate()->match($uri)));
 
-        $resource = $this->findResource($context->resources(), $uri);
-
-        if (! $resource instanceof Resource) {
-            throw new JsonRpcException(
-                "Resource [{$uri}] not found.",
-                -32002,
-                $request->id,
-            );
+        if (! $resource) {
+            throw new JsonRpcException("Resource [{$uri}] not found.", -32002, $request->id);
         }
 
         try {
@@ -54,45 +46,31 @@ class ReadResource implements Method
         }
 
         return is_iterable($response)
-            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($resource, $uri))
-            : $this->toJsonRpcResponse($request, $response, $this->serializable($resource, $uri));
-    }
-
-    /**
-     * @param  Collection<int, Resource>  $resources
-     */
-    protected function findResource(Collection $resources, string $uri): ?Resource
-    {
-        $resource = $resources->first(
-            fn (Resource $r): bool => ! ($r instanceof ResourceTemplate) && $r->uri() === $uri
-        );
-
-        if ($resource) {
-            return $resource;
-        }
-
-        return $resources
-            ->filter(fn (Resource $r): bool => $r instanceof ResourceTemplate)
-            // @phpstan-ignore-next-line
-            ->first(fn (ResourceTemplate $template): bool => $template->uriTemplate()->match($uri) !== null);
+            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($resource))
+            : $this->toJsonRpcResponse($request, $response, $this->serializable($resource));
     }
 
     protected function invokeResource(Resource $resource, string $uri): mixed
     {
+        $container = Container::getInstance();
+
         if ($resource instanceof ResourceTemplate) {
             $variables = $resource->uriTemplate()->match($uri) ?? [];
+            $resource->setUri($uri);
 
-            $container = Container::getInstance();
-            $originalRequest = $container->bound('mcp.request') ? $container->make('mcp.request') : null;
-
-            $templateRequest = new Request(
-                arguments: ['uri' => $uri, ...$variables, ...($originalRequest?->all() ?? [])],
-                sessionId: $originalRequest?->sessionId(),
-                meta: $originalRequest?->meta(),
-            );
+            if ($container->bound('mcp.request')) {
+                /** @var Request $request */
+                $request = $container->make('mcp.request');
+                $request->setArguments([
+                    ...$request->all(),
+                    ...$variables,
+                ]);
+            } else {
+                $request = new Request([...$variables]);
+            }
 
             // @phpstan-ignore-next-line
-            return $container->call($resource->handle(...), ['request' => $templateRequest]);
+            return $container->call([$resource, 'handle'], ['request' => $request]);
         }
 
         // @phpstan-ignore-next-line
