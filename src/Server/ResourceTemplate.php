@@ -12,14 +12,7 @@ abstract class ResourceTemplate extends Resource
 
     public function uri(): string
     {
-        return $this->uri !== ''
-            ? $this->uri
-            : (string) $this->uriTemplate();
-    }
-
-    public function setUri(string $uri): void
-    {
-        $this->uri = $uri;
+        return (string) $this->uriTemplate();
     }
 
     /**
@@ -27,12 +20,13 @@ abstract class ResourceTemplate extends Resource
      *     name: string,
      *     title: string,
      *     description: string,
+     *     uri?: string,
      *     uriTemplate: string,
      *     mimeType: string,
      *     _meta?: array<string, mixed>
      * }
      */
-    public function toArray(): array // @phpstan-ignore method.childReturnType
+    public function toArray(): array
     {
         // @phpstan-ignore return.type
         return $this->mergeMeta([

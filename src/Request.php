@@ -62,6 +62,16 @@ class Request implements Arrayable
     }
 
     /**
+     * @param  array<string,mixed>  $data
+     */
+    public function merge(array $data): static
+    {
+        $this->arguments = array_merge($this->arguments, $data);
+
+        return $this;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array

@@ -24,6 +24,11 @@ class ReadResource implements Method
 {
     use InteractsWithResponses;
 
+    /**
+     * @return Generator<JsonRpcResponse>|JsonRpcResponse
+     *
+     * @throws JsonRpcException
+     */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
         $uri = $request->get('uri') ?? throw new JsonRpcException(
@@ -46,8 +51,8 @@ class ReadResource implements Method
         }
 
         return is_iterable($response)
-            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($resource))
-            : $this->toJsonRpcResponse($request, $response, $this->serializable($resource));
+            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($resource, $uri))
+            : $this->toJsonRpcResponse($request, $response, $this->serializable($resource, $uri));
     }
 
     protected function invokeResource(Resource $resource, string $uri): mixed
@@ -56,31 +61,26 @@ class ReadResource implements Method
 
         if ($resource instanceof ResourceTemplate) {
             $variables = $resource->uriTemplate()->match($uri) ?? [];
-            $resource->setUri($uri);
 
-            if ($container->bound('mcp.request')) {
-                /** @var Request $request */
-                $request = $container->make('mcp.request');
-                $request->setArguments([
-                    ...$request->all(),
-                    ...$variables,
-                ]);
-            } else {
-                $request = new Request([...$variables]);
-            }
+            Container::getInstance()->afterResolving(Request::class, function (Request $request) use ($variables): void {
+                $request->merge($variables);
+            });
 
             // @phpstan-ignore-next-line
-            return $container->call([$resource, 'handle'], ['request' => $request]);
+            return $container->call([$resource, 'handle']);
         }
 
         // @phpstan-ignore-next-line
         return Container::getInstance()->call([$resource, 'handle']);
     }
 
-    protected function serializable(Resource $resource): callable
+    protected function serializable(Resource $resource, string $uri): callable
     {
         return fn (ResponseFactory $factory): array => $factory->mergeMeta([
-            'contents' => $factory->responses()->map(fn (Response $response): array => $response->content()->toResource($resource))->all(),
+            'contents' => $factory->responses()->map(fn (Response $response): array => [
+                ...$response->content()->toResource($resource),
+                'uri' => $uri,
+            ])->all(),
         ]);
     }
 }
