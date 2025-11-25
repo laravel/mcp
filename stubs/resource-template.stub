@@ -9,7 +9,6 @@ use Laravel\Mcp\Support\UriTemplate;
 
 class {{ class }} extends ResourceTemplate
 {
-
     /**
      * The resource's description.
      */

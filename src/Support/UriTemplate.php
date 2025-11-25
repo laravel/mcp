@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Support;
 
+use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Stringable;
 
@@ -41,15 +43,11 @@ class UriTemplate implements Stringable
      */
     public function getVariableNames(): array
     {
-        $names = [];
-
-        foreach ($this->parts as $part) {
-            if (is_array($part)) {
-                $names = array_merge($names, $part['names']);
-            }
-        }
-
-        return $names;
+        return collect($this->parts)
+            ->filter(fn ($part): bool => is_array($part))
+            ->flatMap(fn (array $part): array => $part['names'])
+            ->values()
+            ->all();
     }
 
     /**
@@ -99,18 +97,18 @@ class UriTemplate implements Stringable
 
         foreach ($this->parts as $part) {
             if (is_string($part)) {
-                $pattern .= $this->escapeRegExp($part);
-            } else {
-                $patterns = $this->partToRegExp($part);
+                $pattern .= preg_quote($part, '#');
 
-                foreach ($patterns as $patternData) {
-                    $pattern .= $patternData['pattern'];
-                    $names[] = [
-                        'name' => $patternData['name'],
-                        'exploded' => $part['exploded'],
-                        'optional' => $patternData['optional'] ?? false,
-                    ];
-                }
+                continue;
+            }
+
+            foreach ($this->partToRegExp($part) as $patternData) {
+                $pattern .= $patternData['pattern'];
+                $names[] = [
+                    'name' => $patternData['name'],
+                    'exploded' => $part['exploded'],
+                    'optional' => $patternData['optional'] ?? false,
+                ];
             }
         }
 
@@ -122,23 +120,22 @@ class UriTemplate implements Stringable
             return null;
         }
 
-        $result = [];
+        return collect($names)
+            ->mapWithKeys(function (array $nameData, int $i) use ($matches): array {
+                $value = $matches[$i + 1] ?? '';
 
-        foreach ($names as $i => $nameData) {
-            $name = $nameData['name'];
-            $exploded = $nameData['exploded'];
-            $value = $matches[$i + 1] ?? '';
+                if ($value === '' && $nameData['optional']) {
+                    return [];
+                }
 
-            if ($value === '' && $nameData['optional']) {
-                continue;
-            }
+                $cleanName = Str::remove('*', $nameData['name']);
+                $parsed = $nameData['exploded'] && Str::contains($value, ',')
+                    ? explode(',', $value)
+                    : $value;
 
-            $cleanName = str_replace('*', '', $name);
-
-            $result[$cleanName] = $exploded && str_contains($value, ',') ? explode(',', $value) : $value;
-        }
-
-        return $result;
+                return [$cleanName => $parsed];
+            })
+            ->all();
     }
 
     public function __toString(): string
@@ -148,11 +145,11 @@ class UriTemplate implements Stringable
 
     private function validateLength(string $str, int $max, string $context): void
     {
-        if (strlen($str) > $max) {
-            throw new InvalidArgumentException(
-                sprintf('%s exceeds maximum length of %d characters (got %d)', $context, $max, strlen($str))
-            );
-        }
+        throw_if(
+            Str::length($str) > $max,
+            InvalidArgumentException::class,
+            sprintf('%s exceeds maximum length of %d characters (got %d)', $context, $max, Str::length($str))
+        );
     }
 
     /**
@@ -164,50 +161,47 @@ class UriTemplate implements Stringable
         $currentText = '';
         $i = 0;
         $expressionCount = 0;
+        $length = Str::length($template);
 
-        while ($i < strlen($template)) {
-            if ($template[$i] === '{') {
-                if ($currentText !== '') {
-                    $parts[] = $currentText;
-                    $currentText = '';
-                }
-
-                $end = strpos($template, '}', $i);
-
-                if ($end === false) {
-                    throw new InvalidArgumentException('Unclosed template expression');
-                }
-
-                $expressionCount++;
-
-                if ($expressionCount > self::MAX_TEMPLATE_EXPRESSIONS) {
-                    throw new InvalidArgumentException(
-                        sprintf('Template contains too many expressions (max %d)', self::MAX_TEMPLATE_EXPRESSIONS)
-                    );
-                }
-
-                $expr = substr($template, $i + 1, $end - $i - 1);
-                $operator = $this->getOperator($expr);
-                $exploded = str_contains($expr, '*');
-                $names = $this->getNames($expr);
-                $name = $names[0] ?? '';
-
-                foreach ($names as $varName) {
-                    $this->validateLength($varName, self::MAX_VARIABLE_LENGTH, 'Variable name');
-                }
-
-                $parts[] = [
-                    'name' => $name,
-                    'operator' => $operator,
-                    'names' => $names,
-                    'exploded' => $exploded,
-                ];
-
-                $i = $end + 1;
-            } else {
+        while ($i < $length) {
+            if ($template[$i] !== '{') {
                 $currentText .= $template[$i];
                 $i++;
+
+                continue;
             }
+
+            if ($currentText !== '') {
+                $parts[] = $currentText;
+                $currentText = '';
+            }
+
+            $end = strpos($template, '}', $i);
+
+            throw_if($end === false, InvalidArgumentException::class, 'Unclosed template expression');
+
+            $expressionCount++;
+
+            throw_if(
+                $expressionCount > self::MAX_TEMPLATE_EXPRESSIONS,
+                InvalidArgumentException::class,
+                sprintf('Template contains too many expressions (max %d)', self::MAX_TEMPLATE_EXPRESSIONS)
+            );
+
+            $expr = Str::substr($template, $i + 1, $end - $i - 1);
+            $operator = $this->getOperator($expr);
+            $names = $this->getNames($expr);
+
+            collect($names)->each(fn (string $varName) => $this->validateLength($varName, self::MAX_VARIABLE_LENGTH, 'Variable name'));
+
+            $parts[] = [
+                'name' => Arr::first($names, default: ''),
+                'operator' => $operator,
+                'names' => $names,
+                'exploded' => Str::contains($expr, '*'),
+            ];
+
+            $i = $end + 1;
         }
 
         if ($currentText !== '') {
@@ -219,13 +213,11 @@ class UriTemplate implements Stringable
 
     private function getOperator(string $expr): string
     {
-        foreach (self::OPERATORS as $op) {
-            if (str_starts_with($expr, $op)) {
-                return $op;
-            }
-        }
-
-        return '';
+        return Arr::first(
+            self::OPERATORS,
+            fn (string $op): bool => Str::startsWith($expr, $op),
+            ''
+        );
     }
 
     /**
@@ -234,14 +226,14 @@ class UriTemplate implements Stringable
     private function getNames(string $expr): array
     {
         $operator = $this->getOperator($expr);
-        $withoutOperator = substr($expr, strlen($operator));
 
-        $names = array_map(
-            fn ($name): string => str_replace('*', '', trim($name)),
-            explode(',', $withoutOperator)
-        );
-
-        return array_values(array_filter($names, fn ($name): bool => $name !== ''));
+        return Str::of($expr)
+            ->substr(Str::length($operator))
+            ->explode(',')
+            ->map(fn (string $name): string => Str::remove('*', trim($name)))
+            ->filter(fn (string $name): bool => filled($name))
+            ->values()
+            ->all();
     }
 
     private function encodeValue(string $value): string
@@ -257,48 +249,28 @@ class UriTemplate implements Stringable
      */
     private function expandPart(array $part, array $variables): string
     {
-        if ($part['operator'] === '?' || $part['operator'] === '&') {
-            $pairs = [];
+        if (in_array($part['operator'], ['?', '&'], true)) {
+            $pairs = collect($part['names'])
+                ->map(fn (string $name): ?string => match (true) {
+                    ! Arr::has($variables, $name) => null,
+                    is_array($variables[$name]) => $name.'='.collect($variables[$name])->map($this->encodeValue(...))->implode(','),
+                    default => $name.'='.$this->encodeValue((string) $variables[$name]),
+                })
+                ->filter()
+                ->values();
 
-            foreach ($part['names'] as $name) {
-                $value = $variables[$name] ?? null;
-
-                if ($value === null) {
-                    continue;
-                }
-
-                $encoded = is_array($value)
-                    ? implode(',', array_map($this->encodeValue(...), $value))
-                    : $this->encodeValue((string) $value);
-
-                $pairs[] = $name.'='.$encoded;
-            }
-
-            if ($pairs === []) {
-                return '';
-            }
-
-            $separator = $part['operator'] === '?' ? '?' : '&';
-
-            return $separator.implode('&', $pairs);
+            return $pairs->isEmpty()
+                ? ''
+                : ($part['operator'] === '?' ? '?' : '&').$pairs->implode('&');
         }
 
         if (count($part['names']) > 1) {
-            $values = [];
+            $values = collect($part['names'])
+                ->map(fn (string $name): mixed => $variables[$name] ?? null)
+                ->filter(fn (mixed $value): bool => $value !== null)
+                ->map(fn (mixed $v): string => is_array($v) ? $v[0] : $v);
 
-            foreach ($part['names'] as $name) {
-                $value = $variables[$name] ?? null;
-
-                if ($value !== null) {
-                    $values[] = $value;
-                }
-            }
-
-            if ($values === []) {
-                return '';
-            }
-
-            return implode(',', array_map(fn ($v): string => is_array($v) ? $v[0] : $v, $values));
+            return $values->isEmpty() ? '' : $values->implode(',');
         }
 
         $value = $variables[$part['name']] ?? null;
@@ -307,22 +279,15 @@ class UriTemplate implements Stringable
             return '';
         }
 
-        $values = is_array($value) ? $value : [$value];
-        $encoded = array_map($this->encodeValue(...), $values);
+        $encoded = collect(Arr::wrap($value))->map($this->encodeValue(...));
 
         return match ($part['operator']) {
-            '' => implode(',', $encoded),
-            '+' => implode(',', $encoded),
-            '#' => '#'.implode(',', $encoded),
-            '.' => '.'.implode('.', $encoded),
-            '/' => '/'.implode('/', $encoded),
-            default => implode(',', $encoded),
+            '', '+' => $encoded->implode(','),
+            '#' => '#'.$encoded->implode(','),
+            '.' => '.'.$encoded->implode('.'),
+            '/' => '/'.$encoded->implode('/'),
+            default => $encoded->implode(','),
         };
-    }
-
-    private function escapeRegExp(string $str): string
-    {
-        return preg_quote($str, '#');
     }
 
     /**
@@ -331,26 +296,19 @@ class UriTemplate implements Stringable
      */
     private function partToRegExp(array $part): array
     {
-        $patterns = [];
+        collect($part['names'])->each(
+            fn (string $varName) => $this->validateLength($varName, self::MAX_VARIABLE_LENGTH, 'Variable name')
+        );
 
-        foreach ($part['names'] as $varName) {
-            $this->validateLength($varName, self::MAX_VARIABLE_LENGTH, 'Variable name');
-        }
-
-        if ($part['operator'] === '?' || $part['operator'] === '&') {
-            foreach ($part['names'] as $i => $name) {
-                $prefix = $i === 0 ? '[?&]' : '&';
-                $patterns[] = [
-                    'pattern' => '(?:'.$prefix.$this->escapeRegExp($name).'=([^&]*))?',
+        if (in_array($part['operator'], ['?', '&'], true)) {
+            return collect($part['names'])
+                ->map(fn (string $name, int $i): array => [
+                    'pattern' => '(?:'.($i === 0 ? '[?&]' : '&').preg_quote($name, '#').'=([^&]*))?',
                     'name' => $name,
                     'optional' => true,
-                ];
-            }
-
-            return $patterns;
+                ])
+                ->all();
         }
-
-        $name = $part['name'];
 
         $pattern = match ($part['operator']) {
             '' => $part['exploded'] ? '([^/]+(?:,[^/]+)*)' : '([^/,]+)',
@@ -360,8 +318,6 @@ class UriTemplate implements Stringable
             default => '([^/]+)',
         };
 
-        $patterns[] = ['pattern' => $pattern, 'name' => $name];
-
-        return $patterns;
+        return [['pattern' => $pattern, 'name' => $part['name']]];
     }
 }
