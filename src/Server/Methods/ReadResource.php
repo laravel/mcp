@@ -37,8 +37,12 @@ class ReadResource implements Method
             $request->id,
         );
 
-        $resource = $context->resources()->first(fn (Resource $resource): bool => $resource->uri() === $uri)
-            ?? $context->resourceTemplates()->first(fn (Resource $template): bool => $template instanceof SupportsURITemplate && ! is_null($template->uriTemplate()->match($uri)));
+        $resource = $context->resources()->first(
+            fn (Resource $resource): bool => $resource->uri() === $uri,
+            $context->resourceTemplates()->first(
+                fn (Resource $template): bool => $template instanceof SupportsURITemplate && ! is_null($template->uriTemplate()->match($uri)),
+            ),
+        );
 
         if (! $resource) {
             throw new JsonRpcException("Resource [{$uri}] not found.", -32002, $request->id);
@@ -59,22 +63,22 @@ class ReadResource implements Method
     {
         $container = Container::getInstance();
 
+        $request = $container->make(Request::class);
+        $request->setUri($uri);
+
         if ($resource instanceof SupportsURITemplate) {
             $variables = $resource->uriTemplate()->match($uri) ?? [];
-
-            $request = $container->make(Request::class);
-            $container->instance(Request::class, $request->merge($variables));
-
-            try {
-                // @phpstan-ignore-next-line
-                return $container->call([$resource, 'handle']);
-            } finally {
-                $container->forgetInstance(Request::class);
-            }
+            $request->merge($variables);
         }
 
-        // @phpstan-ignore-next-line
-        return Container::getInstance()->call([$resource, 'handle']);
+        $container->instance(Request::class, $request);
+
+        try {
+            // @phpstan-ignore-next-line
+            return $container->call([$resource, 'handle']);
+        } finally {
+            $container->forgetInstance(Request::class);
+        }
     }
 
     protected function serializable(Resource $resource, string $uri): callable

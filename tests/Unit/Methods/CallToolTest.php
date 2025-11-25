@@ -1,7 +1,11 @@
 <?php
 
+use Illuminate\JsonSchema\JsonSchema;
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\CurrentTimeTool;
@@ -343,4 +347,60 @@ it('separates content-level meta from result-level meta', function (): void {
                 ],
             ],
         ]);
+});
+
+it('does not set uri on request when calling tools', function (): void {
+    $capturedUri = 'NOT_SET';
+
+    $tool = new class($capturedUri) extends Tool
+    {
+        public function __construct(private &$uriRef) {}
+
+        protected string $description = 'Test tool';
+
+        public function handle(Request $request): Response
+        {
+            $this->uriRef = $request->uri();
+
+            return Response::text('Test');
+        }
+
+        public function schema(JsonSchema $schema): array
+        {
+            return [];
+        }
+    };
+
+    $toolClass = $tool::class;
+    $this->instance($toolClass, $tool);
+
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => $tool->name(),
+            'arguments' => [],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test',
+        serverVersion: '1.0.0',
+        instructions: '',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [$toolClass],
+        resources: [],
+        prompts: [],
+    );
+
+    $this->instance('mcp.request', $request->toRequest());
+
+    $method = new CallTool;
+    $method->handle($request, $context);
+
+    expect($capturedUri)->toBeNull();
 });

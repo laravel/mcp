@@ -30,6 +30,7 @@ class Request implements Arrayable
         protected array $arguments = [],
         protected ?string $sessionId = null,
         protected ?array $meta = null,
+        protected ?string $uri = null,
     ) {
         //
     }
@@ -112,6 +113,11 @@ class Request implements Arrayable
         return $this->meta;
     }
 
+    public function uri(): ?string
+    {
+        return $this->uri;
+    }
+
     /**
      * @param  array<string, mixed>  $arguments
      */
@@ -131,5 +137,10 @@ class Request implements Arrayable
     public function setMeta(?array $meta): void
     {
         $this->meta = $meta;
+    }
+
+    public function setUri(?string $uri): ?string
+    {
+        return $this->uri = $uri;
     }
 }
