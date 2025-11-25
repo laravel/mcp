@@ -15,14 +15,25 @@ abstract class ResourceTemplate extends Resource
         return (string) $this->uriTemplate();
     }
 
-    public function toArray(): array
+    /**
+     * @return array{
+     *     name: string,
+     *     title: string,
+     *     description: string,
+     *     uriTemplate: string,
+     *     mimeType: string,
+     *     _meta?: array<string, mixed>
+     * }
+     */
+    public function toArray(): array // @phpstan-ignore method.childReturnType
     {
-        return [
+        // @phpstan-ignore return.type
+        return $this->mergeMeta([
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
             'uriTemplate' => (string) $this->uriTemplate(),
             'mimeType' => $this->mimeType(),
-        ];
+        ]);
     }
 }
