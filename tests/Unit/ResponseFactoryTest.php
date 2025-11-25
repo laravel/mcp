@@ -71,3 +71,66 @@ it('separates content-level meta from result-level meta', function (): void {
     expect($factory->getMeta())->toEqual(['result_meta' => 'result_value'])
         ->and($factory->responses()->first())->toBe($response);
 });
+
+it('creates a structured content response with Response::structured', function (): void {
+    $factory = Response::structured(['result' => 'The result of the tool.']);
+
+    expect($factory)->toBeInstanceOf(ResponseFactory::class)
+        ->and($factory->getStructuredContent())->toEqual(['result' => 'The result of the tool.'])
+        ->and($factory->responses())->toHaveCount(1);
+
+    $textResponse = $factory->responses()->first();
+    expect($textResponse->content()->toArray()['text'])
+        ->toContain('"result": "The result of the tool."');
+});
+
+it('creates a structured content response with meta using Response::structured', function (): void {
+    $factory = Response::structured([
+        'entry' => 'The result of the tool.',
+    ])->withMeta(['x' => 'y']);
+
+    expect($factory)->toBeInstanceOf(ResponseFactory::class)
+        ->and($factory->getStructuredContent())->toEqual(['entry' => 'The result of the tool.'])
+        ->and($factory->getMeta())->toEqual(['x' => 'y'])
+        ->and($factory->responses())->toHaveCount(1);
+});
+
+it('adds structured content to existing ResponseFactory with withStructuredContent', function (): void {
+    $factory = Response::make([
+        Response::text('result is this'),
+    ])->withStructuredContent(['result' => 'result is this']);
+
+    expect($factory)->toBeInstanceOf(ResponseFactory::class)
+        ->and($factory->getStructuredContent())->toEqual(['result' => 'result is this'])
+        ->and($factory->responses())->toHaveCount(1);
+
+    $textResponse = $factory->responses()->first();
+    expect($textResponse->content()->toArray()['text'])->toBe('result is this');
+});
+
+it('adds structured content with meta to ResponseFactory', function (): void {
+    $factory = Response::make([
+        Response::text('result is this')->withMeta(['x' => 'y']),
+    ])->withStructuredContent(['result' => 'result is this']);
+
+    expect($factory)->toBeInstanceOf(ResponseFactory::class)
+        ->and($factory->getStructuredContent())->toEqual(['result' => 'result is this'])
+        ->and($factory->responses())->toHaveCount(1);
+});
+
+it('merges multiple withStructuredContent calls', function (): void {
+    $factory = (new ResponseFactory(Response::text('Hello')))
+        ->withStructuredContent(['key1' => 'value1'])
+        ->withStructuredContent(['key2' => 'value1'])
+        ->withStructuredContent(['key2' => 'value2']);
+
+    expect($factory->getStructuredContent())->toEqual(['key1' => 'value1', 'key2' => 'value2']);
+});
+
+it('throws exception when Response::structured result is wrapped in ResponseFactory::make', function (): void {
+    expect(fn (): ResponseFactory => Response::make([
+        Response::structured(['result' => 'The result of the tool.']),
+    ]))->toThrow(
+        InvalidArgumentException::class,
+    );
+});

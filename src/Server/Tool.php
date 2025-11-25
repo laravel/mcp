@@ -21,6 +21,16 @@ abstract class Tool extends Primitive
     }
 
     /**
+     * Define the output schema for this tool's results.
+     *
+     * @return array<string, mixed>
+     */
+    public function outputSchema(JsonSchema $schema): array
+    {
+        return [];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toMethodCall(): array
@@ -36,6 +46,7 @@ abstract class Tool extends Primitive
      *     title?: string|null,
      *     description?: string|null,
      *     inputSchema?: array<string, mixed>,
+     *     outputSchema?: array<string, mixed>,
      *     annotations?: array<string, mixed>|object,
      *     _meta?: array<string, mixed>
      * }
@@ -48,16 +59,26 @@ abstract class Tool extends Primitive
             $this->schema(...),
         )->toArray();
 
+        $outputSchema = JsonSchema::object(
+            $this->outputSchema(...),
+        )->toArray();
+
         $schema['properties'] ??= (object) [];
 
-        // @phpstan-ignore return.type
-        return $this->mergeMeta([
+        $result = [
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
             'inputSchema' => $schema,
             'annotations' => $annotations === [] ? (object) [] : $annotations,
-        ]);
+        ];
+
+        if (isset($outputSchema['properties'])) {
+            $result['outputSchema'] = $outputSchema;
+        }
+
+        // @phpstan-ignore return.type
+        return $this->mergeMeta($result);
     }
 
     /**

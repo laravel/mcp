@@ -6,6 +6,7 @@ namespace Laravel\Mcp;
 
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
+use InvalidArgumentException;
 use JsonException;
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
@@ -56,6 +57,28 @@ class Response
     public static function blob(string $content): static
     {
         return new static(new Blob($content));
+    }
+
+    /**
+     * @param  array<string, mixed>  $response
+     *
+     * @throws JsonException
+     */
+    public static function structured(array $response): ResponseFactory
+    {
+        if ($response === []) {
+            throw new InvalidArgumentException('Structured content cannot be empty.');
+        }
+
+        try {
+            $json = json_encode($response, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT);
+        } catch (JsonException $jsonException) {
+            throw new InvalidArgumentException("Invalid structured content: {$jsonException->getMessage()}", 0, $jsonException);
+        }
+
+        $content = Response::text($json);
+
+        return (new ResponseFactory($content))->withStructuredContent($response);
     }
 
     public static function error(string $text): static
