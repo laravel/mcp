@@ -267,3 +267,29 @@ it('returns empty list when only templates are registered', function (): void {
         'resources' => [],
     ]);
 });
+
+it('excludes template class strings from list', function (): void {
+    $staticResource = $this->makeResource();
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 5,
+        tools: [],
+        resources: [Tests\Fixtures\ExampleResourceTemplate::class, $staticResource],
+        prompts: [],
+    );
+
+    $request = new JsonRpcRequest(id: 1, method: 'resources/list', params: []);
+    $listResources = new ListResources;
+    $response = $listResources->handle($request, $context);
+
+    $payload = $response->toArray();
+
+    expect($payload['result']['resources'])->toHaveCount(1)
+        ->and($payload['result']['resources'][0]['name'])->toBe($staticResource->name());
+});

@@ -47,7 +47,8 @@ class ServerContext
      */
     public function resources(): Collection
     {
-        return collect($this->resources)->filter(fn ($resource): bool => ! ($resource instanceof ResourceTemplate))
+        return collect($this->resources)
+            ->filter(fn ($resource): bool => ! ($resource instanceof ResourceTemplate) && ! (is_string($resource) && is_subclass_of($resource, ResourceTemplate::class)))
             ->map(fn (Resource|string $resourceClass) => is_string($resourceClass)
                 ? Container::getInstance()->make($resourceClass)
                 : $resourceClass)
