@@ -532,3 +532,60 @@ it('returns a resource result with result-level meta when using ResponseFactory'
             ],
         ]);
 });
+
+it('does not leak variables between consecutive template resource requests', function (): void {
+    $firstRequestVars = null;
+    $secondRequestVars = null;
+
+    $template = new class($firstRequestVars, $secondRequestVars) extends ResourceTemplate
+    {
+        public function __construct(private &$firstRef, private &$secondRef) {}
+
+        public function uriTemplate(): UriTemplate
+        {
+            return new UriTemplate('file://users/{userId}/posts/{postId}');
+        }
+
+        public function handle(Request $request): Response
+        {
+            if ($this->firstRef === null) {
+                $this->firstRef = $request->all();
+            } else {
+                $this->secondRef = $request->all();
+            }
+
+            return Response::text('test');
+        }
+    };
+
+    $context = $this->getServerContext([
+        'resources' => [$template],
+    ]);
+
+    $readResource = new ReadResource;
+
+    $firstJsonRpcRequest = new JsonRpcRequest(
+        id: 1,
+        method: 'resources/read',
+        params: ['uri' => 'file://users/100/posts/42']
+    );
+    $readResource->handle($firstJsonRpcRequest, $context);
+
+    $secondJsonRpcRequest = new JsonRpcRequest(
+        id: 2,
+        method: 'resources/read',
+        params: ['uri' => 'file://users/200/posts/99']
+    );
+    $readResource->handle($secondJsonRpcRequest, $context);
+
+    expect($firstRequestVars)->toBe([
+        'userId' => '100',
+        'postId' => '42',
+    ])
+        ->and($secondRequestVars)->toBe([
+            'userId' => '200',
+            'postId' => '99',
+        ])
+        ->and($secondRequestVars)->not->toHaveKey('userId', '100')
+        ->and($secondRequestVars)->not->toHaveKey('postId', '42');
+});

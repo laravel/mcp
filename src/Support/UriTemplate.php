@@ -43,11 +43,15 @@ class UriTemplate implements Stringable
      */
     public function getVariableNames(): array
     {
-        return collect($this->parts)
-            ->filter(fn ($part): bool => is_array($part))
-            ->flatMap(fn (array $part): array => $part['names'])
-            ->values()
-            ->all();
+        $names = [];
+
+        foreach ($this->parts as $part) {
+            if (is_array($part)) {
+                $names = array_merge($names, $part['names']);
+            }
+        }
+
+        return $names;
     }
 
     /**
@@ -227,13 +231,15 @@ class UriTemplate implements Stringable
     {
         $operator = $this->getOperator($expr);
 
-        return Str::of($expr)
-            ->substr(Str::length($operator))
-            ->explode(',')
-            ->map(fn (string $name): string => Str::remove('*', trim($name)))
-            ->filter(fn (string $name): bool => filled($name))
-            ->values()
-            ->all();
+        return array_values(
+            Str::of($expr)
+                ->substr(Str::length($operator))
+                ->explode(',')
+                ->map(fn (string $name): string => Str::remove('*', trim($name)))
+                ->filter(fn (string $name): bool => filled($name))
+                ->values()
+                ->all()
+        );
     }
 
     private function encodeValue(string $value): string
@@ -257,20 +263,24 @@ class UriTemplate implements Stringable
                     default => $name.'='.$this->encodeValue((string) $variables[$name]),
                 })
                 ->filter()
-                ->values();
+                ->values()
+                ->all();
 
-            return $pairs->isEmpty()
-                ? ''
-                : ($part['operator'] === '?' ? '?' : '&').$pairs->implode('&');
+            if (count($pairs) === 0) {
+                return '';
+            }
+
+            return ($part['operator'] === '?' ? '?' : '&').implode('&', $pairs);
         }
 
         if (count($part['names']) > 1) {
             $values = collect($part['names'])
                 ->map(fn (string $name): mixed => $variables[$name] ?? null)
                 ->filter(fn (mixed $value): bool => $value !== null)
-                ->map(fn (mixed $v): string => is_array($v) ? $v[0] : $v);
+                ->map(fn (mixed $v): string => is_array($v) ? $v[0] : (string) $v)
+                ->all();
 
-            return $values->isEmpty() ? '' : $values->implode(',');
+            return count($values) === 0 ? '' : implode(',', $values);
         }
 
         $value = $variables[$part['name']] ?? null;
@@ -301,13 +311,15 @@ class UriTemplate implements Stringable
         );
 
         if (in_array($part['operator'], ['?', '&'], true)) {
-            return collect($part['names'])
-                ->map(fn (string $name, int $i): array => [
-                    'pattern' => '(?:'.($i === 0 ? '[?&]' : '&').preg_quote($name, '#').'=([^&]*))?',
-                    'name' => $name,
-                    'optional' => true,
-                ])
-                ->all();
+            return array_values(
+                collect($part['names'])
+                    ->map(fn (string $name, int $i): array => [
+                        'pattern' => '(?:'.($i === 0 ? '[?&]' : '&').preg_quote($name, '#').'=([^&]*))?',
+                        'name' => $name,
+                        'optional' => true,
+                    ])
+                    ->all()
+            );
         }
 
         $pattern = match ($part['operator']) {

@@ -62,12 +62,15 @@ class ReadResource implements Method
         if ($resource instanceof ResourceTemplate) {
             $variables = $resource->uriTemplate()->match($uri) ?? [];
 
-            Container::getInstance()->afterResolving(Request::class, function (Request $request) use ($variables): void {
-                $request->merge($variables);
-            });
+            $request = $container->make(Request::class);
+            $container->instance(Request::class, $request->merge($variables));
 
-            // @phpstan-ignore-next-line
-            return $container->call([$resource, 'handle']);
+            try {
+                // @phpstan-ignore-next-line
+                return $container->call([$resource, 'handle']);
+            } finally {
+                $container->forgetInstance(Request::class);
+            }
         }
 
         // @phpstan-ignore-next-line
