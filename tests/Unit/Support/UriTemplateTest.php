@@ -191,6 +191,36 @@ describe('UriTemplate matching complex patterns', function (): void {
         expect($template->match('/users/123/extra'))->toBeNull()
             ->and($template->match('/users'))->toBeNull();
     });
+
+    it('should match URIs with optional query parameters omitted', function (): void {
+        $template = new UriTemplate('/users{?cursor}');
+        // Should match when query param is omitted (RFC 6570 - query params are optional)
+        expect($template->match('/users'))->toBe([])
+            // Should also match when query param is present
+            ->and($template->match('/users?cursor=abc123'))->toBe(['cursor' => 'abc123']);
+    });
+
+    it('should match URIs with some optional query parameters provided', function (): void {
+        $template = new UriTemplate('/search{?q,page,limit}');
+        // All params provided
+        expect($template->match('/search?q=test&page=1&limit=10'))->toBe([
+            'q' => 'test',
+            'page' => '1',
+            'limit' => '10',
+        ])
+            // Only some params provided
+            ->and($template->match('/search?q=test'))->toBe(['q' => 'test'])
+            // No params provided
+            ->and($template->match('/search'))->toBe([]);
+    });
+
+    it('should match URIs with query parameters when in template order', function (): void {
+        $template = new UriTemplate('/api{?a,b}');
+        // Parameters in template order should match
+        expect($template->match('/api?a=1&b=2'))->toBe(['a' => '1', 'b' => '2']);
+        // Note: Different order (e.g. ?b=2&a=1) is not supported as it would require
+        // query string parsing rather than regex matching
+    });
 });
 
 describe('UriTemplate security and edge cases', function (): void {

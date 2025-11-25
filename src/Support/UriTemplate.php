@@ -105,7 +105,11 @@ class UriTemplate implements Stringable
 
                 foreach ($patterns as $patternData) {
                     $pattern .= $patternData['pattern'];
-                    $names[] = ['name' => $patternData['name'], 'exploded' => $part['exploded']];
+                    $names[] = [
+                        'name' => $patternData['name'],
+                        'exploded' => $part['exploded'],
+                        'optional' => $patternData['optional'] ?? false,
+                    ];
                 }
             }
         }
@@ -123,7 +127,12 @@ class UriTemplate implements Stringable
         foreach ($names as $i => $nameData) {
             $name = $nameData['name'];
             $exploded = $nameData['exploded'];
-            $value = $matches[$i + 1];
+            $value = $matches[$i + 1] ?? '';
+
+            if ($value === '' && $nameData['optional']) {
+                continue;
+            }
+
             $cleanName = str_replace('*', '', $name);
 
             $result[$cleanName] = $exploded && str_contains($value, ',') ? explode(',', $value) : $value;
@@ -318,7 +327,7 @@ class UriTemplate implements Stringable
 
     /**
      * @param  array{name: string, operator: string, names: list<string>, exploded: bool}  $part
-     * @return list<array{pattern: string, name: string}>
+     * @return list<array{pattern: string, name: string, optional?: bool}>
      */
     private function partToRegExp(array $part): array
     {
@@ -330,10 +339,11 @@ class UriTemplate implements Stringable
 
         if ($part['operator'] === '?' || $part['operator'] === '&') {
             foreach ($part['names'] as $i => $name) {
-                $prefix = $i === 0 ? '\\'.$part['operator'] : '&';
+                $prefix = $i === 0 ? '[?&]' : '&';
                 $patterns[] = [
-                    'pattern' => $prefix.$this->escapeRegExp($name).'=([^&]+)',
+                    'pattern' => '(?:'.$prefix.$this->escapeRegExp($name).'=([^&]*))?',
                     'name' => $name,
+                    'optional' => true,
                 ];
             }
 

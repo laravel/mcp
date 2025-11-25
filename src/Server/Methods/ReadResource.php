@@ -54,8 +54,8 @@ class ReadResource implements Method
         }
 
         return is_iterable($response)
-            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($resource))
-            : $this->toJsonRpcResponse($request, $response, $this->serializable($resource));
+            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($resource, $uri))
+            : $this->toJsonRpcResponse($request, $response, $this->serializable($resource, $uri));
     }
 
     /**
@@ -81,10 +81,18 @@ class ReadResource implements Method
     {
         if ($resource instanceof ResourceTemplate) {
             $variables = $resource->uriTemplate()->match($uri) ?? [];
-            $templateRequest = new Request(['uri' => $uri, ...$variables]);
+
+            $container = Container::getInstance();
+            $originalRequest = $container->bound('mcp.request') ? $container->make('mcp.request') : null;
+
+            $templateRequest = new Request(
+                arguments: ['uri' => $uri, ...$variables, ...($originalRequest?->all() ?? [])],
+                sessionId: $originalRequest?->sessionId(),
+                meta: $originalRequest?->meta(),
+            );
 
             // @phpstan-ignore-next-line
-            return Container::getInstance()->call($resource->handle(...), ['request' => $templateRequest]);
+            return $container->call($resource->handle(...), ['request' => $templateRequest]);
         }
 
         // @phpstan-ignore-next-line

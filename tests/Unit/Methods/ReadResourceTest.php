@@ -120,6 +120,40 @@ it('reads resource template by matching URI pattern', function (): void {
     ], $result);
 });
 
+it('returns actual requested URI in response, not the template pattern', function (): void {
+    $template = new class extends ResourceTemplate
+    {
+        public function uriTemplate(): UriTemplate
+        {
+            return new UriTemplate('file://users/{userId}');
+        }
+
+        public function handle(Request $request): Response
+        {
+            return Response::text('User data');
+        }
+    };
+
+    $context = $this->getServerContext([
+        'resources' => [$template],
+    ]);
+
+    $requestedUri = 'file://users/42';
+    $jsonRpcRequest = new JsonRpcRequest(
+        id: 1,
+        method: 'resources/read',
+        params: ['uri' => $requestedUri]
+    );
+
+    $readResource = new ReadResource;
+    $result = $readResource->handle($jsonRpcRequest, $context);
+    $payload = $result->toArray();
+
+    // The response URI should be the actual requested URI, not the template pattern
+    expect($payload['result']['contents'][0]['uri'])->toBe($requestedUri)
+        ->and($payload['result']['contents'][0]['uri'])->not->toBe('file://users/{userId}');
+});
+
 it('extracts single variable from URI and passes to handler', function (): void {
     $capturedUserId = null;
 
@@ -236,6 +270,69 @@ it('includes uri parameter along with extracted variables in request', function 
         'uri' => $uri,
         'userId' => '789',
     ]);
+});
+
+it('preserves sessionId and meta from original request for template resources', function (): void {
+    $capturedSessionId = null;
+    $capturedMeta = null;
+    $capturedArguments = null;
+
+    $template = new class($capturedSessionId, $capturedMeta, $capturedArguments) extends ResourceTemplate
+    {
+        public function __construct(
+            private &$sessionIdRef,
+            private &$metaRef,
+            private &$argumentsRef
+        ) {}
+
+        public function uriTemplate(): UriTemplate
+        {
+            return new UriTemplate('file://users/{userId}');
+        }
+
+        public function handle(Request $request): Response
+        {
+            $this->sessionIdRef = $request->sessionId();
+            $this->metaRef = $request->meta();
+            $this->argumentsRef = $request->all();
+
+            return Response::text('test');
+        }
+    };
+
+    $context = $this->getServerContext([
+        'resources' => [$template],
+    ]);
+
+    $sessionId = 'test-session-123';
+    $meta = ['progressToken' => 'abc123'];
+    $jsonRpcRequest = new JsonRpcRequest(
+        id: 1,
+        method: 'resources/read',
+        params: [
+            'uri' => 'file://users/42',
+            'arguments' => ['format' => 'json'],
+            '_meta' => $meta,
+        ],
+        sessionId: $sessionId
+    );
+
+    // Bind the mcp.request in container as the Server would do
+    $container = \Illuminate\Container\Container::getInstance();
+    $container->instance('mcp.request', $jsonRpcRequest->toRequest());
+
+    try {
+        $readResource = new ReadResource;
+        $readResource->handle($jsonRpcRequest, $context);
+
+        expect($capturedSessionId)->toBe($sessionId)
+            ->and($capturedMeta)->toBe($meta)
+            ->and($capturedArguments)->toHaveKey('userId', '42')
+            ->and($capturedArguments)->toHaveKey('uri', 'file://users/42')
+            ->and($capturedArguments)->toHaveKey('format', 'json');
+    } finally {
+        $container->forgetInstance('mcp.request');
+    }
 });
 
 it('template handler receives variables via request get method', function (): void {
