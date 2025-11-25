@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Annotations\Audience;
+use Laravel\Mcp\Server\Annotations\LastModified;
+use Laravel\Mcp\Server\Annotations\Priority;
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
@@ -134,4 +138,108 @@ it('returns empty list when the single prompt is not eligible for registration v
         ->and($payload['result'])->toEqual([
             'resources' => [],
         ]);
+});
+
+it('includes annotations when a resource has annotations', function (): void {
+    $listResources = new ListResources;
+
+    $resource = new #[Audience([Role::USER, Role::ASSISTANT])]
+    #[Priority(0.8)]
+    #[LastModified('2025-01-12T15:00:58Z')]
+    class extends Resource
+    {
+        public function handle(): string
+        {
+            return 'test content';
+        }
+    };
+
+    $context = $this->getServerContext([
+        'resources' => [$resource],
+    ]);
+    $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/list', params: []);
+
+    $this->assertMethodResult([
+        'resources' => [
+            [
+                'name' => $resource->name(),
+                'title' => $resource->title(),
+                'description' => $resource->description(),
+                'uri' => $resource->uri(),
+                'mimeType' => $resource->mimeType(),
+                'annotations' => [
+                    'audience' => ['user', 'assistant'],
+                    'priority' => 0.8,
+                    'lastModified' => '2025-01-12T15:00:58Z',
+                ],
+            ],
+        ],
+    ], $listResources->handle($jsonRpcRequest, $context));
+});
+
+it('excludes an annotation key when a resource has no annotations', function (): void {
+    $listResources = new ListResources;
+
+    $resource = new class extends Resource
+    {
+        public function handle(): string
+        {
+            return 'test content';
+        }
+    };
+
+    $context = $this->getServerContext([
+        'resources' => [$resource],
+    ]);
+    $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/list', params: []);
+
+    $response = $listResources->handle($jsonRpcRequest, $context);
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+
+    expect($payload['result']['resources'])->toHaveCount(1)
+        ->and($payload['result']['resources'][0])->not->toHaveKey('annotations');
+});
+
+it('handles mixed resources with and without annotations', function (): void {
+    $listResources = new ListResources;
+
+    $annotatedResource = new #[Audience(Role::USER)]
+    #[Priority(0.5)]
+    class extends Resource
+    {
+        public function handle(): string
+        {
+            return 'annotated content';
+        }
+    };
+
+    $plainResource = new class extends Resource
+    {
+        public function handle(): string
+        {
+            return 'plain content';
+        }
+    };
+
+    $context = $this->getServerContext([
+        'resources' => [$annotatedResource, $plainResource],
+    ]);
+    $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/list', params: []);
+
+    $response = $listResources->handle($jsonRpcRequest, $context);
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+    $payload = $response->toArray();
+
+    expect($payload['result']['resources'])->toHaveCount(2)
+        ->and($payload['result']['resources'][0])
+        ->toHaveKey('annotations')
+        ->and($payload['result']['resources'][0]['annotations'])->toEqual([
+            'audience' => ['user'],
+            'priority' => 0.5,
+        ])
+        ->and($payload['result']['resources'][1])->not->toHaveKey('annotations');
+
 });
