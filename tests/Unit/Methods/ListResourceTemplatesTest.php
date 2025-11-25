@@ -2,9 +2,9 @@
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Contracts\SupportsURITemplate;
 use Laravel\Mcp\Server\Methods\ListResourceTemplates;
 use Laravel\Mcp\Server\Resource;
-use Laravel\Mcp\Server\ResourceTemplate;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Support\UriTemplate;
@@ -21,7 +21,7 @@ it('lists only resource templates', function (): void {
     };
 
     // Create a template resource
-    $templateResource = new class extends ResourceTemplate
+    $templateResource = new class extends Resource implements SupportsURITemplate
     {
         protected string $mimeType = 'text/plain';
 
@@ -108,8 +108,8 @@ it('returns an empty list when no templates exist', function (): void {
         ->and($payload['result']['resourceTemplates'])->toBeEmpty();
 });
 
-it('includes template metadata in listing', function (): void {
-    $templateResource = new class extends ResourceTemplate
+it('includes template metadata in the listing', function (): void {
+    $templateResource = new class extends Resource implements SupportsURITemplate
     {
         protected string $name = 'user-file';
 

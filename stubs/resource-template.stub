@@ -4,10 +4,11 @@ namespace {{ namespace }};
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
-use Laravel\Mcp\Server\ResourceTemplate;
+use Laravel\Mcp\Server\Contracts\SupportsURITemplate;
+use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Support\UriTemplate;
 
-class {{ class }} extends ResourceTemplate
+class {{ class }} extends Resource implements SupportsURITemplate
 {
     /**
      * The resource's description.

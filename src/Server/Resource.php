@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server;
 
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Contracts\SupportsURITemplate;
 
 abstract class Resource extends Primitive
 {
@@ -14,6 +15,10 @@ abstract class Resource extends Primitive
 
     public function uri(): string
     {
+        if ($this instanceof SupportsURITemplate) {
+            return (string) $this->uriTemplate();
+        }
+
         return $this->uri !== ''
             ? $this->uri
             : 'file://resources/'.Str::kebab(class_basename($this));
@@ -39,20 +44,28 @@ abstract class Resource extends Primitive
      *     name: string,
      *     title: string,
      *     description: string,
-     *     uri: string,
+     *     uri?: string,
+     *     uriTemplate? :string,
      *     mimeType: string,
      *     _meta?: array<string, mixed>
      * }
      */
     public function toArray(): array
     {
-        // @phpstan-ignore return.type
-        return $this->mergeMeta([
+        $result = [
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
-            'uri' => $this->uri(),
             'mimeType' => $this->mimeType(),
-        ]);
+        ];
+
+        if ($this instanceof SupportsURITemplate) {
+            $result['uriTemplate'] = (string) $this->uriTemplate();
+        } else {
+            $result['uri'] = $this->uri();
+        }
+
+        // @phpstan-ignore return.type
+        return $this->mergeMeta($result);
     }
 }

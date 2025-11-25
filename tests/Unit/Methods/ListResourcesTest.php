@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Contracts\SupportsURITemplate;
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Resource;
-use Laravel\Mcp\Server\ResourceTemplate;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
@@ -140,7 +140,7 @@ it('returns empty list when the single prompt is not eligible for registration v
 });
 
 it('excludes resource templates from list', function (): void {
-    $template = new class extends ResourceTemplate
+    $template = new class extends Resource implements SupportsURITemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -180,7 +180,7 @@ it('excludes resource templates from list', function (): void {
 it('returns only static resources when both templates and static resources exist', function (): void {
     $staticResource = $this->makeResource();
 
-    $template = new class extends ResourceTemplate
+    $template = new class extends Resource implements SupportsURITemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -218,7 +218,7 @@ it('returns only static resources when both templates and static resources exist
 });
 
 it('returns empty list when only templates are registered', function (): void {
-    $template1 = new class extends ResourceTemplate
+    $template1 = new class extends Resource implements SupportsURITemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -231,7 +231,7 @@ it('returns empty list when only templates are registered', function (): void {
         }
     };
 
-    $template2 = new class extends ResourceTemplate
+    $template2 = new class extends Resource implements SupportsURITemplate
     {
         public function uriTemplate(): UriTemplate
         {

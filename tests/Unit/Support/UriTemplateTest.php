@@ -4,27 +4,27 @@ use Laravel\Mcp\Support\UriTemplate;
 
 describe('UriTemplate validation', function (): void {
     it('requires a valid URI scheme', function (): void {
-        expect(fn (): \Laravel\Mcp\Support\UriTemplate => new UriTemplate('/invalid/no-scheme/{id}'))
+        expect(fn (): UriTemplate => new UriTemplate('/invalid/no-scheme/{id}'))
             ->toThrow(InvalidArgumentException::class, 'Invalid URI template: must be a valid URI template with at least one placeholder.');
     });
 
     it('requires at least one placeholder', function (): void {
-        expect(fn (): \Laravel\Mcp\Support\UriTemplate => new UriTemplate('file://path/without/placeholder'))
+        expect(fn (): UriTemplate => new UriTemplate('file://path/without/placeholder'))
             ->toThrow(InvalidArgumentException::class, 'Invalid URI template: must be a valid URI template with at least one placeholder.');
     });
 
     it('accepts valid URI templates', function (): void {
         expect(new UriTemplate('file://users/{id}'))->toBeInstanceOf(UriTemplate::class)
-            ->and(new UriTemplate('http://api.example.com/{endpoint}'))->toBeInstanceOf(UriTemplate::class)
+            ->and(new UriTemplate('https://api.example.com/{endpoint}'))->toBeInstanceOf(UriTemplate::class)
             ->and(new UriTemplate('https://example.com/path/{var}'))->toBeInstanceOf(UriTemplate::class);
     });
 });
 
 describe('UriTemplate::match', function (): void {
     it('extracts variables from simple strings', function (): void {
-        $template = new UriTemplate('http://example.com/users/{username}');
+        $template = new UriTemplate('https://example.com/users/{username}');
 
-        expect($template->match('http://example.com/users/fred'))->toBe(['username' => 'fred']);
+        expect($template->match('https://example.com/users/fred'))->toBe(['username' => 'fred']);
     });
 
     it('extracts multiple variables', function (): void {
@@ -40,9 +40,9 @@ describe('UriTemplate::match', function (): void {
     });
 
     it('matches nested path segments', function (): void {
-        $template = new UriTemplate('http://api.example.com/{version}/{resource}/{id}');
+        $template = new UriTemplate('https://api.example.com/{version}/{resource}/{id}');
 
-        expect($template->match('http://api.example.com/v1/users/123'))->toBe([
+        expect($template->match('https://api.example.com/v1/users/123'))->toBe([
             'version' => 'v1',
             'resource' => 'users',
             'id' => '123',
@@ -88,12 +88,12 @@ describe('UriTemplate edge cases', function (): void {
 describe('UriTemplate security', function (): void {
     it('handles extremely long input strings', function (): void {
         $longString = str_repeat('x', 100000);
-        $template = new UriTemplate('http://api.example.com/{param}');
+        $template = new UriTemplate('https://api.example.com/{param}');
 
-        expect($template->match('http://api.example.com/'.$longString))->toBe(['param' => $longString]);
+        expect($template->match('https://api.example.com/'.$longString))->toBe(['param' => $longString]);
     });
 
-    it('throws when template exceeds maximum length', function (): void {
+    it('throws when the template exceeds the maximum length', function (): void {
         $longTemplate = str_repeat('x', 1000001);
 
         expect(fn (): UriTemplate => new UriTemplate($longTemplate))
@@ -101,49 +101,49 @@ describe('UriTemplate security', function (): void {
     });
 
     it('throws when URI exceeds maximum length', function (): void {
-        $template = new UriTemplate('http://api.example.com/{param}');
-        $longUri = 'http://api.example.com/'.str_repeat('x', 1000001);
+        $template = new UriTemplate('https://api.example.com/{param}');
+        $longUri = 'https://api.example.com/'.str_repeat('x', 1000001);
 
         expect(fn (): ?array => $template->match($longUri))
             ->toThrow(InvalidArgumentException::class, 'URI exceeds the maximum length');
     });
 
-    it('throws when template has too many expressions', function (): void {
-        $tooManyExpressions = 'http://example.com/'.str_repeat('{a}', 10001);
+    it('throws when the template has too many expressions', function (): void {
+        $tooManyExpressions = 'https://example.com/'.str_repeat('{a}', 10001);
 
         expect(fn (): UriTemplate => new UriTemplate($tooManyExpressions))
             ->toThrow(InvalidArgumentException::class, 'Template contains too many expressions');
     });
 
     it('throws for unclosed template expressions', function (): void {
-        expect(fn (): UriTemplate => new UriTemplate('http://example.com/{unclosed'))
+        expect(fn (): UriTemplate => new UriTemplate('https://example.com/{unclosed'))
             ->toThrow(InvalidArgumentException::class);
     });
 
     it('handles pathological regex patterns', function (): void {
-        $template = new UriTemplate('http://api.example.com/{param}');
-        $input = 'http://api.example.com/'.str_repeat('a', 100000);
+        $template = new UriTemplate('https://api.example.com/{param}');
+        $input = 'https://api.example.com/'.str_repeat('a', 100000);
 
         expect(fn (): ?array => $template->match($input))->not->toThrow(Exception::class);
     });
 
     it('handles invalid UTF-8 sequences', function (): void {
-        $template = new UriTemplate('http://api.example.com/{param}');
+        $template = new UriTemplate('https://api.example.com/{param}');
         $invalidUtf8 = '���';
 
-        expect(fn (): ?array => $template->match('http://api.example.com/'.$invalidUtf8))->not->toThrow(Exception::class);
+        expect(fn (): ?array => $template->match('https://api.example.com/'.$invalidUtf8))->not->toThrow(Exception::class);
     });
 
     it('handles template/URI length mismatches', function (): void {
-        $template = new UriTemplate('http://api.example.com/{param}');
+        $template = new UriTemplate('https://api.example.com/{param}');
 
-        expect($template->match('http://api.example.com/'))->toBeNull()
-            ->and($template->match('http://api.example.com'))->toBeNull()
-            ->and($template->match('http://api.example.com/value/extra'))->toBeNull();
+        expect($template->match('https://api.example.com/'))->toBeNull()
+            ->and($template->match('https://api.example.com'))->toBeNull()
+            ->and($template->match('https://api.example.com/value/extra'))->toBeNull();
     });
 
     it('handles maximum template expression limit', function (): void {
-        $expressions = 'http://example.com/'.str_repeat('{param}', 10000);
+        $expressions = 'https://example.com/'.str_repeat('{param}', 10000);
 
         expect(fn (): UriTemplate => new UriTemplate($expressions))->not->toThrow(Exception::class);
     });

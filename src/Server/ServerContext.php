@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
+use Laravel\Mcp\Server\Contracts\SupportsURITemplate;
 
 class ServerContext
 {
@@ -48,7 +49,7 @@ class ServerContext
     public function resources(): Collection
     {
         return collect($this->resources)
-            ->filter(fn ($resource): bool => ! ($resource instanceof ResourceTemplate) && ! (is_string($resource) && is_subclass_of($resource, ResourceTemplate::class)))
+            ->filter(fn ($resource): bool => ! ($resource instanceof SupportsURITemplate) && ! (is_string($resource) && is_subclass_of($resource, SupportsURITemplate::class)))
             ->map(fn (Resource|string $resourceClass) => is_string($resourceClass)
                 ? Container::getInstance()->make($resourceClass)
                 : $resourceClass)
@@ -56,16 +57,16 @@ class ServerContext
     }
 
     /**
-     * @return Collection<int, ResourceTemplate>
+     * @return Collection<int, Resource>
      */
     public function resourceTemplates(): Collection
     {
         return collect($this->resources)
-            ->filter(fn ($resource): bool => ($resource instanceof ResourceTemplate) || (is_string($resource) && is_subclass_of($resource, ResourceTemplate::class)))
+            ->filter(fn ($resource): bool => ($resource instanceof SupportsURITemplate) || (is_string($resource) && is_subclass_of($resource, SupportsURITemplate::class)))
             ->map(fn (Resource|string $resourceClass) => is_string($resourceClass)
                     ? Container::getInstance()->make($resourceClass)
                     : $resourceClass)
-            ->filter(fn (ResourceTemplate $resource): bool => $resource->eligibleForRegistration());
+            ->filter(fn (Resource $resource): bool => $resource->eligibleForRegistration());
     }
 
     /**
