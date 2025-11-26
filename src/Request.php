@@ -139,8 +139,8 @@ class Request implements Arrayable
         $this->meta = $meta;
     }
 
-    public function setUri(?string $uri): ?string
+    public function setUri(?string $uri): void
     {
-        return $this->uri = $uri;
+        $this->uri = $uri;
     }
 }

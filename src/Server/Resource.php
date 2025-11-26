@@ -47,7 +47,7 @@ abstract class Resource extends Primitive
      *     title: string,
      *     description: string,
      *     uri?: string,
-     *     uriTemplate? :string,
+     *     uriTemplate?: string,
      *     mimeType: string,
      *     _meta?: array<string, mixed>
      * }

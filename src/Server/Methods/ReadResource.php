@@ -45,7 +45,7 @@ class ReadResource implements Method
 
         /** @var Resource|null $resource */
         $resource = $context->resources()->first(fn (Resource $resource): bool => $resource->uri() === $uri) ??
-            $context->resourceTemplates()->first(fn (Resource $template): bool => $template instanceof SupportsURITemplate && ! is_null($template->uriTemplate()->match($uri)));
+            $context->resourceTemplates()->first(fn (SupportsURITemplate $template): bool => ! is_null($template->uriTemplate()->match($uri)));
 
         if (is_null($resource)) {
             throw new JsonRpcException("Resource [{$uri}] not found.", -32002, $request->id);

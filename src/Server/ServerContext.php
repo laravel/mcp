@@ -57,7 +57,7 @@ class ServerContext
     }
 
     /**
-     * @return Collection<int, Resource>
+     * @return Collection<int, SupportsURITemplate>
      */
     public function resourceTemplates(): Collection
     {

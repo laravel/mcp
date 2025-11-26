@@ -150,8 +150,7 @@ it('can set uri using setUri method', function (): void {
 
     $result = $request->setUri('file://resources/test');
 
-    expect($request->uri())->toBe('file://resources/test')
-        ->and($result)->toBe('file://resources/test');
+    expect($request->uri())->toBe('file://resources/test');
 });
 
 it('can update uri using setUri method', function (): void {
@@ -175,15 +174,6 @@ it('can set uri to null using setUri method', function (): void {
 
     expect($request->uri())->toBeNull()
         ->and($result)->toBeNull();
-});
-
-it('setUri returns the set value for method chaining', function (): void {
-    $request = new Request(['name' => 'Alice']);
-
-    $returnedUri = $request->setUri('file://resources/test');
-
-    expect($returnedUri)->toBe('file://resources/test')
-        ->and($returnedUri)->toBe($request->uri());
 });
 
 it('supports method chaining with merge and setUri', function (): void {
