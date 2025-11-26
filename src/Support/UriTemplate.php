@@ -30,11 +30,12 @@ class UriTemplate implements Stringable
 
     public function __construct(private readonly string $template)
     {
+        $this->validateLength($template, self::MAX_TEMPLATE_LENGTH, 'Template');
+
         if (! preg_match(self::URI_TEMPLATE_PATTERN, $template)) {
             throw new InvalidArgumentException('Invalid URI template: must be a valid URI template with at least one placeholder.');
         }
 
-        $this->validateLength($template, self::MAX_TEMPLATE_LENGTH, 'Template');
         $this->variableNames = $this->extractVariableNames($template);
     }
 

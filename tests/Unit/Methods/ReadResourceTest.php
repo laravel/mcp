@@ -34,6 +34,7 @@ it('returns a valid resource result', function (): void {
         ],
     ], $resourceResult);
 });
+
 it('returns a valid resource result for blob resources', function (): void {
     $resource = $this->makeBinaryResource(__DIR__.'/../../Fixtures/binary.png');
     $readResource = new ReadResource;
@@ -68,7 +69,6 @@ it('throws error when uri is missing', function (): void {
     );
 
     $response = $readResource->handle($jsonRpcRequest, $context);
-
 });
 
 it('throws exception when resource is not found', function (): void {
@@ -86,12 +86,12 @@ it('throws exception when resource is not found', function (): void {
     $readResource->handle($jsonRpcRequest, $context);
 });
 
-it('reads resource template by matching URI pattern', function (): void {
+it('reads resource template by matching a URI pattern', function (): void {
     $template = new class extends Resource implements SupportsURITemplate
     {
         public function uriTemplate(): UriTemplate
         {
-            return new UriTemplate('file://users/{userId}');
+            return UriTemplate::make('file://users/{userId}');
         }
 
         public function handle(Request $request): Response
@@ -120,12 +120,12 @@ it('reads resource template by matching URI pattern', function (): void {
     ], $result);
 });
 
-it('returns actual requested URI in response, not the template pattern', function (): void {
+it('returns the actual requested URI in response, not the template pattern', function (): void {
     $template = new class extends Resource implements SupportsURITemplate
     {
         public function uriTemplate(): UriTemplate
         {
-            return new UriTemplate('file://users/{userId}');
+            return UriTemplate::make('file://users/{userId}');
         }
 
         public function handle(Request $request): Response
@@ -149,114 +149,30 @@ it('returns actual requested URI in response, not the template pattern', functio
     $result = $readResource->handle($jsonRpcRequest, $context);
     $payload = $result->toArray();
 
-    // The response URI should be the actual requested URI, not the template pattern
     expect($payload['result']['contents'][0]['uri'])->toBe($requestedUri)
         ->and($payload['result']['contents'][0]['uri'])->not->toBe('file://users/{userId}');
 });
 
-it('extracts single variable from URI and passes to handler', function (): void {
-    $capturedUserId = null;
-
-    $template = new class($capturedUserId) extends Resource implements SupportsURITemplate
+it('extracts variables from URI template and passes to handler', function (string $templatePattern, string $uri, array $expected): void {
+    $resource = new class($templatePattern) extends Resource implements SupportsURITemplate
     {
-        public function __construct(private &$capturedValue) {}
+        public function __construct(private string $pattern) {}
 
         public function uriTemplate(): UriTemplate
         {
-            return new UriTemplate('file://users/{userId}');
+            return UriTemplate::make($this->pattern);
         }
 
         public function handle(Request $request): Response
         {
-            $this->capturedValue = $request->get('userId');
-
-            return Response::text("User ID: {$this->capturedValue}");
+            return Response::json($request->all());
         }
     };
 
     $context = $this->getServerContext([
-        'resources' => [$template],
+        'resources' => [$resource],
     ]);
 
-    $jsonRpcRequest = new JsonRpcRequest(
-        id: 1,
-        method: 'resources/read',
-        params: ['uri' => 'file://users/42']
-    );
-
-    $readResource = new ReadResource;
-    $readResource->handle($jsonRpcRequest, $context);
-
-    expect($capturedUserId)->toBe('42');
-});
-
-it('extracts multiple variables from URI and passes to handler', function (): void {
-    $capturedVars = null;
-
-    $template = new class($capturedVars) extends Resource implements SupportsURITemplate
-    {
-        public function __construct(private &$capturedValues) {}
-
-        public function uriTemplate(): UriTemplate
-        {
-            return new UriTemplate('file://users/{userId}/files/{fileId}');
-        }
-
-        public function handle(Request $request): Response
-        {
-            $this->capturedValues = [
-                'userId' => $request->get('userId'),
-                'fileId' => $request->get('fileId'),
-            ];
-
-            return Response::text('test');
-        }
-    };
-
-    $context = $this->getServerContext([
-        'resources' => [$template],
-    ]);
-
-    $jsonRpcRequest = new JsonRpcRequest(
-        id: 1,
-        method: 'resources/read',
-        params: ['uri' => 'file://users/100/files/document.pdf']
-    );
-
-    $readResource = new ReadResource;
-    $readResource->handle($jsonRpcRequest, $context);
-
-    expect($capturedVars)->toBe([
-        'userId' => '100',
-        'fileId' => 'document.pdf',
-    ]);
-});
-
-it('includes uri parameter along with extracted variables in request', function (): void {
-    $capturedAll = null;
-
-    $template = new class($capturedAll) extends Resource implements SupportsURITemplate
-    {
-        public function __construct(private &$capturedData) {}
-
-        public function uriTemplate(): UriTemplate
-        {
-            return new UriTemplate('file://users/{userId}');
-        }
-
-        public function handle(Request $request): Response
-        {
-            $this->capturedData = $request->all();
-
-            return Response::text('test');
-        }
-    };
-
-    $context = $this->getServerContext([
-        'resources' => [$template],
-    ]);
-
-    $uri = 'file://users/789';
     $jsonRpcRequest = new JsonRpcRequest(
         id: 1,
         method: 'resources/read',
@@ -264,38 +180,40 @@ it('includes uri parameter along with extracted variables in request', function 
     );
 
     $readResource = new ReadResource;
-    $readResource->handle($jsonRpcRequest, $context);
+    $result = $readResource->handle($jsonRpcRequest, $context);
+    $payload = $result->toArray();
 
-    expect($capturedAll)->toBe([
-        'userId' => '789',
-    ]);
-});
+    $responseData = json_decode((string) $payload['result']['contents'][0]['text'], true);
+
+    expect($responseData)->toBe($expected);
+})->with([
+    'single variable' => [
+        'templatePattern' => 'file://users/{userId}',
+        'uri' => 'file://users/42',
+        'expected' => ['userId' => '42'],
+    ],
+    'multiple variables' => [
+        'templatePattern' => 'file://users/{userId}/files/{fileId}',
+        'uri' => 'file://users/100/files/document.pdf',
+        'expected' => ['userId' => '100', 'fileId' => 'document.pdf'],
+    ],
+]);
 
 it('preserves sessionId and meta from the original request for template resources', function (): void {
-    $capturedSessionId = null;
-    $capturedMeta = null;
-    $capturedArguments = null;
-
-    $template = new class($capturedSessionId, $capturedMeta, $capturedArguments) extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsURITemplate
     {
-        public function __construct(
-            private &$sessionIdRef,
-            private &$metaRef,
-            private &$argumentsRef
-        ) {}
-
         public function uriTemplate(): UriTemplate
         {
-            return new UriTemplate('file://users/{userId}');
+            return UriTemplate::make('file://users/{userId}');
         }
 
         public function handle(Request $request): Response
         {
-            $this->sessionIdRef = $request->sessionId();
-            $this->metaRef = $request->meta();
-            $this->argumentsRef = $request->all();
-
-            return Response::text('test');
+            return Response::json([
+                'sessionId' => $request->sessionId(),
+                'meta' => $request->meta(),
+                'arguments' => $request->all(),
+            ]);
         }
     };
 
@@ -321,37 +239,34 @@ it('preserves sessionId and meta from the original request for template resource
 
     try {
         $readResource = new ReadResource;
-        $readResource->handle($jsonRpcRequest, $context);
+        $result = $readResource->handle($jsonRpcRequest, $context);
+        $payload = $result->toArray();
 
-        expect($capturedSessionId)->toBe($sessionId)
-            ->and($capturedMeta)->toBe($meta)
-            ->and($capturedArguments)->toHaveKey('userId', '42')
-            ->and($capturedArguments)->toHaveKey('format', 'json');
+        $responseData = json_decode((string) $payload['result']['contents'][0]['text'], true);
+
+        expect($responseData['sessionId'])->toBe($sessionId)
+            ->and($responseData['meta'])->toBe($meta)
+            ->and($responseData['arguments'])->toHaveKey('userId', '42')
+            ->and($responseData['arguments'])->toHaveKey('format', 'json');
     } finally {
         $container->forgetInstance('mcp.request');
     }
 });
 
 it('template handler receives variables via request get method', function (): void {
-    $accessMethodWorks = false;
-
-    $template = new class($accessMethodWorks) extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsURITemplate
     {
-        public function __construct(private &$testResult) {}
-
         public function uriTemplate(): UriTemplate
         {
-            return new UriTemplate('file://posts/{postId}/comments/{commentId}');
+            return UriTemplate::make('file://posts/{postId}/comments/{commentId}');
         }
 
         public function handle(Request $request): Response
         {
-            $postId = $request->get('postId');
-            $commentId = $request->get('commentId');
-
-            $this->testResult = ($postId === '42' && $commentId === '7');
-
-            return Response::text('test');
+            return Response::json([
+                'postId' => $request->get('postId'),
+                'commentId' => $request->get('commentId'),
+            ]);
         }
     };
 
@@ -366,9 +281,13 @@ it('template handler receives variables via request get method', function (): vo
     );
 
     $readResource = new ReadResource;
-    $readResource->handle($jsonRpcRequest, $context);
+    $result = $readResource->handle($jsonRpcRequest, $context);
+    $payload = $result->toArray();
 
-    expect($accessMethodWorks)->toBeTrue();
+    $responseData = json_decode((string) $payload['result']['contents'][0]['text'], true);
+
+    expect($responseData['postId'])->toBe('42')
+        ->and($responseData['commentId'])->toBe('7');
 });
 
 it('tries static resources before template matching', function (): void {
@@ -378,7 +297,7 @@ it('tries static resources before template matching', function (): void {
     {
         public function uriTemplate(): UriTemplate
         {
-            return new UriTemplate('file://resources/{resourceId}');
+            return UriTemplate::make('file://resources/{resourceId}');
         }
 
         public function handle(Request $request): Response
@@ -407,12 +326,12 @@ it('tries static resources before template matching', function (): void {
     ], $result);
 });
 
-it('returns first matching template when multiple templates exist', function (): void {
+it('returns the first matching template when multiple templates exist', function (): void {
     $template1 = new class extends Resource implements SupportsURITemplate
     {
         public function uriTemplate(): UriTemplate
         {
-            return new UriTemplate('file://users/{userId}');
+            return UriTemplate::make('file://users/{userId}');
         }
 
         public function handle(Request $request): Response
@@ -425,7 +344,7 @@ it('returns first matching template when multiple templates exist', function ():
     {
         public function uriTemplate(): UriTemplate
         {
-            return new UriTemplate('file://users/{id}');
+            return UriTemplate::make('file://users/{id}');
         }
 
         public function handle(Request $request): Response
@@ -462,7 +381,7 @@ it('throws exception when URI does not match any template pattern', function ():
     {
         public function uriTemplate(): UriTemplate
         {
-            return new UriTemplate('file://users/{userId}');
+            return UriTemplate::make('file://users/{userId}');
         }
 
         public function handle(Request $request): Response
@@ -535,27 +454,16 @@ it('returns a resource result with result-level meta when using ResponseFactory'
 });
 
 it('does not leak variables between consecutive template resource requests', function (): void {
-    $firstRequestVars = null;
-    $secondRequestVars = null;
-
-    $template = new class($firstRequestVars, $secondRequestVars) extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsURITemplate
     {
-        public function __construct(private &$firstRef, private &$secondRef) {}
-
         public function uriTemplate(): UriTemplate
         {
-            return new UriTemplate('file://users/{userId}/posts/{postId}');
+            return UriTemplate::make('file://users/{userId}/posts/{postId}');
         }
 
         public function handle(Request $request): Response
         {
-            if ($this->firstRef === null) {
-                $this->firstRef = $request->all();
-            } else {
-                $this->secondRef = $request->all();
-            }
-
-            return Response::text('test');
+            return Response::json($request->all());
         }
     };
 
@@ -570,14 +478,18 @@ it('does not leak variables between consecutive template resource requests', fun
         method: 'resources/read',
         params: ['uri' => 'file://users/100/posts/42']
     );
-    $readResource->handle($firstJsonRpcRequest, $context);
+    $firstResult = $readResource->handle($firstJsonRpcRequest, $context);
+    $firstPayload = $firstResult->toArray();
+    $firstRequestVars = json_decode((string) $firstPayload['result']['contents'][0]['text'], true);
 
     $secondJsonRpcRequest = new JsonRpcRequest(
         id: 2,
         method: 'resources/read',
         params: ['uri' => 'file://users/200/posts/99']
     );
-    $readResource->handle($secondJsonRpcRequest, $context);
+    $secondResult = $readResource->handle($secondJsonRpcRequest, $context);
+    $secondPayload = $secondResult->toArray();
+    $secondRequestVars = json_decode((string) $secondPayload['result']['contents'][0]['text'], true);
 
     expect($firstRequestVars)->toBe([
         'userId' => '100',
@@ -592,22 +504,16 @@ it('does not leak variables between consecutive template resource requests', fun
 });
 
 it('sets uri on request when reading resource templates', function (): void {
-    $capturedUri = null;
-
-    $template = new class($capturedUri) extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsURITemplate
     {
-        public function __construct(private &$uriRef) {}
-
         public function uriTemplate(): UriTemplate
         {
-            return new UriTemplate('file://users/{userId}');
+            return UriTemplate::make('file://users/{userId}');
         }
 
         public function handle(Request $request): Response
         {
-            $this->uriRef = $request->uri();
-
-            return Response::text('User data');
+            return Response::json(['uri' => $request->uri()]);
         }
     };
 
@@ -623,69 +529,29 @@ it('sets uri on request when reading resource templates', function (): void {
     );
 
     $readResource = new ReadResource;
-    $readResource->handle($jsonRpcRequest, $context);
+    $result = $readResource->handle($jsonRpcRequest, $context);
+    $payload = $result->toArray();
 
-    expect($capturedUri)->toBe($requestedUri);
-});
+    $responseData = json_decode((string) $payload['result']['contents'][0]['text'], true);
 
-it('uri contains the actual requested uri, not the template pattern', function (): void {
-    $capturedUri = null;
-
-    $template = new class($capturedUri) extends Resource implements SupportsURITemplate
-    {
-        public function __construct(private &$uriRef) {}
-
-        public function uriTemplate(): UriTemplate
-        {
-            return new UriTemplate('file://posts/{postId}/comments/{commentId}');
-        }
-
-        public function handle(Request $request): Response
-        {
-            $this->uriRef = $request->uri();
-
-            return Response::text('Comment');
-        }
-    };
-
-    $context = $this->getServerContext([
-        'resources' => [$template],
-    ]);
-
-    $requestedUri = 'file://posts/100/comments/5';
-    $jsonRpcRequest = new JsonRpcRequest(
-        id: 1,
-        method: 'resources/read',
-        params: ['uri' => $requestedUri]
-    );
-
-    $readResource = new ReadResource;
-    $readResource->handle($jsonRpcRequest, $context);
-
-    expect($capturedUri)->toBe($requestedUri);
+    expect($responseData['uri'])->toBe($requestedUri);
 });
 
 it('provides both uri and extracted variables in request for templates', function (): void {
-    $capturedData = null;
-
-    $template = new class($capturedData) extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsURITemplate
     {
-        public function __construct(private &$dataRef) {}
-
         public function uriTemplate(): UriTemplate
         {
-            return new UriTemplate('file://users/{userId}/files/{fileId}');
+            return UriTemplate::make('file://users/{userId}/files/{fileId}');
         }
 
         public function handle(Request $request): Response
         {
-            $this->dataRef = [
+            return Response::json([
                 'uri' => $request->uri(),
                 'userId' => $request->get('userId'),
                 'fileId' => $request->get('fileId'),
-            ];
-
-            return Response::text('File data');
+            ]);
         }
     };
 
@@ -701,44 +567,48 @@ it('provides both uri and extracted variables in request for templates', functio
     );
 
     $readResource = new ReadResource;
-    $readResource->handle($jsonRpcRequest, $context);
+    $result = $readResource->handle($jsonRpcRequest, $context);
+    $payload = $result->toArray();
 
-    expect($capturedData)->toBe([
+    $responseData = json_decode((string) $payload['result']['contents'][0]['text'], true);
+
+    expect($responseData)->toBe([
         'uri' => 'file://users/123/files/document.pdf',
         'userId' => '123',
         'fileId' => 'document.pdf',
     ]);
 });
 
-it('uri is isolated between consecutive resource requests', function (): void {
-    $firstUri = null;
-    $secondUri = null;
-    $callCount = 0;
-
-    $template = new class($firstUri, $secondUri, $callCount) extends Resource implements SupportsURITemplate
-    {
-        public function __construct(private &$firstRef, private &$secondRef, private &$count) {}
-
-        public function uriTemplate(): UriTemplate
+it('uri is correctly set and isolated for consecutive requests', function (string $resourceType, string $firstUri, string $secondUri): void {
+    if ($resourceType === 'template') {
+        $resource = new class extends Resource implements SupportsURITemplate
         {
-            return new UriTemplate('file://users/{userId}');
-        }
-
-        public function handle(Request $request): Response
-        {
-            $this->count++;
-            if ($this->count === 1) {
-                $this->firstRef = $request->uri();
-            } else {
-                $this->secondRef = $request->uri();
+            public function uriTemplate(): UriTemplate
+            {
+                return UriTemplate::make('file://users/{userId}');
             }
 
-            return Response::text('User data');
-        }
-    };
+            public function handle(Request $request): Response
+            {
+                return Response::json(['uri' => $request->uri()]);
+            }
+        };
+    } else {
+        $resource = new class extends Resource
+        {
+            protected string $uri = 'file://static/resource';
+
+            protected string $mimeType = 'text/plain';
+
+            public function handle(Request $request): Response
+            {
+                return Response::json(['uri' => $request->uri()]);
+            }
+        };
+    }
 
     $context = $this->getServerContext([
-        'resources' => [$template],
+        'resources' => [$resource],
     ]);
 
     $readResource = new ReadResource;
@@ -746,52 +616,32 @@ it('uri is isolated between consecutive resource requests', function (): void {
     $firstRequest = new JsonRpcRequest(
         id: 1,
         method: 'resources/read',
-        params: ['uri' => 'file://users/100']
+        params: ['uri' => $firstUri]
     );
-    $readResource->handle($firstRequest, $context);
+    $firstResult = $readResource->handle($firstRequest, $context);
+    $firstPayload = $firstResult->toArray();
+    $firstResponseData = json_decode((string) $firstPayload['result']['contents'][0]['text'], true);
 
     $secondRequest = new JsonRpcRequest(
         id: 2,
         method: 'resources/read',
-        params: ['uri' => 'file://users/200']
+        params: ['uri' => $secondUri]
     );
-    $readResource->handle($secondRequest, $context);
+    $secondResult = $readResource->handle($secondRequest, $context);
+    $secondPayload = $secondResult->toArray();
+    $secondResponseData = json_decode((string) $secondPayload['result']['contents'][0]['text'], true);
 
-    expect($firstUri)->toBe('file://users/100')
-        ->and($secondUri)->toBe('file://users/200');
-});
-
-it('sets uri on request for static resources that accept request parameter', function (): void {
-    $capturedUri = null;
-
-    $resource = new class($capturedUri) extends Resource
-    {
-        protected string $uri = 'file://static/resource';
-
-        protected string $mimeType = 'text/plain';
-
-        public function __construct(private &$uriRef) {}
-
-        public function handle(Request $request): Response
-        {
-            $this->uriRef = $request->uri();
-
-            return Response::text('Static content');
-        }
-    };
-
-    $context = $this->getServerContext([
-        'resources' => [$resource],
-    ]);
-
-    $jsonRpcRequest = new JsonRpcRequest(
-        id: 1,
-        method: 'resources/read',
-        params: ['uri' => 'file://static/resource']
-    );
-
-    $readResource = new ReadResource;
-    $readResource->handle($jsonRpcRequest, $context);
-
-    expect($capturedUri)->toBe('file://static/resource');
-});
+    expect($firstResponseData['uri'])->toBe($firstUri)
+        ->and($secondResponseData['uri'])->toBe($secondUri);
+})->with([
+    'template resources' => [
+        'resourceType' => 'template',
+        'firstUri' => 'file://users/100',
+        'secondUri' => 'file://users/200',
+    ],
+    'static resources' => [
+        'resourceType' => 'static',
+        'firstUri' => 'file://static/resource',
+        'secondUri' => 'file://static/resource',
+    ],
+]);

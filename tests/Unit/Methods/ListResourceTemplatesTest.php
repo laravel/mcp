@@ -20,7 +20,6 @@ it('lists only resource templates', function (): void {
         }
     };
 
-    // Create a template resource
     $templateResource = new class extends Resource implements SupportsURITemplate
     {
         protected string $mimeType = 'text/plain';

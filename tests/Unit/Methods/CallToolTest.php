@@ -554,19 +554,13 @@ it('throws an exception when the tool is not found', function (): void {
 });
 
 it('does not set uri on request when calling tools', function (): void {
-    $capturedUri = 'NOT_SET';
-
-    $tool = new class($capturedUri) extends Tool
+    $tool = new class extends Tool
     {
-        public function __construct(private &$uriRef) {}
-
         protected string $description = 'Test tool';
 
         public function handle(Request $request): Response
         {
-            $this->uriRef = $request->uri();
-
-            return Response::text('Test');
+            return Response::text(json_encode($request->uri()));
         }
 
         public function schema(JsonSchema $schema): array
@@ -604,7 +598,10 @@ it('does not set uri on request when calling tools', function (): void {
     $this->instance('mcp.request', $request->toRequest());
 
     $method = new CallTool;
-    $method->handle($request, $context);
+    $payload = ($method->handle($request, $context))->toArray();
 
-    expect($capturedUri)->toBeNull();
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result']['content'])->toHaveCount(1)
+        ->and($payload['result']['content'][0]['type'])->toBe('text')
+        ->and($payload['result']['content'][0]['text'])->toBe('null');
 });
