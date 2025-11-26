@@ -37,10 +37,10 @@ class ServerContext
      */
     public function tools(): Collection
     {
-        /** @var Collection<int,Tool> $tool */
-        $tool = collect($this->tools);
+        /** @var Collection<int,Tool> $tools */
+        $tools = collect($this->tools);
 
-        return $this->resolvePrimitives($tool);
+        return $this->resolvePrimitives($tools);
     }
 
     /**
