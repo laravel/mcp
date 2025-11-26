@@ -10,13 +10,13 @@ use Stringable;
 
 class UriTemplate implements Stringable
 {
-    private const MAX_TEMPLATE_LENGTH = 1000000;
+    private const MAX_TEMPLATE_LENGTH = 1_000_000;
 
-    private const MAX_VARIABLE_LENGTH = 1000000;
+    private const MAX_VARIABLE_LENGTH = 1_000_000;
 
-    private const MAX_TEMPLATE_EXPRESSIONS = 10000;
+    private const MAX_TEMPLATE_EXPRESSIONS = 10_000;
 
-    private const MAX_REGEX_LENGTH = 1000000;
+    private const MAX_REGEX_LENGTH = 1_000_000;
 
     private const URI_TEMPLATE_PATTERN = '/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/.*{[^{}]+}.*/';
 
