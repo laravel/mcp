@@ -13,37 +13,37 @@ use Laravel\Mcp\Server\Content\Text;
 it('creates a notification response', function (): void {
     $response = Response::notification('test.method', ['key' => 'value']);
 
-    expect($response->content())->toBeInstanceOf(Notification::class);
-    expect($response->isNotification())->toBeTrue();
-    expect($response->isError())->toBeFalse();
-    expect($response->role())->toBe(Role::USER);
+    expect($response->content())->toBeInstanceOf(Notification::class)
+        ->and($response->isNotification())->toBeTrue()
+        ->and($response->isError())->toBeFalse()
+        ->and($response->role())->toBe(Role::User);
 });
 
 it('creates a text response', function (): void {
     $response = Response::text('Hello world');
 
-    expect($response->content())->toBeInstanceOf(Text::class);
-    expect($response->isNotification())->toBeFalse();
-    expect($response->isError())->toBeFalse();
-    expect($response->role())->toBe(Role::USER);
+    expect($response->content())->toBeInstanceOf(Text::class)
+        ->and($response->isNotification())->toBeFalse()
+        ->and($response->isError())->toBeFalse()
+        ->and($response->role())->toBe(Role::User);
 });
 
 it('creates a blob response', function (): void {
     $response = Response::blob('binary content');
 
-    expect($response->content())->toBeInstanceOf(Blob::class);
-    expect($response->isNotification())->toBeFalse();
-    expect($response->isError())->toBeFalse();
-    expect($response->role())->toBe(Role::USER);
+    expect($response->content())->toBeInstanceOf(Blob::class)
+        ->and($response->isNotification())->toBeFalse()
+        ->and($response->isError())->toBeFalse()
+        ->and($response->role())->toBe(Role::User);
 });
 
 it('creates an error response', function (): void {
     $response = Response::error('Something went wrong');
 
-    expect($response->content())->toBeInstanceOf(Text::class);
-    expect($response->isNotification())->toBeFalse();
-    expect($response->isError())->toBeTrue();
-    expect($response->role())->toBe(Role::USER);
+    expect($response->content())->toBeInstanceOf(Text::class)
+        ->and($response->isNotification())->toBeFalse()
+        ->and($response->isError())->toBeTrue()
+        ->and($response->role())->toBe(Role::User);
 });
 
 it('throws exception for audio method', function (): void {
@@ -62,28 +62,28 @@ it('can convert response to assistant role', function (): void {
     $response = Response::text('Original message');
     $assistantResponse = $response->asAssistant();
 
-    expect($assistantResponse->content())->toBeInstanceOf(Text::class);
-    expect($assistantResponse->role())->toBe(Role::ASSISTANT);
-    expect($assistantResponse->isError())->toBeFalse();
+    expect($assistantResponse->content())->toBeInstanceOf(Text::class)
+        ->and($assistantResponse->role())->toBe(Role::Assistant)
+        ->and($assistantResponse->isError())->toBeFalse();
 });
 
 it('preserves error state when converting to assistant role', function (): void {
     $response = Response::error('Error message');
     $assistantResponse = $response->asAssistant();
 
-    expect($assistantResponse->content())->toBeInstanceOf(Text::class);
-    expect($assistantResponse->role())->toBe(Role::ASSISTANT);
-    expect($assistantResponse->isError())->toBeTrue();
+    expect($assistantResponse->content())->toBeInstanceOf(Text::class)
+        ->and($assistantResponse->role())->toBe(Role::Assistant)
+        ->and($assistantResponse->isError())->toBeTrue();
 });
 
 it('creates a json response', function (): void {
     $data = ['key' => 'value', 'number' => 123];
     $response = Response::json($data);
 
-    expect($response->content())->toBeInstanceOf(Text::class);
-    expect($response->isNotification())->toBeFalse();
-    expect($response->isError())->toBeFalse();
-    expect($response->role())->toBe(Role::USER);
+    expect($response->content())->toBeInstanceOf(Text::class)
+        ->and($response->isNotification())->toBeFalse()
+        ->and($response->isError())->toBeFalse()
+        ->and($response->role())->toBe(Role::User);
 
     $content = $response->content();
     expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
