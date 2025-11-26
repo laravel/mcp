@@ -99,7 +99,6 @@ class ServerContext
 
     private function isResourceTemplate(Resource|string $resource): bool
     {
-        return $resource instanceof SupportsUriTemplate
-            || (is_string($resource) && is_subclass_of($resource, SupportsUriTemplate::class));
+        return $resource instanceof SupportsUriTemplate || (is_string($resource) && is_subclass_of($resource, SupportsUriTemplate::class));
     }
 }

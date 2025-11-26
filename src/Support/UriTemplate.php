@@ -50,6 +50,7 @@ class UriTemplate implements Stringable
         }
 
         $result = [];
+
         foreach ($this->variableNames as $i => $name) {
             $result[$name] = $matches[$i + 1] ?? '';
         }
@@ -67,7 +68,7 @@ class UriTemplate implements Stringable
         throw_if(
             Str::length($str) > $max,
             InvalidArgumentException::class,
-            sprintf('%s exceeds the maximum length of %d characters (got %d)', $context, $max, Str::length($str))
+            sprintf('%s exceeds the maximum length of %d characters (received %d)', $context, $max, Str::length($str))
         );
     }
 
