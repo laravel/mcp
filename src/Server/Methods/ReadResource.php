@@ -12,7 +12,7 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Contracts\Method;
-use Laravel\Mcp\Server\Contracts\SupportsURITemplate;
+use Laravel\Mcp\Server\Contracts\SupportsUriTemplate;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
 use Laravel\Mcp\Server\Resource;
@@ -45,7 +45,7 @@ class ReadResource implements Method
 
         /** @var Resource|null $resource */
         $resource = $context->resources()->first(fn (Resource $resource): bool => $resource->uri() === $uri) ??
-            $context->resourceTemplates()->first(fn (SupportsURITemplate $template): bool => ! is_null($template->uriTemplate()->match($uri)));
+            $context->resourceTemplates()->first(fn (SupportsUriTemplate $template): bool => ! is_null($template->uriTemplate()->match($uri)));
 
         if (is_null($resource)) {
             throw new JsonRpcException("Resource [{$uri}] not found.", -32002, $request->id);
@@ -73,7 +73,7 @@ class ReadResource implements Method
         $request = $container->make(Request::class);
         $request->setUri($uri);
 
-        if ($resource instanceof SupportsURITemplate) {
+        if ($resource instanceof SupportsUriTemplate) {
             $variables = $resource->uriTemplate()->match($uri) ?? [];
             $request->merge($variables);
         }

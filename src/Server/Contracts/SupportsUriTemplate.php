@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server\Contracts;
 
 use Laravel\Mcp\Support\UriTemplate;
 
-interface SupportsURITemplate
+interface SupportsUriTemplate
 {
     public function uriTemplate(): UriTemplate;
 }

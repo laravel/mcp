@@ -8,7 +8,7 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Annotations\Audience;
 use Laravel\Mcp\Server\Annotations\LastModified;
 use Laravel\Mcp\Server\Annotations\Priority;
-use Laravel\Mcp\Server\Contracts\SupportsURITemplate;
+use Laravel\Mcp\Server\Contracts\SupportsUriTemplate;
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
@@ -248,7 +248,7 @@ it('handles mixed resources with and without annotations', function (): void {
 });
 
 it('excludes resource templates from list', function (): void {
-    $template = new class extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -288,7 +288,7 @@ it('excludes resource templates from list', function (): void {
 it('returns only static resources when both templates and static resources exist', function (): void {
     $staticResource = $this->makeResource();
 
-    $template = new class extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {

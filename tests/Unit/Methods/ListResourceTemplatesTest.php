@@ -2,7 +2,7 @@
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
-use Laravel\Mcp\Server\Contracts\SupportsURITemplate;
+use Laravel\Mcp\Server\Contracts\SupportsUriTemplate;
 use Laravel\Mcp\Server\Methods\ListResourceTemplates;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
@@ -20,7 +20,7 @@ it('lists only resource templates', function (): void {
         }
     };
 
-    $templateResource = new class extends Resource implements SupportsURITemplate
+    $templateResource = new class extends Resource implements SupportsUriTemplate
     {
         protected string $mimeType = 'text/plain';
 
@@ -108,7 +108,7 @@ it('returns an empty list when no templates exist', function (): void {
 });
 
 it('includes template metadata in the listing', function (): void {
-    $templateResource = new class extends Resource implements SupportsURITemplate
+    $templateResource = new class extends Resource implements SupportsUriTemplate
     {
         protected string $name = 'user-file';
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Illuminate\Container\Container;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
-use Laravel\Mcp\Server\Contracts\SupportsURITemplate;
+use Laravel\Mcp\Server\Contracts\SupportsUriTemplate;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Resource;
@@ -87,7 +87,7 @@ it('throws exception when resource is not found', function (): void {
 });
 
 it('reads resource template by matching a URI pattern', function (): void {
-    $template = new class extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -121,7 +121,7 @@ it('reads resource template by matching a URI pattern', function (): void {
 });
 
 it('returns the actual requested URI in response, not the template pattern', function (): void {
-    $template = new class extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -154,7 +154,7 @@ it('returns the actual requested URI in response, not the template pattern', fun
 });
 
 it('extracts variables from URI template and passes to handler', function (string $templatePattern, string $uri, array $expected): void {
-    $resource = new class($templatePattern) extends Resource implements SupportsURITemplate
+    $resource = new class($templatePattern) extends Resource implements SupportsUriTemplate
     {
         public function __construct(private string $pattern) {}
 
@@ -200,7 +200,7 @@ it('extracts variables from URI template and passes to handler', function (strin
 ]);
 
 it('preserves sessionId and meta from the original request for template resources', function (): void {
-    $template = new class extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -254,7 +254,7 @@ it('preserves sessionId and meta from the original request for template resource
 });
 
 it('template handler receives variables via request get method', function (): void {
-    $template = new class extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -293,7 +293,7 @@ it('template handler receives variables via request get method', function (): vo
 it('tries static resources before template matching', function (): void {
     $staticResource = $this->makeResource('Static resource content');
 
-    $template = new class extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -327,7 +327,7 @@ it('tries static resources before template matching', function (): void {
 });
 
 it('returns the first matching template when multiple templates exist', function (): void {
-    $template1 = new class extends Resource implements SupportsURITemplate
+    $template1 = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -340,7 +340,7 @@ it('returns the first matching template when multiple templates exist', function
         }
     };
 
-    $template2 = new class extends Resource implements SupportsURITemplate
+    $template2 = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -377,7 +377,7 @@ it('throws exception when URI does not match any template pattern', function ():
     $this->expectException(JsonRpcException::class);
     $this->expectExceptionMessage('Resource [file://posts/123] not found.');
 
-    $template = new class extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -454,7 +454,7 @@ it('returns a resource result with result-level meta when using ResponseFactory'
 });
 
 it('does not leak variables between consecutive template resource requests', function (): void {
-    $template = new class extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -504,7 +504,7 @@ it('does not leak variables between consecutive template resource requests', fun
 });
 
 it('sets uri on request when reading resource templates', function (): void {
-    $template = new class extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -538,7 +538,7 @@ it('sets uri on request when reading resource templates', function (): void {
 });
 
 it('provides both uri and extracted variables in request for templates', function (): void {
-    $template = new class extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -581,7 +581,7 @@ it('provides both uri and extracted variables in request for templates', functio
 
 it('uri is correctly set and isolated for consecutive requests', function (string $resourceType, string $firstUri, string $secondUri): void {
     if ($resourceType === 'template') {
-        $resource = new class extends Resource implements SupportsURITemplate
+        $resource = new class extends Resource implements SupportsUriTemplate
         {
             public function uriTemplate(): UriTemplate
             {

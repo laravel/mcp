@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
-use Laravel\Mcp\Server\Contracts\SupportsURITemplate;
+use Laravel\Mcp\Server\Contracts\SupportsUriTemplate;
 
 class ServerContext
 {
@@ -49,7 +49,7 @@ class ServerContext
     public function resources(): Collection
     {
         return collect($this->resources)
-            ->filter(fn ($resource): bool => ! ($resource instanceof SupportsURITemplate) && ! (is_string($resource) && is_subclass_of($resource, SupportsURITemplate::class)))
+            ->filter(fn ($resource): bool => ! ($resource instanceof SupportsUriTemplate) && ! (is_string($resource) && is_subclass_of($resource, SupportsUriTemplate::class)))
             ->map(fn (Resource|string $resourceClass) => is_string($resourceClass)
                 ? Container::getInstance()->make($resourceClass)
                 : $resourceClass)
@@ -57,12 +57,12 @@ class ServerContext
     }
 
     /**
-     * @return Collection<int, SupportsURITemplate>
+     * @return Collection<int, SupportsUriTemplate>
      */
     public function resourceTemplates(): Collection
     {
         return collect($this->resources)
-            ->filter(fn ($resource): bool => ($resource instanceof SupportsURITemplate) || (is_string($resource) && is_subclass_of($resource, SupportsURITemplate::class)))
+            ->filter(fn ($resource): bool => ($resource instanceof SupportsUriTemplate) || (is_string($resource) && is_subclass_of($resource, SupportsUriTemplate::class)))
             ->map(fn (Resource|string $resourceClass) => is_string($resourceClass)
                     ? Container::getInstance()->make($resourceClass)
                     : $resourceClass)

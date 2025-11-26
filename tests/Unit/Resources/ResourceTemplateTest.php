@@ -2,12 +2,12 @@
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
-use Laravel\Mcp\Server\Contracts\SupportsURITemplate;
+use Laravel\Mcp\Server\Contracts\SupportsUriTemplate;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Support\UriTemplate;
 
 it('compiles URI template and extracts variable names', function (): void {
-    $resource = new class extends Resource implements SupportsURITemplate
+    $resource = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -21,11 +21,11 @@ it('compiles URI template and extracts variable names', function (): void {
     };
 
     expect($resource->uri())->toBe('file://users/{userId}/files/{fileId}')
-        ->and($resource)->toBeInstanceOf(SupportsURITemplate::class);
+        ->and($resource)->toBeInstanceOf(SupportsUriTemplate::class);
 });
 
 it('matches URIs against a template pattern', function (): void {
-    $resource = new class extends Resource implements SupportsURITemplate
+    $resource = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -46,7 +46,7 @@ it('matches URIs against a template pattern', function (): void {
 });
 
 it('extracts variables from matching URI', function (): void {
-    $resource = new class extends Resource implements SupportsURITemplate
+    $resource = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -69,7 +69,7 @@ it('extracts variables from matching URI', function (): void {
 });
 
 it('handles template resource with extracted variables', function (): void {
-    $resource = new class extends Resource implements SupportsURITemplate
+    $resource = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -96,7 +96,7 @@ it('handles template resource with extracted variables', function (): void {
 });
 
 it('handles template with single variable', function (): void {
-    $resource = new class extends Resource implements SupportsURITemplate
+    $resource = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -114,7 +114,7 @@ it('handles template with single variable', function (): void {
 });
 
 it('handles complex URI templates with multiple path segments', function (): void {
-    $resource = new class extends Resource implements SupportsURITemplate
+    $resource = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -138,7 +138,7 @@ it('handles complex URI templates with multiple path segments', function (): voi
 });
 
 it('does not match URIs with different path structure', function (): void {
-    $resource = new class extends Resource implements SupportsURITemplate
+    $resource = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -167,11 +167,11 @@ it('static resources do not identify as templates', function (): void {
         }
     };
 
-    expect($resource)->not->toBeInstanceOf(SupportsURITemplate::class);
+    expect($resource)->not->toBeInstanceOf(SupportsUriTemplate::class);
 });
 
 it('end to end template reads uri extracts variables and returns response', function (): void {
-    $template = new class extends Resource implements SupportsURITemplate
+    $template = new class extends Resource implements SupportsUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {

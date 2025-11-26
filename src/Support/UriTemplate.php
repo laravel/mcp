@@ -51,9 +51,7 @@ class UriTemplate implements Stringable
     {
         $this->validateLength($uri, self::MAX_TEMPLATE_LENGTH, 'URI');
 
-        if (is_null($this->compiledRegex)) {
-            $this->compiledRegex = $this->compileRegex();
-        }
+        $this->compiledRegex ??= $this->compileRegex();
 
         if (! preg_match($this->compiledRegex, $uri, $matches)) {
             return null;

@@ -6,11 +6,11 @@ namespace Tests\Fixtures;
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
-use Laravel\Mcp\Server\Contracts\SupportsURITemplate;
+use Laravel\Mcp\Server\Contracts\SupportsUriTemplate;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Support\UriTemplate;
 
-class ExampleResourceTemplate extends Resource implements SupportsURITemplate
+class ExampleResourceTemplate extends Resource implements SupportsUriTemplate
 {
     protected string $description = 'Example resource template for testing';
 
