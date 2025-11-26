@@ -5,22 +5,15 @@ declare(strict_types=1);
 namespace Tests;
 
 use Laravel\Mcp\Server\Contracts\Resources\Content;
-use Laravel\Mcp\Server\McpServiceProvider;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Orchestra\Testbench\Concerns\WithWorkbench;
 use Orchestra\Testbench\TestCase as TestbenchTestCase;
-use Workbench\App\Providers\WorkbenchServiceProvider;
 
 abstract class TestCase extends TestbenchTestCase
 {
-    protected function getPackageProviders($app)
-    {
-        return [
-            McpServiceProvider::class,
-            WorkbenchServiceProvider::class,
-        ];
-    }
+    use WithWorkbench;
 
     protected function getServerContext(array $properties = []): ServerContext
     {
