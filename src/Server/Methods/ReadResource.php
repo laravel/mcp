@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -28,23 +29,25 @@ class ReadResource implements Method
      * @return Generator<JsonRpcResponse>|JsonRpcResponse
      *
      * @throws JsonRpcException
+     * @throws BindingResolutionException
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
-        $uri = $request->get('uri') ?? throw new JsonRpcException(
-            'Missing [uri] parameter.',
-            -32002,
-            $request->id,
-        );
+        if (is_null($request->get('uri'))) {
+            throw new JsonRpcException(
+                'Missing [uri] parameter.',
+                -32002,
+                $request->id,
+            );
+        }
 
-        $resource = $context->resources()->first(
-            fn (Resource $resource): bool => $resource->uri() === $uri,
-            $context->resourceTemplates()->first(
-                fn (Resource $template): bool => $template instanceof SupportsURITemplate && ! is_null($template->uriTemplate()->match($uri)),
-            ),
-        );
+        $uri = $request->get('uri');
 
-        if (! $resource) {
+        /** @var Resource|null $resource */
+        $resource = $context->resources()->first(fn (Resource $resource): bool => $resource->uri() === $uri) ??
+            $context->resourceTemplates()->first(fn (Resource $template): bool => $template instanceof SupportsURITemplate && ! is_null($template->uriTemplate()->match($uri)));
+
+        if (is_null($resource)) {
             throw new JsonRpcException("Resource [{$uri}] not found.", -32002, $request->id);
         }
 
@@ -59,6 +62,10 @@ class ReadResource implements Method
             : $this->toJsonRpcResponse($request, $response, $this->serializable($resource, $uri));
     }
 
+    /**
+     * @throws BindingResolutionException
+     * @throws ValidationException
+     */
     protected function invokeResource(Resource $resource, string $uri): mixed
     {
         $container = Container::getInstance();

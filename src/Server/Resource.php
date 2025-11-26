@@ -23,9 +23,7 @@ abstract class Resource extends Primitive
             return (string) $this->uriTemplate();
         }
 
-        return $this->uri !== ''
-            ? $this->uri
-            : 'file://resources/'.Str::kebab(class_basename($this));
+        return $this->uri !== '' ? $this->uri : 'file://resources/'.Str::kebab(class_basename($this));
     }
 
     public function mimeType(): string
@@ -62,7 +60,6 @@ abstract class Resource extends Primitive
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
-            'uri' => $this->uri(),
             'mimeType' => $this->mimeType(),
         ];
 
@@ -70,11 +67,9 @@ abstract class Resource extends Primitive
             $data['annotations'] = $annotations;
         }
 
-        if ($this instanceof SupportsURITemplate) {
-            $data['uriTemplate'] = (string) $this->uriTemplate();
-        } else {
-            $data['uri'] = $this->uri();
-        }
+        ($this instanceof SupportsURITemplate)
+            ? $data['uriTemplate'] = (string) $this->uriTemplate()
+            : $data['uri'] = $this->uri();
 
         // @phpstan-ignore return.type
         return $this->mergeMeta($data);

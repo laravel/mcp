@@ -156,3 +156,33 @@ describe('UriTemplate::__toString', function (): void {
         expect((string) $template)->toBe('file://users/{id}');
     });
 });
+
+describe('UriTemplate::make', function (): void {
+    it('returns same instance for identical templates', function (): void {
+        $template1 = UriTemplate::make('file://resource/{id}');
+        $template2 = UriTemplate::make('file://resource/{id}');
+
+        expect($template1)->toBe($template2);
+    });
+
+    it('returns different instances for different templates', function (): void {
+        $template1 = UriTemplate::make('file://resource/{id}');
+        $template2 = UriTemplate::make('file://resource/{userId}');
+
+        expect($template1)->not->toBe($template2);
+    });
+
+    it('cached instances retain compiled regex', function (): void {
+        $template = UriTemplate::make('file://resource/{id}');
+
+        $result1 = $template->match('file://resource/123');
+
+        $cachedTemplate = UriTemplate::make('file://resource/{id}');
+
+        $result2 = $cachedTemplate->match('file://resource/456');
+
+        expect($result1)->toBe(['id' => '123'])
+            ->and($result2)->toBe(['id' => '456'])
+            ->and($template)->toBe($cachedTemplate);
+    });
+});

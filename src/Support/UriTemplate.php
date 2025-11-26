@@ -20,23 +20,27 @@ class UriTemplate implements Stringable
 
     private const URI_TEMPLATE_PATTERN = '/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/.*{[^{}]+}.*/';
 
-    private string $template;
+    /** @var array<string, self> */
+    private static array $instances = [];
 
     /** @var list<string> */
     private array $variableNames = [];
 
     private ?string $compiledRegex = null;
 
-    public function __construct(string $template)
+    public function __construct(private readonly string $template)
     {
-        $this->validateLength($template, self::MAX_TEMPLATE_LENGTH, 'Template');
-
         if (! preg_match(self::URI_TEMPLATE_PATTERN, $template)) {
             throw new InvalidArgumentException('Invalid URI template: must be a valid URI template with at least one placeholder.');
         }
 
-        $this->template = $template;
+        $this->validateLength($template, self::MAX_TEMPLATE_LENGTH, 'Template');
         $this->variableNames = $this->extractVariableNames($template);
+    }
+
+    public static function make(string $template): self
+    {
+        return self::$instances[$template] ??= new UriTemplate($template);
     }
 
     /**
