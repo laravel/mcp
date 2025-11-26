@@ -28,7 +28,7 @@ it('accepts valid tool annotations', function (): void {
 
 it('rejects resource annotations on tools', function (): void {
     expect(function (): void {
-        $tool = new #[Audience(Role::ASSISTANT)] class extends Tool
+        $tool = new #[Audience(Role::Assistant)] class extends Tool
         {
             public function handle(Request $request): Response
             {

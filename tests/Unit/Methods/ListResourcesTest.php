@@ -146,7 +146,7 @@ it('returns empty list when the single prompt is not eligible for registration v
 it('includes annotations when a resource has annotations', function (): void {
     $listResources = new ListResources;
 
-    $resource = new #[Audience([Role::USER, Role::ASSISTANT])]
+    $resource = new #[Audience([Role::User, Role::Assistant])]
     #[Priority(0.8)]
     #[LastModified('2025-01-12T15:00:58Z')]
     class extends Resource
@@ -208,7 +208,7 @@ it('excludes an annotation key when a resource has no annotations', function ():
 it('handles mixed resources with and without annotations', function (): void {
     $listResources = new ListResources;
 
-    $annotatedResource = new #[Audience(Role::USER)]
+    $annotatedResource = new #[Audience(Role::User)]
     #[Priority(0.5)]
     class extends Resource
     {

@@ -27,7 +27,7 @@ it('returns no annotation object when no annotations are present', function (): 
 });
 
 it('includes audience annotation in resource', function (): void {
-    $resource = new #[Audience([Role::USER, Role::ASSISTANT])] class extends Resource
+    $resource = new #[Audience([Role::User, Role::Assistant])] class extends Resource
     {
         public function description(): string
         {
@@ -84,7 +84,7 @@ it('includes the lastModified annotation in resource', function (): void {
 });
 
 it('includes multiple annotations in resource', function (): void {
-    $resource = new #[Audience(Role::USER)] #[Priority(1.0)] #[LastModified('2025-01-12T15:00:58Z')] class extends Resource
+    $resource = new #[Audience(Role::User)] #[Priority(1.0)] #[LastModified('2025-01-12T15:00:58Z')] class extends Resource
     {
         public function description(): string
         {
@@ -107,7 +107,7 @@ it('includes multiple annotations in resource', function (): void {
 });
 
 it('includes annotations in resource toArray', function (): void {
-    $resource = new #[Audience(Role::USER)] #[Priority(0.5)] class extends Resource
+    $resource = new #[Audience(Role::User)] #[Priority(0.5)] class extends Resource
     {
         public function description(): string
         {
@@ -273,7 +273,7 @@ it('accepts empty audience array', function (): void {
 });
 
 it('accepts only user role', function (): void {
-    $resource = new #[Audience(Role::USER)] class extends Resource
+    $resource = new #[Audience(Role::User)] class extends Resource
     {
         public function description(): string
         {
@@ -290,7 +290,7 @@ it('accepts only user role', function (): void {
 });
 
 it('accepts only an assistant role', function (): void {
-    $resource = new #[Audience(Role::ASSISTANT)] class extends Resource
+    $resource = new #[Audience(Role::Assistant)] class extends Resource
     {
         public function description(): string
         {
