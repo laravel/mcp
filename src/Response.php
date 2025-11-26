@@ -22,7 +22,7 @@ class Response
 
     protected function __construct(
         protected Content $content,
-        protected Role $role = Role::USER,
+        protected Role $role = Role::User,
         protected bool $isError = false,
     ) {
         //
@@ -127,7 +127,7 @@ class Response
 
     public function asAssistant(): static
     {
-        return new static($this->content, Role::ASSISTANT, $this->isError);
+        return new static($this->content, Role::Assistant, $this->isError);
     }
 
     public function isNotification(): bool

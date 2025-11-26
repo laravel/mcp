@@ -6,6 +6,6 @@ namespace Laravel\Mcp\Enums;
 
 enum Role: string
 {
-    case ASSISTANT = 'assistant';
-    case USER = 'user';
+    case Assistant = 'assistant';
+    case User = 'user';
 }
