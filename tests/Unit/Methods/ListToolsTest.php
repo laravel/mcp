@@ -7,6 +7,8 @@ use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\SayHiTool;
 use Tests\Fixtures\SayHiWithMetaTool;
+use Tests\Fixtures\ToolWithoutOutputSchema;
+use Tests\Fixtures\ToolWithOutputSchema;
 
 if (! class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
     for ($i = 1; $i <= 12; $i++) {
@@ -404,4 +406,130 @@ it('includes meta in tool response when tool has meta property', function (): vo
                 ],
             ],
         ]);
+});
+
+it('includes outputSchema when the tool defines it', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'list-tools',
+        'params' => [],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 5,
+        tools: [ToolWithOutputSchema::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $listTools = new ListTools;
+
+    $response = $listTools->handle($request, $context);
+
+    $payload = $response->toArray();
+    $tool = $payload['result']['tools'][0];
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class)
+        ->and($payload)->toMatchArray(['id' => 1])
+        ->and($payload['result']['tools'])->toHaveCount(1)
+        ->and($tool)->toHaveKey('outputSchema')
+        ->and($tool['outputSchema'])->toMatchArray([
+            'type' => 'object',
+            'properties' => [
+                'id' => [
+                    'type' => 'integer',
+                    'description' => 'User ID',
+                ],
+                'name' => [
+                    'type' => 'string',
+                    'description' => 'User name',
+                ],
+                'email' => [
+                    'type' => 'string',
+                    'description' => 'User email',
+                ],
+            ],
+            'required' => ['id', 'name'],
+        ]);
+});
+
+it('excludes outputSchema when the tool returns empty schema', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'list-tools',
+        'params' => [],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 5,
+        tools: [ToolWithoutOutputSchema::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $listTools = new ListTools;
+
+    $response = $listTools->handle($request, $context);
+
+    $payload = $response->toArray();
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class)
+        ->and($payload)->toMatchArray(['id' => 1])
+        ->and($payload['result']['tools'])->toHaveCount(1)
+        ->and($payload['result']['tools'][0])->not->toHaveKey('outputSchema');
+});
+
+it('excludes outputSchema for default object type only', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'list-tools',
+        'params' => [],
+    ]);
+
+    $toolWithDefaultObjectType = new class extends SayHiTool
+    {
+        public function outputSchema(\Illuminate\JsonSchema\JsonSchema $schema): array
+        {
+            return [];
+        }
+    };
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 5,
+        tools: [$toolWithDefaultObjectType],
+        resources: [],
+        prompts: [],
+    );
+
+    $listTools = new ListTools;
+
+    $response = $listTools->handle($request, $context);
+
+    $payload = $response->toArray();
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class)
+        ->and($payload)->toMatchArray(['id' => 1])
+        ->and($payload['result']['tools'])->toHaveCount(1)
+        ->and($payload['result']['tools'][0])->not->toHaveKey('outputSchema');
 });

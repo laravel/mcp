@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests;
 
 use Laravel\Mcp\Server\Contracts\Resources\Content;
