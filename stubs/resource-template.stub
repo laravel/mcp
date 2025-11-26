@@ -4,11 +4,11 @@ namespace {{ namespace }};
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
-use Laravel\Mcp\Server\Contracts\SupportUriTemplate;
+use Laravel\Mcp\Server\Contracts\SupportsUriTemplate;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Support\UriTemplate;
 
-class {{ class }} extends Resource implements SupportUriTemplate
+class {{ class }} extends Resource implements SupportsUriTemplate
 {
     /**
      * The resource's description.
@@ -18,7 +18,7 @@ class {{ class }} extends Resource implements SupportUriTemplate
     MARKDOWN;
 
     /**
-     * Get the URI template pattern.
+     * Define the URI template pattern.
      */
     public function uriTemplate(): UriTemplate
     {
