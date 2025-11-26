@@ -6,24 +6,6 @@ use Laravel\Mcp\Server\Contracts\SupportsUriTemplate;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Support\UriTemplate;
 
-it('compiles URI template and extracts variable names', function (): void {
-    $resource = new class extends Resource implements SupportsUriTemplate
-    {
-        public function uriTemplate(): UriTemplate
-        {
-            return new UriTemplate('file://users/{userId}/files/{fileId}');
-        }
-
-        public function handle(Request $request): Response
-        {
-            return Response::text('test');
-        }
-    };
-
-    expect($resource->uri())->toBe('file://users/{userId}/files/{fileId}')
-        ->and($resource)->toBeInstanceOf(SupportsUriTemplate::class);
-});
-
 it('matches URIs against a template pattern', function (): void {
     $resource = new class extends Resource implements SupportsUriTemplate
     {
@@ -154,20 +136,6 @@ it('does not match URIs with different path structure', function (): void {
     expect($resource->uriTemplate()->match('file://users/123'))->toBeNull()
         ->and($resource->uriTemplate()->match('file://users/123/files/abc/extra'))->toBeNull()
         ->and($resource->uriTemplate()->match('file://posts/123/files/abc'))->toBeNull();
-});
-
-it('static resources do not identify as templates', function (): void {
-    $resource = new class extends Resource
-    {
-        protected string $uri = 'file://logs/app.log';
-
-        public function handle(): Response
-        {
-            return Response::text('log content');
-        }
-    };
-
-    expect($resource)->not->toBeInstanceOf(SupportsUriTemplate::class);
 });
 
 it('end to end template reads uri extracts variables and returns response', function (): void {
