@@ -46,9 +46,9 @@ class OAuthRegisterController
 
         return response()->json([
             'client_id' => (string) $client->id,
-            'grant_types' => $client->grantTypes,
+            'grant_types' => $client->grant_types,
             'response_types' => ['code'],
-            'redirect_uris' => $client->redirectUris,
+            'redirect_uris' => $client->redirect_uris,
             'scope' => 'mcp:use',
             'token_endpoint_auth_method' => 'none',
         ]);
