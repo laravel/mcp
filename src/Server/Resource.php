@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server;
 
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Annotations\Annotation;
+use Laravel\Mcp\Server\Concerns\HasAnnotations;
 use Laravel\Mcp\Server\Contracts\SupportsURITemplate;
 
 abstract class Resource extends Primitive
 {
+    use HasAnnotations;
+
     protected string $uri = '';
 
     protected string $mimeType = '';
@@ -52,20 +56,37 @@ abstract class Resource extends Primitive
      */
     public function toArray(): array
     {
-        $result = [
+        $annotations = $this->annotations();
+
+        $data = [
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
+            'uri' => $this->uri(),
             'mimeType' => $this->mimeType(),
         ];
 
+        if ($annotations !== []) {
+            $data['annotations'] = $annotations;
+        }
+
         if ($this instanceof SupportsURITemplate) {
-            $result['uriTemplate'] = (string) $this->uriTemplate();
+            $data['uriTemplate'] = (string) $this->uriTemplate();
         } else {
-            $result['uri'] = $this->uri();
+            $data['uri'] = $this->uri();
         }
 
         // @phpstan-ignore return.type
-        return $this->mergeMeta($result);
+        return $this->mergeMeta($data);
+    }
+
+    /**
+     * @return array<int, class-string>
+     */
+    protected function allowedAnnotations(): array
+    {
+        return [
+            Annotation::class,
+        ];
     }
 }

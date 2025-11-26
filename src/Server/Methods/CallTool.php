@@ -65,9 +65,11 @@ class CallTool implements Errable, Method
      */
     protected function serializable(Tool $tool): callable
     {
-        return fn (ResponseFactory $factory): array => $factory->mergeMeta([
-            'content' => $factory->responses()->map(fn (Response $response): array => $response->content()->toTool($tool))->all(),
-            'isError' => $factory->responses()->contains(fn (Response $response): bool => $response->isError()),
-        ]);
+        return fn (ResponseFactory $factory): array => $factory->mergeStructuredContent(
+            $factory->mergeMeta([
+                'content' => $factory->responses()->map(fn (Response $response): array => $response->content()->toTool($tool))->all(),
+                'isError' => $factory->responses()->contains(fn (Response $response): bool => $response->isError()),
+            ])
+        );
     }
 }

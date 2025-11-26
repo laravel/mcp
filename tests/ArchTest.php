@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Console\Command;
+use Laravel\Mcp\Server\Contracts\Annotation;
 use Laravel\Mcp\Server\Contracts\Method;
-use Laravel\Mcp\Server\Contracts\Tools\Annotation;
 use Laravel\Mcp\Server\Testing\TestResponse;
 use Symfony\Component\Console\Attribute\AsCommand;
 
@@ -21,8 +21,12 @@ arch('tool annotations implement annotation interface')
     ->expect('Laravel\Mcp\Server\Tools\Annotations')
     ->toOnlyImplement(Annotation::class);
 
+arch('resource annotations implement annotation interface')
+    ->expect('Laravel\Mcp\Server\Annotations')
+    ->toOnlyImplement(Annotation::class);
+
 arch('contracts are interfaces')
-    ->expect('Laravel\Mcp\Server\Contracts\*')
+    ->expect('Laravel\Mcp\Server\Contracts')
     ->toBeInterfaces();
 
 arch('exceptions extend')

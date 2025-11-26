@@ -99,6 +99,22 @@ it('can have custom meta', function (): void {
     expect($tool->toArray()['_meta'])->toEqual(['key' => 'value']);
 });
 
+it('default outputSchema returns empty array', function (): void {
+    $tool = new ToolWithoutOutputSchema;
+    $array = $tool->toArray();
+
+    expect($array)->not->toHaveKey('outputSchema');
+});
+
+it('outputSchema can be overridden to return custom schema', function (): void {
+    $tool = new ToolWithOutputSchema;
+    $array = $tool->toArray();
+
+    expect($array)->toHaveKey('outputSchema')
+        ->and($array['outputSchema']['properties'])->toHaveKey('result')
+        ->and($array['outputSchema']['properties'])->toHaveKey('count');
+});
+
 class TestTool extends Tool
 {
     public function description(): string
@@ -167,3 +183,16 @@ class CustomMetaTool extends TestTool
         'key' => 'value',
     ];
 }
+
+class ToolWithOutputSchema extends TestTool
+{
+    public function outputSchema(\Illuminate\JsonSchema\JsonSchema $schema): array
+    {
+        return [
+            'result' => $schema->string()->description('The result value')->required(),
+            'count' => $schema->integer()->description('The count value')->required(),
+        ];
+    }
+}
+
+class ToolWithoutOutputSchema extends TestTool {}

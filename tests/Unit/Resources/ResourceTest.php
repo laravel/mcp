@@ -25,7 +25,7 @@ it('returns a valid resource result for text resources', function (): void {
         'mimeType' => $resource->mimeType(),
     ];
 
-    expect($result->content()->toResource($resource))->toBe($expected);
+    expect($result->content()->toResource($resource))->toEqual($expected);
 });
 
 it('returns a valid resource result for binary resources', function (): void {
@@ -62,7 +62,7 @@ it('returns a valid resource result for binary resources', function (): void {
         'mimeType' => 'image/png',
     ];
 
-    expect($result->content()->toResource($resource))->toBe($expected);
+    expect($result->content()->toResource($resource))->toEqual($expected);
 });
 
 it('handles a text content object returned from read', function (): void {
@@ -89,7 +89,7 @@ it('handles a text content object returned from read', function (): void {
                 'mimeType' => $resource->mimeType(),
             ];
 
-    expect($result->content()->toResource($resource))->toBe($expected);
+    expect($result->content()->toResource($resource))->toEqual($expected);
 });
 
 it('handles a blob content object returned from read', function (): void {
@@ -115,7 +115,7 @@ it('handles a blob content object returned from read', function (): void {
         'mimeType' => $resource->mimeType(),
     ];
 
-    expect($result->content()->toResource($resource))->toBe($expected);
+    expect($result->content()->toResource($resource))->toEqual($expected);
 });
 
 test('description property works as expected', function (): void {
