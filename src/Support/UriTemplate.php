@@ -20,9 +20,6 @@ class UriTemplate implements Stringable
 
     private const URI_TEMPLATE_PATTERN = '/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/.*{[^{}]+}.*/';
 
-    /** @var array<string, self> */
-    private static array $instances = [];
-
     /** @var list<string> */
     private array $variableNames = [];
 
@@ -37,11 +34,6 @@ class UriTemplate implements Stringable
         }
 
         $this->variableNames = $this->extractVariableNames($template);
-    }
-
-    public static function make(string $template): self
-    {
-        return self::$instances[$template] ??= new UriTemplate($template);
     }
 
     /**

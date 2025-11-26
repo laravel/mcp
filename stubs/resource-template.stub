@@ -22,7 +22,7 @@ class {{ class }} extends Resource implements SupportUriTemplate
      */
     public function uriTemplate(): UriTemplate
     {
-        return UriTemplate::make('file://resource/{id}');
+        return new UriTemplate('file://resource/{id}');
     }
 
     /**

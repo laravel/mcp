@@ -91,7 +91,7 @@ it('reads resource template by matching a URI pattern', function (): void {
     {
         public function uriTemplate(): UriTemplate
         {
-            return UriTemplate::make('file://users/{userId}');
+            return new UriTemplate('file://users/{userId}');
         }
 
         public function handle(Request $request): Response
@@ -125,7 +125,7 @@ it('returns the actual requested URI in response, not the template pattern', fun
     {
         public function uriTemplate(): UriTemplate
         {
-            return UriTemplate::make('file://users/{userId}');
+            return new UriTemplate('file://users/{userId}');
         }
 
         public function handle(Request $request): Response
@@ -160,7 +160,7 @@ it('extracts variables from URI template and passes to handler', function (strin
 
         public function uriTemplate(): UriTemplate
         {
-            return UriTemplate::make($this->pattern);
+            return new UriTemplate($this->pattern);
         }
 
         public function handle(Request $request): Response
@@ -204,7 +204,7 @@ it('preserves sessionId and meta from the original request for template resource
     {
         public function uriTemplate(): UriTemplate
         {
-            return UriTemplate::make('file://users/{userId}');
+            return new UriTemplate('file://users/{userId}');
         }
 
         public function handle(Request $request): Response
@@ -258,7 +258,7 @@ it('template handler receives variables via request get method', function (): vo
     {
         public function uriTemplate(): UriTemplate
         {
-            return UriTemplate::make('file://posts/{postId}/comments/{commentId}');
+            return new UriTemplate('file://posts/{postId}/comments/{commentId}');
         }
 
         public function handle(Request $request): Response
@@ -297,7 +297,7 @@ it('tries static resources before template matching', function (): void {
     {
         public function uriTemplate(): UriTemplate
         {
-            return UriTemplate::make('file://resources/{resourceId}');
+            return new UriTemplate('file://resources/{resourceId}');
         }
 
         public function handle(Request $request): Response
@@ -331,7 +331,7 @@ it('returns the first matching template when multiple templates exist', function
     {
         public function uriTemplate(): UriTemplate
         {
-            return UriTemplate::make('file://users/{userId}');
+            return new UriTemplate('file://users/{userId}');
         }
 
         public function handle(Request $request): Response
@@ -344,7 +344,7 @@ it('returns the first matching template when multiple templates exist', function
     {
         public function uriTemplate(): UriTemplate
         {
-            return UriTemplate::make('file://users/{id}');
+            return new UriTemplate('file://users/{id}');
         }
 
         public function handle(Request $request): Response
@@ -381,7 +381,7 @@ it('throws exception when URI does not match any template pattern', function ():
     {
         public function uriTemplate(): UriTemplate
         {
-            return UriTemplate::make('file://users/{userId}');
+            return new UriTemplate('file://users/{userId}');
         }
 
         public function handle(Request $request): Response
@@ -458,7 +458,7 @@ it('does not leak variables between consecutive template resource requests', fun
     {
         public function uriTemplate(): UriTemplate
         {
-            return UriTemplate::make('file://users/{userId}/posts/{postId}');
+            return new UriTemplate('file://users/{userId}/posts/{postId}');
         }
 
         public function handle(Request $request): Response
@@ -508,7 +508,7 @@ it('sets uri on request when reading resource templates', function (): void {
     {
         public function uriTemplate(): UriTemplate
         {
-            return UriTemplate::make('file://users/{userId}');
+            return new UriTemplate('file://users/{userId}');
         }
 
         public function handle(Request $request): Response
@@ -542,7 +542,7 @@ it('provides both uri and extracted variables in request for templates', functio
     {
         public function uriTemplate(): UriTemplate
         {
-            return UriTemplate::make('file://users/{userId}/files/{fileId}');
+            return new UriTemplate('file://users/{userId}/files/{fileId}');
         }
 
         public function handle(Request $request): Response
@@ -585,7 +585,7 @@ it('uri is correctly set and isolated for consecutive requests', function (strin
         {
             public function uriTemplate(): UriTemplate
             {
-                return UriTemplate::make('file://users/{userId}');
+                return new UriTemplate('file://users/{userId}');
             }
 
             public function handle(Request $request): Response

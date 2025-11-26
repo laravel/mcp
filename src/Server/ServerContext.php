@@ -37,10 +37,10 @@ class ServerContext
      */
     public function tools(): Collection
     {
-        return collect($this->tools)->map(fn (Tool|string $toolClass) => is_string($toolClass)
-            ? Container::getInstance()->make($toolClass)
-            : $toolClass
-        )->filter(fn (Tool $tool): bool => $tool->eligibleForRegistration());
+        /** @var Collection<int,Tool> $tool */
+        $tool = collect($this->tools);
+
+        return $this->resolvePrimitives($tool);
     }
 
     /**
@@ -48,25 +48,23 @@ class ServerContext
      */
     public function resources(): Collection
     {
-        return collect($this->resources)
-            ->filter(fn ($resource): bool => ! ($resource instanceof SupportsUriTemplate) && ! (is_string($resource) && is_subclass_of($resource, SupportsUriTemplate::class)))
-            ->map(fn (Resource|string $resourceClass) => is_string($resourceClass)
-                ? Container::getInstance()->make($resourceClass)
-                : $resourceClass)
-            ->filter(fn (Resource $resource): bool => $resource->eligibleForRegistration());
+        /** @var Collection<int,Resource> $resourceTemplates */
+        $resourceTemplates = collect($this->resources)
+            ->filter(fn (Resource|string $resource): bool => ! $this->isResourceTemplate($resource));
+
+        return $this->resolvePrimitives($resourceTemplates);
     }
 
     /**
-     * @return Collection<int, SupportsUriTemplate>
+     * @return Collection<int, SupportsUriTemplate&Resource>
      */
     public function resourceTemplates(): Collection
     {
-        return collect($this->resources)
-            ->filter(fn ($resource): bool => ($resource instanceof SupportsUriTemplate) || (is_string($resource) && is_subclass_of($resource, SupportsUriTemplate::class)))
-            ->map(fn (Resource|string $resourceClass) => is_string($resourceClass)
-                    ? Container::getInstance()->make($resourceClass)
-                    : $resourceClass)
-            ->filter(fn (Resource $resource): bool => $resource->eligibleForRegistration());
+        /** @var Collection<int,SupportsUriTemplate&Resource> $resourceTemplates */
+        $resourceTemplates = collect($this->resources)
+            ->filter(fn (Resource|string $resource): bool => $this->isResourceTemplate($resource));
+
+        return $this->resolvePrimitives($resourceTemplates);
     }
 
     /**
@@ -74,15 +72,34 @@ class ServerContext
      */
     public function prompts(): Collection
     {
-        return collect($this->prompts)->map(
-            fn ($promptClass) => is_string($promptClass)
-                ? Container::getInstance()->make($promptClass)
-                : $promptClass
-        )->filter(fn (Prompt $prompt): bool => $prompt->eligibleForRegistration());
+        /** @var Collection<int,Prompt> $prompts */
+        $prompts = collect($this->prompts);
+
+        return $this->resolvePrimitives($prompts);
     }
 
     public function perPage(?int $requestedPerPage = null): int
     {
         return min($requestedPerPage ?? $this->defaultPaginationLength, $this->maxPaginationLength);
+    }
+
+    /**
+     * @template T of Primitive
+     *
+     * @param  Collection<int, T|string>  $primitive
+     * @return Collection<int, T>
+     */
+    private function resolvePrimitives(Collection $primitive): Collection
+    {
+        return $primitive->map(fn (Primitive|string $primitiveClass) => is_string($primitiveClass)
+                ? Container::getInstance()->make($primitiveClass)
+                : $primitiveClass)
+            ->filter(fn (Primitive $primitive): bool => $primitive->eligibleForRegistration());
+    }
+
+    private function isResourceTemplate(Resource|string $resource): bool
+    {
+        return $resource instanceof SupportsUriTemplate
+            || (is_string($resource) && is_subclass_of($resource, SupportsUriTemplate::class));
     }
 }

@@ -68,7 +68,7 @@ abstract class Resource extends Primitive
         }
 
         if ($this instanceof SupportsUriTemplate) {
-            $data['uriTemplate'] = $this->uriTemplate();
+            $data['uriTemplate'] = (string) $this->uriTemplate();
         } else {
             $data['uri'] = $this->uri();
         }
