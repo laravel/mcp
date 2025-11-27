@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
+use Laravel\Mcp\Server\Enums\LogLevel;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -232,6 +233,83 @@ class TestResponse
     protected function isAuthenticated(?string $guard = null): bool
     {
         return Container::getInstance()->make('auth')->guard($guard)->check();
+    }
+
+    public function assertLogSent(LogLevel $level, ?string $contains = null): static
+    {
+        foreach ($this->notifications as $notification) {
+            $content = $notification->toArray();
+
+            if ($content['method'] !== 'notifications/message') {
+                continue;
+            }
+
+            $params = $content['params'] ?? [];
+            if (! isset($params['level'])) {
+                continue;
+            }
+
+            if ($params['level'] !== $level->value) {
+                continue;
+            }
+
+            if ($contains !== null) {
+                $data = $params['data'] ?? '';
+                $dataString = is_string($data) ? $data : (string) json_encode($data);
+                if ($dataString === '') {
+                    continue;
+                }
+
+                if (! str_contains($dataString, $contains)) {
+                    continue;
+                }
+            }
+
+            Assert::assertTrue(true); // @phpstan-ignore-line
+
+            return $this;
+        }
+
+        $levelName = $level->value;
+        $containsMsg = $contains !== null ? " containing [{$contains}]" : '';
+        Assert::fail("The expected log notification with level [{$levelName}]{$containsMsg} was not found.");
+    }
+
+    public function assertLogNotSent(LogLevel $level): static
+    {
+        foreach ($this->notifications as $notification) {
+            $content = $notification->toArray();
+
+            if ($content['method'] === 'notifications/message') {
+                $params = $content['params'] ?? [];
+
+                if (isset($params['level']) && $params['level'] === $level->value) {
+                    $levelName = $level->value;
+                    Assert::fail("The log notification with level [{$levelName}] was unexpectedly found.");
+                }
+            }
+        }
+
+        Assert::assertTrue(true); // @phpstan-ignore-line
+
+        return $this;
+    }
+
+    public function assertLogCount(int $count): static
+    {
+        $logNotifications = collect($this->notifications)->filter(function ($notification): bool {
+            $content = $notification->toArray();
+
+            return $content['method'] === 'notifications/message' && isset($content['params']['level']);
+        });
+
+        Assert::assertCount(
+            $count,
+            $logNotifications,
+            "The expected number of log notifications [{$count}] does not match the actual count [{$logNotifications->count()}]."
+        );
+
+        return $this;
     }
 
     public function dd(): void

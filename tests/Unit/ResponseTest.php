@@ -7,8 +7,10 @@ use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Content\Blob;
+use Laravel\Mcp\Server\Content\LogNotification;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
+use Laravel\Mcp\Server\Enums\LogLevel;
 
 it('creates a notification response', function (): void {
     $response = Response::notification('test.method', ['key' => 'value']);
@@ -49,13 +51,13 @@ it('creates an error response', function (): void {
 it('throws exception for audio method', function (): void {
     expect(function (): void {
         Response::audio();
-    })->toThrow(NotImplementedException::class, 'The method ['.\Laravel\Mcp\Response::class.'@'.\Laravel\Mcp\Response::class.'::audio] is not implemented yet.');
+    })->toThrow(NotImplementedException::class, 'The method ['.Response::class.'@'.Response::class.'::audio] is not implemented yet.');
 });
 
 it('throws exception for image method', function (): void {
     expect(function (): void {
         Response::image();
-    })->toThrow(NotImplementedException::class, 'The method ['.\Laravel\Mcp\Response::class.'@'.\Laravel\Mcp\Response::class.'::image] is not implemented yet.');
+    })->toThrow(NotImplementedException::class, 'The method ['.Response::class.'@'.Response::class.'::image] is not implemented yet.');
 });
 
 it('can convert response to assistant role', function (): void {
@@ -176,4 +178,48 @@ it('throws exception when an array contains null', function (): void {
     ]))->toThrow(
         InvalidArgumentException::class,
     );
+});
+
+it('creates a log response', function (): void {
+    $response = Response::log(LogLevel::Error, 'Something went wrong');
+
+    expect($response->content())->toBeInstanceOf(LogNotification::class)
+        ->and($response->isNotification())->toBeTrue()
+        ->and($response->isError())->toBeFalse()
+        ->and($response->role())->toBe(Role::User);
+});
+
+it('creates a log response with logger name', function (): void {
+    $response = Response::log(LogLevel::Info, 'Query executed', 'database');
+
+    expect($response->content())->toBeInstanceOf(LogNotification::class);
+
+    $content = $response->content();
+    expect($content->logger())->toBe('database');
+});
+
+it('creates a log response with array data', function (): void {
+    $data = ['error' => 'Connection failed', 'host' => 'localhost'];
+    $response = Response::log(LogLevel::Error, $data);
+
+    expect($response->content())->toBeInstanceOf(LogNotification::class);
+
+    $content = $response->content();
+    expect($content->data())->toBe($data);
+});
+
+it('throws exception for invalid log data', function (): void {
+    $data = ['invalid' => INF];
+
+    expect(function () use ($data): void {
+        Response::log(LogLevel::Error, $data);
+    })->toThrow(InvalidArgumentException::class, 'Invalid log data:');
+});
+
+it('creates log response with meta', function (): void {
+    $response = Response::log(LogLevel::Warning, 'Low memory')
+        ->withMeta(['trace_id' => 'abc123']);
+
+    expect($response->content()->toArray()['params'])->toHaveKey('_meta')
+        ->and($response->content()->toArray()['params']['_meta'])->toEqual(['trace_id' => 'abc123']);
 });

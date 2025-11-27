@@ -17,6 +17,7 @@ use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Methods\ListTools;
 use Laravel\Mcp\Server\Methods\Ping;
 use Laravel\Mcp\Server\Methods\ReadResource;
+use Laravel\Mcp\Server\Methods\SetLogLevel;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
@@ -96,6 +97,7 @@ abstract class Server
         'prompts/list' => ListPrompts::class,
         'prompts/get' => GetPrompt::class,
         'ping' => Ping::class,
+        'logging/setLevel' => SetLogLevel::class,
     ];
 
     public function __construct(
