@@ -9,7 +9,6 @@ use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
 use Laravel\Mcp\Console\Commands\MakePromptCommand;
 use Laravel\Mcp\Console\Commands\MakeResourceCommand;
-use Laravel\Mcp\Console\Commands\MakeResourceTemplateCommand;
 use Laravel\Mcp\Console\Commands\MakeServerCommand;
 use Laravel\Mcp\Console\Commands\MakeToolCommand;
 use Laravel\Mcp\Console\Commands\StartCommand;
@@ -95,7 +94,6 @@ class McpServiceProvider extends ServiceProvider
             MakeToolCommand::class,
             MakePromptCommand::class,
             MakeResourceCommand::class,
-            MakeResourceTemplateCommand::class,
             InspectorCommand::class,
         ]);
     }
