@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
-use Illuminate\JsonSchema\JsonSchema;
+use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Illuminate\JsonSchema\JsonSchema as JsonSchemaFactory;
 use Laravel\Mcp\Server\Concerns\HasAnnotations;
 use Laravel\Mcp\Server\Tools\Annotations\ToolAnnotation;
 
@@ -55,11 +56,11 @@ abstract class Tool extends Primitive
     {
         $annotations = $this->annotations();
 
-        $schema = JsonSchema::object(
+        $schema = JsonSchemaFactory::object(
             $this->schema(...),
         )->toArray();
 
-        $outputSchema = JsonSchema::object(
+        $outputSchema = JsonSchemaFactory::object(
             $this->outputSchema(...),
         )->toArray();
 

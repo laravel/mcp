@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Rector\CodingStyle\Rector\ClassLike\NewlineBetweenClassLikeStmtsRector;
 use Rector\CodingStyle\Rector\Encapsed\EncapsedStringsToSprintfRector;
 use Rector\Config\RectorConfig;
 use Rector\Php81\Rector\Property\ReadOnlyPropertyRector;
@@ -14,6 +15,7 @@ return RectorConfig::configure()
     ->withSkip([
         ReadOnlyPropertyRector::class,
         EncapsedStringsToSprintfRector::class,
+        NewlineBetweenClassLikeStmtsRector::class,
     ])
     ->withPreparedSets(
         deadCode: true,
