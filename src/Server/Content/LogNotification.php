@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Content;
 
-use Laravel\Mcp\Server\Enums\LogLevel;
+use Laravel\Mcp\Enums\LogLevel;
 
 class LogNotification extends Notification
 {

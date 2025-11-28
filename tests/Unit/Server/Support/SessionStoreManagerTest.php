@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Cache;
-use Laravel\Mcp\Server\Store\SessionStoreManager;
+use Laravel\Mcp\Server\Support\SessionStoreManager;
 
 beforeEach(function (): void {
     Cache::flush();

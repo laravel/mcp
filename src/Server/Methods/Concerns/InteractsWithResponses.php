@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods\Concerns;
 
 use Generator;
-use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Response;
@@ -14,7 +13,7 @@ use Laravel\Mcp\Server\Content\LogNotification;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
-use Laravel\Mcp\Server\LoggingManager;
+use Laravel\Mcp\Server\Support\LoggingManager;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
@@ -48,6 +47,7 @@ trait InteractsWithResponses
     {
         /** @var array<int, Response|ResponseFactory|string> $pendingResponses */
         $pendingResponses = [];
+        $loggingManager = app(LoggingManager::class);
 
         try {
             foreach ($responses as $response) {
@@ -55,12 +55,8 @@ trait InteractsWithResponses
                     /** @var Notification $content */
                     $content = $response->content();
 
-                    if ($content instanceof LogNotification) {
-                        $loggingManager = Container::getInstance()->make(LoggingManager::class);
-
-                        if (! $loggingManager->shouldLog($content->level())) {
-                            continue;
-                        }
+                    if ($content instanceof LogNotification && ! $loggingManager->shouldLog($content->level())) {
+                        continue;
                     }
 
                     yield JsonRpcResponse::notification(

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Server\Store;
+namespace Laravel\Mcp\Server\Support;
 
 use Illuminate\Contracts\Cache\Repository as Cache;
 
@@ -10,13 +10,12 @@ class SessionStoreManager
 {
     protected const PREFIX = 'mcp';
 
-    protected const TTL = 3600;
-
     public function __construct(
         protected Cache $cache,
         protected ?string $sessionId = null,
+        protected ?int $ttl = null,
     ) {
-        //
+        $this->ttl ??= config('mcp.session_ttl', 86400);
     }
 
     public function set(string $key, mixed $value): void
@@ -25,7 +24,7 @@ class SessionStoreManager
             return;
         }
 
-        $this->cache->put($this->cacheKey($key), $value, self::TTL);
+        $this->cache->put($this->cacheKey($key), $value, $this->ttl);
     }
 
     public function get(string $key, mixed $default = null): mixed

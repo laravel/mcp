@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Enums\LogLevel;
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Response;
@@ -10,7 +11,6 @@ use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\LogNotification;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
-use Laravel\Mcp\Server\Enums\LogLevel;
 
 it('creates a notification response', function (): void {
     $response = Response::notification('test.method', ['key' => 'value']);

@@ -14,6 +14,8 @@ use Laravel\Mcp\Console\Commands\MakeServerCommand;
 use Laravel\Mcp\Console\Commands\MakeToolCommand;
 use Laravel\Mcp\Console\Commands\StartCommand;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Support\LoggingManager;
+use Laravel\Mcp\Server\Support\SessionStoreManager;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -23,24 +25,7 @@ class McpServiceProvider extends ServiceProvider
 
         $this->mergeConfigFrom(__DIR__.'/../../config/mcp.php', 'mcp');
 
-        $this->app->bind(Store\SessionStoreManager::class, function ($app): Store\SessionStoreManager {
-            $sessionId = null;
-
-            if ($app->bound('mcp.request')) {
-                /** @var Request $request */
-                $request = $app->make('mcp.request');
-                $sessionId = $request->sessionId();
-            }
-
-            return new Store\SessionStoreManager(
-                $app->make(Repository::class),
-                $sessionId
-            );
-        });
-
-        $this->app->bind(LoggingManager::class, fn ($app): LoggingManager => new LoggingManager(
-            $app->make(Store\SessionStoreManager::class)
-        ));
+        $this->registerSessionBindings();
     }
 
     public function boot(): void
@@ -103,6 +88,28 @@ class McpServiceProvider extends ServiceProvider
                 $request->setMeta($currentRequest->meta());
             }
         });
+    }
+
+    protected function registerSessionBindings(): void
+    {
+        $this->app->bind(SessionStoreManager::class, function ($app): Support\SessionStoreManager {
+            $sessionId = null;
+
+            if ($app->bound('mcp.request')) {
+                /** @var Request $request */
+                $request = $app->make('mcp.request');
+                $sessionId = $request->sessionId();
+            }
+
+            return new SessionStoreManager(
+                $app->make(Repository::class),
+                $sessionId
+            );
+        });
+
+        $this->app->bind(LoggingManager::class, fn ($app): LoggingManager => new LoggingManager(
+            $app->make(Support\SessionStoreManager::class)
+        ));
     }
 
     protected function registerCommands(): void

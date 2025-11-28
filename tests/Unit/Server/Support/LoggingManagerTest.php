@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Cache;
-use Laravel\Mcp\Server\Enums\LogLevel;
-use Laravel\Mcp\Server\LoggingManager;
-use Laravel\Mcp\Server\Store\SessionStoreManager;
+use Laravel\Mcp\Enums\LogLevel;
+use Laravel\Mcp\Server\Support\LoggingManager;
+use Laravel\Mcp\Server\Support\SessionStoreManager;
 
 beforeEach(function (): void {
     LoggingManager::setDefaultLevel(LogLevel::Info);

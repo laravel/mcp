@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Enums\LogLevel;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
-use Laravel\Mcp\Server\Enums\LogLevel;
-use Laravel\Mcp\Server\LoggingManager;
+use Laravel\Mcp\Server\Support\LoggingManager;
 use Laravel\Mcp\Server\Tool;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\ExpectationFailedException;

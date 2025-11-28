@@ -3,12 +3,12 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Cache;
-use Laravel\Mcp\Server\Enums\LogLevel;
+use Laravel\Mcp\Enums\LogLevel;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
-use Laravel\Mcp\Server\LoggingManager;
 use Laravel\Mcp\Server\Methods\SetLogLevel;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Server\Store\SessionStoreManager;
+use Laravel\Mcp\Server\Support\LoggingManager;
+use Laravel\Mcp\Server\Support\SessionStoreManager;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 

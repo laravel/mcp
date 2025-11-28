@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Server;
+namespace Laravel\Mcp\Server\Support;
 
-use Laravel\Mcp\Server\Enums\LogLevel;
-use Laravel\Mcp\Server\Store\SessionStoreManager;
+use Laravel\Mcp\Enums\LogLevel;
 
 class LoggingManager
 {

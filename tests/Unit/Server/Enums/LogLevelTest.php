@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Laravel\Mcp\Server\Enums\LogLevel;
+use Laravel\Mcp\Enums\LogLevel;
 
 test('it has correct severity values', function (): void {
     expect(LogLevel::Emergency->severity())->toBe(0);

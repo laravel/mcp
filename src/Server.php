@@ -65,6 +65,7 @@ abstract class Server
         'prompts' => [
             'listChanged' => false,
         ],
+        'logging' => [],
     ];
 
     /**

@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Enums\LogLevel;
 use Laravel\Mcp\Server\Content\LogNotification;
-use Laravel\Mcp\Server\Enums\LogLevel;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;

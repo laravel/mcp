@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Enums\LogLevel;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
-use Laravel\Mcp\Server\Enums\LogLevel;
-use Laravel\Mcp\Server\LoggingManager;
+use Laravel\Mcp\Server\Support\LoggingManager;
 use Laravel\Mcp\Server\Tool;
 
 beforeEach(function (): void {
@@ -106,4 +106,25 @@ it('supports string and array data in logs', function (): void {
     // Just verify both logs were sent
     $response->assertSentNotification('notifications/message')
         ->assertLogCount(2);
+});
+
+it('resolves logging manager from container correctly during streaming', function (): void {
+    LoggingManager::setDefaultLevel(LogLevel::Warning);
+
+    $response = LoggingTestServer::tool(LoggingTestTool::class);
+
+    $response->assertLogCount(3)
+        ->assertLogSent(LogLevel::Emergency)
+        ->assertLogSent(LogLevel::Error)
+        ->assertLogSent(LogLevel::Warning)
+        ->assertLogNotSent(LogLevel::Info)
+        ->assertLogNotSent(LogLevel::Debug);
+});
+
+it('handles multiple log notifications efficiently', function (): void {
+    LoggingManager::setDefaultLevel(LogLevel::Debug);
+
+    $response = LoggingTestServer::tool(LoggingTestTool::class);
+
+    $response->assertLogCount(5);
 });
