@@ -105,8 +105,7 @@ it('can stream a tool response over http', function (): void {
 
     $response->assertStatus(200);
 
-    $headers = $response->headers;
-    $headers->contains('Content-Type', 'text/event-stream');
+    expect(strtolower((string) $response->headers->get('Content-Type')))->toBe('text/event-stream; charset=utf-8');
 
     $content = $response->streamedContent();
     $messages = parseJsonRpcMessagesFromSseStream($content);
