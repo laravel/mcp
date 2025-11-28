@@ -1,8 +1,12 @@
 <?php
 
+use Illuminate\JsonSchema\JsonSchema;
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\CurrentTimeTool;
@@ -547,4 +551,57 @@ it('throws an exception when the tool is not found', function (): void {
             JsonRpcException::class,
             'Tool [non-existent-tool] not found.'
         );
+});
+
+it('does not set uri on request when calling tools', function (): void {
+    $tool = new class extends Tool
+    {
+        protected string $description = 'Test tool';
+
+        public function handle(Request $request): Response
+        {
+            return Response::text(json_encode($request->uri()));
+        }
+
+        public function schema(JsonSchema $schema): array
+        {
+            return [];
+        }
+    };
+
+    $toolClass = $tool::class;
+    $this->instance($toolClass, $tool);
+
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => $tool->name(),
+            'arguments' => [],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test',
+        serverVersion: '1.0.0',
+        instructions: '',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [$toolClass],
+        resources: [],
+        prompts: [],
+    );
+
+    $this->instance('mcp.request', $request->toRequest());
+
+    $method = new CallTool;
+    $payload = ($method->handle($request, $context))->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result']['content'])->toHaveCount(1)
+        ->and($payload['result']['content'][0]['type'])->toBe('text')
+        ->and($payload['result']['content'][0]['text'])->toBe('null');
 });

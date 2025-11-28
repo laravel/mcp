@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Annotations\Audience;
 use Laravel\Mcp\Server\Annotations\LastModified;
 use Laravel\Mcp\Server\Annotations\Priority;
+use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Support\UriTemplate;
 
 it('returns a valid empty list resources response', function (): void {
     $listResources = new ListResources;
@@ -242,4 +245,82 @@ it('handles mixed resources with and without annotations', function (): void {
         ])
         ->and($payload['result']['resources'][1])->not->toHaveKey('annotations');
 
+});
+
+it('excludes resource templates from list', function (): void {
+    $template = new class extends Resource implements HasUriTemplate
+    {
+        public function uriTemplate(): UriTemplate
+        {
+            return new UriTemplate('file://users/{userId}');
+        }
+
+        public function handle(Request $request): Response
+        {
+            return Response::text('test');
+        }
+    };
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 5,
+        tools: [],
+        resources: [$template],
+        prompts: [],
+    );
+
+    $request = new JsonRpcRequest(id: 1, method: 'resources/list', params: []);
+    $listResources = new ListResources;
+    $response = $listResources->handle($request, $context);
+
+    $payload = $response->toArray();
+
+    expect($payload['result'])->toEqual([
+        'resources' => [],
+    ]);
+});
+
+it('returns only static resources when both templates and static resources exist', function (): void {
+    $staticResource = $this->makeResource();
+
+    $template = new class extends Resource implements HasUriTemplate
+    {
+        public function uriTemplate(): UriTemplate
+        {
+            return new UriTemplate('file://users/{userId}');
+        }
+
+        public function handle(Request $request): Response
+        {
+            return Response::text('test');
+        }
+    };
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 5,
+        tools: [],
+        resources: [$staticResource, $template],
+        prompts: [],
+    );
+
+    $request = new JsonRpcRequest(id: 1, method: 'resources/list', params: []);
+    $listResources = new ListResources;
+    $response = $listResources->handle($request, $context);
+
+    $payload = $response->toArray();
+
+    expect($payload['result']['resources'])->toHaveCount(1)
+        ->and($payload['result']['resources'][0]['name'])->toBe($staticResource->name())
+        ->and($payload['result']['resources'][0]['uri'])->toBe($staticResource->uri());
 });

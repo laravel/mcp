@@ -6,9 +6,12 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Validation\ValidationException;
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
+use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
@@ -26,6 +29,7 @@ class ReadResource implements Method
      * @return Generator<JsonRpcResponse>|JsonRpcResponse
      *
      * @throws JsonRpcException
+     * @throws BindingResolutionException
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
@@ -37,31 +41,60 @@ class ReadResource implements Method
             );
         }
 
-        $resource = $context->resources()
-            ->first(
-                fn (Resource $resource): bool => $resource->uri() === $request->get('uri'),
-                fn () => throw new JsonRpcException(
-                    "Resource [{$request->get('uri')}] not found.",
-                    -32002,
-                    $request->id,
-                ));
+        $uri = $request->get('uri');
+
+        /** @var Resource|null $resource */
+        $resource = $context->resources()->first(fn (Resource $resource): bool => $resource->uri() === $uri) ??
+            $context->resourceTemplates()->first(fn (HasUriTemplate $template): bool => ! is_null($template->uriTemplate()->match($uri)));
+
+        if (is_null($resource)) {
+            throw new JsonRpcException("Resource [{$uri}] not found.", -32002, $request->id);
+        }
 
         try {
-            // @phpstan-ignore-next-line
-            $response = Container::getInstance()->call([$resource, 'handle']);
+            $response = $this->invokeResource($resource, $uri);
         } catch (ValidationException $validationException) {
             $response = Response::error('Invalid params: '.ValidationMessages::from($validationException));
         }
 
         return is_iterable($response)
-            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($resource))
-            : $this->toJsonRpcResponse($request, $response, $this->serializable($resource));
+            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($resource, $uri))
+            : $this->toJsonRpcResponse($request, $response, $this->serializable($resource, $uri));
     }
 
-    protected function serializable(Resource $resource): callable
+    /**
+     * @throws BindingResolutionException
+     * @throws ValidationException
+     */
+    protected function invokeResource(Resource $resource, string $uri): mixed
+    {
+        $container = Container::getInstance();
+
+        $request = $container->make(Request::class);
+        $request->setUri($uri);
+
+        if ($resource instanceof HasUriTemplate) {
+            $variables = $resource->uriTemplate()->match($uri) ?? [];
+            $request->merge($variables);
+        }
+
+        $container->instance(Request::class, $request);
+
+        try {
+            // @phpstan-ignore-next-line
+            return $container->call([$resource, 'handle']);
+        } finally {
+            $container->forgetInstance(Request::class);
+        }
+    }
+
+    protected function serializable(Resource $resource, string $uri): callable
     {
         return fn (ResponseFactory $factory): array => $factory->mergeMeta([
-            'contents' => $factory->responses()->map(fn (Response $response): array => $response->content()->toResource($resource))->all(),
+            'contents' => $factory->responses()->map(fn (Response $response): array => [
+                ...$response->content()->toResource($resource),
+                'uri' => $uri,
+            ])->all(),
         ]);
     }
 }
