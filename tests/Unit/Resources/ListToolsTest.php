@@ -12,7 +12,7 @@ if (! class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
         eval("
             namespace Tests\\Unit\\Methods;
             use Generator;
-            use Illuminate\JsonSchema\JsonSchema;
+            use Illuminate\Contracts\JsonSchema\JsonSchema;
             use Laravel\\Mcp\\Server\\Tool;
             use Laravel\\Mcp\\Server\\Tools\\ToolResult;
             class DummyTool{$i} extends Tool {

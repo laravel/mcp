@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Methods\ListTools;
 use Laravel\Mcp\Server\ServerContext;
@@ -15,7 +16,7 @@ if (! class_exists('Tests\\Unit\\Methods\\DummyTool1')) {
         eval("
             namespace Tests\\Unit\\Methods;
             use Generator;
-            use Illuminate\JsonSchema\JsonSchema;
+            use Illuminate\Contracts\JsonSchema\JsonSchema;
             use Laravel\\Mcp\\Server\\Tool;
             use Laravel\\Mcp\\Server\\Tools\\ToolResult;
             class DummyTool{$i} extends Tool {
@@ -503,7 +504,7 @@ it('excludes outputSchema for default object type only', function (): void {
 
     $toolWithDefaultObjectType = new class extends SayHiTool
     {
-        public function outputSchema(\Illuminate\JsonSchema\JsonSchema $schema): array
+        public function outputSchema(JsonSchema $schema): array
         {
             return [];
         }

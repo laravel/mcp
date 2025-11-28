@@ -1,11 +1,12 @@
 <?php
 
+use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
-use Laravel\Mcp\Server\Tools\ToolResult;
 
 test('the default name is in kebab case', function (): void {
     $tool = new AnotherComplexToolName;
@@ -122,9 +123,9 @@ class TestTool extends Tool
         return 'A test tool';
     }
 
-    public function handle(): ToolResult|Generator
+    public function handle(): Response
     {
-        return ToolResult::text('test');
+        return Response::text('test');
     }
 }
 
@@ -169,7 +170,7 @@ class CustomToolName extends TestTool
 
 class ToolWithSchema extends TestTool
 {
-    public function schema(\Illuminate\JsonSchema\JsonSchema $schema): array
+    public function schema(JsonSchema $schema): array
     {
         return [
             'message' => $schema->string()->description('The message to echo')->required(),
@@ -186,7 +187,7 @@ class CustomMetaTool extends TestTool
 
 class ToolWithOutputSchema extends TestTool
 {
-    public function outputSchema(\Illuminate\JsonSchema\JsonSchema $schema): array
+    public function outputSchema(JsonSchema $schema): array
     {
         return [
             'result' => $schema->string()->description('The result value')->required(),
