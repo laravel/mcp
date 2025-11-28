@@ -169,8 +169,8 @@ it('handles oauth registration endpoint', function (): void {
                 public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
                     return (object) [
                         "id" => "test-client-id",
-                        "grantTypes" => ["authorization_code"],
-                        "redirectUris" => $redirectUris,
+                        "grant_types" => ["authorization_code"],
+                        "redirect_uris" => $redirectUris,
                     ];
                 }
             }
@@ -207,8 +207,8 @@ it('handles oauth registration with allowed domains', function (): void {
                 public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
                     return (object) [
                         "id" => "test-client-id",
-                        "grantTypes" => ["authorization_code"],
-                        "redirectUris" => $redirectUris,
+                        "grant_types" => ["authorization_code"],
+                        "redirect_uris" => $redirectUris,
                     ];
                 }
             }
@@ -247,8 +247,8 @@ it('handles oauth registration with incorrect redirect domain', function (): voi
                 public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
                     return (object) [
                         "id" => "test-client-id",
-                        "grantTypes" => ["authorization_code"],
-                        "redirectUris" => $redirectUris,
+                        "grant_types" => ["authorization_code"],
+                        "redirect_uris" => $redirectUris,
                     ];
                 }
             }
