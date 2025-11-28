@@ -7,7 +7,7 @@ namespace Laravel\Mcp\Server;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Annotations\Annotation;
 use Laravel\Mcp\Server\Concerns\HasAnnotations;
-use Laravel\Mcp\Server\Contracts\SupportsUriTemplate;
+use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 
 abstract class Resource extends Primitive
 {
@@ -19,7 +19,7 @@ abstract class Resource extends Primitive
 
     public function uri(): string
     {
-        if ($this instanceof SupportsUriTemplate) {
+        if ($this instanceof HasUriTemplate) {
             return (string) $this->uriTemplate();
         }
 
@@ -67,7 +67,7 @@ abstract class Resource extends Primitive
             $data['annotations'] = $annotations;
         }
 
-        if ($this instanceof SupportsUriTemplate) {
+        if ($this instanceof HasUriTemplate) {
             $data['uriTemplate'] = (string) $this->uriTemplate();
         } else {
             $data['uri'] = $this->uri();

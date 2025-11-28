@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
-use Laravel\Mcp\Server\Contracts\SupportsUriTemplate;
+use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 
 class ServerContext
 {
@@ -56,11 +56,11 @@ class ServerContext
     }
 
     /**
-     * @return Collection<int, SupportsUriTemplate&Resource>
+     * @return Collection<int, HasUriTemplate&Resource>
      */
     public function resourceTemplates(): Collection
     {
-        /** @var Collection<int,SupportsUriTemplate&Resource> $resourceTemplates */
+        /** @var Collection<int,HasUriTemplate&Resource> $resourceTemplates */
         $resourceTemplates = collect($this->resources)
             ->filter(fn (Resource|string $resource): bool => $this->isResourceTemplate($resource));
 
@@ -99,6 +99,6 @@ class ServerContext
 
     private function isResourceTemplate(Resource|string $resource): bool
     {
-        return $resource instanceof SupportsUriTemplate || (is_string($resource) && is_subclass_of($resource, SupportsUriTemplate::class));
+        return $resource instanceof HasUriTemplate || (is_string($resource) && is_subclass_of($resource, HasUriTemplate::class));
     }
 }

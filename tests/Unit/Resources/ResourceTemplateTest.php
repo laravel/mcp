@@ -2,12 +2,12 @@
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
-use Laravel\Mcp\Server\Contracts\SupportsUriTemplate;
+use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Support\UriTemplate;
 
 it('matches URIs against a template pattern', function (): void {
-    $resource = new class extends Resource implements SupportsUriTemplate
+    $resource = new class extends Resource implements HasUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -28,7 +28,7 @@ it('matches URIs against a template pattern', function (): void {
 });
 
 it('extracts variables from matching URI', function (): void {
-    $resource = new class extends Resource implements SupportsUriTemplate
+    $resource = new class extends Resource implements HasUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -51,7 +51,7 @@ it('extracts variables from matching URI', function (): void {
 });
 
 it('handles template resource with extracted variables', function (): void {
-    $resource = new class extends Resource implements SupportsUriTemplate
+    $resource = new class extends Resource implements HasUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -78,7 +78,7 @@ it('handles template resource with extracted variables', function (): void {
 });
 
 it('handles template with single variable', function (): void {
-    $resource = new class extends Resource implements SupportsUriTemplate
+    $resource = new class extends Resource implements HasUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -96,7 +96,7 @@ it('handles template with single variable', function (): void {
 });
 
 it('handles complex URI templates with multiple path segments', function (): void {
-    $resource = new class extends Resource implements SupportsUriTemplate
+    $resource = new class extends Resource implements HasUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -120,7 +120,7 @@ it('handles complex URI templates with multiple path segments', function (): voi
 });
 
 it('does not match URIs with different path structure', function (): void {
-    $resource = new class extends Resource implements SupportsUriTemplate
+    $resource = new class extends Resource implements HasUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
@@ -139,7 +139,7 @@ it('does not match URIs with different path structure', function (): void {
 });
 
 it('end to end template reads uri extracts variables and returns response', function (): void {
-    $template = new class extends Resource implements SupportsUriTemplate
+    $template = new class extends Resource implements HasUriTemplate
     {
         public function uriTemplate(): UriTemplate
         {
