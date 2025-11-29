@@ -43,7 +43,7 @@ class MakeResourceCommand extends GeneratorCommand
     {
         return [
             ['force', 'f', InputOption::VALUE_NONE, 'Create the class even if the resource already exists'],
-            ['template', 't', InputOption::VALUE_NONE, 'Create the ResourceTemplate class'],
+            ['template', 't', InputOption::VALUE_NONE, 'Create the Resource Template class'],
         ];
     }
 }
