@@ -21,9 +21,14 @@ class MakeResourceCommand extends GeneratorCommand
 
     protected function getStub(): string
     {
-        return file_exists($customPath = $this->laravel->basePath('stubs/resource.stub'))
-            ? $customPath
-            : __DIR__.'/../../../stubs/resource.stub';
+        $stubName = $this->option('template') ? 'resource-template.stub' : 'resource.stub';
+        $customStub = $this->laravel->basePath("stubs/{$stubName}");
+
+        if (file_exists($customStub)) {
+            return $customStub;
+        }
+
+        return __DIR__."/../../../stubs/{$stubName}";
     }
 
     protected function getDefaultNamespace($rootNamespace): string
@@ -38,6 +43,7 @@ class MakeResourceCommand extends GeneratorCommand
     {
         return [
             ['force', 'f', InputOption::VALUE_NONE, 'Create the class even if the resource already exists'],
+            ['template', 't', InputOption::VALUE_NONE, 'Create the ResourceTemplate class'],
         ];
     }
 }
