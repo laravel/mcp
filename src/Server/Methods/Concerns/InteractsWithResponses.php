@@ -9,9 +9,11 @@ use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
+use Laravel\Mcp\Server\Content\LogNotification;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
+use Laravel\Mcp\Server\Support\LoggingManager;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
@@ -45,12 +47,17 @@ trait InteractsWithResponses
     {
         /** @var array<int, Response|ResponseFactory|string> $pendingResponses */
         $pendingResponses = [];
+        $loggingManager = app(LoggingManager::class);
 
         try {
             foreach ($responses as $response) {
                 if ($response instanceof Response && $response->isNotification()) {
                     /** @var Notification $content */
                     $content = $response->content();
+
+                    if ($content instanceof LogNotification && ! $loggingManager->shouldLog($content->level())) {
+                        continue;
+                    }
 
                     yield JsonRpcResponse::notification(
                         ...$content->toArray(),
