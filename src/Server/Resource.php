@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Annotations\Annotation;
 use Laravel\Mcp\Server\Concerns\HasAnnotations;
+use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 
 abstract class Resource extends Primitive
 {
@@ -18,9 +19,11 @@ abstract class Resource extends Primitive
 
     public function uri(): string
     {
-        return $this->uri !== ''
-            ? $this->uri
-            : 'file://resources/'.Str::kebab(class_basename($this));
+        if ($this instanceof HasUriTemplate) {
+            return (string) $this->uriTemplate();
+        }
+
+        return $this->uri !== '' ? $this->uri : 'file://resources/'.Str::kebab(class_basename($this));
     }
 
     public function mimeType(): string
@@ -43,7 +46,8 @@ abstract class Resource extends Primitive
      *     name: string,
      *     title: string,
      *     description: string,
-     *     uri: string,
+     *     uri?: string,
+     *     uriTemplate?: string,
      *     mimeType: string,
      *     _meta?: array<string, mixed>
      * }
@@ -56,12 +60,17 @@ abstract class Resource extends Primitive
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
-            'uri' => $this->uri(),
             'mimeType' => $this->mimeType(),
         ];
 
         if ($annotations !== []) {
             $data['annotations'] = $annotations;
+        }
+
+        if ($this instanceof HasUriTemplate) {
+            $data['uriTemplate'] = (string) $this->uriTemplate();
+        } else {
+            $data['uri'] = $this->uri();
         }
 
         // @phpstan-ignore return.type

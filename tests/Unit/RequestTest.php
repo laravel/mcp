@@ -114,3 +114,74 @@ it('throws ValidationException with custom messages and attributes', function ()
 
     expect($closure)->toThrow(ValidationException::class);
 });
+
+it('can get uri when set via constructor', function (): void {
+    $request = new Request(
+        arguments: ['name' => 'Alice'],
+        sessionId: 'session-123',
+        meta: ['key' => 'value'],
+        uri: 'file://resources/example'
+    );
+
+    expect($request->uri())->toBe('file://resources/example');
+});
+
+it('returns null for uri when not set via constructor', function (): void {
+    $request = new Request(
+        arguments: ['name' => 'Alice'],
+        sessionId: 'session-123',
+        meta: ['key' => 'value']
+    );
+
+    expect($request->uri())->toBeNull();
+});
+
+it('returns null for uri when explicitly set to null in constructor', function (): void {
+    $request = new Request(
+        arguments: ['name' => 'Alice'],
+        uri: null
+    );
+
+    expect($request->uri())->toBeNull();
+});
+
+it('can set uri using setUri method', function (): void {
+    $request = new Request(['name' => 'Alice']);
+
+    $result = $request->setUri('file://resources/test');
+
+    expect($request->uri())->toBe('file://resources/test');
+});
+
+it('can update uri using setUri method', function (): void {
+    $request = new Request(
+        arguments: ['name' => 'Alice'],
+        uri: 'file://resources/original'
+    );
+
+    $request->setUri('file://resources/updated');
+
+    expect($request->uri())->toBe('file://resources/updated');
+});
+
+it('can set uri to null using setUri method', function (): void {
+    $request = new Request(
+        arguments: ['name' => 'Alice'],
+        uri: 'file://resources/example'
+    );
+
+    $result = $request->setUri(null);
+
+    expect($request->uri())->toBeNull()
+        ->and($result)->toBeNull();
+});
+
+it('supports method chaining with merge and setUri', function (): void {
+    $request = new Request(['name' => 'Alice']);
+
+    $request->merge(['age' => 30])->setUri('file://resources/test');
+
+    expect($request->uri())->toBe('file://resources/test')
+        ->and($request->get('name'))->toBe('Alice')
+        ->and($request->get('age'))->toBe(30);
+});

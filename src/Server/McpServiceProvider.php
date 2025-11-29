@@ -52,6 +52,7 @@ class McpServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../../stubs/prompt.stub' => base_path('stubs/prompt.stub'),
             __DIR__.'/../../stubs/resource.stub' => base_path('stubs/resource.stub'),
+            __DIR__.'/../../stubs/resource-template.stub' => base_path('stubs/resource-template.stub'),
             __DIR__.'/../../stubs/server.stub' => base_path('stubs/server.stub'),
             __DIR__.'/../../stubs/tool.stub' => base_path('stubs/tool.stub'),
         ], 'mcp-stubs');

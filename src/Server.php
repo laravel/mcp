@@ -14,6 +14,7 @@ use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\Methods\Initialize;
 use Laravel\Mcp\Server\Methods\ListPrompts;
 use Laravel\Mcp\Server\Methods\ListResources;
+use Laravel\Mcp\Server\Methods\ListResourceTemplates;
 use Laravel\Mcp\Server\Methods\ListTools;
 use Laravel\Mcp\Server\Methods\Ping;
 use Laravel\Mcp\Server\Methods\ReadResource;
@@ -95,6 +96,7 @@ abstract class Server
         'tools/call' => CallTool::class,
         'resources/list' => ListResources::class,
         'resources/read' => ReadResource::class,
+        'resources/templates/list' => ListResourceTemplates::class,
         'prompts/list' => ListPrompts::class,
         'prompts/get' => GetPrompt::class,
         'ping' => Ping::class,

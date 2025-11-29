@@ -30,6 +30,7 @@ class Request implements Arrayable
         protected array $arguments = [],
         protected ?string $sessionId = null,
         protected ?array $meta = null,
+        protected ?string $uri = null,
     ) {
         //
     }
@@ -59,6 +60,16 @@ class Request implements Arrayable
     public function get(string $key, mixed $default = null): mixed
     {
         return $this->data($key, $default);
+    }
+
+    /**
+     * @param  array<string,mixed>  $data
+     */
+    public function merge(array $data): static
+    {
+        $this->arguments = array_merge($this->arguments, $data);
+
+        return $this;
     }
 
     /**
@@ -102,6 +113,11 @@ class Request implements Arrayable
         return $this->meta;
     }
 
+    public function uri(): ?string
+    {
+        return $this->uri;
+    }
+
     /**
      * @param  array<string, mixed>  $arguments
      */
@@ -121,5 +137,10 @@ class Request implements Arrayable
     public function setMeta(?array $meta): void
     {
         $this->meta = $meta;
+    }
+
+    public function setUri(?string $uri): void
+    {
+        $this->uri = $uri;
     }
 }
