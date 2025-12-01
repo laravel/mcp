@@ -32,18 +32,21 @@ it('can add a capability', function (): void {
 
     ($transport->handler)($payload);
 
-    $jsonResponse = $transport->sent[0];
+    $response = json_decode((string) $transport->sent[0], true);
 
-    $capabilities = (fn (): array => $this->capabilities)->call($server);
+    expect($response)->toHaveKey('result.capabilities');
 
-    $expectedCapabilitiesJson = json_encode(array_merge($capabilities, [
-        'customFeature' => [
-            'enabled' => true,
-        ],
-        'anotherFeature' => (object) [],
-    ]));
+    $capabilities = $response['result']['capabilities'];
 
-    $this->assertStringContainsString($expectedCapabilitiesJson, $jsonResponse);
+    expect($capabilities)->toHaveKey('customFeature')
+        ->and($capabilities['customFeature'])->toBeArray()
+        ->and($capabilities['customFeature']['enabled'])->toBeTrue()
+        ->and($capabilities)->toHaveKey('anotherFeature')
+        ->and($capabilities['anotherFeature'])->toBeArray()
+        ->and($capabilities)->toHaveKey('tools')
+        ->and($capabilities)->toHaveKey('resources')
+        ->and($capabilities)->toHaveKey('prompts');
+
 });
 
 it('can handle a list tools message', function (): void {

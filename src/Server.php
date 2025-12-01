@@ -66,7 +66,6 @@ abstract class Server
         'prompts' => [
             'listChanged' => false,
         ],
-        'logging' => [],
     ];
 
     /**
@@ -233,19 +232,23 @@ abstract class Server
      */
     protected function handleMessage(JsonRpcRequest $request, ServerContext $context): void
     {
-        $response = $this->runMethodHandle($request, $context);
+        try {
+            $response = $this->runMethodHandle($request, $context);
 
-        if (! is_iterable($response)) {
-            $this->transport->send($response->toJson());
+            if (! is_iterable($response)) {
+                $this->transport->send($response->toJson());
 
-            return;
-        }
-
-        $this->transport->stream(function () use ($response): void {
-            foreach ($response as $message) {
-                $this->transport->send($message->toJson());
+                return;
             }
-        });
+
+            $this->transport->stream(function () use ($response): void {
+                foreach ($response as $message) {
+                    $this->transport->send($message->toJson());
+                }
+            });
+        } finally {
+            Container::getInstance()->forgetInstance('mcp.request');
+        }
     }
 
     /**
@@ -257,20 +260,14 @@ abstract class Server
     {
         $container = Container::getInstance();
 
+        $container->instance('mcp.request', $request->toRequest());
+
         /** @var Method $methodClass */
         $methodClass = $container->make(
             $this->methods[$request->method],
         );
 
-        $container->instance('mcp.request', $request->toRequest());
-
-        try {
-            $response = $methodClass->handle($request, $context);
-        } finally {
-            $container->forgetInstance('mcp.request');
-        }
-
-        return $response;
+        return $methodClass->handle($request, $context);
     }
 
     protected function handleInitializeMessage(JsonRpcRequest $request, ServerContext $context): void

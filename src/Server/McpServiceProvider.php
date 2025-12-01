@@ -108,7 +108,7 @@ class McpServiceProvider extends ServiceProvider
         });
 
         $this->app->bind(LoggingManager::class, fn ($app): LoggingManager => new LoggingManager(
-            $app->make(Support\SessionStoreManager::class)
+            $app->make(SessionStoreManager::class)
         ));
     }
 

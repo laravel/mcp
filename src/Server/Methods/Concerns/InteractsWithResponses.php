@@ -47,7 +47,7 @@ trait InteractsWithResponses
     {
         /** @var array<int, Response|ResponseFactory|string> $pendingResponses */
         $pendingResponses = [];
-        $loggingManager = app(LoggingManager::class);
+        $loggingManager = null;
 
         try {
             foreach ($responses as $response) {
@@ -55,8 +55,12 @@ trait InteractsWithResponses
                     /** @var Notification $content */
                     $content = $response->content();
 
-                    if ($content instanceof LogNotification && ! $loggingManager->shouldLog($content->level())) {
-                        continue;
+                    if ($content instanceof LogNotification) {
+                        $loggingManager ??= app(LoggingManager::class);
+
+                        if (! $loggingManager->shouldLog($content->level())) {
+                            continue;
+                        }
                     }
 
                     yield JsonRpcResponse::notification(
