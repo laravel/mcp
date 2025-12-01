@@ -61,32 +61,14 @@ test('it returns session id', function (): void {
     expect($session->sessionId())->toBe('my-session-id');
 });
 
-test('it handles null session id gracefully for set', function (): void {
+test('it handles null session id gracefully', function (): void {
     $session = new SessionStoreManager(Cache::driver());
 
     $session->set('key', 'value');
-
-    expect($session->get('key'))->toBeNull();
-});
-
-test('it handles null session id gracefully for get', function (): void {
-    $session = new SessionStoreManager(Cache::driver());
-
-    expect($session->get('key', 'default'))->toBe('default');
-});
-
-test('it handles null session id gracefully for has', function (): void {
-    $session = new SessionStoreManager(Cache::driver());
-
-    expect($session->has('key'))->toBeFalse();
-});
-
-test('it handles null session id gracefully for forget', function (): void {
-    $session = new SessionStoreManager(Cache::driver());
-
     $session->forget('key');
 
-    expect(true)->toBeTrue();
+    expect($session->get('key', 'default'))->toBe('default')
+        ->and($session->has('key'))->toBeFalse();
 });
 
 test('it can store complex values', function (): void {

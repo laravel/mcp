@@ -8,16 +8,14 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Support\LoggingManager;
 use Laravel\Mcp\Server\Tool;
-
-beforeEach(function (): void {
-    LoggingManager::setDefaultLevel(LogLevel::Info);
-});
+use Tests\Fixtures\ArrayTransport;
 
 class LoggingTestServer extends Server
 {
     protected array $tools = [
         LoggingTestTool::class,
         StructuredLogTool::class,
+        LogLevelTestTool::class,
     ];
 }
 
@@ -55,7 +53,19 @@ class StructuredLogTool extends Tool
     }
 }
 
-it('sends all log levels with default level', function (): void {
+class LogLevelTestTool extends Tool
+{
+    public function handle(Request $request, LoggingManager $logManager): \Generator
+    {
+        yield Response::log(LogLevel::Warning, 'This is a warning message');
+        yield Response::log(LogLevel::Emergency, 'This is an emergency message');
+
+        $level = $logManager->getLevel();
+        yield Response::text('Here is the Log Level: '.$level->value);
+    }
+}
+
+it('sends all log levels with the default info level', function (): void {
     $response = LoggingTestServer::tool(LoggingTestTool::class);
 
     $response->assertLogCount(4)
@@ -64,32 +74,6 @@ it('sends all log levels with default level', function (): void {
         ->assertLogSent(LogLevel::Warning, 'Warning message')
         ->assertLogSent(LogLevel::Info, 'Info message')
         ->assertLogNotSent(LogLevel::Debug);
-});
-
-it('filters logs based on configured log level - error only', function (): void {
-    LoggingManager::setDefaultLevel(LogLevel::Error);
-
-    $response = LoggingTestServer::tool(LoggingTestTool::class);
-
-    $response->assertLogCount(2)
-        ->assertLogSent(LogLevel::Emergency)
-        ->assertLogSent(LogLevel::Error)
-        ->assertLogNotSent(LogLevel::Warning)
-        ->assertLogNotSent(LogLevel::Info)
-        ->assertLogNotSent(LogLevel::Debug);
-});
-
-it('filters logs based on the configured log level-debug shows all', function (): void {
-    LoggingManager::setDefaultLevel(LogLevel::Debug);
-
-    $response = LoggingTestServer::tool(LoggingTestTool::class);
-
-    $response->assertLogCount(5)
-        ->assertLogSent(LogLevel::Emergency)
-        ->assertLogSent(LogLevel::Error)
-        ->assertLogSent(LogLevel::Warning)
-        ->assertLogSent(LogLevel::Info)
-        ->assertLogSent(LogLevel::Debug);
 });
 
 it('handles structured log data with arrays', function (): void {
@@ -103,28 +87,92 @@ it('handles structured log data with arrays', function (): void {
 it('supports string and array data in logs', function (): void {
     $response = LoggingTestServer::tool(StructuredLogTool::class);
 
-    // Just verify both logs were sent
     $response->assertSentNotification('notifications/message')
         ->assertLogCount(2);
 });
 
-it('resolves logging manager from container correctly during streaming', function (): void {
-    LoggingManager::setDefaultLevel(LogLevel::Warning);
+it('filters logs correctly when log level is set to critical', function (): void {
+    $transport = new ArrayTransport;
+    $server = new LoggingTestServer($transport);
+    $server->start();
 
-    $response = LoggingTestServer::tool(LoggingTestTool::class);
+    $sessionId = 'test-session-'.uniqid();
+    $transport->sessionId = $sessionId;
 
-    $response->assertLogCount(3)
-        ->assertLogSent(LogLevel::Emergency)
-        ->assertLogSent(LogLevel::Error)
-        ->assertLogSent(LogLevel::Warning)
-        ->assertLogNotSent(LogLevel::Info)
-        ->assertLogNotSent(LogLevel::Debug);
+    ($transport->handler)(json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'logging/setLevel',
+        'params' => ['level' => 'critical'],
+    ]));
+
+    ($transport->handler)(json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'log-level-test-tool',
+            'arguments' => [],
+        ],
+    ]));
+
+    $logNotifications = collect($transport->sent)
+        ->map(fn ($msg): mixed => json_decode((string) $msg, true))
+        ->filter(fn ($msg): bool => isset($msg['method']) && $msg['method'] === 'notifications/message')
+        ->filter(fn ($msg): bool => isset($msg['params']['level']));
+
+    expect($logNotifications->count())->toBe(1);
+
+    $emergencyLog = $logNotifications->first(fn ($msg): bool => $msg['params']['level'] === 'emergency');
+    expect($emergencyLog)->not->toBeNull();
+    expect($emergencyLog['params']['data'])->toBe('This is an emergency message');
+
+    $warningLog = $logNotifications->first(fn ($msg): bool => $msg['params']['level'] === 'warning');
+    expect($warningLog)->toBeNull();
+
+    $toolResponse = collect($transport->sent)
+        ->map(fn ($msg): mixed => json_decode((string) $msg, true))
+        ->first(fn ($msg): bool => isset($msg['id']) && $msg['id'] === 2);
+
+    expect($toolResponse['result']['content'][0]['text'])->toContain('critical');
 });
 
-it('handles multiple log notifications efficiently', function (): void {
-    LoggingManager::setDefaultLevel(LogLevel::Debug);
+it('filters logs correctly with default info log level', function (): void {
+    $transport = new ArrayTransport;
+    $server = new LoggingTestServer($transport);
+    $server->start();
 
-    $response = LoggingTestServer::tool(LoggingTestTool::class);
+    $sessionId = 'test-session-'.uniqid();
+    $transport->sessionId = $sessionId;
 
-    $response->assertLogCount(5);
+    ($transport->handler)(json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'log-level-test-tool',
+            'arguments' => [],
+        ],
+    ]));
+
+    $logNotifications = collect($transport->sent)
+        ->map(fn ($msg): mixed => json_decode((string) $msg, true))
+        ->filter(fn ($msg): bool => isset($msg['method']) && $msg['method'] === 'notifications/message')
+        ->filter(fn ($msg): bool => isset($msg['params']['level']));
+
+    expect($logNotifications->count())->toBe(2);
+
+    $emergencyLog = $logNotifications->first(fn ($msg): bool => $msg['params']['level'] === 'emergency');
+    expect($emergencyLog)->not->toBeNull();
+    expect($emergencyLog['params']['data'])->toBe('This is an emergency message');
+
+    $warningLog = $logNotifications->first(fn ($msg): bool => $msg['params']['level'] === 'warning');
+    expect($warningLog)->not->toBeNull();
+    expect($warningLog['params']['data'])->toBe('This is a warning message');
+
+    $toolResponse = collect($transport->sent)
+        ->map(fn ($msg): mixed => json_decode((string) $msg, true))
+        ->first(fn ($msg): bool => isset($msg['id']) && $msg['id'] === 1);
+
+    expect($toolResponse['result']['content'][0]['text'])->toContain('info');
 });

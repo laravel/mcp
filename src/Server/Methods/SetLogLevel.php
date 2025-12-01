@@ -15,15 +15,14 @@ use ValueError;
 
 class SetLogLevel implements Method
 {
-    public function __construct(
-        protected LoggingManager $loggingManager,
-    ) {
+    public function __construct(protected LoggingManager $loggingManager)
+    {
         //
     }
 
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
-        $levelString = $request->params['level'] ?? null;
+        $levelString = $request->get('level');
 
         if (! is_string($levelString)) {
             throw new JsonRpcException(

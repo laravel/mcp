@@ -7,10 +7,6 @@ use Laravel\Mcp\Enums\LogLevel;
 use Laravel\Mcp\Server\Support\LoggingManager;
 use Laravel\Mcp\Server\Support\SessionStoreManager;
 
-beforeEach(function (): void {
-    LoggingManager::setDefaultLevel(LogLevel::Info);
-});
-
 test('it returns the default level for the new session', function (): void {
     $manager = new LoggingManager(new SessionStoreManager(Cache::driver(), 'session-1'));
 
@@ -53,25 +49,9 @@ test('it uses default level for null session id', function (): void {
         ->and($manager->shouldLog(LogLevel::Debug))->toBeFalse();
 });
 
-test('it can change the default level', function (): void {
-    LoggingManager::setDefaultLevel(LogLevel::Warning);
-
-    $manager1 = new LoggingManager(new SessionStoreManager(Cache::driver(), 'new-session'));
-    $manager2 = new LoggingManager(new SessionStoreManager(Cache::driver()));
-
-    expect($manager1->getLevel())->toBe(LogLevel::Warning)
-        ->and($manager2->getLevel())->toBe(LogLevel::Warning);
-});
-
 test('setLevel ignores null session id', function (): void {
     $manager = new LoggingManager(new SessionStoreManager(Cache::driver()));
     $manager->setLevel(LogLevel::Debug);
 
     expect($manager->getLevel())->toBe(LogLevel::Info);
-});
-
-test('it can get default level', function (): void {
-    LoggingManager::setDefaultLevel(LogLevel::Warning);
-
-    expect(LoggingManager::getDefaultLevel())->toBe(LogLevel::Warning);
 });

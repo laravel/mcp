@@ -8,7 +8,7 @@ use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Content\Blob;
-use Laravel\Mcp\Server\Content\LogNotification;
+use Laravel\Mcp\Server\Content\Log;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
 
@@ -183,7 +183,7 @@ it('throws exception when an array contains null', function (): void {
 it('creates a log response', function (): void {
     $response = Response::log(LogLevel::Error, 'Something went wrong');
 
-    expect($response->content())->toBeInstanceOf(LogNotification::class)
+    expect($response->content())->toBeInstanceOf(Log::class)
         ->and($response->isNotification())->toBeTrue()
         ->and($response->isError())->toBeFalse()
         ->and($response->role())->toBe(Role::User);
@@ -192,7 +192,7 @@ it('creates a log response', function (): void {
 it('creates a log response with logger name', function (): void {
     $response = Response::log(LogLevel::Info, 'Query executed', 'database');
 
-    expect($response->content())->toBeInstanceOf(LogNotification::class);
+    expect($response->content())->toBeInstanceOf(Log::class);
 
     $content = $response->content();
     expect($content->logger())->toBe('database');
@@ -202,7 +202,7 @@ it('creates a log response with array data', function (): void {
     $data = ['error' => 'Connection failed', 'host' => 'localhost'];
     $response = Response::log(LogLevel::Error, $data);
 
-    expect($response->content())->toBeInstanceOf(LogNotification::class);
+    expect($response->content())->toBeInstanceOf(Log::class);
 
     $content = $response->content();
     expect($content->data())->toBe($data);

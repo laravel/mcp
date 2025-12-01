@@ -8,7 +8,7 @@ use Illuminate\Contracts\Cache\Repository as Cache;
 
 class SessionStoreManager
 {
-    protected const PREFIX = 'mcp';
+    protected const CACHE_PREFIX = 'mcp';
 
     public function __construct(
         protected Cache $cache,
@@ -20,7 +20,7 @@ class SessionStoreManager
 
     public function set(string $key, mixed $value): void
     {
-        if ($this->sessionId === null) {
+        if (is_null($this->sessionId)) {
             return;
         }
 
@@ -29,7 +29,7 @@ class SessionStoreManager
 
     public function get(string $key, mixed $default = null): mixed
     {
-        if ($this->sessionId === null) {
+        if (is_null($this->sessionId)) {
             return $default;
         }
 
@@ -38,7 +38,7 @@ class SessionStoreManager
 
     public function has(string $key): bool
     {
-        if ($this->sessionId === null) {
+        if (is_null($this->sessionId)) {
             return false;
         }
 
@@ -47,7 +47,7 @@ class SessionStoreManager
 
     public function forget(string $key): void
     {
-        if ($this->sessionId === null) {
+        if (is_null($this->sessionId)) {
             return;
         }
 
@@ -61,6 +61,6 @@ class SessionStoreManager
 
     protected function cacheKey(string $key): string
     {
-        return self::PREFIX.":{$this->sessionId}:{$key}";
+        return self::CACHE_PREFIX.":{$this->sessionId}:{$key}";
     }
 }

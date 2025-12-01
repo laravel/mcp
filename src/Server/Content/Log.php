@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server\Content;
 
 use Laravel\Mcp\Enums\LogLevel;
 
-class LogNotification extends Notification
+class Log extends Notification
 {
     public function __construct(
         protected LogLevel $level,

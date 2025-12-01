@@ -12,7 +12,7 @@ use Laravel\Mcp\Enums\LogLevel;
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Server\Content\Blob;
-use Laravel\Mcp\Server\Content\LogNotification;
+use Laravel\Mcp\Server\Content\Log;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
@@ -46,7 +46,7 @@ class Response
             throw new InvalidArgumentException("Invalid log data: {$jsonException->getMessage()}", 0, $jsonException);
         }
 
-        return new static(new LogNotification($level, $data, $logger));
+        return new static(new Log($level, $data, $logger));
     }
 
     public static function text(string $text): static

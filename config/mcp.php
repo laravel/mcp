@@ -22,7 +22,7 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Session TTL
+    | Session Time To Live (TTL)
     |--------------------------------------------------------------------------
     |
     | This value determines how long (in seconds) MCP session data will be

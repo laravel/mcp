@@ -10,11 +10,10 @@ class LoggingManager
 {
     protected const LOG_LEVEL_KEY = 'log_level';
 
-    protected static LogLevel $defaultLevel = LogLevel::Info;
+    private const DEFAULT_LEVEL = LogLevel::Info;
 
-    public function __construct(
-        protected SessionStoreManager $session,
-    ) {
+    public function __construct(protected SessionStoreManager $session)
+    {
         //
     }
 
@@ -25,25 +24,15 @@ class LoggingManager
 
     public function getLevel(): LogLevel
     {
-        if ($this->session->sessionId() === null) {
-            return self::$defaultLevel;
+        if (is_null($this->session->sessionId())) {
+            return self::DEFAULT_LEVEL;
         }
 
-        return $this->session->get(self::LOG_LEVEL_KEY, self::$defaultLevel);
+        return $this->session->get(self::LOG_LEVEL_KEY, self::DEFAULT_LEVEL);
     }
 
     public function shouldLog(LogLevel $messageLevel): bool
     {
         return $messageLevel->shouldLog($this->getLevel());
-    }
-
-    public static function setDefaultLevel(LogLevel $level): void
-    {
-        self::$defaultLevel = $level;
-    }
-
-    public static function getDefaultLevel(): LogLevel
-    {
-        return self::$defaultLevel;
     }
 }

@@ -9,7 +9,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
-use Laravel\Mcp\Server\Content\LogNotification;
+use Laravel\Mcp\Server\Content\Log;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
@@ -55,7 +55,7 @@ trait InteractsWithResponses
                     /** @var Notification $content */
                     $content = $response->content();
 
-                    if ($content instanceof LogNotification) {
+                    if ($content instanceof Log) {
                         $loggingManager ??= app(LoggingManager::class);
 
                         if (! $loggingManager->shouldLog($content->level())) {

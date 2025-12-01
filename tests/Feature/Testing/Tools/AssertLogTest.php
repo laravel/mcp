@@ -6,14 +6,9 @@ use Laravel\Mcp\Enums\LogLevel;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
-use Laravel\Mcp\Server\Support\LoggingManager;
 use Laravel\Mcp\Server\Tool;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\ExpectationFailedException;
-
-beforeEach(function (): void {
-    LoggingManager::setDefaultLevel(LogLevel::Debug);
-});
 
 class LogAssertServer extends Server
 {
@@ -109,7 +104,7 @@ it('fails when asserting log not sent but it was', function (): void {
     $response->assertLogNotSent(LogLevel::Error);
 })->throws(AssertionFailedError::class);
 
-it('asserts correct log count', function (): void {
+it('asserts the correct log count', function (): void {
     $response = LogAssertServer::tool(MultiLevelLogTool::class);
 
     $response->assertLogCount(3);
@@ -121,13 +116,13 @@ it('fails when asserting wrong log count', function (): void {
     $response->assertLogCount(5);
 })->throws(ExpectationFailedException::class);
 
-it('asserts zero log count when no logs sent', function (): void {
+it('asserts zero logs count when no logs sent', function (): void {
     $response = LogAssertServer::tool(NoLogTool::class);
 
     $response->assertLogCount(0);
 });
 
-it('asserts single log count', function (): void {
+it('asserts a single log count', function (): void {
     $response = LogAssertServer::tool(SingleLogTool::class);
 
     $response->assertLogCount(1)
