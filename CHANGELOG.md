@@ -1,6 +1,72 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.3.4...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.4.0...main)
+
+## [v0.4.0](https://github.com/laravel/mcp/compare/v0.3.4...v0.4.0) - 2025-12-01
+
+### What's Changed
+
+* Add Annotation Support on Resources by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/111
+* Add structuredContent & outputSchema Support by [@macbookandrew](https://github.com/macbookandrew) in https://github.com/laravel/mcp/pull/83
+* Standardise `Role` case names by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/116
+* Test Improvements by [@crynobone](https://github.com/crynobone) in https://github.com/laravel/mcp/pull/115
+* PHP 8.5 Compatibility by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/114
+* Fix casing for keys in OAuthRegisterController response by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/117
+* Update JsonSchema usage by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/120
+* Add Support For Resource Templates by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/113
+* Remove unused `resource-template` stub and update `JsonSchema` import by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/122
+
+### New Contributors
+
+* [@macbookandrew](https://github.com/macbookandrew) made their first contribution in https://github.com/laravel/mcp/pull/83
+* [@crynobone](https://github.com/crynobone) made their first contribution in https://github.com/laravel/mcp/pull/115
+
+### Breaking Change
+
+#### 1. Case Name Updates (https://github.com/laravel/mcp/pull/116)
+
+Applications referencing the previous case names will need manual updates.
+
+**Required changes**
+
+* `Role::ASSISTANT` should be updated to `Role::Assistant`
+* `Role::USER` should be updated to `Role::User`
+
+Make sure your codebase reflects these changes before upgrading to avoid build or runtime errors.
+
+#### 2. JsonSchema Contract Change (https://github.com/laravel/mcp/pull/120)
+
+Tool implementations that explicitly type hint `Illuminate\JsonSchema\JsonSchema` in their `schema()` or `outputSchema()` methods must update to use the contract interface `Illuminate\Contracts\JsonSchema\JsonSchema`.
+
+##### Migration Guide
+
+**Before**
+
+```php
+use Illuminate\JsonSchema\JsonSchema;
+
+public function schema(JsonSchema $schema): array
+{
+    //
+}
+
+
+```
+**After**
+
+```php
+use Illuminate\Contracts\JsonSchema\JsonSchema;
+
+public function schema(JsonSchema $schema): array
+{
+    //
+}
+
+
+```
+This affects only custom tool classes that override the schema methods. The update is minimal, requiring only the import change to the contract interface.
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.3.4...v0.4.0
 
 ## [v0.3.4](https://github.com/laravel/mcp/compare/v0.3.3...v0.3.4) - 2025-11-18
 
