@@ -3,14 +3,14 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Cache;
-use Laravel\Mcp\Server\Support\SessionStoreManager;
+use Laravel\Mcp\Server\Support\SessionStore;
 
 beforeEach(function (): void {
     Cache::flush();
 });
 
 test('it can set and get values for a session', function (): void {
-    $session = new SessionStoreManager(Cache::driver(), 'session-1');
+    $session = new SessionStore(Cache::driver(), 'session-1');
 
     $session->set('key', 'value');
 
@@ -18,14 +18,14 @@ test('it can set and get values for a session', function (): void {
 });
 
 test('it returns the default value when the key does not exist', function (): void {
-    $session = new SessionStoreManager(Cache::driver(), 'session-1');
+    $session = new SessionStore(Cache::driver(), 'session-1');
 
     expect($session->get('nonexistent', 'default'))->toBe('default');
 });
 
 test('it maintains separate values for different sessions', function (): void {
-    $session1 = new SessionStoreManager(Cache::driver(), 'session-1');
-    $session2 = new SessionStoreManager(Cache::driver(), 'session-2');
+    $session1 = new SessionStore(Cache::driver(), 'session-1');
+    $session2 = new SessionStore(Cache::driver(), 'session-2');
 
     $session1->set('key', 'value-1');
     $session2->set('key', 'value-2');
@@ -35,7 +35,7 @@ test('it maintains separate values for different sessions', function (): void {
 });
 
 test('it can check if a key exists', function (): void {
-    $session = new SessionStoreManager(Cache::driver(), 'session-1');
+    $session = new SessionStore(Cache::driver(), 'session-1');
 
     expect($session->has('key'))->toBeFalse();
 
@@ -45,7 +45,7 @@ test('it can check if a key exists', function (): void {
 });
 
 test('it can forget a key', function (): void {
-    $session = new SessionStoreManager(Cache::driver(), 'session-1');
+    $session = new SessionStore(Cache::driver(), 'session-1');
 
     $session->set('key', 'value');
 
@@ -56,13 +56,13 @@ test('it can forget a key', function (): void {
 });
 
 test('it returns session id', function (): void {
-    $session = new SessionStoreManager(Cache::driver(), 'my-session-id');
+    $session = new SessionStore(Cache::driver(), 'my-session-id');
 
     expect($session->sessionId())->toBe('my-session-id');
 });
 
 test('it handles null session id gracefully', function (): void {
-    $session = new SessionStoreManager(Cache::driver());
+    $session = new SessionStore(Cache::driver());
 
     $session->set('key', 'value');
     $session->forget('key');
@@ -72,7 +72,7 @@ test('it handles null session id gracefully', function (): void {
 });
 
 test('it can store complex values', function (): void {
-    $session = new SessionStoreManager(Cache::driver(), 'session-1');
+    $session = new SessionStore(Cache::driver(), 'session-1');
 
     $session->set('array', ['foo' => 'bar', 'baz' => [1, 2, 3]]);
     $session->set('object', (object) ['name' => 'test']);

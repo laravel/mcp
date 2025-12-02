@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Cache;
 use Laravel\Mcp\Enums\LogLevel;
 use Laravel\Mcp\Server\Support\LoggingManager;
-use Laravel\Mcp\Server\Support\SessionStoreManager;
+use Laravel\Mcp\Server\Support\SessionStore;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\ExampleServer;
 
@@ -34,7 +34,7 @@ it('persists log level to cache through server request flow', function (): void 
     expect($response)->toHaveKey('result')
         ->and($response['id'])->toBe(1);
 
-    $manager = new LoggingManager(new SessionStoreManager(Cache::driver(), $sessionId));
+    $manager = new LoggingManager(new SessionStore(Cache::driver(), $sessionId));
     expect($manager->getLevel())->toBe(LogLevel::Error);
 });
 
@@ -66,8 +66,8 @@ it('correctly isolates log levels per session', function (): void {
         'params' => ['level' => 'error'],
     ]));
 
-    $manager1 = new LoggingManager(new SessionStoreManager(Cache::driver(), $sessionId1));
-    $manager2 = new LoggingManager(new SessionStoreManager(Cache::driver(), $sessionId2));
+    $manager1 = new LoggingManager(new SessionStore(Cache::driver(), $sessionId1));
+    $manager2 = new LoggingManager(new SessionStore(Cache::driver(), $sessionId2));
 
     expect($manager1->getLevel())->toBe(LogLevel::Debug)
         ->and($manager2->getLevel())->toBe(LogLevel::Error);

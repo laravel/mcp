@@ -15,7 +15,7 @@ use Laravel\Mcp\Console\Commands\MakeToolCommand;
 use Laravel\Mcp\Console\Commands\StartCommand;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Support\LoggingManager;
-use Laravel\Mcp\Server\Support\SessionStoreManager;
+use Laravel\Mcp\Server\Support\SessionStore;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -92,7 +92,7 @@ class McpServiceProvider extends ServiceProvider
 
     protected function registerSessionBindings(): void
     {
-        $this->app->bind(SessionStoreManager::class, function ($app): Support\SessionStoreManager {
+        $this->app->bind(SessionStore::class, function ($app): Support\SessionStore {
             $sessionId = null;
 
             if ($app->bound('mcp.request')) {
@@ -101,14 +101,14 @@ class McpServiceProvider extends ServiceProvider
                 $sessionId = $request->sessionId();
             }
 
-            return new SessionStoreManager(
+            return new SessionStore(
                 $app->make(Repository::class),
                 $sessionId
             );
         });
 
         $this->app->bind(LoggingManager::class, fn ($app): LoggingManager => new LoggingManager(
-            $app->make(SessionStoreManager::class)
+            $app->make(SessionStore::class)
         ));
     }
 

@@ -12,7 +12,7 @@ class LoggingManager
 
     private const DEFAULT_LEVEL = LogLevel::Info;
 
-    public function __construct(protected SessionStoreManager $session)
+    public function __construct(protected SessionStore $session)
     {
         //
     }

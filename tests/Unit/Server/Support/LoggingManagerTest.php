@@ -5,24 +5,24 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Cache;
 use Laravel\Mcp\Enums\LogLevel;
 use Laravel\Mcp\Server\Support\LoggingManager;
-use Laravel\Mcp\Server\Support\SessionStoreManager;
+use Laravel\Mcp\Server\Support\SessionStore;
 
 test('it returns the default level for the new session', function (): void {
-    $manager = new LoggingManager(new SessionStoreManager(Cache::driver(), 'session-1'));
+    $manager = new LoggingManager(new SessionStore(Cache::driver(), 'session-1'));
 
     expect($manager->getLevel())->toBe(LogLevel::Info);
 });
 
 test('it can set and get log level for a session', function (): void {
-    $manager = new LoggingManager(new SessionStoreManager(Cache::driver(), 'session-1'));
+    $manager = new LoggingManager(new SessionStore(Cache::driver(), 'session-1'));
     $manager->setLevel(LogLevel::Debug);
 
     expect($manager->getLevel())->toBe(LogLevel::Debug);
 });
 
 test('it maintains separate levels for different sessions', function (): void {
-    $manager1 = new LoggingManager(new SessionStoreManager(Cache::driver(), 'session-1'));
-    $manager2 = new LoggingManager(new SessionStoreManager(Cache::driver(), 'session-2'));
+    $manager1 = new LoggingManager(new SessionStore(Cache::driver(), 'session-1'));
+    $manager2 = new LoggingManager(new SessionStore(Cache::driver(), 'session-2'));
 
     $manager1->setLevel(LogLevel::Debug);
     $manager2->setLevel(LogLevel::Error);
@@ -32,7 +32,7 @@ test('it maintains separate levels for different sessions', function (): void {
 });
 
 test('it correctly determines if a log should be sent', function (): void {
-    $manager = new LoggingManager(new SessionStoreManager(Cache::driver(), 'session-1'));
+    $manager = new LoggingManager(new SessionStore(Cache::driver(), 'session-1'));
     $manager->setLevel(LogLevel::Info);
 
     expect($manager->shouldLog(LogLevel::Emergency))->toBeTrue()
@@ -42,7 +42,7 @@ test('it correctly determines if a log should be sent', function (): void {
 });
 
 test('it uses default level for null session id', function (): void {
-    $manager = new LoggingManager(new SessionStoreManager(Cache::driver()));
+    $manager = new LoggingManager(new SessionStore(Cache::driver()));
 
     expect($manager->getLevel())->toBe(LogLevel::Info)
         ->and($manager->shouldLog(LogLevel::Info))->toBeTrue()
@@ -50,7 +50,7 @@ test('it uses default level for null session id', function (): void {
 });
 
 test('setLevel ignores null session id', function (): void {
-    $manager = new LoggingManager(new SessionStoreManager(Cache::driver()));
+    $manager = new LoggingManager(new SessionStore(Cache::driver()));
     $manager->setLevel(LogLevel::Debug);
 
     expect($manager->getLevel())->toBe(LogLevel::Info);

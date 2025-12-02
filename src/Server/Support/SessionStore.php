@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server\Support;
 
 use Illuminate\Contracts\Cache\Repository as Cache;
 
-class SessionStoreManager
+class SessionStore
 {
     protected const CACHE_PREFIX = 'mcp';
 

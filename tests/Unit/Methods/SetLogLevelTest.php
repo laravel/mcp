@@ -8,7 +8,7 @@ use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\SetLogLevel;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Support\LoggingManager;
-use Laravel\Mcp\Server\Support\SessionStoreManager;
+use Laravel\Mcp\Server\Support\SessionStore;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
@@ -35,7 +35,7 @@ it('sets log level successfully', function (): void {
         prompts: [],
     );
 
-    $loggingManager = new LoggingManager(new SessionStoreManager(Cache::driver(), 'session-123'));
+    $loggingManager = new LoggingManager(new SessionStore(Cache::driver(), 'session-123'));
     $method = new SetLogLevel($loggingManager);
 
     $response = $method->handle($request, $context);
@@ -45,7 +45,7 @@ it('sets log level successfully', function (): void {
     expect($payload['id'])->toEqual(1)
         ->and($payload['result'])->toEqual((object) []);
 
-    $manager = new LoggingManager(new SessionStoreManager(Cache::driver(), 'session-123'));
+    $manager = new LoggingManager(new SessionStore(Cache::driver(), 'session-123'));
     expect($manager->getLevel())->toBe(LogLevel::Debug);
 });
 
@@ -72,13 +72,13 @@ it('handles all valid log levels', function (string $levelString, LogLevel $expe
         prompts: [],
     );
 
-    $loggingManager = new LoggingManager(new SessionStoreManager(Cache::driver(), 'session-456'));
+    $loggingManager = new LoggingManager(new SessionStore(Cache::driver(), 'session-456'));
     $method = new SetLogLevel($loggingManager);
     $response = $method->handle($request, $context);
 
     expect($response)->toBeInstanceOf(JsonRpcResponse::class);
 
-    $manager = new LoggingManager(new SessionStoreManager(Cache::driver(), 'session-456'));
+    $manager = new LoggingManager(new SessionStore(Cache::driver(), 'session-456'));
     expect($manager->getLevel())->toBe($expectedLevel);
 })->with([
     ['emergency', LogLevel::Emergency],
@@ -116,7 +116,7 @@ it('throws exception for missing level parameter', function (): void {
         prompts: [],
     );
 
-    $loggingManager = new LoggingManager(new SessionStoreManager(Cache::driver(), 'session-789'));
+    $loggingManager = new LoggingManager(new SessionStore(Cache::driver(), 'session-789'));
     $method = new SetLogLevel($loggingManager);
 
     try {
@@ -164,7 +164,7 @@ it('throws exception for invalid level', function (): void {
         prompts: [],
     );
 
-    $loggingManager = new LoggingManager(new SessionStoreManager(Cache::driver(), 'session-999'));
+    $loggingManager = new LoggingManager(new SessionStore(Cache::driver(), 'session-999'));
     $method = new SetLogLevel($loggingManager);
 
     try {
@@ -205,7 +205,7 @@ it('throws exception for non-string level parameter', function (): void {
         prompts: [],
     );
 
-    $loggingManager = new LoggingManager(new SessionStoreManager(Cache::driver(), 'session-111'));
+    $loggingManager = new LoggingManager(new SessionStore(Cache::driver(), 'session-111'));
     $method = new SetLogLevel($loggingManager);
     $method->handle($request, $context);
 });
