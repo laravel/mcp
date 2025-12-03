@@ -35,6 +35,7 @@ it('persists log level to cache through server request flow', function (): void 
         ->and($response['id'])->toBe(1);
 
     $manager = new LoggingManager(new SessionStore(Cache::driver(), $sessionId));
+
     expect($manager->getLevel())->toBe(LogLevel::Error);
 });
 

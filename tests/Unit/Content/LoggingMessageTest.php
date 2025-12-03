@@ -8,7 +8,7 @@ use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
 
-it('creates a logging message with level and data', function (): void {
+it('creates a log with level and data', function (): void {
     $message = new Log(LogLevel::Error, 'Something went wrong');
 
     expect($message->level())->toBe(LogLevel::Error)
@@ -16,7 +16,7 @@ it('creates a logging message with level and data', function (): void {
         ->and($message->logger())->toBeNull();
 });
 
-it('creates a logging message with optional logger name', function (): void {
+it('creates a log with an optional logger name', function (): void {
     $message = new Log(LogLevel::Info, 'Database connected', 'database');
 
     expect($message->level())->toBe(LogLevel::Info)
@@ -24,7 +24,7 @@ it('creates a logging message with optional logger name', function (): void {
         ->and($message->logger())->toBe('database');
 });
 
-it('converts to array with correct notification format', function (): void {
+it('converts to array with the correct notification format', function (): void {
     $withoutLogger = new Log(LogLevel::Warning, 'Low disk space');
     $withLogger = new Log(LogLevel::Debug, 'Query executed', 'sql');
 

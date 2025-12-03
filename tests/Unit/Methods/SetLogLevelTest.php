@@ -91,7 +91,7 @@ it('handles all valid log levels', function (string $levelString, LogLevel $expe
     ['debug', LogLevel::Debug],
 ]);
 
-it('throws exception for missing level parameter', function (): void {
+it('throws an exception for a missing level parameter', function (): void {
     $this->expectException(JsonRpcException::class);
     $this->expectExceptionMessage('Invalid Request: The [level] parameter is required and must be a string.');
     $this->expectExceptionCode(-32602);

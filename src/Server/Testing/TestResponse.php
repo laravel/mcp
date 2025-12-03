@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server\Testing;
 
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
@@ -299,7 +300,7 @@ class TestResponse
                 return true;
             }
 
-            $data = $params['data'] ?? '';
+            $data = Arr::get($params, 'data', '');
             $dataString = is_string($data) ? $data : (string) json_encode($data);
 
             return $dataString !== '' && str_contains($dataString, $contains);
