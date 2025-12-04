@@ -1,6 +1,14 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.4.0...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.4.1...main)
+
+## [v0.4.1](https://github.com/laravel/mcp/compare/v0.4.0...v0.4.1) - 2025-12-04
+
+### What's Changed
+
+* Add `2025-11-25` to supported `protocolVersion` by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/125
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.4.0...v0.4.1
 
 ## [v0.4.0](https://github.com/laravel/mcp/compare/v0.3.4...v0.4.0) - 2025-12-01
 
@@ -51,6 +59,7 @@ public function schema(JsonSchema $schema): array
 }
 
 
+
 ```
 **After**
 
@@ -61,6 +70,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 ```
