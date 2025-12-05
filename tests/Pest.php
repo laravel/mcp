@@ -69,7 +69,7 @@ function expectedInitializeResponse(): array
         'jsonrpc' => '2.0',
         'id' => 456,
         'result' => [
-            'protocolVersion' => '2025-06-18',
+            'protocolVersion' => '2025-11-25',
             'capabilities' => $capabilities,
             'serverInfo' => [
                 'name' => $name,
