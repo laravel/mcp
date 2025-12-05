@@ -38,7 +38,7 @@ class CompletionMethodTestPrompt extends Prompt implements SupportsCompletion
         return [new Argument('test', 'Test arg')];
     }
 
-    public function complete(string $argument, string $value): CompletionResponse
+    public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return CompletionResponse::make(['test']);
     }
@@ -60,7 +60,7 @@ class CompletionMethodTestResource extends Resource implements SupportsCompletio
         return 'Test resource';
     }
 
-    public function complete(string $argument, string $value): CompletionResponse
+    public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return CompletionResponse::make(['resource-test']);
     }
@@ -92,7 +92,7 @@ class CompletionMethodTestResourceWithTemplate extends Resource implements \Lara
         return new UriTemplate('file://users/{userId}');
     }
 
-    public function complete(string $argument, string $value): CompletionResponse
+    public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return CompletionResponse::make(['template-test']);
     }
@@ -335,4 +335,46 @@ it('finds resource by exact template string', function (): void {
         ->toHaveKey('result')
         ->and($response->toArray()['result']['completion']['values'])
         ->toBe(['template-test']);
+});
+
+it('extracts and passes context arguments to completion method', function (): void {
+    $method = new CompletionComplete;
+    $request = new JsonRpcRequest('1', 'completion/complete', [
+        'ref' => ['type' => 'ref/prompt', 'name' => 'completion-method-test-prompt'],
+        'argument' => ['name' => 'test', 'value' => ''],
+        'context' => [
+            'arguments' => [
+                'arg1' => 'test-value',
+                'arg2' => 'another-value',
+            ],
+        ],
+    ]);
+
+    $server = new CompletionMethodTestServer(new \Laravel\Mcp\Server\Transport\FakeTransporter);
+    $context = $server->createContext();
+
+    $response = $method->handle($request, $context);
+
+    expect($response->toArray())
+        ->toHaveKey('result')
+        ->and($response->toArray()['result']['completion']['values'])
+        ->toBe(['test']);
+});
+
+it('passes empty context when context is not provided', function (): void {
+    $method = new CompletionComplete;
+    $request = new JsonRpcRequest('1', 'completion/complete', [
+        'ref' => ['type' => 'ref/prompt', 'name' => 'completion-method-test-prompt'],
+        'argument' => ['name' => 'test', 'value' => ''],
+    ]);
+
+    $server = new CompletionMethodTestServer(new \Laravel\Mcp\Server\Transport\FakeTransporter);
+    $context = $server->createContext();
+
+    $response = $method->handle($request, $context);
+
+    expect($response->toArray())
+        ->toHaveKey('result')
+        ->and($response->toArray()['result']['completion']['values'])
+        ->toBe(['test']);
 });

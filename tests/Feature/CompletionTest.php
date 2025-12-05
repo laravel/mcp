@@ -41,7 +41,7 @@ class LanguageCompletionPrompt extends Prompt implements SupportsCompletion
         ];
     }
 
-    public function complete(string $argument, string $value): CompletionResponse
+    public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         if ($argument !== 'language') {
             return CompletionResponse::empty();
@@ -71,13 +71,30 @@ class ProjectTaskCompletionPrompt extends Prompt implements SupportsCompletion
         ];
     }
 
-    public function complete(string $argument, string $value): CompletionResponse
+    public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
             'projectId' => CompletionResponse::make(['project-1', 'project-2', 'project-3']),
-            'taskId' => CompletionResponse::make(['task-1-1', 'task-1-2', 'task-2-1', 'task-2-2']),
+            'taskId' => $this->completeTaskId($context),
             default => CompletionResponse::empty(),
         };
+    }
+
+    protected function completeTaskId(array $context): CompletionResponse
+    {
+        $projectId = $context['projectId'] ?? null;
+
+        if (! $projectId) {
+            return CompletionResponse::empty();
+        }
+
+        $tasks = [
+            'project-1' => ['task-1-1', 'task-1-2'],
+            'project-2' => ['task-2-1', 'task-2-2'],
+            'project-3' => ['task-3-1', 'task-3-2'],
+        ];
+
+        return CompletionResponse::make($tasks[$projectId] ?? []);
     }
 
     public function handle(Request $request): Response
@@ -97,13 +114,30 @@ class UserFileCompletionResource extends Resource implements HasUriTemplate, Sup
         return new UriTemplate('file://users/{userId}/files/{fileId}');
     }
 
-    public function complete(string $argument, string $value): CompletionResponse
+    public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
             'userId' => CompletionResponse::make(['user-1', 'user-2', 'user-3']),
-            'fileId' => CompletionResponse::make(['file1.txt', 'file2.txt', 'doc1.txt', 'doc2.txt']),
+            'fileId' => $this->completeFileId($context),
             default => CompletionResponse::empty(),
         };
+    }
+
+    protected function completeFileId(array $context): CompletionResponse
+    {
+        $userId = $context['userId'] ?? null;
+
+        if (! $userId) {
+            return CompletionResponse::empty();
+        }
+
+        $files = [
+            'user-1' => ['file1.txt', 'file2.txt'],
+            'user-2' => ['doc1.txt', 'doc2.txt'],
+            'user-3' => ['report1.txt', 'report2.txt'],
+        ];
+
+        return CompletionResponse::make($files[$userId] ?? []);
     }
 
     public function handle(Request $request): Response
@@ -149,10 +183,31 @@ describe('Multi-Argument Completions', function (): void {
             ->assertCompletionCount(3);
     });
 
-    it('completes taskId', function (): void {
+    it('returns empty taskId completions without project context', function (): void {
         TestCompletionServer::completion(ProjectTaskCompletionPrompt::class, 'taskId', '')
-            ->assertHasCompletions(['task-1-1', 'task-1-2', 'task-2-1', 'task-2-2'])
-            ->assertCompletionCount(4);
+            ->assertCompletionCount(0);
+    });
+
+    it('completes taskId based on project context', function (): void {
+        TestCompletionServer::completion(
+            ProjectTaskCompletionPrompt::class,
+            'taskId',
+            '',
+            ['projectId' => 'project-1']
+        )
+            ->assertCompletionValues(['task-1-1', 'task-1-2'])
+            ->assertCompletionCount(2);
+    });
+
+    it('provides different tasks for different projects', function (): void {
+        TestCompletionServer::completion(
+            ProjectTaskCompletionPrompt::class,
+            'taskId',
+            '',
+            ['projectId' => 'project-2']
+        )
+            ->assertCompletionValues(['task-2-1', 'task-2-2'])
+            ->assertCompletionCount(2);
     });
 });
 
@@ -163,9 +218,30 @@ describe('Resource Template Completions', function (): void {
             ->assertCompletionCount(3);
     });
 
-    it('completes fileId', function (): void {
+    it('returns empty fileId completions without user context', function (): void {
         TestCompletionServer::completion(UserFileCompletionResource::class, 'fileId', '')
-            ->assertHasCompletions(['file1.txt', 'file2.txt', 'doc1.txt', 'doc2.txt'])
-            ->assertCompletionCount(4);
+            ->assertCompletionCount(0);
+    });
+
+    it('completes fileId based on user context', function (): void {
+        TestCompletionServer::completion(
+            UserFileCompletionResource::class,
+            'fileId',
+            '',
+            ['userId' => 'user-1']
+        )
+            ->assertCompletionValues(['file1.txt', 'file2.txt'])
+            ->assertCompletionCount(2);
+    });
+
+    it('provides different files for different users', function (): void {
+        TestCompletionServer::completion(
+            UserFileCompletionResource::class,
+            'fileId',
+            '',
+            ['userId' => 'user-2']
+        )
+            ->assertCompletionValues(['doc1.txt', 'doc2.txt'])
+            ->assertCompletionCount(2);
     });
 });

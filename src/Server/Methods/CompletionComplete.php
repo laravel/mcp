@@ -70,7 +70,9 @@ class CompletionComplete implements Method
             );
         }
 
-        $result = $this->invokeCompletion($primitive, $argumentName, $argumentValue);
+        $contextArguments = $request->get('context')['arguments'] ?? [];
+
+        $result = $this->invokeCompletion($primitive, $argumentName, $argumentValue, $contextArguments);
 
         return JsonRpcResponse::result($request->id, [
             'completion' => $result->toArray(),
@@ -89,16 +91,21 @@ class CompletionComplete implements Method
         };
     }
 
+    /**
+     * @param  array<string, mixed>  $context
+     */
     protected function invokeCompletion(
         SupportsCompletion $primitive,
         string $argumentName,
-        string $argumentValue
+        string $argumentValue,
+        array $context
     ): mixed {
         $container = Container::getInstance();
 
         $result = $container->call($primitive->complete(...), [
             'argument' => $argumentName,
             'value' => $argumentValue,
+            'context' => $context,
         ]);
 
         return $result->resolve($argumentValue);

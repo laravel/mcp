@@ -72,10 +72,13 @@ class PendingTestResponse
             uniqid(),
             'completion/complete',
             [
-                'ref' => $this->buildCompletionRef($primitive, $currentArgs),
+                'ref' => $this->buildCompletionRef($primitive),
                 'argument' => [
                     'name' => $argumentName,
                     'value' => $argumentValue,
+                ],
+                'context' => [
+                    'arguments' => $currentArgs,
                 ],
             ],
         );
@@ -86,21 +89,18 @@ class PendingTestResponse
     }
 
     /**
-     * @param  array<string, mixed>  $currentArgs
      * @return array<string, mixed>
      */
-    protected function buildCompletionRef(Primitive $primitive, array $currentArgs): array
+    protected function buildCompletionRef(Primitive $primitive): array
     {
         return match (true) {
             $primitive instanceof Prompt => [
                 'type' => 'ref/prompt',
                 'name' => $primitive->name(),
-                'arguments' => $currentArgs,
             ],
             $primitive instanceof Resource => [
                 'type' => 'ref/resource',
                 'uri' => $primitive->uri(),
-                'arguments' => $currentArgs,
             ],
             default => throw new InvalidArgumentException('Unsupported primitive type for completion.'),
         };

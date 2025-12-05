@@ -8,5 +8,8 @@ use Laravel\Mcp\Server\Completions\CompletionResponse;
 
 interface SupportsCompletion
 {
-    public function complete(string $argument, string $value): CompletionResponse;
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    public function complete(string $argument, string $value, array $context): CompletionResponse;
 }

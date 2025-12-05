@@ -50,7 +50,7 @@ class LocationPrompt extends Prompt implements SupportsCompletion
         ];
     }
 
-    public function complete(string $argument, string $value): CompletionResponse
+    public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
             'location' => CompletionResponse::usingList([
@@ -81,7 +81,7 @@ class UnitsPrompt extends Prompt implements SupportsCompletion
         ];
     }
 
-    public function complete(string $argument, string $value): CompletionResponse
+    public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
             'unit' => CompletionResponse::usingEnum(TestUnits::class),
@@ -106,7 +106,7 @@ class StatusPrompt extends Prompt implements SupportsCompletion
         ];
     }
 
-    public function complete(string $argument, string $value): CompletionResponse
+    public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
             'status' => CompletionResponse::usingEnum(TestStatusEnum::class),
@@ -131,7 +131,7 @@ class DynamicPrompt extends Prompt implements SupportsCompletion
         ];
     }
 
-    public function complete(string $argument, string $value): CompletionResponse
+    public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
             'city' => CompletionResponse::using(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::make([
@@ -160,7 +160,7 @@ class SingleStringPrompt extends Prompt implements SupportsCompletion
         ];
     }
 
-    public function complete(string $argument, string $value): CompletionResponse
+    public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
             'name' => CompletionResponse::using(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::make('John Doe')),
