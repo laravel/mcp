@@ -134,7 +134,7 @@ class DynamicPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'city' => CompletionResponse::fromCallback(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::make([
+            'city' => CompletionResponse::fromCallback(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::from([
                 'San Francisco',
                 'San Diego',
                 'San Jose',
@@ -163,7 +163,7 @@ class SingleStringPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'name' => CompletionResponse::fromCallback(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::make('John Doe')),
+            'name' => CompletionResponse::fromCallback(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::from('John Doe')),
             default => CompletionResponse::empty(),
         };
     }

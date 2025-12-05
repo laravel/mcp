@@ -50,7 +50,7 @@ class LanguageCompletionPrompt extends Prompt implements SupportsCompletion
         $languages = ['php', 'python', 'javascript', 'typescript', 'go', 'rust'];
         $matches = CompletionHelper::filterByPrefix($languages, $value);
 
-        return CompletionResponse::make($matches);
+        return CompletionResponse::from($matches);
     }
 
     public function handle(Request $request): Response
@@ -74,7 +74,7 @@ class ProjectTaskCompletionPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'projectId' => CompletionResponse::make(['project-1', 'project-2', 'project-3']),
+            'projectId' => CompletionResponse::from(['project-1', 'project-2', 'project-3']),
             'taskId' => $this->completeTaskId($context),
             default => CompletionResponse::empty(),
         };
@@ -94,7 +94,7 @@ class ProjectTaskCompletionPrompt extends Prompt implements SupportsCompletion
             'project-3' => ['task-3-1', 'task-3-2'],
         ];
 
-        return CompletionResponse::make($tasks[$projectId] ?? []);
+        return CompletionResponse::from($tasks[$projectId] ?? []);
     }
 
     public function handle(Request $request): Response
@@ -117,7 +117,7 @@ class UserFileCompletionResource extends Resource implements HasUriTemplate, Sup
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'userId' => CompletionResponse::make(['user-1', 'user-2', 'user-3']),
+            'userId' => CompletionResponse::from(['user-1', 'user-2', 'user-3']),
             'fileId' => $this->completeFileId($context),
             default => CompletionResponse::empty(),
         };
@@ -137,7 +137,7 @@ class UserFileCompletionResource extends Resource implements HasUriTemplate, Sup
             'user-3' => ['report1.txt', 'report2.txt'],
         ];
 
-        return CompletionResponse::make($files[$userId] ?? []);
+        return CompletionResponse::from($files[$userId] ?? []);
     }
 
     public function handle(Request $request): Response

@@ -19,7 +19,7 @@ it('executes a callback with the provided value when resolved', function (): voi
 
 it('handles CompletionResult return', function (): void {
     $result = new CallbackCompletionResponse(
-        fn (string $value): CompletionResponse => CompletionResponse::make(['custom', 'result'])
+        fn (string $value): CompletionResponse => CompletionResponse::from(['custom', 'result'])
     );
 
     $resolved = $result->resolve('test');

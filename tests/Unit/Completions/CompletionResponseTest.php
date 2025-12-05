@@ -4,7 +4,7 @@ use Laravel\Mcp\Server\Completions\CompletionResponse;
 use Laravel\Mcp\Server\Completions\DirectCompletionResponse;
 
 it('creates a completion result with values', function (): void {
-    $result = CompletionResponse::make(['php', 'python', 'javascript']);
+    $result = CompletionResponse::from(['php', 'python', 'javascript']);
 
     expect($result->values())->toBe(['php', 'python', 'javascript'])
         ->and($result->hasMore())->toBeFalse()
@@ -20,7 +20,7 @@ it('creates an empty completion result', function (): void {
 });
 
 it('converts to array format', function (): void {
-    $result = CompletionResponse::make(['php', 'python']);
+    $result = CompletionResponse::from(['php', 'python']);
 
     expect($result->toArray())->toBe([
         'values' => ['php', 'python'],
@@ -40,7 +40,7 @@ it('includes total in an array when provided', function (): void {
 
 it('auto-truncates values to 100 items', function (): void {
     $values = array_map(fn ($i): string => "item{$i}", range(1, 150));
-    $result = CompletionResponse::make($values);
+    $result = CompletionResponse::from($values);
 
     expect($result->values())->toHaveCount(100);
 });
@@ -58,8 +58,8 @@ it('allows exactly 100 items', function (): void {
     expect($result->values())->toHaveCount(100);
 });
 
-it('supports single string in make', function (): void {
-    $result = CompletionResponse::make('single-value');
+it('supports single string in from', function (): void {
+    $result = CompletionResponse::from('single-value');
 
     expect($result->values())->toBe(['single-value']);
 });
@@ -102,7 +102,7 @@ it('throws an exception for an invalid enum class', function (): void {
 })->throws(InvalidArgumentException::class, 'is not an enum');
 
 it('creates fromCallback result', function (): void {
-    $result = CompletionResponse::fromCallback(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::make(['test-value']));
+    $result = CompletionResponse::fromCallback(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::from(['test-value']));
     $resolved = $result->resolve('test');
 
     expect($resolved->values())->toBe(['test-value']);
@@ -116,7 +116,7 @@ it('callback can return an array', function (): void {
 });
 
 it('resolve returns self for direct type', function (): void {
-    $result = CompletionResponse::make(['php', 'python']);
+    $result = CompletionResponse::from(['php', 'python']);
     $resolved = $result->resolve('py');
 
     expect($resolved)->toBe($result);

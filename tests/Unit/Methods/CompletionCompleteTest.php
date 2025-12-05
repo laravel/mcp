@@ -40,7 +40,7 @@ class CompletionMethodTestPrompt extends Prompt implements SupportsCompletion
 
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
-        return CompletionResponse::make(['test']);
+        return CompletionResponse::from(['test']);
     }
 
     public function handle(\Laravel\Mcp\Request $request): Response
@@ -62,7 +62,7 @@ class CompletionMethodTestResource extends Resource implements SupportsCompletio
 
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
-        return CompletionResponse::make(['resource-test']);
+        return CompletionResponse::from(['resource-test']);
     }
 
     public function handle(\Laravel\Mcp\Request $request): Response
@@ -94,7 +94,7 @@ class CompletionMethodTestResourceWithTemplate extends Resource implements \Lara
 
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
-        return CompletionResponse::make(['template-test']);
+        return CompletionResponse::from(['template-test']);
     }
 
     public function handle(\Laravel\Mcp\Request $request): Response

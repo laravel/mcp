@@ -34,7 +34,7 @@ abstract class CompletionResponse implements Arrayable
     /**
      * @param  array<int, string>|string  $values
      */
-    public static function make(array|string $values): CompletionResponse
+    public static function from(array|string $values): CompletionResponse
     {
         $values = Arr::wrap($values);
 
