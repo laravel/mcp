@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Completions;
 
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use UnitEnum;
 
@@ -35,7 +36,7 @@ abstract class CompletionResult implements Arrayable
      */
     public static function make(array|string $values): CompletionResult
     {
-        $values = is_string($values) ? [$values] : $values;
+        $values = Arr::wrap($values);
 
         if (count($values) > self::MAX_VALUES) {
             $values = array_slice($values, 0, self::MAX_VALUES);

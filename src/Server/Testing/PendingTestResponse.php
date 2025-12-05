@@ -65,16 +65,33 @@ class PendingTestResponse
         string $argumentValue = '',
         array $currentArgs = []
     ): TestResponse {
-        $container = Container::getInstance();
+        $primitive = $this->resolvePrimitive($primitive);
+        $server = $this->initializeServer();
 
-        $primitive = is_string($primitive) ? $container->make($primitive) : $primitive;
-        $server = $container->make($this->serverClass, ['transport' => new FakeTransporter]);
+        $request = new JsonRpcRequest(
+            uniqid(),
+            'completion/complete',
+            [
+                'ref' => $this->buildCompletionRef($primitive, $currentArgs),
+                'argument' => [
+                    'name' => $argumentName,
+                    'value' => $argumentValue,
+                ],
+            ],
+        );
 
-        $server->start();
+        $response = $this->executeRequest($server, $request);
 
-        $requestId = uniqid();
+        return new TestResponse($primitive, $response);
+    }
 
-        $ref = match (true) {
+    /**
+     * @param  array<string, mixed>  $currentArgs
+     * @return array<string, mixed>
+     */
+    protected function buildCompletionRef(Primitive $primitive, array $currentArgs): array
+    {
+        return match (true) {
             $primitive instanceof Prompt => [
                 'type' => 'ref/prompt',
                 'name' => $primitive->name(),
@@ -87,26 +104,34 @@ class PendingTestResponse
             ],
             default => throw new InvalidArgumentException('Unsupported primitive type for completion.'),
         };
+    }
 
-        $request = new JsonRpcRequest(
-            $requestId,
-            'completion/complete',
-            [
-                'ref' => $ref,
-                'argument' => [
-                    'name' => $argumentName,
-                    'value' => $argumentValue,
-                ],
-            ],
+    protected function resolvePrimitive(Primitive|string $primitive): Primitive
+    {
+        return is_string($primitive)
+            ? Container::getInstance()->make($primitive)
+            : $primitive;
+    }
+
+    protected function initializeServer(): Server
+    {
+        $server = Container::getInstance()->make(
+            $this->serverClass,
+            ['transport' => new FakeTransporter]
         );
 
-        try {
-            $response = (fn () => $this->runMethodHandle($request, $this->createContext()))->call($server);
-        } catch (JsonRpcException $jsonRpcException) {
-            $response = $jsonRpcException->toJsonRpcResponse();
-        }
+        $server->start();
 
-        return new TestResponse($primitive, $response);
+        return $server;
+    }
+
+    protected function executeRequest(Server $server, JsonRpcRequest $request): mixed
+    {
+        try {
+            return (fn (): iterable|\Laravel\Mcp\Server\Transport\JsonRpcResponse => $this->runMethodHandle($request, $this->createContext()))->call($server);
+        } catch (JsonRpcException $jsonRpcException) {
+            return $jsonRpcException->toJsonRpcResponse();
+        }
     }
 
     public function actingAs(Authenticatable $user, ?string $guard = null): static
@@ -130,17 +155,11 @@ class PendingTestResponse
      */
     protected function run(string $method, Primitive|string $primitive, array $arguments = []): TestResponse
     {
-        $container = Container::getInstance();
-
-        $primitive = is_string($primitive) ? $container->make($primitive) : $primitive;
-        $server = $container->make($this->serverClass, ['transport' => new FakeTransporter]);
-
-        $server->start();
-
-        $requestId = uniqid();
+        $primitive = $this->resolvePrimitive($primitive);
+        $server = $this->initializeServer();
 
         $request = new JsonRpcRequest(
-            $requestId,
+            uniqid(),
             $method,
             [
                 ...$primitive->toMethodCall(),
@@ -148,11 +167,7 @@ class PendingTestResponse
             ],
         );
 
-        try {
-            $response = (fn () => $this->runMethodHandle($request, $this->createContext()))->call($server);
-        } catch (JsonRpcException $jsonRpcException) {
-            $response = $jsonRpcException->toJsonRpcResponse();
-        }
+        $response = $this->executeRequest($server, $request);
 
         return new TestResponse($primitive, $response);
     }
