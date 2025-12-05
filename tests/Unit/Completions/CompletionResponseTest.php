@@ -1,22 +1,22 @@
 <?php
 
+use Laravel\Mcp\Server\Completions\ArrayCompletionResponse;
+use Laravel\Mcp\Server\Completions\CallbackCompletionResponse;
 use Laravel\Mcp\Server\Completions\CompletionResponse;
-use Laravel\Mcp\Server\Completions\DirectCompletionResponse;
+use Laravel\Mcp\Server\Completions\EnumCompletionResponse;
 
 it('creates a completion result with values', function (): void {
     $result = CompletionResponse::from(['php', 'python', 'javascript']);
 
     expect($result->values())->toBe(['php', 'python', 'javascript'])
-        ->and($result->hasMore())->toBeFalse()
-        ->and($result->total())->toBeNull();
+        ->and($result->hasMore())->toBeFalse();
 });
 
 it('creates an empty completion result', function (): void {
     $result = CompletionResponse::empty();
 
     expect($result->values())->toBe([])
-        ->and($result->hasMore())->toBeFalse()
-        ->and($result->total())->toBeNull();
+        ->and($result->hasMore())->toBeFalse();
 });
 
 it('converts to array format', function (): void {
@@ -24,38 +24,17 @@ it('converts to array format', function (): void {
 
     expect($result->toArray())->toBe([
         'values' => ['php', 'python'],
+        'total' => 2,
         'hasMore' => false,
     ]);
 });
 
-it('includes total in an array when provided', function (): void {
-    $result = new DirectCompletionResponse(['php', 'python'], total: 5, hasMore: true);
-
-    expect($result->toArray())->toBe([
-        'values' => ['php', 'python'],
-        'total' => 5,
-        'hasMore' => true,
-    ]);
-});
-
-it('auto-truncates values to 100 items', function (): void {
+it('auto-truncates values to 100 items and sets hasMore', function (): void {
     $values = array_map(fn ($i): string => "item{$i}", range(1, 150));
     $result = CompletionResponse::from($values);
 
-    expect($result->values())->toHaveCount(100);
-});
-
-it('throws exception when constructor receives more than 100 items', function (): void {
-    $values = array_map(fn ($i): string => "item{$i}", range(1, 101));
-
-    new DirectCompletionResponse($values);
-})->throws(InvalidArgumentException::class, 'Completion values cannot exceed 100 items');
-
-it('allows exactly 100 items', function (): void {
-    $values = array_map(fn ($i): string => "item{$i}", range(1, 100));
-    $result = new DirectCompletionResponse($values);
-
-    expect($result->values())->toHaveCount(100);
+    expect($result->values())->toHaveCount(100)
+        ->and($result->hasMore())->toBeTrue();
 });
 
 it('supports single string in from', function (): void {
@@ -64,55 +43,27 @@ it('supports single string in from', function (): void {
     expect($result->values())->toBe(['single-value']);
 });
 
-it('creates fromArray result', function (): void {
+it('fromArray creates ArrayCompletionResponse', function (): void {
     $result = CompletionResponse::fromArray(['php', 'python', 'javascript']);
-    $resolved = $result->resolve('py');
 
-    expect($resolved->values())->toBe(['python']);
+    expect($result)->toBeInstanceOf(ArrayCompletionResponse::class);
 });
 
-it('creates fromEnum result with backed enum', function (): void {
-    enum TestBackedEnum: string
+it('fromEnum creates EnumCompletionResponse', function (): void {
+    enum FactoryTestEnum: string
     {
         case One = 'value-one';
-        case Two = 'value-two';
     }
 
-    $result = CompletionResponse::fromEnum(TestBackedEnum::class);
-    $resolved = $result->resolve('value-o');
+    $result = CompletionResponse::fromEnum(FactoryTestEnum::class);
 
-    expect($resolved->values())->toBe(['value-one']);
+    expect($result)->toBeInstanceOf(EnumCompletionResponse::class);
 });
 
-it('creates fromEnum result with non-backed enum', function (): void {
-    enum TestEnum
-    {
-        case Active;
-        case Inactive;
-    }
+it('fromCallback creates CallbackCompletionResponse', function (): void {
+    $result = CompletionResponse::fromCallback(fn (string $value): array => ['test']);
 
-    $result = CompletionResponse::fromEnum(TestEnum::class);
-    $resolved = $result->resolve('act');
-
-    expect($resolved->values())->toBe(['Active']);
-});
-
-it('throws an exception for an invalid enum class', function (): void {
-    CompletionResponse::fromEnum('NotAnEnum');
-})->throws(InvalidArgumentException::class, 'is not an enum');
-
-it('creates fromCallback result', function (): void {
-    $result = CompletionResponse::fromCallback(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::from(['test-value']));
-    $resolved = $result->resolve('test');
-
-    expect($resolved->values())->toBe(['test-value']);
-});
-
-it('callback can return an array', function (): void {
-    $result = CompletionResponse::fromCallback(fn (string $value): array => ['value1', 'value2']);
-    $resolved = $result->resolve('val');
-
-    expect($resolved->values())->toBe(['value1', 'value2']);
+    expect($result)->toBeInstanceOf(CallbackCompletionResponse::class);
 });
 
 it('resolve returns self for direct type', function (): void {

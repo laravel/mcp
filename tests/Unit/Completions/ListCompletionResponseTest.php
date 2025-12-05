@@ -1,10 +1,10 @@
 <?php
 
+use Laravel\Mcp\Server\Completions\ArrayCompletionResponse;
 use Laravel\Mcp\Server\Completions\DirectCompletionResponse;
-use Laravel\Mcp\Server\Completions\ListCompletionResponse;
 
 it('filters by prefix when resolved', function (): void {
-    $result = new ListCompletionResponse(['php', 'python', 'javascript', 'go']);
+    $result = new ArrayCompletionResponse(['php', 'python', 'javascript', 'go']);
 
     $resolved = $result->resolve('py');
 
@@ -13,7 +13,7 @@ it('filters by prefix when resolved', function (): void {
 });
 
 it('returns all items when empty value', function (): void {
-    $result = new ListCompletionResponse(['php', 'python', 'javascript']);
+    $result = new ArrayCompletionResponse(['php', 'python', 'javascript']);
 
     $resolved = $result->resolve('');
 
@@ -21,7 +21,7 @@ it('returns all items when empty value', function (): void {
 });
 
 it('returns empty when no match', function (): void {
-    $result = new ListCompletionResponse(['php', 'python', 'javascript']);
+    $result = new ArrayCompletionResponse(['php', 'python', 'javascript']);
 
     $resolved = $result->resolve('rust');
 
@@ -29,26 +29,26 @@ it('returns empty when no match', function (): void {
 });
 
 it('is case insensitive', function (): void {
-    $result = new ListCompletionResponse(['PHP', 'Python', 'JavaScript']);
+    $result = new ArrayCompletionResponse(['PHP', 'Python', 'JavaScript']);
 
     $resolved = $result->resolve('py');
 
     expect($resolved->values())->toBe(['Python']);
 });
 
-it('truncates to 100 items', function (): void {
+it('truncates to 100 items and sets hasMore', function (): void {
     $items = array_map(fn ($i): string => "item{$i}", range(1, 150));
-    $result = new ListCompletionResponse($items);
+    $result = new ArrayCompletionResponse($items);
 
     $resolved = $result->resolve('');
 
-    expect($resolved->values())->toHaveCount(100);
+    expect($resolved->values())->toHaveCount(100)
+        ->and($resolved->hasMore())->toBeTrue();
 });
 
 it('starts with empty values until resolved', function (): void {
-    $result = new ListCompletionResponse(['php', 'python', 'javascript']);
+    $result = new ArrayCompletionResponse(['php', 'python', 'javascript']);
 
     expect($result->values())->toBe([])
-        ->and($result->total())->toBeNull()
         ->and($result->hasMore())->toBeFalse();
 });

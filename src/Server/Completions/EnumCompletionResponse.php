@@ -8,7 +8,7 @@ use BackedEnum;
 use InvalidArgumentException;
 use UnitEnum;
 
-final class EnumCompletionResponse extends CompletionResponse
+class EnumCompletionResponse extends CompletionResponse
 {
     /**
      * @param  class-string<UnitEnum>  $enumClass
@@ -31,8 +31,10 @@ final class EnumCompletionResponse extends CompletionResponse
 
         $filtered = CompletionHelper::filterByPrefix($enumValues, $value);
 
+        $hasMore = count($filtered) > self::MAX_VALUES;
+
         $truncated = array_slice($filtered, 0, self::MAX_VALUES);
 
-        return new DirectCompletionResponse($truncated);
+        return new DirectCompletionResponse($truncated, $hasMore);
     }
 }

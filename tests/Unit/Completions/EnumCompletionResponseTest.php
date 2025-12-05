@@ -58,6 +58,5 @@ it('starts with empty values until resolved', function (): void {
     $result = new EnumCompletionResponse(BackedEnumForTest::class);
 
     expect($result->values())->toBe([])
-        ->and($result->total())->toBeNull()
         ->and($result->hasMore())->toBeFalse();
 });

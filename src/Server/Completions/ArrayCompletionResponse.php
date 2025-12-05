@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Completions;
 
-final class ListCompletionResponse extends CompletionResponse
+class ArrayCompletionResponse extends CompletionResponse
 {
     /**
      * @param  array<int, string>  $items
@@ -18,8 +18,10 @@ final class ListCompletionResponse extends CompletionResponse
     {
         $filtered = CompletionHelper::filterByPrefix($this->items, $value);
 
+        $hasMore = count($filtered) > self::MAX_VALUES;
+
         $truncated = array_slice($filtered, 0, self::MAX_VALUES);
 
-        return new DirectCompletionResponse($truncated);
+        return new DirectCompletionResponse($truncated, $hasMore);
     }
 }

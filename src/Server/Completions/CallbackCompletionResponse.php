@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server\Completions;
 
 use Illuminate\Support\Arr;
 
-final class CallbackCompletionResponse extends CompletionResponse
+class CallbackCompletionResponse extends CompletionResponse
 {
     /**
      * @param  callable(string): (CompletionResponse|array<int, string>|string)  $callback
@@ -24,8 +24,12 @@ final class CallbackCompletionResponse extends CompletionResponse
             return $result;
         }
 
-        $truncated = array_slice(Arr::wrap($result), 0, self::MAX_VALUES);
+        $items = Arr::wrap($result);
 
-        return new DirectCompletionResponse($truncated);
+        $hasMore = count($items) > self::MAX_VALUES;
+
+        $truncated = array_slice($items, 0, self::MAX_VALUES);
+
+        return new DirectCompletionResponse($truncated, $hasMore);
     }
 }

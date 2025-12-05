@@ -16,29 +16,32 @@ it('contains provided values', function (): void {
     expect($result->values())->toBe(['php', 'python', 'javascript']);
 });
 
-it('works with metadata', function (): void {
-    $result = new DirectCompletionResponse(['php', 'python'], total: 10, hasMore: true);
+it('works with hasMore flag', function (): void {
+    $result = new DirectCompletionResponse(['php', 'python'], hasMore: true);
 
     expect($result->values())->toBe(['php', 'python'])
-        ->and($result->total())->toBe(10)
         ->and($result->hasMore())->toBeTrue();
 });
 
-it('converts to array correctly', function (): void {
-    $result = new DirectCompletionResponse(['php', 'python'], total: 5, hasMore: true);
+it('converts to array with hasMore true', function (): void {
+    $result = new DirectCompletionResponse(['php', 'python'], hasMore: true);
 
     expect($result->toArray())->toBe([
         'values' => ['php', 'python'],
-        'total' => 5,
+        'total' => 2,
         'hasMore' => true,
     ]);
 });
 
-it('converts to array without total when null', function (): void {
-    $result = new DirectCompletionResponse(['php', 'python']);
+it('throws exception when constructor receives more than 100 items', function (): void {
+    $values = array_map(fn ($i): string => "item{$i}", range(1, 101));
 
-    expect($result->toArray())->toBe([
-        'values' => ['php', 'python'],
-        'hasMore' => false,
-    ]);
+    new DirectCompletionResponse($values);
+})->throws(InvalidArgumentException::class, 'Completion values cannot exceed 100 items');
+
+it('allows exactly 100 items', function (): void {
+    $values = array_map(fn ($i): string => "item{$i}", range(1, 100));
+    $result = new DirectCompletionResponse($values);
+
+    expect($result->values())->toHaveCount(100);
 });

@@ -45,18 +45,18 @@ it('handles string return', function (): void {
     expect($resolved->values())->toBe(['single-item']);
 });
 
-it('truncates callback results to 100 items', function (): void {
+it('truncates callback results to 100 items and sets hasMore', function (): void {
     $result = new CallbackCompletionResponse(fn (string $value): array => array_map(fn ($i): string => "item{$i}", range(1, 150)));
 
     $resolved = $result->resolve('');
 
-    expect($resolved->values())->toHaveCount(100);
+    expect($resolved->values())->toHaveCount(100)
+        ->and($resolved->hasMore())->toBeTrue();
 });
 
 it('starts with empty values until resolved', function (): void {
     $result = new CallbackCompletionResponse(fn (string $value): array => ['result']);
 
     expect($result->values())->toBe([])
-        ->and($result->total())->toBeNull()
         ->and($result->hasMore())->toBeFalse();
 });

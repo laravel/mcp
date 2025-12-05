@@ -21,7 +21,6 @@ abstract class CompletionResponse implements Arrayable
      */
     public function __construct(
         protected array $values,
-        protected ?int $total = null,
         protected bool $hasMore = false,
     ) {
         if (count($values) > self::MAX_VALUES) {
@@ -38,11 +37,13 @@ abstract class CompletionResponse implements Arrayable
     {
         $values = Arr::wrap($values);
 
-        if (count($values) > self::MAX_VALUES) {
+        $hasMore = count($values) > self::MAX_VALUES;
+
+        if ($hasMore) {
             $values = array_slice($values, 0, self::MAX_VALUES);
         }
 
-        return new DirectCompletionResponse($values);
+        return new DirectCompletionResponse($values, $hasMore);
     }
 
     public static function empty(): CompletionResponse
@@ -55,7 +56,7 @@ abstract class CompletionResponse implements Arrayable
      */
     public static function fromArray(array $items): CompletionResponse
     {
-        return new ListCompletionResponse($items);
+        return new ArrayCompletionResponse($items);
     }
 
     /**
@@ -81,31 +82,20 @@ abstract class CompletionResponse implements Arrayable
         return $this->values;
     }
 
-    public function total(): ?int
-    {
-        return $this->total;
-    }
-
     public function hasMore(): bool
     {
         return $this->hasMore;
     }
 
     /**
-     * @return array{values: array<int, string>, total?: int, hasMore: bool}
+     * @return array{values: array<int, string>, total: int, hasMore: bool}
      */
     public function toArray(): array
     {
-        $result = [
+        return [
             'values' => $this->values,
+            'total' => count($this->values),
+            'hasMore' => $this->hasMore,
         ];
-
-        if (! is_null($this->total)) {
-            $result['total'] = $this->total;
-        }
-
-        $result['hasMore'] = $this->hasMore;
-
-        return $result;
     }
 }
