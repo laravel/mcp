@@ -54,17 +54,25 @@ abstract class Server
         '2024-11-05',
     ];
 
+    public const CAPABILITY_TOOLS = 'tools';
+
+    public const CAPABILITY_RESOURCES = 'resources';
+
+    public const CAPABILITY_PROMPTS = 'prompts';
+
+    public const CAPABILITY_LOGGING = 'logging';
+
     /**
      * @var array<string, array<string, bool>|stdClass|string>
      */
     protected array $capabilities = [
-        'tools' => [
+        self::CAPABILITY_TOOLS => [
             'listChanged' => false,
         ],
-        'resources' => [
+        self::CAPABILITY_RESOURCES => [
             'listChanged' => false,
         ],
-        'prompts' => [
+        self::CAPABILITY_PROMPTS => [
             'listChanged' => false,
         ],
     ];
