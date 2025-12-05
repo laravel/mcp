@@ -18,6 +18,7 @@ use Laravel\Mcp\Server\Methods\ListResourceTemplates;
 use Laravel\Mcp\Server\Methods\ListTools;
 use Laravel\Mcp\Server\Methods\Ping;
 use Laravel\Mcp\Server\Methods\ReadResource;
+use Laravel\Mcp\Server\Methods\SetLogLevel;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
@@ -53,17 +54,25 @@ abstract class Server
         '2024-11-05',
     ];
 
+    public const CAPABILITY_TOOLS = 'tools';
+
+    public const CAPABILITY_RESOURCES = 'resources';
+
+    public const CAPABILITY_PROMPTS = 'prompts';
+
+    public const CAPABILITY_LOGGING = 'logging';
+
     /**
      * @var array<string, array<string, bool>|stdClass|string>
      */
     protected array $capabilities = [
-        'tools' => [
+        self::CAPABILITY_TOOLS => [
             'listChanged' => false,
         ],
-        'resources' => [
+        self::CAPABILITY_RESOURCES => [
             'listChanged' => false,
         ],
-        'prompts' => [
+        self::CAPABILITY_PROMPTS => [
             'listChanged' => false,
         ],
     ];
@@ -99,6 +108,7 @@ abstract class Server
         'prompts/list' => ListPrompts::class,
         'prompts/get' => GetPrompt::class,
         'ping' => Ping::class,
+        'logging/setLevel' => SetLogLevel::class,
     ];
 
     public function __construct(
@@ -231,19 +241,23 @@ abstract class Server
      */
     protected function handleMessage(JsonRpcRequest $request, ServerContext $context): void
     {
-        $response = $this->runMethodHandle($request, $context);
+        try {
+            $response = $this->runMethodHandle($request, $context);
 
-        if (! is_iterable($response)) {
-            $this->transport->send($response->toJson());
+            if (! is_iterable($response)) {
+                $this->transport->send($response->toJson());
 
-            return;
-        }
-
-        $this->transport->stream(function () use ($response): void {
-            foreach ($response as $message) {
-                $this->transport->send($message->toJson());
+                return;
             }
-        });
+
+            $this->transport->stream(function () use ($response): void {
+                foreach ($response as $message) {
+                    $this->transport->send($message->toJson());
+                }
+            });
+        } finally {
+            Container::getInstance()->forgetInstance('mcp.request');
+        }
     }
 
     /**
@@ -255,20 +269,14 @@ abstract class Server
     {
         $container = Container::getInstance();
 
+        $container->instance('mcp.request', $request->toRequest());
+
         /** @var Method $methodClass */
         $methodClass = $container->make(
             $this->methods[$request->method],
         );
 
-        $container->instance('mcp.request', $request->toRequest());
-
-        try {
-            $response = $methodClass->handle($request, $context);
-        } finally {
-            $container->forgetInstance('mcp.request');
-        }
-
-        return $response;
+        return $methodClass->handle($request, $context);
     }
 
     protected function handleInitializeMessage(JsonRpcRequest $request, ServerContext $context): void

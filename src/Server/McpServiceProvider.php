@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
@@ -13,6 +14,8 @@ use Laravel\Mcp\Console\Commands\MakeServerCommand;
 use Laravel\Mcp\Console\Commands\MakeToolCommand;
 use Laravel\Mcp\Console\Commands\StartCommand;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Support\LoggingManager;
+use Laravel\Mcp\Server\Support\SessionStore;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -21,6 +24,8 @@ class McpServiceProvider extends ServiceProvider
         $this->app->singleton(Registrar::class, fn (): Registrar => new Registrar);
 
         $this->mergeConfigFrom(__DIR__.'/../../config/mcp.php', 'mcp');
+
+        $this->registerSessionBindings();
     }
 
     public function boot(): void
@@ -83,6 +88,28 @@ class McpServiceProvider extends ServiceProvider
                 $request->setMeta($currentRequest->meta());
             }
         });
+    }
+
+    protected function registerSessionBindings(): void
+    {
+        $this->app->bind(SessionStore::class, function ($app): Support\SessionStore {
+            $sessionId = null;
+
+            if ($app->bound('mcp.request')) {
+                /** @var Request $request */
+                $request = $app->make('mcp.request');
+                $sessionId = $request->sessionId();
+            }
+
+            return new SessionStore(
+                $app->make(Repository::class),
+                $sessionId
+            );
+        });
+
+        $this->app->bind(LoggingManager::class, fn ($app): LoggingManager => new LoggingManager(
+            $app->make(SessionStore::class)
+        ));
     }
 
     protected function registerCommands(): void

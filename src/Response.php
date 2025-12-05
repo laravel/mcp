@@ -8,9 +8,11 @@ use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
 use InvalidArgumentException;
 use JsonException;
+use Laravel\Mcp\Enums\LogLevel;
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Server\Content\Blob;
+use Laravel\Mcp\Server\Content\Log;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
@@ -34,6 +36,17 @@ class Response
     public static function notification(string $method, array $params = []): static
     {
         return new static(new Notification($method, $params));
+    }
+
+    public static function log(LogLevel $level, mixed $data, ?string $logger = null): static
+    {
+        try {
+            json_encode($data, JSON_THROW_ON_ERROR);
+        } catch (JsonException $jsonException) {
+            throw new InvalidArgumentException("Invalid log data: {$jsonException->getMessage()}", 0, $jsonException);
+        }
+
+        return new static(new Log($level, $data, $logger));
     }
 
     public static function text(string $text): static

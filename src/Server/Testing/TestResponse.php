@@ -6,8 +6,11 @@ namespace Laravel\Mcp\Server\Testing;
 
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
+use Laravel\Mcp\Enums\LogLevel;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -232,6 +235,76 @@ class TestResponse
     protected function isAuthenticated(?string $guard = null): bool
     {
         return Container::getInstance()->make('auth')->guard($guard)->check();
+    }
+
+    public function assertLogSent(LogLevel $level, ?string $contains = null): static
+    {
+        if ($this->findLogNotification($level, $contains)) {
+            Assert::assertTrue(true); // @phpstan-ignore-line
+
+            return $this;
+        }
+
+        $levelName = $level->value;
+        $containsMsg = $contains !== null ? " containing [{$contains}]" : '';
+        Assert::fail("The expected log notification with level [{$levelName}]{$containsMsg} was not found.");
+    }
+
+    public function assertLogNotSent(LogLevel $level): static
+    {
+        if ($this->findLogNotification($level)) {
+            $levelName = $level->value;
+            Assert::fail("The log notification with level [{$levelName}] was unexpectedly found.");
+        }
+
+        Assert::assertTrue(true); // @phpstan-ignore-line
+
+        return $this;
+    }
+
+    public function assertLogCount(int $count): static
+    {
+        $logNotifications = $this->getLogNotifications();
+
+        Assert::assertCount(
+            $count,
+            $logNotifications,
+            "The expected number of log notifications [{$count}] does not match the actual count [{$logNotifications->count()}]."
+        );
+
+        return $this;
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    protected function getLogNotifications(): Collection
+    {
+        return collect($this->notifications)
+            ->map(fn (JsonRpcResponse $notification): array => $notification->toArray())
+            ->filter(fn (array $content): bool => $content['method'] === 'notifications/message'
+                && isset($content['params']['level'])
+            );
+    }
+
+    protected function findLogNotification(LogLevel $level, ?string $contains = null): bool
+    {
+        return $this->getLogNotifications()->contains(function (array $notification) use ($level, $contains): bool {
+            $params = $notification['params'] ?? [];
+
+            if (($params['level'] ?? null) !== $level->value) {
+                return false;
+            }
+
+            if ($contains === null) {
+                return true;
+            }
+
+            $data = Arr::get($params, 'data', '');
+            $dataString = is_string($data) ? $data : (string) json_encode($data);
+
+            return $dataString !== '' && str_contains($dataString, $contains);
+        });
     }
 
     public function dd(): void

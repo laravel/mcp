@@ -99,6 +99,10 @@ class PendingTestResponse
             $response = $jsonRpcException->toJsonRpcResponse();
         }
 
-        return new TestResponse($primitive, $response);
+        try {
+            return new TestResponse($primitive, $response);
+        } finally {
+            Container::getInstance()->forgetInstance('mcp.request');
+        }
     }
 }
