@@ -13,6 +13,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class HttpTransport implements Transport
 {
     /**
+     * @var array<string, string>
+     */
+    protected array $customHeaders = [];
+
+    /**
      * @param  (Closure(string): void)|null  $handler
      */
     public function __construct(
@@ -70,6 +75,16 @@ class HttpTransport implements Transport
         $this->stream = $stream;
     }
 
+    /**
+     * @param  array<string, string>  $headers
+     */
+    public function withHeaders(array $headers): static
+    {
+        $this->customHeaders = array_merge($this->customHeaders, $headers);
+
+        return $this;
+    }
+
     protected function sendStreamMessage(string $message): void
     {
         echo 'data: '.$message."\n\n";
@@ -98,6 +113,6 @@ class HttpTransport implements Transport
             $headers['X-Accel-Buffering'] = 'no';
         }
 
-        return $headers;
+        return array_merge($headers, $this->customHeaders);
     }
 }
