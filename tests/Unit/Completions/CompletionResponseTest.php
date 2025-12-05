@@ -3,7 +3,7 @@
 use Laravel\Mcp\Server\Completions\CompletionResponse;
 use Laravel\Mcp\Server\Completions\DirectCompletionResponse;
 
-it('creates completion result with values', function (): void {
+it('creates a completion result with values', function (): void {
     $result = CompletionResponse::make(['php', 'python', 'javascript']);
 
     expect($result->values())->toBe(['php', 'python', 'javascript'])
@@ -11,7 +11,7 @@ it('creates completion result with values', function (): void {
         ->and($result->total())->toBeNull();
 });
 
-it('creates empty completion result', function (): void {
+it('creates an empty completion result', function (): void {
     $result = CompletionResponse::empty();
 
     expect($result->values())->toBe([])
@@ -28,7 +28,7 @@ it('converts to array format', function (): void {
     ]);
 });
 
-it('includes total in array when provided', function (): void {
+it('includes total in an array when provided', function (): void {
     $result = new DirectCompletionResponse(['php', 'python'], total: 5, hasMore: true);
 
     expect($result->toArray())->toBe([
@@ -64,52 +64,52 @@ it('supports single string in make', function (): void {
     expect($result->values())->toBe(['single-value']);
 });
 
-it('creates usingList result', function (): void {
-    $result = CompletionResponse::usingList(['php', 'python', 'javascript']);
+it('creates fromArray result', function (): void {
+    $result = CompletionResponse::fromArray(['php', 'python', 'javascript']);
     $resolved = $result->resolve('py');
 
     expect($resolved->values())->toBe(['python']);
 });
 
-it('creates usingEnum result with backed enum', function (): void {
+it('creates fromEnum result with backed enum', function (): void {
     enum TestBackedEnum: string
     {
         case One = 'value-one';
         case Two = 'value-two';
     }
 
-    $result = CompletionResponse::usingEnum(TestBackedEnum::class);
+    $result = CompletionResponse::fromEnum(TestBackedEnum::class);
     $resolved = $result->resolve('value-o');
 
     expect($resolved->values())->toBe(['value-one']);
 });
 
-it('creates usingEnum result with non-backed enum', function (): void {
+it('creates fromEnum result with non-backed enum', function (): void {
     enum TestEnum
     {
         case Active;
         case Inactive;
     }
 
-    $result = CompletionResponse::usingEnum(TestEnum::class);
+    $result = CompletionResponse::fromEnum(TestEnum::class);
     $resolved = $result->resolve('act');
 
     expect($resolved->values())->toBe(['Active']);
 });
 
-it('throws exception for invalid enum class', function (): void {
-    CompletionResponse::usingEnum('NotAnEnum');
+it('throws an exception for an invalid enum class', function (): void {
+    CompletionResponse::fromEnum('NotAnEnum');
 })->throws(InvalidArgumentException::class, 'is not an enum');
 
-it('creates using callback result', function (): void {
-    $result = CompletionResponse::using(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::make(['test-value']));
+it('creates fromCallback result', function (): void {
+    $result = CompletionResponse::fromCallback(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::make(['test-value']));
     $resolved = $result->resolve('test');
 
     expect($resolved->values())->toBe(['test-value']);
 });
 
-it('callback can return array', function (): void {
-    $result = CompletionResponse::using(fn (string $value): array => ['value1', 'value2']);
+it('callback can return an array', function (): void {
+    $result = CompletionResponse::fromCallback(fn (string $value): array => ['value1', 'value2']);
     $resolved = $result->resolve('val');
 
     expect($resolved->values())->toBe(['value1', 'value2']);

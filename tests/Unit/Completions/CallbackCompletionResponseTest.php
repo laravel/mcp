@@ -4,20 +4,7 @@ use Laravel\Mcp\Server\Completions\CallbackCompletionResponse;
 use Laravel\Mcp\Server\Completions\CompletionResponse;
 use Laravel\Mcp\Server\Completions\DirectCompletionResponse;
 
-it('executes callback when resolved', function (): void {
-    $called = false;
-    $result = new CallbackCompletionResponse(function (string $value) use (&$called): array {
-        $called = true;
-
-        return ['result'];
-    });
-
-    $result->resolve('test');
-
-    expect($called)->toBeTrue();
-});
-
-it('passes value to callback', function (): void {
+it('executes a callback with the provided value when resolved', function (): void {
     $receivedValue = null;
     $result = new CallbackCompletionResponse(function (string $value) use (&$receivedValue): array {
         $receivedValue = $value;

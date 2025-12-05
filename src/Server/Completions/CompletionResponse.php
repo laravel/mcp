@@ -53,7 +53,7 @@ abstract class CompletionResponse implements Arrayable
     /**
      * @param  array<int, string>  $items
      */
-    public static function usingList(array $items): CompletionResponse
+    public static function fromArray(array $items): CompletionResponse
     {
         return new ListCompletionResponse($items);
     }
@@ -61,12 +61,12 @@ abstract class CompletionResponse implements Arrayable
     /**
      * @param  class-string<UnitEnum>  $enumClass
      */
-    public static function usingEnum(string $enumClass): CompletionResponse
+    public static function fromEnum(string $enumClass): CompletionResponse
     {
         return new EnumCompletionResponse($enumClass);
     }
 
-    public static function using(callable $callback): CompletionResponse
+    public static function fromCallback(callable $callback): CompletionResponse
     {
         return new CallbackCompletionResponse($callback);
     }

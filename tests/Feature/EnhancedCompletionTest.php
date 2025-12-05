@@ -53,7 +53,7 @@ class LocationPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'location' => CompletionResponse::usingList([
+            'location' => CompletionResponse::fromArray([
                 'New York',
                 'Los Angeles',
                 'Chicago',
@@ -84,7 +84,7 @@ class UnitsPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'unit' => CompletionResponse::usingEnum(TestUnits::class),
+            'unit' => CompletionResponse::fromEnum(TestUnits::class),
             default => CompletionResponse::empty(),
         };
     }
@@ -109,7 +109,7 @@ class StatusPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'status' => CompletionResponse::usingEnum(TestStatusEnum::class),
+            'status' => CompletionResponse::fromEnum(TestStatusEnum::class),
             default => CompletionResponse::empty(),
         };
     }
@@ -134,7 +134,7 @@ class DynamicPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'city' => CompletionResponse::using(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::make([
+            'city' => CompletionResponse::fromCallback(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::make([
                 'San Francisco',
                 'San Diego',
                 'San Jose',
@@ -163,7 +163,7 @@ class SingleStringPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'name' => CompletionResponse::using(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::make('John Doe')),
+            'name' => CompletionResponse::fromCallback(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::make('John Doe')),
             default => CompletionResponse::empty(),
         };
     }
@@ -174,7 +174,7 @@ class SingleStringPrompt extends Prompt implements SupportsCompletion
     }
 }
 
-describe('usingList() Completions', function (): void {
+describe('fromArray() Completions', function (): void {
     it('returns all locations when no prefix provided', function (): void {
         EnhancedCompletionServer::completion(LocationPrompt::class, 'location', '')
             ->assertCompletionCount(5);
@@ -198,7 +198,7 @@ describe('usingList() Completions', function (): void {
     });
 });
 
-describe('usingEnum() Completions', function (): void {
+describe('fromEnum() Completions', function (): void {
     it('returns all backed enum values', function (): void {
         EnhancedCompletionServer::completion(UnitsPrompt::class, 'unit', '')
             ->assertHasCompletions(['celsius', 'fahrenheit', 'kelvin'])
@@ -224,7 +224,7 @@ describe('usingEnum() Completions', function (): void {
     });
 });
 
-describe('using() Callback Completions', function (): void {
+describe('fromCallback() Callback Completions', function (): void {
     it('returns values from callback', function (): void {
         EnhancedCompletionServer::completion(DynamicPrompt::class, 'city', '')
             ->assertHasCompletions(['San Francisco', 'San Diego', 'San Jose'])
