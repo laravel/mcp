@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods;
 
 use Laravel\Mcp\Enums\LogLevel;
+use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\ServerContext;
@@ -22,6 +23,14 @@ class SetLogLevel implements Method
 
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
+        if (! $context->hasCapability(Server::CAPABILITY_LOGGING)) {
+            throw new JsonRpcException(
+                'Logging capability is not enabled on this server.',
+                -32601,
+                $request->id,
+            );
+        }
+
         $levelString = $request->get('level');
 
         if (! is_string($levelString)) {
@@ -35,8 +44,10 @@ class SetLogLevel implements Method
         try {
             $level = LogLevel::fromString($levelString);
         } catch (ValueError) {
+            $validLevels = implode(', ', array_column(LogLevel::cases(), 'value'));
+
             throw new JsonRpcException(
-                "Invalid log level [{$levelString}]. Must be one of: emergency, alert, critical, error, warning, notice, info, debug.",
+                "Invalid log level [{$levelString}]. Must be one of: {$validLevels}.",
                 -32602,
                 $request->id,
             );

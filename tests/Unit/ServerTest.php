@@ -4,7 +4,7 @@ use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\CustomMethodHandler;
 use Tests\Fixtures\ExampleServer;
 
-it('can handle an initialize message', function (): void {
+it('can handle an initialized message', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
 

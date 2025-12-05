@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Cache;
 use Laravel\Mcp\Enums\LogLevel;
+use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\SetLogLevel;
 use Laravel\Mcp\Server\ServerContext;
@@ -24,7 +25,7 @@ it('sets log level successfully', function (): void {
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-06-18'],
-        serverCapabilities: [],
+        serverCapabilities: [Server::CAPABILITY_LOGGING => []],
         serverName: 'Test Server',
         serverVersion: '1.0.0',
         instructions: 'Test instructions',
@@ -61,7 +62,7 @@ it('handles all valid log levels', function (string $levelString, LogLevel $expe
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-06-18'],
-        serverCapabilities: [],
+        serverCapabilities: [Server::CAPABILITY_LOGGING => []],
         serverName: 'Test Server',
         serverVersion: '1.0.0',
         instructions: 'Test instructions',
@@ -105,7 +106,7 @@ it('throws an exception for a missing level parameter', function (): void {
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-06-18'],
-        serverCapabilities: [],
+        serverCapabilities: [Server::CAPABILITY_LOGGING => []],
         serverName: 'Test Server',
         serverVersion: '1.0.0',
         instructions: 'Test instructions',
@@ -153,7 +154,7 @@ it('throws exception for invalid level', function (): void {
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-06-18'],
-        serverCapabilities: [],
+        serverCapabilities: [Server::CAPABILITY_LOGGING => []],
         serverName: 'Test Server',
         serverVersion: '1.0.0',
         instructions: 'Test instructions',
@@ -194,7 +195,7 @@ it('throws exception for non-string level parameter', function (): void {
 
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-06-18'],
-        serverCapabilities: [],
+        serverCapabilities: [Server::CAPABILITY_LOGGING => []],
         serverName: 'Test Server',
         serverVersion: '1.0.0',
         instructions: 'Test instructions',
@@ -206,6 +207,38 @@ it('throws exception for non-string level parameter', function (): void {
     );
 
     $loggingManager = new LoggingManager(new SessionStore(Cache::driver(), 'session-111'));
+    $method = new SetLogLevel($loggingManager);
+    $method->handle($request, $context);
+});
+
+it('throws an exception when logging capability is not enabled', function (): void {
+    $this->expectException(JsonRpcException::class);
+    $this->expectExceptionMessage('Logging capability is not enabled on this server.');
+    $this->expectExceptionCode(-32601);
+
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'logging/setLevel',
+        'params' => [
+            'level' => 'debug',
+        ],
+    ], 'session-222');
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-06-18'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [],
+        resources: [],
+        prompts: [],
+    );
+
+    $loggingManager = new LoggingManager(new SessionStore(Cache::driver(), 'session-222'));
     $method = new SetLogLevel($loggingManager);
     $method->handle($request, $context);
 });

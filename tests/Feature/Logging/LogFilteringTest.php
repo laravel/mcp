@@ -17,6 +17,19 @@ class LoggingTestServer extends Server
         StructuredLogTool::class,
         LogLevelTestTool::class,
     ];
+
+    protected array $capabilities = [
+        self::CAPABILITY_TOOLS => [
+            'listChanged' => false,
+        ],
+        self::CAPABILITY_RESOURCES => [
+            'listChanged' => false,
+        ],
+        self::CAPABILITY_PROMPTS => [
+            'listChanged' => false,
+        ],
+        self::CAPABILITY_LOGGING => [],
+    ];
 }
 
 class LoggingTestTool extends Tool
@@ -91,7 +104,7 @@ it('supports string and array data in logs', function (): void {
         ->assertLogCount(2);
 });
 
-it('filters logs correctly when log level is set to critical', function (): void {
+it('filters logs correctly when the log level is set to critical', function (): void {
     $transport = new ArrayTransport;
     $server = new LoggingTestServer($transport);
     $server->start();
