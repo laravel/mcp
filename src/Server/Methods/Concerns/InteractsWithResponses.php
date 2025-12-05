@@ -34,6 +34,8 @@ trait InteractsWithResponses
             }
         });
 
+        \Illuminate\Container\Container::getInstance()->instance('mcp.response.factory', $responseFactory);
+
         return JsonRpcResponse::result($request->id, $serializable($responseFactory));
     }
 

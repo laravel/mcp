@@ -85,4 +85,16 @@ class ResponseFactory
     {
         return $this->structuredContent;
     }
+
+    /**
+     * Get all HTTP headers from all responses.
+     *
+     * @return array<string, string>
+     */
+    public function headers(): array
+    {
+        return $this->responses
+            ->flatMap(fn (Response $response) => $response->headers())
+            ->all();
+    }
 }

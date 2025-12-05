@@ -20,6 +20,11 @@ class Response
     use Conditionable;
     use Macroable;
 
+    /**
+     * @var array<string, string>
+     */
+    protected array $headers = [];
+
     protected function __construct(
         protected Content $content,
         protected Role $role = Role::User,
@@ -107,6 +112,24 @@ class Response
         $this->content->setMeta($meta, $value);
 
         return $this;
+    }
+
+    /**
+     * @param  array<string, string>  $headers
+     */
+    public function withHeaders(array $headers): static
+    {
+        $this->headers = array_merge($this->headers, $headers);
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function headers(): array
+    {
+        return $this->headers;
     }
 
     /**
