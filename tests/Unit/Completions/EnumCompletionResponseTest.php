@@ -1,7 +1,7 @@
 <?php
 
-use Laravel\Mcp\Server\Completions\DirectCompletionResult;
-use Laravel\Mcp\Server\Completions\EnumCompletionResult;
+use Laravel\Mcp\Server\Completions\DirectCompletionResponse;
+use Laravel\Mcp\Server\Completions\EnumCompletionResponse;
 
 enum BackedEnumForTest: string
 {
@@ -18,16 +18,16 @@ enum PlainEnumForTest
 }
 
 it('extracts backed enum values', function (): void {
-    $result = new EnumCompletionResult(BackedEnumForTest::class);
+    $result = new EnumCompletionResponse(BackedEnumForTest::class);
 
     $resolved = $result->resolve('');
 
-    expect($resolved)->toBeInstanceOf(DirectCompletionResult::class)
+    expect($resolved)->toBeInstanceOf(DirectCompletionResponse::class)
         ->and($resolved->values())->toBe(['value-one', 'value-two', 'value-three']);
 });
 
 it('extracts non-backed enum names', function (): void {
-    $result = new EnumCompletionResult(PlainEnumForTest::class);
+    $result = new EnumCompletionResponse(PlainEnumForTest::class);
 
     $resolved = $result->resolve('');
 
@@ -35,7 +35,7 @@ it('extracts non-backed enum names', function (): void {
 });
 
 it('filters enum values by prefix', function (): void {
-    $result = new EnumCompletionResult(BackedEnumForTest::class);
+    $result = new EnumCompletionResponse(BackedEnumForTest::class);
 
     $resolved = $result->resolve('value-t');
 
@@ -43,11 +43,11 @@ it('filters enum values by prefix', function (): void {
 });
 
 it('throws exception for invalid enum class', function (): void {
-    new EnumCompletionResult('NotAnEnum');
+    new EnumCompletionResponse('NotAnEnum');
 })->throws(InvalidArgumentException::class, 'is not an enum');
 
 it('is case insensitive', function (): void {
-    $result = new EnumCompletionResult(PlainEnumForTest::class);
+    $result = new EnumCompletionResponse(PlainEnumForTest::class);
 
     $resolved = $result->resolve('act');
 
@@ -55,7 +55,7 @@ it('is case insensitive', function (): void {
 });
 
 it('starts with empty values until resolved', function (): void {
-    $result = new EnumCompletionResult(BackedEnumForTest::class);
+    $result = new EnumCompletionResponse(BackedEnumForTest::class);
 
     expect($result->values())->toBe([])
         ->and($result->total())->toBeNull()

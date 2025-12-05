@@ -1,9 +1,9 @@
 <?php
 
-use Laravel\Mcp\Server\Completions\DirectCompletionResult;
+use Laravel\Mcp\Server\Completions\DirectCompletionResponse;
 
 it('returns self when resolved', function (): void {
-    $result = new DirectCompletionResult(['php', 'python']);
+    $result = new DirectCompletionResponse(['php', 'python']);
 
     $resolved = $result->resolve('py');
 
@@ -11,13 +11,13 @@ it('returns self when resolved', function (): void {
 });
 
 it('contains provided values', function (): void {
-    $result = new DirectCompletionResult(['php', 'python', 'javascript']);
+    $result = new DirectCompletionResponse(['php', 'python', 'javascript']);
 
     expect($result->values())->toBe(['php', 'python', 'javascript']);
 });
 
 it('works with metadata', function (): void {
-    $result = new DirectCompletionResult(['php', 'python'], total: 10, hasMore: true);
+    $result = new DirectCompletionResponse(['php', 'python'], total: 10, hasMore: true);
 
     expect($result->values())->toBe(['php', 'python'])
         ->and($result->total())->toBe(10)
@@ -25,7 +25,7 @@ it('works with metadata', function (): void {
 });
 
 it('converts to array correctly', function (): void {
-    $result = new DirectCompletionResult(['php', 'python'], total: 5, hasMore: true);
+    $result = new DirectCompletionResponse(['php', 'python'], total: 5, hasMore: true);
 
     expect($result->toArray())->toBe([
         'values' => ['php', 'python'],
@@ -35,7 +35,7 @@ it('converts to array correctly', function (): void {
 });
 
 it('converts to array without total when null', function (): void {
-    $result = new DirectCompletionResult(['php', 'python']);
+    $result = new DirectCompletionResponse(['php', 'python']);
 
     expect($result->toArray())->toBe([
         'values' => ['php', 'python'],

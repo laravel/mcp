@@ -2,7 +2,7 @@
 
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
-use Laravel\Mcp\Server\Completions\CompletionResult;
+use Laravel\Mcp\Server\Completions\CompletionResponse;
 use Laravel\Mcp\Server\Contracts\SupportsCompletion;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\CompletionComplete;
@@ -38,9 +38,9 @@ class CompletionMethodTestPrompt extends Prompt implements SupportsCompletion
         return [new Argument('test', 'Test arg')];
     }
 
-    public function complete(string $argument, string $value): CompletionResult
+    public function complete(string $argument, string $value): CompletionResponse
     {
-        return CompletionResult::make(['test']);
+        return CompletionResponse::make(['test']);
     }
 
     public function handle(\Laravel\Mcp\Request $request): Response
@@ -60,9 +60,9 @@ class CompletionMethodTestResource extends Resource implements SupportsCompletio
         return 'Test resource';
     }
 
-    public function complete(string $argument, string $value): CompletionResult
+    public function complete(string $argument, string $value): CompletionResponse
     {
-        return CompletionResult::make(['resource-test']);
+        return CompletionResponse::make(['resource-test']);
     }
 
     public function handle(\Laravel\Mcp\Request $request): Response
@@ -92,9 +92,9 @@ class CompletionMethodTestResourceWithTemplate extends Resource implements \Lara
         return new UriTemplate('file://users/{userId}');
     }
 
-    public function complete(string $argument, string $value): CompletionResult
+    public function complete(string $argument, string $value): CompletionResponse
     {
-        return CompletionResult::make(['template-test']);
+        return CompletionResponse::make(['template-test']);
     }
 
     public function handle(\Laravel\Mcp\Request $request): Response

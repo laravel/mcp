@@ -4,7 +4,7 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Completions\CompletionHelper;
-use Laravel\Mcp\Server\Completions\CompletionResult;
+use Laravel\Mcp\Server\Completions\CompletionResponse;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Contracts\SupportsCompletion;
 use Laravel\Mcp\Server\Prompt;
@@ -41,16 +41,16 @@ class LanguageCompletionPrompt extends Prompt implements SupportsCompletion
         ];
     }
 
-    public function complete(string $argument, string $value): CompletionResult
+    public function complete(string $argument, string $value): CompletionResponse
     {
         if ($argument !== 'language') {
-            return CompletionResult::empty();
+            return CompletionResponse::empty();
         }
 
         $languages = ['php', 'python', 'javascript', 'typescript', 'go', 'rust'];
         $matches = CompletionHelper::filterByPrefix($languages, $value);
 
-        return CompletionResult::make($matches);
+        return CompletionResponse::make($matches);
     }
 
     public function handle(Request $request): Response
@@ -71,12 +71,12 @@ class ProjectTaskCompletionPrompt extends Prompt implements SupportsCompletion
         ];
     }
 
-    public function complete(string $argument, string $value): CompletionResult
+    public function complete(string $argument, string $value): CompletionResponse
     {
         return match ($argument) {
-            'projectId' => CompletionResult::make(['project-1', 'project-2', 'project-3']),
-            'taskId' => CompletionResult::make(['task-1-1', 'task-1-2', 'task-2-1', 'task-2-2']),
-            default => CompletionResult::empty(),
+            'projectId' => CompletionResponse::make(['project-1', 'project-2', 'project-3']),
+            'taskId' => CompletionResponse::make(['task-1-1', 'task-1-2', 'task-2-1', 'task-2-2']),
+            default => CompletionResponse::empty(),
         };
     }
 
@@ -97,12 +97,12 @@ class UserFileCompletionResource extends Resource implements HasUriTemplate, Sup
         return new UriTemplate('file://users/{userId}/files/{fileId}');
     }
 
-    public function complete(string $argument, string $value): CompletionResult
+    public function complete(string $argument, string $value): CompletionResponse
     {
         return match ($argument) {
-            'userId' => CompletionResult::make(['user-1', 'user-2', 'user-3']),
-            'fileId' => CompletionResult::make(['file1.txt', 'file2.txt', 'doc1.txt', 'doc2.txt']),
-            default => CompletionResult::empty(),
+            'userId' => CompletionResponse::make(['user-1', 'user-2', 'user-3']),
+            'fileId' => CompletionResponse::make(['file1.txt', 'file2.txt', 'doc1.txt', 'doc2.txt']),
+            default => CompletionResponse::empty(),
         };
     }
 

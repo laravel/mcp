@@ -8,7 +8,7 @@ use BackedEnum;
 use InvalidArgumentException;
 use UnitEnum;
 
-final class EnumCompletionResult extends CompletionResult
+final class EnumCompletionResponse extends CompletionResponse
 {
     /**
      * @param  class-string<UnitEnum>  $enumClass
@@ -22,7 +22,7 @@ final class EnumCompletionResult extends CompletionResult
         parent::__construct([]);
     }
 
-    public function resolve(string $value): DirectCompletionResult
+    public function resolve(string $value): DirectCompletionResponse
     {
         $enumValues = array_map(
             fn (UnitEnum $case): string => $case instanceof BackedEnum ? (string) $case->value : $case->name,
@@ -33,6 +33,6 @@ final class EnumCompletionResult extends CompletionResult
 
         $truncated = array_slice($filtered, 0, self::MAX_VALUES);
 
-        return new DirectCompletionResult($truncated);
+        return new DirectCompletionResponse($truncated);
     }
 }

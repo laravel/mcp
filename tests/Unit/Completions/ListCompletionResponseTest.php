@@ -1,19 +1,19 @@
 <?php
 
-use Laravel\Mcp\Server\Completions\DirectCompletionResult;
-use Laravel\Mcp\Server\Completions\ListCompletionResult;
+use Laravel\Mcp\Server\Completions\DirectCompletionResponse;
+use Laravel\Mcp\Server\Completions\ListCompletionResponse;
 
 it('filters by prefix when resolved', function (): void {
-    $result = new ListCompletionResult(['php', 'python', 'javascript', 'go']);
+    $result = new ListCompletionResponse(['php', 'python', 'javascript', 'go']);
 
     $resolved = $result->resolve('py');
 
-    expect($resolved)->toBeInstanceOf(DirectCompletionResult::class)
+    expect($resolved)->toBeInstanceOf(DirectCompletionResponse::class)
         ->and($resolved->values())->toBe(['python']);
 });
 
 it('returns all items when empty value', function (): void {
-    $result = new ListCompletionResult(['php', 'python', 'javascript']);
+    $result = new ListCompletionResponse(['php', 'python', 'javascript']);
 
     $resolved = $result->resolve('');
 
@@ -21,7 +21,7 @@ it('returns all items when empty value', function (): void {
 });
 
 it('returns empty when no match', function (): void {
-    $result = new ListCompletionResult(['php', 'python', 'javascript']);
+    $result = new ListCompletionResponse(['php', 'python', 'javascript']);
 
     $resolved = $result->resolve('rust');
 
@@ -29,7 +29,7 @@ it('returns empty when no match', function (): void {
 });
 
 it('is case insensitive', function (): void {
-    $result = new ListCompletionResult(['PHP', 'Python', 'JavaScript']);
+    $result = new ListCompletionResponse(['PHP', 'Python', 'JavaScript']);
 
     $resolved = $result->resolve('py');
 
@@ -38,7 +38,7 @@ it('is case insensitive', function (): void {
 
 it('truncates to 100 items', function (): void {
     $items = array_map(fn ($i): string => "item{$i}", range(1, 150));
-    $result = new ListCompletionResult($items);
+    $result = new ListCompletionResponse($items);
 
     $resolved = $result->resolve('');
 
@@ -46,7 +46,7 @@ it('truncates to 100 items', function (): void {
 });
 
 it('starts with empty values until resolved', function (): void {
-    $result = new ListCompletionResult(['php', 'python', 'javascript']);
+    $result = new ListCompletionResponse(['php', 'python', 'javascript']);
 
     expect($result->values())->toBe([])
         ->and($result->total())->toBeNull()

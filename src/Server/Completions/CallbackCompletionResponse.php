@@ -6,26 +6,26 @@ namespace Laravel\Mcp\Server\Completions;
 
 use Illuminate\Support\Arr;
 
-final class CallbackCompletionResult extends CompletionResult
+final class CallbackCompletionResponse extends CompletionResponse
 {
     /**
-     * @param  callable(string): (CompletionResult|array<int, string>|string)  $callback
+     * @param  callable(string): (CompletionResponse|array<int, string>|string)  $callback
      */
     public function __construct(private $callback)
     {
         parent::__construct([]);
     }
 
-    public function resolve(string $value): CompletionResult
+    public function resolve(string $value): CompletionResponse
     {
         $result = ($this->callback)($value);
 
-        if ($result instanceof CompletionResult) {
+        if ($result instanceof CompletionResponse) {
             return $result;
         }
 
         $truncated = array_slice(Arr::wrap($result), 0, self::MAX_VALUES);
 
-        return new DirectCompletionResult($truncated);
+        return new DirectCompletionResponse($truncated);
     }
 }

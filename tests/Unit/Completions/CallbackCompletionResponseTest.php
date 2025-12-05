@@ -1,12 +1,12 @@
 <?php
 
-use Laravel\Mcp\Server\Completions\CallbackCompletionResult;
-use Laravel\Mcp\Server\Completions\CompletionResult;
-use Laravel\Mcp\Server\Completions\DirectCompletionResult;
+use Laravel\Mcp\Server\Completions\CallbackCompletionResponse;
+use Laravel\Mcp\Server\Completions\CompletionResponse;
+use Laravel\Mcp\Server\Completions\DirectCompletionResponse;
 
 it('executes callback when resolved', function (): void {
     $called = false;
-    $result = new CallbackCompletionResult(function (string $value) use (&$called): array {
+    $result = new CallbackCompletionResponse(function (string $value) use (&$called): array {
         $called = true;
 
         return ['result'];
@@ -19,7 +19,7 @@ it('executes callback when resolved', function (): void {
 
 it('passes value to callback', function (): void {
     $receivedValue = null;
-    $result = new CallbackCompletionResult(function (string $value) use (&$receivedValue): array {
+    $result = new CallbackCompletionResponse(function (string $value) use (&$receivedValue): array {
         $receivedValue = $value;
 
         return ['result'];
@@ -31,27 +31,27 @@ it('passes value to callback', function (): void {
 });
 
 it('handles CompletionResult return', function (): void {
-    $result = new CallbackCompletionResult(
-        fn (string $value): CompletionResult => CompletionResult::make(['custom', 'result'])
+    $result = new CallbackCompletionResponse(
+        fn (string $value): CompletionResponse => CompletionResponse::make(['custom', 'result'])
     );
 
     $resolved = $result->resolve('test');
 
-    expect($resolved)->toBeInstanceOf(CompletionResult::class)
+    expect($resolved)->toBeInstanceOf(CompletionResponse::class)
         ->and($resolved->values())->toBe(['custom', 'result']);
 });
 
 it('handles array return', function (): void {
-    $result = new CallbackCompletionResult(fn (string $value): array => ['item1', 'item2', 'item3']);
+    $result = new CallbackCompletionResponse(fn (string $value): array => ['item1', 'item2', 'item3']);
 
     $resolved = $result->resolve('test');
 
-    expect($resolved)->toBeInstanceOf(DirectCompletionResult::class)
+    expect($resolved)->toBeInstanceOf(DirectCompletionResponse::class)
         ->and($resolved->values())->toBe(['item1', 'item2', 'item3']);
 });
 
 it('handles string return', function (): void {
-    $result = new CallbackCompletionResult(fn (string $value): string => 'single-item');
+    $result = new CallbackCompletionResponse(fn (string $value): string => 'single-item');
 
     $resolved = $result->resolve('test');
 
@@ -59,7 +59,7 @@ it('handles string return', function (): void {
 });
 
 it('truncates callback results to 100 items', function (): void {
-    $result = new CallbackCompletionResult(fn (string $value): array => array_map(fn ($i): string => "item{$i}", range(1, 150)));
+    $result = new CallbackCompletionResponse(fn (string $value): array => array_map(fn ($i): string => "item{$i}", range(1, 150)));
 
     $resolved = $result->resolve('');
 
@@ -67,7 +67,7 @@ it('truncates callback results to 100 items', function (): void {
 });
 
 it('starts with empty values until resolved', function (): void {
-    $result = new CallbackCompletionResult(fn (string $value): array => ['result']);
+    $result = new CallbackCompletionResponse(fn (string $value): array => ['result']);
 
     expect($result->values())->toBe([])
         ->and($result->total())->toBeNull()

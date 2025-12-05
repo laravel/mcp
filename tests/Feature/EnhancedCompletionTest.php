@@ -3,7 +3,7 @@
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
-use Laravel\Mcp\Server\Completions\CompletionResult;
+use Laravel\Mcp\Server\Completions\CompletionResponse;
 use Laravel\Mcp\Server\Contracts\SupportsCompletion;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\Argument;
@@ -50,17 +50,17 @@ class LocationPrompt extends Prompt implements SupportsCompletion
         ];
     }
 
-    public function complete(string $argument, string $value): CompletionResult
+    public function complete(string $argument, string $value): CompletionResponse
     {
         return match ($argument) {
-            'location' => CompletionResult::usingList([
+            'location' => CompletionResponse::usingList([
                 'New York',
                 'Los Angeles',
                 'Chicago',
                 'Houston',
                 'Miami',
             ]),
-            default => CompletionResult::empty(),
+            default => CompletionResponse::empty(),
         };
     }
 
@@ -81,11 +81,11 @@ class UnitsPrompt extends Prompt implements SupportsCompletion
         ];
     }
 
-    public function complete(string $argument, string $value): CompletionResult
+    public function complete(string $argument, string $value): CompletionResponse
     {
         return match ($argument) {
-            'unit' => CompletionResult::usingEnum(TestUnits::class),
-            default => CompletionResult::empty(),
+            'unit' => CompletionResponse::usingEnum(TestUnits::class),
+            default => CompletionResponse::empty(),
         };
     }
 
@@ -106,11 +106,11 @@ class StatusPrompt extends Prompt implements SupportsCompletion
         ];
     }
 
-    public function complete(string $argument, string $value): CompletionResult
+    public function complete(string $argument, string $value): CompletionResponse
     {
         return match ($argument) {
-            'status' => CompletionResult::usingEnum(TestStatusEnum::class),
-            default => CompletionResult::empty(),
+            'status' => CompletionResponse::usingEnum(TestStatusEnum::class),
+            default => CompletionResponse::empty(),
         };
     }
 
@@ -131,15 +131,15 @@ class DynamicPrompt extends Prompt implements SupportsCompletion
         ];
     }
 
-    public function complete(string $argument, string $value): CompletionResult
+    public function complete(string $argument, string $value): CompletionResponse
     {
         return match ($argument) {
-            'city' => CompletionResult::using(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResult => CompletionResult::make([
+            'city' => CompletionResponse::using(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::make([
                 'San Francisco',
                 'San Diego',
                 'San Jose',
             ])),
-            default => CompletionResult::empty(),
+            default => CompletionResponse::empty(),
         };
     }
 
@@ -160,11 +160,11 @@ class SingleStringPrompt extends Prompt implements SupportsCompletion
         ];
     }
 
-    public function complete(string $argument, string $value): CompletionResult
+    public function complete(string $argument, string $value): CompletionResponse
     {
         return match ($argument) {
-            'name' => CompletionResult::using(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResult => CompletionResult::make('John Doe')),
-            default => CompletionResult::empty(),
+            'name' => CompletionResponse::using(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::make('John Doe')),
+            default => CompletionResponse::empty(),
         };
     }
 

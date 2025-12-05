@@ -12,7 +12,7 @@ use UnitEnum;
 /**
  * @implements Arrayable<string, mixed>
  */
-abstract class CompletionResult implements Arrayable
+abstract class CompletionResponse implements Arrayable
 {
     protected const MAX_VALUES = 100;
 
@@ -34,7 +34,7 @@ abstract class CompletionResult implements Arrayable
     /**
      * @param  array<int, string>|string  $values
      */
-    public static function make(array|string $values): CompletionResult
+    public static function make(array|string $values): CompletionResponse
     {
         $values = Arr::wrap($values);
 
@@ -42,36 +42,36 @@ abstract class CompletionResult implements Arrayable
             $values = array_slice($values, 0, self::MAX_VALUES);
         }
 
-        return new DirectCompletionResult($values);
+        return new DirectCompletionResponse($values);
     }
 
-    public static function empty(): CompletionResult
+    public static function empty(): CompletionResponse
     {
-        return new DirectCompletionResult([]);
+        return new DirectCompletionResponse([]);
     }
 
     /**
      * @param  array<int, string>  $items
      */
-    public static function usingList(array $items): CompletionResult
+    public static function usingList(array $items): CompletionResponse
     {
-        return new ListCompletionResult($items);
+        return new ListCompletionResponse($items);
     }
 
     /**
      * @param  class-string<UnitEnum>  $enumClass
      */
-    public static function usingEnum(string $enumClass): CompletionResult
+    public static function usingEnum(string $enumClass): CompletionResponse
     {
-        return new EnumCompletionResult($enumClass);
+        return new EnumCompletionResponse($enumClass);
     }
 
-    public static function using(callable $callback): CompletionResult
+    public static function using(callable $callback): CompletionResponse
     {
-        return new CallbackCompletionResult($callback);
+        return new CallbackCompletionResponse($callback);
     }
 
-    abstract public function resolve(string $value): CompletionResult;
+    abstract public function resolve(string $value): CompletionResponse;
 
     /**
      * @return array<int, string>
