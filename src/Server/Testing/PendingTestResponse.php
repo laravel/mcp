@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server\Testing;
 
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
+use InvalidArgumentException;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Primitive;
@@ -52,6 +53,60 @@ class PendingTestResponse
     public function resource(Resource|string $resource, array $arguments = []): TestResponse
     {
         return $this->run('resources/read', $resource, $arguments);
+    }
+
+    /**
+     * @param  class-string<Primitive>|Primitive  $primitive
+     * @param  array<string, mixed>  $currentArgs
+     */
+    public function completion(
+        Primitive|string $primitive,
+        string $argumentName,
+        string $argumentValue = '',
+        array $currentArgs = []
+    ): TestResponse {
+        $container = Container::getInstance();
+
+        $primitive = is_string($primitive) ? $container->make($primitive) : $primitive;
+        $server = $container->make($this->serverClass, ['transport' => new FakeTransporter]);
+
+        $server->start();
+
+        $requestId = uniqid();
+
+        $ref = match (true) {
+            $primitive instanceof Prompt => [
+                'type' => 'ref/prompt',
+                'name' => $primitive->name(),
+                'arguments' => $currentArgs,
+            ],
+            $primitive instanceof Resource => [
+                'type' => 'ref/resource',
+                'uri' => $primitive->uri(),
+                'arguments' => $currentArgs,
+            ],
+            default => throw new InvalidArgumentException('Unsupported primitive type for completion.'),
+        };
+
+        $request = new JsonRpcRequest(
+            $requestId,
+            'completion/complete',
+            [
+                'ref' => $ref,
+                'argument' => [
+                    'name' => $argumentName,
+                    'value' => $argumentValue,
+                ],
+            ],
+        );
+
+        try {
+            $response = (fn () => $this->runMethodHandle($request, $this->createContext()))->call($server);
+        } catch (JsonRpcException $jsonRpcException) {
+            $response = $jsonRpcException->toJsonRpcResponse();
+        }
+
+        return new TestResponse($primitive, $response);
     }
 
     public function actingAs(Authenticatable $user, ?string $guard = null): static

@@ -10,6 +10,7 @@ use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\CallTool;
+use Laravel\Mcp\Server\Methods\CompletionComplete;
 use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\Methods\Initialize;
 use Laravel\Mcp\Server\Methods\ListPrompts;
@@ -97,6 +98,7 @@ abstract class Server
         'resources/templates/list' => ListResourceTemplates::class,
         'prompts/list' => ListPrompts::class,
         'prompts/get' => GetPrompt::class,
+        'completion/complete' => CompletionComplete::class,
         'ping' => Ping::class,
     ];
 
