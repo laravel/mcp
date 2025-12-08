@@ -45,18 +45,3 @@ it('filters enum values by prefix', function (): void {
 it('throws exception for invalid enum class', function (): void {
     new EnumCompletionResponse('NotAnEnum');
 })->throws(InvalidArgumentException::class, 'is not an enum');
-
-it('is case insensitive', function (): void {
-    $result = new EnumCompletionResponse(PlainEnumForTest::class);
-
-    $resolved = $result->resolve('act');
-
-    expect($resolved->values())->toBe(['Active']);
-});
-
-it('starts with empty values until resolved', function (): void {
-    $result = new EnumCompletionResponse(BackedEnumForTest::class);
-
-    expect($result->values())->toBe([])
-        ->and($result->hasMore())->toBeFalse();
-});

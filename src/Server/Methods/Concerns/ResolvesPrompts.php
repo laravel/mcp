@@ -12,7 +12,7 @@ trait ResolvesPrompts
 {
     protected function resolvePrompt(?string $name, ServerContext $context): Prompt
     {
-        if (is_null($name)) {
+        if (! $name) {
             throw new InvalidArgumentException('Missing [name] parameter.');
         }
 

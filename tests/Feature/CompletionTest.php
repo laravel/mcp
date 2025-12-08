@@ -12,6 +12,20 @@ use Laravel\Mcp\Server\Prompts\Argument;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Support\UriTemplate;
 
+enum TestUnits: string
+{
+    case Celsius = 'celsius';
+    case Fahrenheit = 'fahrenheit';
+    case Kelvin = 'kelvin';
+}
+
+enum TestStatusEnum
+{
+    case Active;
+    case Inactive;
+    case Pending;
+}
+
 class TestCompletionServer extends Server
 {
     protected string $name = 'Test Completion Server';
@@ -23,6 +37,11 @@ class TestCompletionServer extends Server
     protected array $prompts = [
         LanguageCompletionPrompt::class,
         ProjectTaskCompletionPrompt::class,
+        LocationPrompt::class,
+        UnitsPrompt::class,
+        StatusPrompt::class,
+        DynamicPrompt::class,
+        SingleStringPrompt::class,
     ];
 
     protected array $resources = [
@@ -103,6 +122,141 @@ class ProjectTaskCompletionPrompt extends Prompt implements SupportsCompletion
     }
 }
 
+class LocationPrompt extends Prompt implements SupportsCompletion
+{
+    protected string $description = 'Select a location';
+
+    public function arguments(): array
+    {
+        return [
+            new Argument('location', 'Location name', required: true),
+        ];
+    }
+
+    public function complete(string $argument, string $value, array $context): CompletionResponse
+    {
+        return match ($argument) {
+            'location' => CompletionResponse::fromArray([
+                'New York',
+                'Los Angeles',
+                'Chicago',
+                'Houston',
+                'Miami',
+            ]),
+            default => CompletionResponse::empty(),
+        };
+    }
+
+    public function handle(Request $request): Response
+    {
+        return Response::text("Selected: {$request->get('location')}");
+    }
+}
+
+class UnitsPrompt extends Prompt implements SupportsCompletion
+{
+    protected string $description = 'Select temperature unit';
+
+    public function arguments(): array
+    {
+        return [
+            new Argument('unit', 'Temperature unit', required: true),
+        ];
+    }
+
+    public function complete(string $argument, string $value, array $context): CompletionResponse
+    {
+        return match ($argument) {
+            'unit' => CompletionResponse::fromEnum(TestUnits::class),
+            default => CompletionResponse::empty(),
+        };
+    }
+
+    public function handle(Request $request): Response
+    {
+        return Response::text("Unit: {$request->get('unit')}");
+    }
+}
+
+class StatusPrompt extends Prompt implements SupportsCompletion
+{
+    protected string $description = 'Select status';
+
+    public function arguments(): array
+    {
+        return [
+            new Argument('status', 'Status value', required: true),
+        ];
+    }
+
+    public function complete(string $argument, string $value, array $context): CompletionResponse
+    {
+        return match ($argument) {
+            'status' => CompletionResponse::fromEnum(TestStatusEnum::class),
+            default => CompletionResponse::empty(),
+        };
+    }
+
+    public function handle(Request $request): Response
+    {
+        return Response::text("Status: {$request->get('status')}");
+    }
+}
+
+class DynamicPrompt extends Prompt implements SupportsCompletion
+{
+    protected string $description = 'Dynamic completion';
+
+    public function arguments(): array
+    {
+        return [
+            new Argument('city', 'City name', required: true),
+        ];
+    }
+
+    public function complete(string $argument, string $value, array $context): CompletionResponse
+    {
+        return match ($argument) {
+            'city' => CompletionResponse::fromCallback(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::from([
+                'San Francisco',
+                'San Diego',
+                'San Jose',
+            ])),
+            default => CompletionResponse::empty(),
+        };
+    }
+
+    public function handle(Request $request): Response
+    {
+        return Response::text("City: {$request->get('city')}");
+    }
+}
+
+class SingleStringPrompt extends Prompt implements SupportsCompletion
+{
+    protected string $description = 'Single string completion';
+
+    public function arguments(): array
+    {
+        return [
+            new Argument('name', 'Name', required: true),
+        ];
+    }
+
+    public function complete(string $argument, string $value, array $context): CompletionResponse
+    {
+        return match ($argument) {
+            'name' => CompletionResponse::fromCallback(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::from('John Doe')),
+            default => CompletionResponse::empty(),
+        };
+    }
+
+    public function handle(Request $request): Response
+    {
+        return Response::text("Name: {$request->get('name')}");
+    }
+}
+
 class UserFileCompletionResource extends Resource implements HasUriTemplate, SupportsCompletion
 {
     protected string $mimeType = 'text/plain';
@@ -146,49 +300,91 @@ class UserFileCompletionResource extends Resource implements HasUriTemplate, Sup
     }
 }
 
-describe('Prompt Completions', function (): void {
-    it('completes language argument with prefix matching', function (): void {
+describe('from() - Basic Completions', function (): void {
+    it('filters by prefix and returns all when empty', function (): void {
         TestCompletionServer::completion(LanguageCompletionPrompt::class, 'language', 'py')
             ->assertHasCompletions(['python'])
             ->assertCompletionCount(1);
-    });
 
-    it('returns all languages when no prefix provided', function (): void {
         TestCompletionServer::completion(LanguageCompletionPrompt::class, 'language', '')
             ->assertCompletionCount(6);
+
+        TestCompletionServer::completion(LanguageCompletionPrompt::class, 'language', 'xyz')
+            ->assertCompletionCount(0);
     });
 
     it('refines completions as user types', function (): void {
-        // Type "j" - gets java and javascript
         TestCompletionServer::completion(LanguageCompletionPrompt::class, 'language', 'j')
             ->assertHasCompletions(['javascript'])
             ->assertCompletionCount(1);
 
-        // Type "ja" - narrows to just javascript
         TestCompletionServer::completion(LanguageCompletionPrompt::class, 'language', 'ja')
             ->assertCompletionValues(['javascript'])
             ->assertCompletionCount(1);
     });
+});
 
-    it('returns empty completions for non-matching prefix', function (): void {
-        TestCompletionServer::completion(LanguageCompletionPrompt::class, 'language', 'xyz')
+describe('fromArray() - Array Completions', function (): void {
+    it('returns and filters locations', function (): void {
+        TestCompletionServer::completion(LocationPrompt::class, 'location', '')
+            ->assertCompletionCount(5);
+
+        TestCompletionServer::completion(LocationPrompt::class, 'location', 'New')
+            ->assertHasCompletions(['New York'])
+            ->assertCompletionCount(1);
+
+        TestCompletionServer::completion(LocationPrompt::class, 'location', 'los')
+            ->assertHasCompletions(['Los Angeles'])
+            ->assertCompletionCount(1);
+
+        TestCompletionServer::completion(LocationPrompt::class, 'location', 'xyz')
             ->assertCompletionCount(0);
     });
 });
 
-describe('Multi-Argument Completions', function (): void {
-    it('completes projectId', function (): void {
+describe('fromEnum() - Enum Completions', function (): void {
+    it('returns backed enum values with filtering', function (): void {
+        TestCompletionServer::completion(UnitsPrompt::class, 'unit', '')
+            ->assertHasCompletions(['celsius', 'fahrenheit', 'kelvin'])
+            ->assertCompletionCount(3);
+
+        TestCompletionServer::completion(UnitsPrompt::class, 'unit', 'kel')
+            ->assertHasCompletions(['kelvin'])
+            ->assertCompletionCount(1);
+    });
+
+    it('returns non-backed enum names with filtering', function (): void {
+        TestCompletionServer::completion(StatusPrompt::class, 'status', '')
+            ->assertHasCompletions(['Active', 'Inactive', 'Pending'])
+            ->assertCompletionCount(3);
+
+        TestCompletionServer::completion(StatusPrompt::class, 'status', 'Pen')
+            ->assertHasCompletions(['Pending'])
+            ->assertCompletionCount(1);
+    });
+});
+
+describe('fromCallback() - Callback Completions', function (): void {
+    it('returns values from callback and handles single strings', function (): void {
+        TestCompletionServer::completion(DynamicPrompt::class, 'city', '')
+            ->assertHasCompletions(['San Francisco', 'San Diego', 'San Jose'])
+            ->assertCompletionCount(3);
+
+        TestCompletionServer::completion(SingleStringPrompt::class, 'name', '')
+            ->assertHasCompletions(['John Doe'])
+            ->assertCompletionCount(1);
+    });
+});
+
+describe('Context-Aware Completions', function (): void {
+    it('completes projectId and taskId with context dependency', function (): void {
         TestCompletionServer::completion(ProjectTaskCompletionPrompt::class, 'projectId', '')
             ->assertHasCompletions(['project-1', 'project-2', 'project-3'])
             ->assertCompletionCount(3);
-    });
 
-    it('returns empty taskId completions without project context', function (): void {
         TestCompletionServer::completion(ProjectTaskCompletionPrompt::class, 'taskId', '')
             ->assertCompletionCount(0);
-    });
 
-    it('completes taskId based on project context', function (): void {
         TestCompletionServer::completion(
             ProjectTaskCompletionPrompt::class,
             'taskId',
@@ -197,9 +393,7 @@ describe('Multi-Argument Completions', function (): void {
         )
             ->assertCompletionValues(['task-1-1', 'task-1-2'])
             ->assertCompletionCount(2);
-    });
 
-    it('provides different tasks for different projects', function (): void {
         TestCompletionServer::completion(
             ProjectTaskCompletionPrompt::class,
             'taskId',
@@ -209,21 +403,15 @@ describe('Multi-Argument Completions', function (): void {
             ->assertCompletionValues(['task-2-1', 'task-2-2'])
             ->assertCompletionCount(2);
     });
-});
 
-describe('Resource Template Completions', function (): void {
-    it('completes userId', function (): void {
-        TestCompletionServer::completion(UserFileCompletionResource::class, 'userId', '')
+    it('completes userId and fileId with context dependency', function (): void {
+        TestCompletionServer::completion(UserFileCompletionResource::class, 'userId')
             ->assertHasCompletions(['user-1', 'user-2', 'user-3'])
             ->assertCompletionCount(3);
-    });
 
-    it('returns empty fileId completions without user context', function (): void {
-        TestCompletionServer::completion(UserFileCompletionResource::class, 'fileId', '')
+        TestCompletionServer::completion(UserFileCompletionResource::class, 'fileId')
             ->assertCompletionCount(0);
-    });
 
-    it('completes fileId based on user context', function (): void {
         TestCompletionServer::completion(
             UserFileCompletionResource::class,
             'fileId',
@@ -232,9 +420,7 @@ describe('Resource Template Completions', function (): void {
         )
             ->assertCompletionValues(['file1.txt', 'file2.txt'])
             ->assertCompletionCount(2);
-    });
 
-    it('provides different files for different users', function (): void {
         TestCompletionServer::completion(
             UserFileCompletionResource::class,
             'fileId',

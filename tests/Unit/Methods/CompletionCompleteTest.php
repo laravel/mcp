@@ -3,12 +3,14 @@
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Completions\CompletionResponse;
+use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Contracts\SupportsCompletion;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\CompletionComplete;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\Argument;
 use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Support\UriTemplate;
 
@@ -81,7 +83,7 @@ class NonCompletionPrompt extends Prompt
     }
 }
 
-class CompletionMethodTestResourceWithTemplate extends Resource implements \Laravel\Mcp\Server\Contracts\HasUriTemplate, SupportsCompletion
+class CompletionMethodTestResourceWithTemplate extends Resource implements HasUriTemplate, SupportsCompletion
 {
     protected string $mimeType = 'text/plain';
 
@@ -103,8 +105,8 @@ class CompletionMethodTestResourceWithTemplate extends Resource implements \Lara
     }
 }
 
-it('throws exception when completions capability is not declared', function (): void {
-    $server = new class(new \Laravel\Mcp\Server\Transport\FakeTransporter) extends Server
+it('throws an exception when completion capability is not declared', function (): void {
+    $server = new class(new FakeTransporter) extends Server
     {
         protected string $name = 'Test';
 
@@ -122,38 +124,38 @@ it('throws exception when completions capability is not declared', function (): 
     $method->handle($request, $context);
 })->throws(JsonRpcException::class, 'Server does not support completions capability');
 
-it('throws exception when ref is missing', function (): void {
+it('throws an exception when the ref is missing', function (): void {
     $method = new CompletionComplete;
     $request = new JsonRpcRequest('1', 'completion/complete', [
         'argument' => ['name' => 'test', 'value' => ''],
     ]);
 
-    $server = new CompletionMethodTestServer(new \Laravel\Mcp\Server\Transport\FakeTransporter);
+    $server = new CompletionMethodTestServer(new FakeTransporter);
     $context = $server->createContext();
 
     $method->handle($request, $context);
 })->throws(JsonRpcException::class, 'Missing required parameters: ref and argument');
 
-it('throws exception when argument is missing', function (): void {
+it('throws an exception when an argument is missing', function (): void {
     $method = new CompletionComplete;
     $request = new JsonRpcRequest('1', 'completion/complete', [
         'ref' => ['type' => 'ref/prompt', 'name' => 'test'],
     ]);
 
-    $server = new CompletionMethodTestServer(new \Laravel\Mcp\Server\Transport\FakeTransporter);
+    $server = new CompletionMethodTestServer(new FakeTransporter);
     $context = $server->createContext();
 
     $method->handle($request, $context);
 })->throws(JsonRpcException::class, 'Missing required parameters: ref and argument');
 
-it('throws exception when argument name is missing', function (): void {
+it('throws an exception when the argument name is missing', function (): void {
     $method = new CompletionComplete;
     $request = new JsonRpcRequest('1', 'completion/complete', [
         'ref' => ['type' => 'ref/prompt', 'name' => 'completion-method-test-prompt'],
         'argument' => ['value' => 'test'],
     ]);
 
-    $server = new CompletionMethodTestServer(new \Laravel\Mcp\Server\Transport\FakeTransporter);
+    $server = new CompletionMethodTestServer(new FakeTransporter);
     $context = $server->createContext();
 
     $method->handle($request, $context);
@@ -166,7 +168,7 @@ it('throws exception for invalid reference type', function (): void {
         'argument' => ['name' => 'test', 'value' => ''],
     ]);
 
-    $server = new CompletionMethodTestServer(new \Laravel\Mcp\Server\Transport\FakeTransporter);
+    $server = new CompletionMethodTestServer(new FakeTransporter);
     $context = $server->createContext();
 
     $method->handle($request, $context);
@@ -179,7 +181,7 @@ it('throws exception when prompt name is missing', function (): void {
         'argument' => ['name' => 'test', 'value' => ''],
     ]);
 
-    $server = new CompletionMethodTestServer(new \Laravel\Mcp\Server\Transport\FakeTransporter);
+    $server = new CompletionMethodTestServer(new FakeTransporter);
     $context = $server->createContext();
 
     $method->handle($request, $context);
@@ -192,7 +194,7 @@ it('throws exception when prompt not found', function (): void {
         'argument' => ['name' => 'test', 'value' => ''],
     ]);
 
-    $server = new CompletionMethodTestServer(new \Laravel\Mcp\Server\Transport\FakeTransporter);
+    $server = new CompletionMethodTestServer(new FakeTransporter);
     $context = $server->createContext();
 
     $method->handle($request, $context);
@@ -205,7 +207,7 @@ it('throws exception when resource URI is missing', function (): void {
         'argument' => ['name' => 'test', 'value' => ''],
     ]);
 
-    $server = new CompletionMethodTestServer(new \Laravel\Mcp\Server\Transport\FakeTransporter);
+    $server = new CompletionMethodTestServer(new FakeTransporter);
     $context = $server->createContext();
 
     $method->handle($request, $context);
@@ -218,14 +220,14 @@ it('throws exception when resource not found', function (): void {
         'argument' => ['name' => 'test', 'value' => ''],
     ]);
 
-    $server = new CompletionMethodTestServer(new \Laravel\Mcp\Server\Transport\FakeTransporter);
+    $server = new CompletionMethodTestServer(new FakeTransporter);
     $context = $server->createContext();
 
     $method->handle($request, $context);
 })->throws(JsonRpcException::class, 'Resource [file://non-existent] not found');
 
 it('throws exception when primitive does not support completion', function (): void {
-    $server = new class(new \Laravel\Mcp\Server\Transport\FakeTransporter) extends Server
+    $server = new class(new FakeTransporter) extends Server
     {
         protected string $name = 'Test';
 
@@ -252,7 +254,7 @@ it('completes for prompt', function (): void {
         'argument' => ['name' => 'test', 'value' => ''],
     ]);
 
-    $server = new CompletionMethodTestServer(new \Laravel\Mcp\Server\Transport\FakeTransporter);
+    $server = new CompletionMethodTestServer(new FakeTransporter);
     $context = $server->createContext();
 
     $response = $method->handle($request, $context);
@@ -272,7 +274,7 @@ it('completes for resource', function (): void {
         'argument' => ['name' => 'test', 'value' => ''],
     ]);
 
-    $server = new CompletionMethodTestServer(new \Laravel\Mcp\Server\Transport\FakeTransporter);
+    $server = new CompletionMethodTestServer(new FakeTransporter);
     $context = $server->createContext();
 
     $response = $method->handle($request, $context);
@@ -286,7 +288,7 @@ it('completes for resource', function (): void {
 });
 
 it('finds resource by template match', function (): void {
-    $server = new class(new \Laravel\Mcp\Server\Transport\FakeTransporter) extends Server
+    $server = new class(new FakeTransporter) extends Server
     {
         protected string $name = 'Test';
 
@@ -312,7 +314,7 @@ it('finds resource by template match', function (): void {
 });
 
 it('finds resource by exact template string', function (): void {
-    $server = new class(new \Laravel\Mcp\Server\Transport\FakeTransporter) extends Server
+    $server = new class(new FakeTransporter) extends Server
     {
         protected string $name = 'Test';
 
@@ -350,7 +352,7 @@ it('extracts and passes context arguments to completion method', function (): vo
         ],
     ]);
 
-    $server = new CompletionMethodTestServer(new \Laravel\Mcp\Server\Transport\FakeTransporter);
+    $server = new CompletionMethodTestServer(new FakeTransporter);
     $context = $server->createContext();
 
     $response = $method->handle($request, $context);
@@ -368,7 +370,7 @@ it('passes empty context when context is not provided', function (): void {
         'argument' => ['name' => 'test', 'value' => ''],
     ]);
 
-    $server = new CompletionMethodTestServer(new \Laravel\Mcp\Server\Transport\FakeTransporter);
+    $server = new CompletionMethodTestServer(new FakeTransporter);
     $context = $server->createContext();
 
     $response = $method->handle($request, $context);

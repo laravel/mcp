@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Methods;
 use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
 use InvalidArgumentException;
+use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\SupportsCompletion;
@@ -26,7 +27,7 @@ class CompletionComplete implements Method
 
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
-        if (! isset($context->serverCapabilities['completions'])) {
+        if (! $context->hasCapability(Server::CAPABILITY_COMPLETTIONS)) {
             throw new JsonRpcException(
                 'Server does not support completions capability.',
                 -32601,
@@ -54,13 +55,13 @@ class CompletionComplete implements Method
         if (! $primitive instanceof SupportsCompletion) {
             throw new JsonRpcException(
                 'The referenced primitive does not support completion.',
-                -32602,
+                -32601,
                 $request->id,
             );
         }
 
-        $argumentName = $argument['name'] ?? null;
-        $argumentValue = $argument['value'] ?? '';
+        $argumentName = Arr::get($argument, 'name');
+        $argumentValue = Arr::get($argument, 'value', '');
 
         if (is_null($argumentName)) {
             throw new JsonRpcException(
