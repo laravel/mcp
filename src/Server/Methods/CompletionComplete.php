@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Completions\CompletionResponse;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\SupportsCompletion;
@@ -53,11 +54,11 @@ class CompletionComplete implements Method
         }
 
         if (! $primitive instanceof SupportsCompletion) {
-            throw new JsonRpcException(
-                'The referenced primitive does not support completion.',
-                -32601,
-                $request->id,
-            );
+            $result = CompletionResponse::empty();
+
+            return JsonRpcResponse::result($request->id, [
+                'completion' => $result->toArray(),
+            ]);
         }
 
         $argumentName = Arr::get($argument, 'name');

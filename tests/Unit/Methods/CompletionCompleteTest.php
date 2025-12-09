@@ -226,7 +226,7 @@ it('throws exception when resource not found', function (): void {
     $method->handle($request, $context);
 })->throws(JsonRpcException::class, 'Resource [file://non-existent] not found');
 
-it('throws exception when primitive does not support completion', function (): void {
+it('return empty array when primitive does not support completion', function (): void {
     $server = new class(new FakeTransporter) extends Server
     {
         protected string $name = 'Test';
@@ -244,8 +244,16 @@ it('throws exception when primitive does not support completion', function (): v
 
     $context = $server->createContext();
 
-    $method->handle($request, $context);
-})->throws(JsonRpcException::class, 'does not support completion');
+    $response = $method->handle($request, $context);
+
+    expect($response->toArray())
+        ->toHaveKey('result')
+        ->and($response->toArray()['result'])
+        ->toHaveKey('completion')
+        ->and($response->toArray()['result']['completion']['values'])
+        ->toBe([]);
+
+});
 
 it('completes for prompt', function (): void {
     $method = new CompletionComplete;
