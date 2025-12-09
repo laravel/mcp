@@ -24,6 +24,7 @@ use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Testing\PendingTestResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
@@ -233,6 +234,8 @@ abstract class Server
     {
         $response = $this->runMethodHandle($request, $context);
 
+        $this->applyResponseHeaders();
+
         if (! is_iterable($response)) {
             $this->transport->send($response->toJson());
 
@@ -281,6 +284,33 @@ abstract class Server
     protected function generateSessionId(): string
     {
         return Str::uuid()->toString();
+    }
+
+    protected function applyResponseHeaders(): void
+    {
+        $container = Container::getInstance();
+
+        if (! $container->bound('mcp.response.factory')) {
+            return;
+        }
+
+        $responseFactory = $container->make('mcp.response.factory');
+
+        if (! $responseFactory instanceof ResponseFactory) {
+            return;
+        }
+
+        $headers = $responseFactory->headers();
+
+        if ($headers === []) {
+            return;
+        }
+
+        if ($this->transport instanceof HttpTransport) {
+            $this->transport->withHeaders($headers);
+        }
+
+        $container->forgetInstance('mcp.response.factory');
     }
 
     /**
