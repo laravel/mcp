@@ -1,6 +1,18 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.4.1...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.4.2...main)
+
+## [v0.4.2](https://github.com/laravel/mcp/compare/v0.4.1...v0.4.2) - 2025-12-07
+
+### What's Changed
+
+* Bump Laravel version by [@florianraith](https://github.com/florianraith) in https://github.com/laravel/mcp/pull/128
+
+### New Contributors
+
+* [@florianraith](https://github.com/florianraith) made their first contribution in https://github.com/laravel/mcp/pull/128
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.4.1...v0.4.2
 
 ## [v0.4.1](https://github.com/laravel/mcp/compare/v0.4.0...v0.4.1) - 2025-12-04
 
@@ -60,6 +72,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -70,6 +83,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
