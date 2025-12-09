@@ -83,6 +83,11 @@ class ServerContext
         return min($requestedPerPage ?? $this->defaultPaginationLength, $this->maxPaginationLength);
     }
 
+    public function hasCapability(string $capability): bool
+    {
+        return array_key_exists($capability, $this->serverCapabilities);
+    }
+
     /**
      * @template T of Primitive
      *

@@ -17,6 +17,19 @@ class ExampleServer extends Server
         RecentMeetingRecordingResource::class,
     ];
 
+    protected array $capabilities = [
+        self::CAPABILITY_TOOLS => [
+            'listChanged' => false,
+        ],
+        self::CAPABILITY_RESOURCES => [
+            'listChanged' => false,
+        ],
+        self::CAPABILITY_PROMPTS => [
+            'listChanged' => false,
+        ],
+        self::CAPABILITY_LOGGING => [],
+    ];
+
     protected function generateSessionId(): string
     {
         return 'overridden-'.uniqid();
