@@ -42,7 +42,7 @@ abstract class Server
 
     public const CAPABILITY_PROMPTS = 'prompts';
 
-    public const CAPABILITY_COMPLETTIONS = 'completions';
+    public const CAPABILITY_COMPLETIONS = 'completions';
 
     protected string $name = 'Laravel MCP Server';
 

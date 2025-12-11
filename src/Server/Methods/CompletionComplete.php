@@ -28,7 +28,7 @@ class CompletionComplete implements Method
 
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
-        if (! $context->hasCapability(Server::CAPABILITY_COMPLETTIONS)) {
+        if (! $context->hasCapability(Server::CAPABILITY_COMPLETIONS)) {
             throw new JsonRpcException(
                 'Server does not support completions capability.',
                 -32601,
