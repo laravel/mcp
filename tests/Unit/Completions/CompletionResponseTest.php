@@ -1,7 +1,6 @@
 <?php
 
 use Laravel\Mcp\Server\Completions\CompletionResponse;
-use Laravel\Mcp\Server\Completions\DirectCompletionResponse;
 
 it('creates a completion result with values', function (): void {
     $result = CompletionResponse::match(['php', 'python', 'javascript'])->resolve('');
@@ -24,4 +23,3 @@ it('auto-truncates values to 100 items and sets hasMore', function (): void {
     expect($result->values())->toHaveCount(100)
         ->and($result->hasMore())->toBeTrue();
 });
-
