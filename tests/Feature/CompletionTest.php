@@ -69,7 +69,7 @@ class LanguageCompletionPrompt extends Prompt implements SupportsCompletion
         $languages = ['php', 'python', 'javascript', 'typescript', 'go', 'rust'];
         $matches = CompletionHelper::filterByPrefix($languages, $value);
 
-        return CompletionResponse::from($matches);
+        return CompletionResponse::match($matches);
     }
 
     public function handle(Request $request): Response
@@ -93,7 +93,7 @@ class ProjectTaskCompletionPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'projectId' => CompletionResponse::from(['project-1', 'project-2', 'project-3']),
+            'projectId' => CompletionResponse::match(['project-1', 'project-2', 'project-3']),
             'taskId' => $this->completeTaskId($context),
             default => CompletionResponse::empty(),
         };
@@ -113,7 +113,7 @@ class ProjectTaskCompletionPrompt extends Prompt implements SupportsCompletion
             'project-3' => ['task-3-1', 'task-3-2'],
         ];
 
-        return CompletionResponse::from($tasks[$projectId] ?? []);
+        return CompletionResponse::match($tasks[$projectId] ?? []);
     }
 
     public function handle(Request $request): Response
@@ -136,7 +136,7 @@ class LocationPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'location' => CompletionResponse::fromArray([
+            'location' => CompletionResponse::match([
                 'New York',
                 'Los Angeles',
                 'Chicago',
@@ -167,7 +167,7 @@ class UnitsPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'unit' => CompletionResponse::fromEnum(TestUnits::class),
+            'unit' => CompletionResponse::match(TestUnits::class),
             default => CompletionResponse::empty(),
         };
     }
@@ -192,7 +192,7 @@ class StatusPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'status' => CompletionResponse::fromEnum(TestStatusEnum::class),
+            'status' => CompletionResponse::match(TestStatusEnum::class),
             default => CompletionResponse::empty(),
         };
     }
@@ -217,11 +217,11 @@ class DynamicPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'city' => CompletionResponse::fromCallback(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::from([
+            'city' => CompletionResponse::match(fn (string $value): array => [
                 'San Francisco',
                 'San Diego',
                 'San Jose',
-            ])),
+            ]),
             default => CompletionResponse::empty(),
         };
     }
@@ -246,7 +246,7 @@ class SingleStringPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'name' => CompletionResponse::fromCallback(fn (string $value): \Laravel\Mcp\Server\Completions\CompletionResponse => CompletionResponse::from('John Doe')),
+            'name' => CompletionResponse::match(fn (string $value): string => 'John Doe'),
             default => CompletionResponse::empty(),
         };
     }
@@ -271,7 +271,7 @@ class UserFileCompletionResource extends Resource implements HasUriTemplate, Sup
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'userId' => CompletionResponse::from(['user-1', 'user-2', 'user-3']),
+            'userId' => CompletionResponse::match(['user-1', 'user-2', 'user-3']),
             'fileId' => $this->completeFileId($context),
             default => CompletionResponse::empty(),
         };
@@ -291,7 +291,7 @@ class UserFileCompletionResource extends Resource implements HasUriTemplate, Sup
             'user-3' => ['report1.txt', 'report2.txt'],
         ];
 
-        return CompletionResponse::from($files[$userId] ?? []);
+        return CompletionResponse::match($files[$userId] ?? []);
     }
 
     public function handle(Request $request): Response

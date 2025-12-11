@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Completions;
 
 use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use UnitEnum;
 
@@ -30,46 +29,25 @@ abstract class CompletionResponse implements Arrayable
         }
     }
 
-    /**
-     * @param  array<int, string>|string  $values
-     */
-    public static function from(array|string $values): CompletionResponse
-    {
-        $values = Arr::wrap($values);
-
-        $hasMore = count($values) > self::MAX_VALUES;
-
-        if ($hasMore) {
-            $values = array_slice($values, 0, self::MAX_VALUES);
-        }
-
-        return new DirectCompletionResponse($values, $hasMore);
-    }
-
     public static function empty(): CompletionResponse
     {
         return new DirectCompletionResponse([]);
     }
 
     /**
-     * @param  array<int, string>  $items
+     * @param  array<int, string>|class-string<UnitEnum>|callable  $items
      */
-    public static function fromArray(array $items): CompletionResponse
+    public static function match(array|string|callable $items): CompletionResponse
     {
+        if (is_callable($items)) {
+            return new CallbackCompletionResponse($items);
+        }
+
+        if (is_string($items)) {
+            return new EnumCompletionResponse($items);
+        }
+
         return new ArrayCompletionResponse($items);
-    }
-
-    /**
-     * @param  class-string<UnitEnum>  $enumClass
-     */
-    public static function fromEnum(string $enumClass): CompletionResponse
-    {
-        return new EnumCompletionResponse($enumClass);
-    }
-
-    public static function fromCallback(callable $callback): CompletionResponse
-    {
-        return new CallbackCompletionResponse($callback);
     }
 
     abstract public function resolve(string $value): CompletionResponse;

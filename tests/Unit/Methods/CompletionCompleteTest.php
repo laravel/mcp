@@ -42,7 +42,7 @@ class CompletionMethodTestPrompt extends Prompt implements SupportsCompletion
 
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
-        return CompletionResponse::from(['test']);
+        return CompletionResponse::match(['test']);
     }
 
     public function handle(\Laravel\Mcp\Request $request): Response
@@ -64,7 +64,7 @@ class CompletionMethodTestResource extends Resource implements SupportsCompletio
 
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
-        return CompletionResponse::from(['resource-test']);
+        return CompletionResponse::match(['resource-test']);
     }
 
     public function handle(\Laravel\Mcp\Request $request): Response
@@ -96,7 +96,7 @@ class CompletionMethodTestResourceWithTemplate extends Resource implements HasUr
 
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
-        return CompletionResponse::from(['template-test']);
+        return CompletionResponse::match(['template-test']);
     }
 
     public function handle(\Laravel\Mcp\Request $request): Response

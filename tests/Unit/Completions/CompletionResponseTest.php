@@ -1,9 +1,10 @@
 <?php
 
 use Laravel\Mcp\Server\Completions\CompletionResponse;
+use Laravel\Mcp\Server\Completions\DirectCompletionResponse;
 
 it('creates a completion result with values', function (): void {
-    $result = CompletionResponse::from(['php', 'python', 'javascript']);
+    $result = CompletionResponse::match(['php', 'python', 'javascript'])->resolve('');
 
     expect($result->values())->toBe(['php', 'python', 'javascript'])
         ->and($result->hasMore())->toBeFalse();
@@ -18,14 +19,9 @@ it('creates an empty completion result', function (): void {
 
 it('auto-truncates values to 100 items and sets hasMore', function (): void {
     $values = array_map(fn ($i): string => "item{$i}", range(1, 150));
-    $result = CompletionResponse::from($values);
+    $result = CompletionResponse::match($values)->resolve('');
 
     expect($result->values())->toHaveCount(100)
         ->and($result->hasMore())->toBeTrue();
 });
 
-it('supports single string in from', function (): void {
-    $result = CompletionResponse::from('single-value');
-
-    expect($result->values())->toBe(['single-value']);
-});
