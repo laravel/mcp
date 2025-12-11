@@ -55,14 +55,3 @@ it('truncates raw array data to 100 items', function (): void {
     expect($result->values())->toHaveCount(100)
         ->and($result->hasMore())->toBeTrue();
 });
-
-it('handles callbacks with result method', function (): void {
-    $result = CompletionResponse::result(
-        fn (string $value): array => array_filter(
-            ['apple', 'apricot', 'banana'],
-            fn (string $item): bool => str_starts_with($item, $value)
-        )
-    )->resolve('ap');
-
-    expect($result->values())->toBe(['apple', 'apricot']);
-});

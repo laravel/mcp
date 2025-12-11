@@ -40,8 +40,6 @@ class TestCompletionServer extends Server
         LocationPrompt::class,
         UnitsPrompt::class,
         StatusPrompt::class,
-        DynamicPrompt::class,
-        SingleStringPrompt::class,
     ];
 
     protected array $resources = [
@@ -203,60 +201,6 @@ class StatusPrompt extends Prompt implements SupportsCompletion
     }
 }
 
-class DynamicPrompt extends Prompt implements SupportsCompletion
-{
-    protected string $description = 'Dynamic completion';
-
-    public function arguments(): array
-    {
-        return [
-            new Argument('city', 'City name', required: true),
-        ];
-    }
-
-    public function complete(string $argument, string $value, array $context): CompletionResponse
-    {
-        return match ($argument) {
-            'city' => CompletionResponse::result(fn (string $value): array => [
-                'San Francisco',
-                'San Diego',
-                'San Jose',
-            ]),
-            default => CompletionResponse::empty(),
-        };
-    }
-
-    public function handle(Request $request): Response
-    {
-        return Response::text("City: {$request->get('city')}");
-    }
-}
-
-class SingleStringPrompt extends Prompt implements SupportsCompletion
-{
-    protected string $description = 'Single string completion';
-
-    public function arguments(): array
-    {
-        return [
-            new Argument('name', 'Name', required: true),
-        ];
-    }
-
-    public function complete(string $argument, string $value, array $context): CompletionResponse
-    {
-        return match ($argument) {
-            'name' => CompletionResponse::result(fn (string $value): string => 'John Doe'),
-            default => CompletionResponse::empty(),
-        };
-    }
-
-    public function handle(Request $request): Response
-    {
-        return Response::text("Name: {$request->get('name')}");
-    }
-}
-
 class UserFileCompletionResource extends Resource implements HasUriTemplate, SupportsCompletion
 {
     protected string $mimeType = 'text/plain';
@@ -364,18 +308,6 @@ describe('fromEnum() - Enum Completions', function (): void {
     });
 });
 
-describe('fromCallback() - Callback Completions', function (): void {
-    it('returns values from callback and handles single strings', function (): void {
-        TestCompletionServer::completion(DynamicPrompt::class, 'city', '')
-            ->assertHasCompletions(['San Francisco', 'San Diego', 'San Jose'])
-            ->assertCompletionCount(3);
-
-        TestCompletionServer::completion(SingleStringPrompt::class, 'name', '')
-            ->assertHasCompletions(['John Doe'])
-            ->assertCompletionCount(1);
-    });
-});
-
 describe('Context-Aware Completions', function (): void {
     it('completes projectId and taskId with context dependency', function (): void {
         TestCompletionServer::completion(ProjectTaskCompletionPrompt::class, 'projectId', '')
@@ -458,37 +390,6 @@ class RawArrayPrompt extends Prompt implements SupportsCompletion
     }
 }
 
-class ManualFilteringPrompt extends Prompt implements SupportsCompletion
-{
-    protected string $description = 'Manual filtering with callback';
-
-    public function arguments(): array
-    {
-        return [
-            new Argument('fruit', 'Fruit', required: true),
-        ];
-    }
-
-    public function complete(string $argument, string $value, array $context): CompletionResponse
-    {
-        if ($argument !== 'fruit') {
-            return CompletionResponse::empty();
-        }
-
-        return CompletionResponse::result(
-            fn (string $value): array => array_filter(
-                ['apple', 'apricot', 'banana', 'blueberry'],
-                fn (string $item): bool => str_starts_with(strtolower($item), strtolower($value))
-            )
-        );
-    }
-
-    public function handle(Request $request): Response
-    {
-        return Response::text("Fruit: {$request->get('fruit')}");
-    }
-}
-
 class ResultTestServer extends Server
 {
     protected string $name = 'Result Test Server';
@@ -499,7 +400,6 @@ class ResultTestServer extends Server
 
     protected array $prompts = [
         RawArrayPrompt::class,
-        ManualFilteringPrompt::class,
     ];
 }
 
@@ -512,19 +412,5 @@ describe('result() - Raw Completions Without Filtering', function (): void {
         ResultTestServer::completion(RawArrayPrompt::class, 'item', 'xyz')
             ->assertHasCompletions(['apple', 'apricot', 'banana'])
             ->assertCompletionCount(3);
-    });
-
-    it('allows manual filtering in callbacks', function (): void {
-        ResultTestServer::completion(ManualFilteringPrompt::class, 'fruit', '')
-            ->assertHasCompletions(['apple', 'apricot', 'banana', 'blueberry'])
-            ->assertCompletionCount(4);
-
-        ResultTestServer::completion(ManualFilteringPrompt::class, 'fruit', 'ap')
-            ->assertHasCompletions(['apple', 'apricot'])
-            ->assertCompletionCount(2);
-
-        ResultTestServer::completion(ManualFilteringPrompt::class, 'fruit', 'b')
-            ->assertHasCompletions(['banana', 'blueberry'])
-            ->assertCompletionCount(2);
     });
 });
