@@ -35,19 +35,34 @@ abstract class CompletionResponse implements Arrayable
     }
 
     /**
-     * @param  array<int, string>|class-string<UnitEnum>|callable  $items
+     * @param  array<int, string>|class-string<UnitEnum>  $items
      */
-    public static function match(array|string|callable $items): CompletionResponse
+    public static function match(array|string $items): CompletionResponse
     {
-        if (is_callable($items)) {
-            return new CallbackCompletionResponse($items);
-        }
-
         if (is_string($items)) {
             return new EnumCompletionResponse($items);
         }
 
         return new ArrayCompletionResponse($items);
+    }
+
+    /**
+     * @param  array<int, string>|string|callable  $items
+     */
+    public static function result(array|string|callable $items): CompletionResponse
+    {
+        if (is_callable($items)) {
+            return new CallbackCompletionResponse($items);
+        }
+
+        if (is_array($items)) {
+            $hasMore = count($items) > self::MAX_VALUES;
+            $truncated = array_slice($items, 0, self::MAX_VALUES);
+
+            return new DirectCompletionResponse($truncated, $hasMore);
+        }
+
+        return new DirectCompletionResponse([$items], false);
     }
 
     abstract public function resolve(string $value): CompletionResponse;

@@ -217,7 +217,7 @@ class DynamicPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'city' => CompletionResponse::match(fn (string $value): array => [
+            'city' => CompletionResponse::result(fn (string $value): array => [
                 'San Francisco',
                 'San Diego',
                 'San Jose',
@@ -246,7 +246,7 @@ class SingleStringPrompt extends Prompt implements SupportsCompletion
     public function complete(string $argument, string $value, array $context): CompletionResponse
     {
         return match ($argument) {
-            'name' => CompletionResponse::match(fn (string $value): string => 'John Doe'),
+            'name' => CompletionResponse::result(fn (string $value): string => 'John Doe'),
             default => CompletionResponse::empty(),
         };
     }
@@ -428,6 +428,103 @@ describe('Context-Aware Completions', function (): void {
             ['userId' => 'user-2']
         )
             ->assertCompletionValues(['doc1.txt', 'doc2.txt'])
+            ->assertCompletionCount(2);
+    });
+});
+
+class RawArrayPrompt extends Prompt implements SupportsCompletion
+{
+    protected string $description = 'Raw array completion without filtering';
+
+    public function arguments(): array
+    {
+        return [
+            new Argument('item', 'Item', required: true),
+        ];
+    }
+
+    public function complete(string $argument, string $value, array $context): CompletionResponse
+    {
+        if ($argument !== 'item') {
+            return CompletionResponse::empty();
+        }
+
+        return CompletionResponse::result(['apple', 'apricot', 'banana']);
+    }
+
+    public function handle(Request $request): Response
+    {
+        return Response::text("Item: {$request->get('item')}");
+    }
+}
+
+class ManualFilteringPrompt extends Prompt implements SupportsCompletion
+{
+    protected string $description = 'Manual filtering with callback';
+
+    public function arguments(): array
+    {
+        return [
+            new Argument('fruit', 'Fruit', required: true),
+        ];
+    }
+
+    public function complete(string $argument, string $value, array $context): CompletionResponse
+    {
+        if ($argument !== 'fruit') {
+            return CompletionResponse::empty();
+        }
+
+        return CompletionResponse::result(
+            fn (string $value): array => array_filter(
+                ['apple', 'apricot', 'banana', 'blueberry'],
+                fn (string $item): bool => str_starts_with(strtolower($item), strtolower($value))
+            )
+        );
+    }
+
+    public function handle(Request $request): Response
+    {
+        return Response::text("Fruit: {$request->get('fruit')}");
+    }
+}
+
+class ResultTestServer extends Server
+{
+    protected string $name = 'Result Test Server';
+
+    protected array $capabilities = [
+        'completions' => [],
+    ];
+
+    protected array $prompts = [
+        RawArrayPrompt::class,
+        ManualFilteringPrompt::class,
+    ];
+}
+
+describe('result() - Raw Completions Without Filtering', function (): void {
+    it('returns raw array without filtering', function (): void {
+        ResultTestServer::completion(RawArrayPrompt::class, 'item', 'ap')
+            ->assertHasCompletions(['apple', 'apricot', 'banana'])
+            ->assertCompletionCount(3);
+
+        ResultTestServer::completion(RawArrayPrompt::class, 'item', 'xyz')
+            ->assertHasCompletions(['apple', 'apricot', 'banana'])
+            ->assertCompletionCount(3);
+    });
+
+    it('allows manual filtering in callbacks', function (): void {
+        ResultTestServer::completion(ManualFilteringPrompt::class, 'fruit', '')
+            ->assertHasCompletions(['apple', 'apricot', 'banana', 'blueberry'])
+            ->assertCompletionCount(4);
+
+        ResultTestServer::completion(ManualFilteringPrompt::class, 'fruit', 'ap')
+            ->assertHasCompletions(['apple', 'apricot'])
+            ->assertCompletionCount(2);
+
+        ResultTestServer::completion(ManualFilteringPrompt::class, 'fruit', 'b')
+            ->assertHasCompletions(['banana', 'blueberry'])
             ->assertCompletionCount(2);
     });
 });
