@@ -8,6 +8,7 @@ use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
@@ -15,6 +16,7 @@ use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
+use Laravel\Mcp\Server\Methods\Concerns\ResolvesResources;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
@@ -24,31 +26,21 @@ use Laravel\Mcp\Support\ValidationMessages;
 class ReadResource implements Method
 {
     use InteractsWithResponses;
+    use ResolvesResources;
 
     /**
      * @return Generator<JsonRpcResponse>|JsonRpcResponse
      *
-     * @throws JsonRpcException
      * @throws BindingResolutionException
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
-        if (is_null($request->get('uri'))) {
-            throw new JsonRpcException(
-                'Missing [uri] parameter.',
-                -32002,
-                $request->id,
-            );
-        }
-
         $uri = $request->get('uri');
 
-        /** @var Resource|null $resource */
-        $resource = $context->resources()->first(fn (Resource $resource): bool => $resource->uri() === $uri) ??
-            $context->resourceTemplates()->first(fn (HasUriTemplate $template): bool => ! is_null($template->uriTemplate()->match($uri)));
-
-        if (is_null($resource)) {
-            throw new JsonRpcException("Resource [{$uri}] not found.", -32002, $request->id);
+        try {
+            $resource = $this->resolveResource($uri, $context);
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            throw new JsonRpcException($invalidArgumentException->getMessage(), -32002, $request->id);
         }
 
         try {

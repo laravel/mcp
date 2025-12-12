@@ -234,6 +234,56 @@ class TestResponse
         return Container::getInstance()->make('auth')->guard($guard)->check();
     }
 
+    /**
+     * @param  array<int, string>  $expectedValues
+     */
+    public function assertHasCompletions(array $expectedValues = []): static
+    {
+        $actualValues = $this->completionValues();
+
+        Assert::assertNotNull(
+            $this->response->toArray()['result']['completion'] ?? null,
+            'No completion data found in response.'
+        );
+
+        foreach ($expectedValues as $expected) {
+            Assert::assertContains(
+                $expected,
+                $actualValues,
+                "Expected completion value [{$expected}] not found."
+            );
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param  array<int, string>  $values
+     */
+    public function assertCompletionValues(array $values): static
+    {
+        Assert::assertEquals(
+            $values,
+            $this->completionValues(),
+            'Completion values do not match expected values.'
+        );
+
+        return $this;
+    }
+
+    public function assertCompletionCount(int $count): static
+    {
+        $values = $this->completionValues();
+
+        Assert::assertCount(
+            $count,
+            $values,
+            "Expected {$count} completions, but got ".count($values)
+        );
+
+        return $this;
+    }
+
     public function dd(): void
     {
         dd($this->response->toArray());
@@ -285,5 +335,15 @@ class TestResponse
         }
 
         return [];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function completionValues(): array
+    {
+        $response = $this->response->toArray();
+
+        return $response['result']['completion']['values'] ?? [];
     }
 }

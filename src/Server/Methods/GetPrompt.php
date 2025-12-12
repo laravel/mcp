@@ -7,11 +7,13 @@ namespace Laravel\Mcp\Server\Methods;
 use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
+use Laravel\Mcp\Server\Methods\Concerns\ResolvesPrompts;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
@@ -21,30 +23,18 @@ use Laravel\Mcp\Support\ValidationMessages;
 class GetPrompt implements Method
 {
     use InteractsWithResponses;
+    use ResolvesPrompts;
 
     /**
      * @return Generator<JsonRpcResponse>|JsonRpcResponse
-     *
-     * @throws JsonRpcException
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
-        if (is_null($request->get('name'))) {
-            throw new JsonRpcException(
-                'Missing [name] parameter.',
-                -32602,
-                $request->id,
-            );
+        try {
+            $prompt = $this->resolvePrompt($request->get('name'), $context);
+        } catch (InvalidArgumentException $invalidArgumentException) {
+            throw new JsonRpcException($invalidArgumentException->getMessage(), -32602, $request->id);
         }
-
-        $prompt = $context->prompts()
-            ->first(
-                fn ($prompt): bool => $prompt->name() === $request->get('name'),
-                fn () => throw new JsonRpcException(
-                    "Prompt [{$request->get('name')}] not found.",
-                    -32602,
-                    $request->id,
-                ));
 
         try {
             // @phpstan-ignore-next-line
