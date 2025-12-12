@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\Contracts\SupportsCompletion;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\ResolvesPrompts;
 use Laravel\Mcp\Server\Methods\Concerns\ResolvesResources;
-use Laravel\Mcp\Server\Primitive;
+use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
@@ -84,7 +84,7 @@ class CompletionComplete implements Method
     /**
      * @param  array<string, mixed>  $ref
      */
-    protected function resolvePrimitive(array $ref, ServerContext $context): Primitive|Resource|HasUriTemplate
+    protected function resolvePrimitive(array $ref, ServerContext $context): Prompt|Resource|HasUriTemplate
     {
         return match (Arr::get($ref, 'type')) {
             'ref/prompt' => $this->resolvePrompt(Arr::get($ref, 'name'), $context),

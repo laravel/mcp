@@ -15,6 +15,7 @@ use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
 class PendingTestResponse
 {
@@ -128,7 +129,7 @@ class PendingTestResponse
     protected function executeRequest(Server $server, JsonRpcRequest $request): mixed
     {
         try {
-            return (fn (): iterable|\Laravel\Mcp\Server\Transport\JsonRpcResponse => $this->runMethodHandle($request, $this->createContext()))->call($server);
+            return (fn (): iterable|JsonRpcResponse => $this->runMethodHandle($request, $this->createContext()))->call($server);
         } catch (JsonRpcException $jsonRpcException) {
             return $jsonRpcException->toJsonRpcResponse();
         }
