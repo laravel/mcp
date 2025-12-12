@@ -72,7 +72,7 @@ class CompletionComplete implements Method
             );
         }
 
-        $contextArguments = $request->get('context')['arguments'] ?? [];
+        $contextArguments = Arr::get($request->get('context'), 'arguments', []);
 
         $result = $this->invokeCompletion($primitive, $argumentName, $argumentValue, $contextArguments);
 
