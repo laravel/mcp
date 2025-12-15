@@ -25,6 +25,7 @@ class McpServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerMcpScope();
         $this->registerRoutes();
         $this->registerContainerCallbacks();
 
@@ -95,5 +96,12 @@ class McpServiceProvider extends ServiceProvider
             MakeResourceCommand::class,
             InspectorCommand::class,
         ]);
+    }
+
+    protected function registerMcpScope(): void
+    {
+        $this->app->booted(function (): void {
+            Registrar::ensureMcpScope();
+        });
     }
 }
