@@ -10,6 +10,7 @@ use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\CallTool;
+use Laravel\Mcp\Server\Methods\CompletionComplete;
 use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\Methods\Initialize;
 use Laravel\Mcp\Server\Methods\ListPrompts;
@@ -35,6 +36,14 @@ use Throwable;
  */
 abstract class Server
 {
+    public const CAPABILITY_TOOLS = 'tools';
+
+    public const CAPABILITY_RESOURCES = 'resources';
+
+    public const CAPABILITY_PROMPTS = 'prompts';
+
+    public const CAPABILITY_COMPLETIONS = 'completions';
+
     protected string $name = 'Laravel MCP Server';
 
     protected string $version = '0.0.1';
@@ -57,13 +66,13 @@ abstract class Server
      * @var array<string, array<string, bool>|stdClass|string>
      */
     protected array $capabilities = [
-        'tools' => [
+        self::CAPABILITY_TOOLS => [
             'listChanged' => false,
         ],
-        'resources' => [
+        self::CAPABILITY_RESOURCES => [
             'listChanged' => false,
         ],
-        'prompts' => [
+        self::CAPABILITY_PROMPTS => [
             'listChanged' => false,
         ],
     ];
@@ -98,6 +107,7 @@ abstract class Server
         'resources/templates/list' => ListResourceTemplates::class,
         'prompts/list' => ListPrompts::class,
         'prompts/get' => GetPrompt::class,
+        'completion/complete' => CompletionComplete::class,
         'ping' => Ping::class,
     ];
 
