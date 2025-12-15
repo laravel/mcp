@@ -23,6 +23,8 @@ it('registers mcp scope during boot', function (): void {
     $provider->register();
     $provider->boot();
 
+    $this->app->boot();
+
     expect(\Laravel\Passport\Passport::$scopes)->toHaveKey('mcp:use');
     expect(\Laravel\Passport\Passport::$scopes['custom'])->toBe('Custom scope');
 });
