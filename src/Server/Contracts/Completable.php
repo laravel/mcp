@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server\Contracts;
 
 use Laravel\Mcp\Server\Completions\CompletionResponse;
 
-interface SupportsCompletion
+interface Completable
 {
     /**
      * @param  array<string, mixed>  $context

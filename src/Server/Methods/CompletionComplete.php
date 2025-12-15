@@ -9,9 +9,9 @@ use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Completions\CompletionResponse;
+use Laravel\Mcp\Server\Contracts\Completable;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Contracts\Method;
-use Laravel\Mcp\Server\Contracts\SupportsCompletion;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\ResolvesPrompts;
 use Laravel\Mcp\Server\Methods\Concerns\ResolvesResources;
@@ -53,7 +53,7 @@ class CompletionComplete implements Method
             throw new JsonRpcException($invalidArgumentException->getMessage(), -32602, $request->id);
         }
 
-        if (! $primitive instanceof SupportsCompletion) {
+        if (! $primitive instanceof Completable) {
             $result = CompletionResponse::empty();
 
             return JsonRpcResponse::result($request->id, [
@@ -97,7 +97,7 @@ class CompletionComplete implements Method
      * @param  array<string, mixed>  $context
      */
     protected function invokeCompletion(
-        SupportsCompletion $primitive,
+        Completable $primitive,
         string $argumentName,
         string $argumentValue,
         array $context

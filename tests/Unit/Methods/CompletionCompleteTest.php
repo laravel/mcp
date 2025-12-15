@@ -3,8 +3,8 @@
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Completions\CompletionResponse;
+use Laravel\Mcp\Server\Contracts\Completable;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
-use Laravel\Mcp\Server\Contracts\SupportsCompletion;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\CompletionComplete;
 use Laravel\Mcp\Server\Prompt;
@@ -31,7 +31,7 @@ class CompletionMethodTestServer extends Server
     ];
 }
 
-class CompletionMethodTestPrompt extends Prompt implements SupportsCompletion
+class CompletionMethodTestPrompt extends Prompt implements Completable
 {
     protected string $description = 'Test prompt';
 
@@ -51,7 +51,7 @@ class CompletionMethodTestPrompt extends Prompt implements SupportsCompletion
     }
 }
 
-class CompletionMethodTestResource extends Resource implements SupportsCompletion
+class CompletionMethodTestResource extends Resource implements Completable
 {
     protected string $uri = 'file://test';
 
@@ -83,7 +83,7 @@ class NonCompletionPrompt extends Prompt
     }
 }
 
-class CompletionMethodTestResourceWithTemplate extends Resource implements HasUriTemplate, SupportsCompletion
+class CompletionMethodTestResourceWithTemplate extends Resource implements Completable, HasUriTemplate
 {
     protected string $mimeType = 'text/plain';
 

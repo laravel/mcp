@@ -5,8 +5,8 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Completions\CompletionHelper;
 use Laravel\Mcp\Server\Completions\CompletionResponse;
+use Laravel\Mcp\Server\Contracts\Completable;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
-use Laravel\Mcp\Server\Contracts\SupportsCompletion;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\Argument;
 use Laravel\Mcp\Server\Resource;
@@ -47,7 +47,7 @@ class TestCompletionServer extends Server
     ];
 }
 
-class LanguageCompletionPrompt extends Prompt implements SupportsCompletion
+class LanguageCompletionPrompt extends Prompt implements Completable
 {
     protected string $description = 'Select a programming language';
 
@@ -76,7 +76,7 @@ class LanguageCompletionPrompt extends Prompt implements SupportsCompletion
     }
 }
 
-class ProjectTaskCompletionPrompt extends Prompt implements SupportsCompletion
+class ProjectTaskCompletionPrompt extends Prompt implements Completable
 {
     protected string $description = 'Project and task selection';
 
@@ -120,7 +120,7 @@ class ProjectTaskCompletionPrompt extends Prompt implements SupportsCompletion
     }
 }
 
-class LocationPrompt extends Prompt implements SupportsCompletion
+class LocationPrompt extends Prompt implements Completable
 {
     protected string $description = 'Select a location';
 
@@ -151,7 +151,7 @@ class LocationPrompt extends Prompt implements SupportsCompletion
     }
 }
 
-class UnitsPrompt extends Prompt implements SupportsCompletion
+class UnitsPrompt extends Prompt implements Completable
 {
     protected string $description = 'Select temperature unit';
 
@@ -176,7 +176,7 @@ class UnitsPrompt extends Prompt implements SupportsCompletion
     }
 }
 
-class StatusPrompt extends Prompt implements SupportsCompletion
+class StatusPrompt extends Prompt implements Completable
 {
     protected string $description = 'Select status';
 
@@ -201,7 +201,7 @@ class StatusPrompt extends Prompt implements SupportsCompletion
     }
 }
 
-class UserFileCompletionResource extends Resource implements HasUriTemplate, SupportsCompletion
+class UserFileCompletionResource extends Resource implements Completable, HasUriTemplate
 {
     protected string $mimeType = 'text/plain';
 
@@ -364,7 +364,7 @@ describe('Context-Aware Completions', function (): void {
     });
 });
 
-class RawArrayPrompt extends Prompt implements SupportsCompletion
+class RawArrayPrompt extends Prompt implements Completable
 {
     protected string $description = 'Raw array completion without filtering';
 
