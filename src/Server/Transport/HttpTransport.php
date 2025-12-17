@@ -91,7 +91,7 @@ class HttpTransport implements Transport
         ];
 
         if ($this->replySessionId !== null) {
-            $headers['Mcp-Session-Id'] = $this->replySessionId;
+            $headers['MCP-Session-Id'] = $this->replySessionId;
         }
 
         if ($this->stream instanceof Closure) {

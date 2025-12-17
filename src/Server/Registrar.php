@@ -37,7 +37,7 @@ class Registrar
             fn (): HttpTransport => new HttpTransport(
                 $request = request(),
                 // @phpstan-ignore-next-line
-                (string) $request->header('Mcp-Session-Id')
+                (string) $request->header('MCP-Session-Id')
             ),
         ))->middleware([
             ReorderJsonAccept::class,
