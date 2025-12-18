@@ -1,6 +1,18 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.0...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.1...main)
+
+## [v0.5.1](https://github.com/laravel/mcp/compare/v0.5.0...v0.5.1) - 2025-12-17
+
+### What's Changed
+
+* fix: correct header name to MCP-Session-Id by [@batosai](https://github.com/batosai) in https://github.com/laravel/mcp/pull/132
+
+### New Contributors
+
+* [@batosai](https://github.com/batosai) made their first contribution in https://github.com/laravel/mcp/pull/132
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.5.0...v0.5.1
 
 ## [v0.5.0](https://github.com/laravel/mcp/compare/v0.4.2...v0.5.0) - 2025-12-15
 
@@ -78,6 +90,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -88,6 +101,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
