@@ -18,10 +18,10 @@ it('receives a session id over http', function (): void {
     /** @var TestResponse $response */
     $response = $this->postJson('test-mcp', initializeMessage());
 
-    $response->assertHeader('Mcp-Session-Id');
+    $response->assertHeader('MCP-Session-Id');
 
     // https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#session-management
-    expect($response->headers->get('Mcp-Session-Id'))->toMatch('/^[\x21-\x7E]+$/');
+    expect($response->headers->get('MCP-Session-Id'))->toMatch('/^[\x21-\x7E]+$/');
 });
 
 it('can list resources over http', function (): void {
@@ -30,7 +30,7 @@ it('can list resources over http', function (): void {
     $response = $this->postJson(
         'test-mcp',
         listResourcesMessage(),
-        ['Mcp-Session-Id' => $sessionId],
+        ['MCP-Session-Id' => $sessionId],
     );
 
     $response->assertStatus(200);
@@ -44,7 +44,7 @@ it('can read a resource over http', function (): void {
     $response = $this->postJson(
         'test-mcp',
         readResourceMessage(),
-        ['Mcp-Session-Id' => $sessionId],
+        ['MCP-Session-Id' => $sessionId],
     );
 
     $response->assertStatus(200);
@@ -58,7 +58,7 @@ it('can list tools over http', function (): void {
     $response = $this->postJson(
         'test-mcp',
         listToolsMessage(),
-        ['Mcp-Session-Id' => $sessionId],
+        ['MCP-Session-Id' => $sessionId],
     );
 
     $response->assertStatus(200);
@@ -72,7 +72,7 @@ it('can call a tool over http', function (): void {
     $response = $this->postJson(
         'test-mcp',
         callToolMessage(),
-        ['Mcp-Session-Id' => $sessionId],
+        ['MCP-Session-Id' => $sessionId],
     );
 
     $response->assertStatus(200);
@@ -86,7 +86,7 @@ it('can handle a ping over http', function (): void {
     $response = $this->postJson(
         'test-mcp',
         pingMessage(),
-        ['Mcp-Session-Id' => $sessionId],
+        ['MCP-Session-Id' => $sessionId],
     );
 
     $response->assertStatus(200);
@@ -100,7 +100,7 @@ it('can stream a tool response over http', function (): void {
     $response = $this->postJson(
         'test-mcp',
         callStreamingToolMessage(),
-        ['Mcp-Session-Id' => $sessionId, 'Accept' => 'text/event-stream'],
+        ['MCP-Session-Id' => $sessionId, 'Accept' => 'text/event-stream'],
     );
 
     $response->assertStatus(200);
@@ -175,7 +175,7 @@ it('can list dynamically added tools', function (): void {
     $response = $this->postJson(
         'test-mcp-dynamic-tools',
         listToolsMessage(),
-        ['Mcp-Session-Id' => $sessionId],
+        ['MCP-Session-Id' => $sessionId],
     );
 
     $response->assertStatus(200);
@@ -233,9 +233,9 @@ function initializeHttpConnection($that, $handle = 'test-mcp')
 {
     $response = $that->postJson($handle, initializeMessage());
 
-    $sessionId = $response->headers->get('Mcp-Session-Id');
+    $sessionId = $response->headers->get('MCP-Session-Id');
 
-    $that->postJson($handle, initializeNotificationMessage(), ['Mcp-Session-Id' => $sessionId]);
+    $that->postJson($handle, initializeNotificationMessage(), ['MCP-Session-Id' => $sessionId]);
 
     return $sessionId;
 }
