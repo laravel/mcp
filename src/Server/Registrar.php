@@ -125,14 +125,6 @@ class Registrar
     }
 
     /**
-     * @return array<string, string>
-     */
-    protected function maybeAddMcpScope(): array
-    {
-        return static::ensureMcpScope();
-    }
-
-    /**
      * @param  class-string<Server>  $serverClass
      * @param  callable(): Transport  $transportFactory
      */
