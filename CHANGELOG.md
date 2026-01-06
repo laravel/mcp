@@ -1,6 +1,10 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.1...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.2...main)
+
+## [v0.5.2](https://github.com/laravel/mcp/compare/v0.5.1...v0.5.2) - 2025-12-19
+
+* Implement MCP scope registration in service provider by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/131
 
 ## [v0.5.1](https://github.com/laravel/mcp/compare/v0.5.0...v0.5.1) - 2025-12-17
 
@@ -91,6 +95,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -101,6 +106,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
