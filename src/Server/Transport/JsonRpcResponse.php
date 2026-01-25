@@ -34,7 +34,7 @@ class JsonRpcResponse implements Arrayable
     {
         return new static([
             'method' => $method,
-            'params' => $params,
+            'params' => $params === [] ? (object) [] : $params,
         ]);
     }
 

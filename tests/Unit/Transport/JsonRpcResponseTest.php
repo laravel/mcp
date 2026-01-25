@@ -70,3 +70,27 @@ it('does not include _meta when not in result', function (): void {
 
     expect($response->toArray()['result'])->not->toHaveKey('_meta');
 });
+
+it('can create a notification with params', function (): void {
+    $response = JsonRpcResponse::notification('notifications/progress', ['progress' => 50]);
+
+    $expectedArray = [
+        'jsonrpc' => '2.0',
+        'method' => 'notifications/progress',
+        'params' => ['progress' => 50],
+    ];
+
+    expect($response->toArray())->toEqual($expectedArray);
+});
+
+it('converts empty array params in notification to object', function (): void {
+    $response = JsonRpcResponse::notification('notifications/initialized', []);
+
+    $expectedJson = json_encode([
+        'jsonrpc' => '2.0',
+        'method' => 'notifications/initialized',
+        'params' => (object) [],
+    ]);
+
+    expect($response->toJson())->toEqual($expectedJson);
+});
