@@ -32,7 +32,7 @@ class TestResponse
      * @param  iterable<int, JsonRpcResponse>|JsonRpcResponse  $response
      */
     public function __construct(
-        protected Primitive $premitive,
+        protected Primitive $primitive,
         iterable|JsonRpcResponse $response,
     ) {
         $responses = is_iterable($response)
@@ -133,8 +133,8 @@ class TestResponse
     {
         Assert::assertEquals(
             $name,
-            $this->premitive->name(),
-            "The expected name [{$name}] does not match the actual name [{$this->premitive->name()}].",
+            $this->primitive->name(),
+            "The expected name [{$name}] does not match the actual name [{$this->primitive->name()}].",
         );
 
         return $this;
@@ -144,8 +144,8 @@ class TestResponse
     {
         Assert::assertEquals(
             $title,
-            $this->premitive->title(),
-            "The expected title [{$title}] does not match the actual title [{$this->premitive->title()}].",
+            $this->primitive->title(),
+            "The expected title [{$title}] does not match the actual title [{$this->primitive->title()}].",
         );
 
         return $this;
@@ -155,8 +155,8 @@ class TestResponse
     {
         Assert::assertEquals(
             $description,
-            $this->premitive->description(),
-            "The expected description [{$description}] does not match the actual description [{$this->premitive->description()}].",
+            $this->primitive->description(),
+            "The expected description [{$description}] does not match the actual description [{$this->primitive->description()}].",
         );
 
         return $this;
@@ -306,14 +306,14 @@ class TestResponse
     {
         return (match (true) {
             // @phpstan-ignore-next-line
-            $this->premitive instanceof Tool => collect($this->response->toArray()['result']['content'] ?? [])
+            $this->primitive instanceof Tool => collect($this->response->toArray()['result']['content'] ?? [])
                 ->map(fn (array $message): string => $message['text'] ?? ''),
             // @phpstan-ignore-next-line
-            $this->premitive instanceof Prompt => collect($this->response->toArray()['result']['messages'] ?? [])
+            $this->primitive instanceof Prompt => collect($this->response->toArray()['result']['messages'] ?? [])
                 ->map(fn (array $message): array => $message['content'])
                 ->map(fn (array $content): string => $content['text'] ?? ''),
             // @phpstan-ignore-next-line
-            $this->premitive instanceof Resource => collect($this->response->toArray()['result']['contents'] ?? [])
+            $this->primitive instanceof Resource => collect($this->response->toArray()['result']['contents'] ?? [])
                 ->map(fn (array $item): string => $item['text'] ?? $item['blob'] ?? ''),
             default => throw new RuntimeException('This primitive type is not supported.'),
         })->filter()->unique()->values()->all();
