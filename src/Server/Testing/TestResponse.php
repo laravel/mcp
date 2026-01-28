@@ -104,6 +104,9 @@ class TestResponse
         return $this;
     }
 
+    /**
+     * @param  array<string, mixed>  $structuredContent
+     */
     public function assertStructuredContent(array $structuredContent): static
     {
         Assert::assertSame(
