@@ -1,6 +1,10 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.2...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.3...main)
+
+## [v0.5.3](https://github.com/laravel/mcp/compare/v0.5.2...v0.5.3) - 2026-01-26
+
+* Fix JSON-RPC notification param serialization by [@csfh](https://github.com/csfh) in https://github.com/laravel/mcp/pull/136
 
 ## [v0.5.2](https://github.com/laravel/mcp/compare/v0.5.1...v0.5.2) - 2025-12-19
 
@@ -96,6 +100,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -106,6 +111,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
