@@ -28,7 +28,7 @@
         "illuminate/routing": "^11.45.3|^12.41.1|^13.0",
         "illuminate/support": "^11.45.3|^12.41.1|^13.0",
         "illuminate/validation": "^11.45.3|^12.41.1|^13.0",
-        "illuminate/json-schema": "^12.41.1"
+        "illuminate/json-schema": "^12.41.1|^13.0"
     },
     "require-dev": {
         "laravel/pint": "^1.20",
