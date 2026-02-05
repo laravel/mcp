@@ -1,6 +1,12 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.3...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.4...main)
+
+## [v0.5.4](https://github.com/laravel/mcp/compare/v0.5.3...v0.5.4) - 2026-02-04
+
+* Drop Php 8.1 Support by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/141
+* Add `assertStructuredContent` method by [@gdebrauwer](https://github.com/gdebrauwer) in https://github.com/laravel/mcp/pull/140
+* Supports Laravel 13 by [@crynobone](https://github.com/crynobone) in https://github.com/laravel/mcp/pull/144
 
 ## [v0.5.3](https://github.com/laravel/mcp/compare/v0.5.2...v0.5.3) - 2026-01-26
 
@@ -101,6 +107,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -111,6 +118,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 

@@ -104,6 +104,20 @@ class TestResponse
         return $this;
     }
 
+    /**
+     * @param  array<string, mixed>  $structuredContent
+     */
+    public function assertStructuredContent(array $structuredContent): static
+    {
+        Assert::assertSame(
+            $structuredContent,
+            $this->response->toArray()['result']['structuredContent'] ?? null,
+            'The expected structured content does not match the actual structured content.'
+        );
+
+        return $this;
+    }
+
     public function assertNotificationCount(int $count): static
     {
         Assert::assertCount($count, $this->notifications, "The expected number of notifications [{$count}] does not match the actual count.");
