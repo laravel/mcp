@@ -1,6 +1,10 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.4...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.5...main)
+
+## [v0.5.5](https://github.com/laravel/mcp/compare/v0.5.4...v0.5.5) - 2026-02-05
+
+* Rename stub files with `mcp-` prefix and update references by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/145
 
 ## [v0.5.4](https://github.com/laravel/mcp/compare/v0.5.3...v0.5.4) - 2026-02-04
 
@@ -108,6 +112,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -118,6 +123,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
