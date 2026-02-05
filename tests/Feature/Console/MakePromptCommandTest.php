@@ -16,5 +16,5 @@ it('may publish a custom stub', function (): void {
         '--force' => true,
     ])->assertExitCode(0)->run();
 
-    $this->assertFileExists(base_path('stubs/prompt.stub'));
+    $this->assertFileExists(base_path('stubs/mcp-prompt.stub'));
 });

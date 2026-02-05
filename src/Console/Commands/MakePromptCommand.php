@@ -21,9 +21,9 @@ class MakePromptCommand extends GeneratorCommand
 
     protected function getStub(): string
     {
-        return file_exists($customPath = $this->laravel->basePath('stubs/prompt.stub'))
+        return file_exists($customPath = $this->laravel->basePath('stubs/mcp-prompt.stub'))
             ? $customPath
-            : __DIR__.'/../../../stubs/prompt.stub';
+            : __DIR__.'/../../../stubs/mcp-prompt.stub';
     }
 
     protected function getDefaultNamespace($rootNamespace): string
