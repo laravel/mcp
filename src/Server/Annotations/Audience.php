@@ -23,7 +23,7 @@ class Audience extends Annotation
         $roles = Arr::wrap($roles);
 
         foreach ($roles as $role) {
-            if (! $role instanceof Role) { // @phpstan-ignore-line
+            if (! $role instanceof Role) {
                 throw new InvalidArgumentException(
                     'All values of '.Audience::class.' attributes must be instances of '.Role::class
                 );

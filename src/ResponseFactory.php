@@ -32,7 +32,7 @@ class ResponseFactory
         $wrapped = Arr::wrap($responses);
 
         foreach ($wrapped as $index => $response) {
-            if (! $response instanceof Response) { // @phpstan-ignore-line
+            if (! $response instanceof Response) {
                 throw new InvalidArgumentException(
                     "Invalid response type at index {$index}: Expected ".Response::class.', but received '.get_debug_type($response).'.'
                 );
