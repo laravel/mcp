@@ -21,9 +21,9 @@ class MakeResourceCommand extends GeneratorCommand
 
     protected function getStub(): string
     {
-        return file_exists($customPath = $this->laravel->basePath('stubs/resource.stub'))
+        return file_exists($customPath = $this->laravel->basePath('stubs/mcp-resource.stub'))
             ? $customPath
-            : __DIR__.'/../../../stubs/resource.stub';
+            : __DIR__.'/../../../stubs/mcp-resource.stub';
     }
 
     protected function getDefaultNamespace($rootNamespace): string

@@ -23,9 +23,9 @@ class MakeToolCommand extends GeneratorCommand
 
     protected function getStub(): string
     {
-        return file_exists($customPath = $this->laravel->basePath('stubs/tool.stub'))
+        return file_exists($customPath = $this->laravel->basePath('stubs/mcp-tool.stub'))
             ? $customPath
-            : __DIR__.'/../../../stubs/tool.stub';
+            : __DIR__.'/../../../stubs/mcp-tool.stub';
     }
 
     /**
