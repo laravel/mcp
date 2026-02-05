@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Methods\Concerns;
 use Generator;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Content\Notification;
@@ -90,10 +91,16 @@ trait InteractsWithResponses
             return $responseFactory;
         }
 
-        $responses = collect(Arr::wrap($responseFactory))
-            ->map(function ($item): mixed {
+        $items = is_array($responseFactory) ? $responseFactory : [$responseFactory];
+
+        $responses = collect($items)
+            ->map(function ($item): Response {
                 if ($item instanceof Response) {
                     return $item;
+                }
+
+                if (! is_string($item)) {
+                    throw new InvalidArgumentException('Response must be a Response instance or string');
                 }
 
                 return $this->isBinary($item)
