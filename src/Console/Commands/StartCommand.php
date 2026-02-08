@@ -11,7 +11,7 @@ use Symfony\Component\Console\Input\InputArgument;
 
 #[AsCommand(
     name: 'mcp:start',
-    description: 'Start the MCP Server for a given handle.'
+    description: 'Start the MCP Server for a given handle'
 )]
 class StartCommand extends Command
 {
