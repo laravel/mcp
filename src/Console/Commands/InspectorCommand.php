@@ -16,7 +16,7 @@ use Symfony\Component\Process\Process;
 
 #[AsCommand(
     name: 'mcp:inspector',
-    description: 'Open the MCP Inspector tool to debug and test MCP Servers.'
+    description: 'Open the MCP Inspector tool to debug and test MCP Servers'
 )]
 class InspectorCommand extends Command
 {
