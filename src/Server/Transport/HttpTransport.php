@@ -48,7 +48,23 @@ class HttpTransport implements Transport
         }
 
         if ($this->stream instanceof Closure) {
-            return response()->stream($this->stream, 200, $this->getHeaders());
+            $stream = $this->stream;
+
+            return response()->stream(function () use ($stream): void {
+                $result = $stream();
+
+                if (! is_iterable($result)) {
+                    return;
+                }
+
+                foreach ($result as $message) {
+                    if (connection_aborted() !== 0) {
+                        return;
+                    }
+
+                    $this->sendStreamMessage((string) $message);
+                }
+            }, 200, $this->getHeaders());
         }
 
         // Must be 202 - https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#sending-messages-to-the-server
@@ -65,6 +81,14 @@ class HttpTransport implements Transport
         return $this->sessionId;
     }
 
+    /**
+     * Register a streaming callback.
+     *
+     * The callback may echo SSE-formatted output directly or return an iterable of
+     * message payloads, which will be wrapped with SSE framing.
+     *
+     * @param  Closure(): (iterable<string>|void)  $stream
+     */
     public function stream(Closure $stream): void
     {
         $this->stream = $stream;
