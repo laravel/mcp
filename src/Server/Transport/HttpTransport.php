@@ -84,8 +84,7 @@ class HttpTransport implements Transport
     /**
      * Register a streaming callback.
      *
-     * The callback may echo SSE-formatted output directly or return an iterable of
-     * message payloads, which will be wrapped with SSE framing.
+     * The callback may echo SSE-formatted output directly or return an iterable of message payloads.
      *
      * @param  Closure(): (iterable<string>|void)  $stream
      */
