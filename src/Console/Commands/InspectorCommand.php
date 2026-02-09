@@ -62,13 +62,11 @@ class InspectorCommand extends Command
 
         $env = [];
 
-        $host = $this->option('host');
-        if (is_string($host)) {
+        if (is_string($host = $this->option('host'))) {
             $env['HOST'] = $host;
         }
 
-        $port = $this->option('port');
-        if (is_string($port)) {
+        if (is_string($port = $this->option('port'))) {
             $env['CLIENT_PORT'] = $port;
         }
 
