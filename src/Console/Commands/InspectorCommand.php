@@ -11,6 +11,7 @@ use Illuminate\Support\Arr;
 use Laravel\Mcp\Server\Registrar;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Process\PhpExecutableFinder;
 use Symfony\Component\Process\Process;
 
@@ -60,6 +61,14 @@ class InspectorCommand extends Command
         }
 
         $env = [];
+
+        if (is_string($host = $this->option('host'))) {
+            $env['HOST'] = $host;
+        }
+
+        if (is_string($port = $this->option('port'))) {
+            $env['CLIENT_PORT'] = $port;
+        }
 
         if ($localServer !== null) {
             $artisanPath = base_path('artisan');
@@ -134,6 +143,17 @@ class InspectorCommand extends Command
     {
         return [
             ['handle', InputArgument::REQUIRED, 'The handle or route of the MCP server to inspect.'],
+        ];
+    }
+
+    /**
+     * @return array<int, array<int, string|int|null>>
+     */
+    protected function getOptions(): array
+    {
+        return [
+            ['host', null, InputOption::VALUE_OPTIONAL, 'The host the inspector should bind to'],
+            ['port', null, InputOption::VALUE_OPTIONAL, 'The port the inspector should bind to'],
         ];
     }
 
