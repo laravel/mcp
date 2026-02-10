@@ -1,6 +1,12 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.5...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.6...main)
+
+## [v0.5.6](https://github.com/laravel/mcp/compare/v0.5.5...v0.5.6) - 2026-02-09
+
+* Update command description formatting to match all other Laravel Commands by [@matthewjohns0n](https://github.com/matthewjohns0n) in https://github.com/laravel/mcp/pull/146
+* Add host and port options to MCP Inspector command by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/147
+* Fix streaming generator handling under Octane by [@csfh](https://github.com/csfh) in https://github.com/laravel/mcp/pull/148
 
 ## [v0.5.5](https://github.com/laravel/mcp/compare/v0.5.4...v0.5.5) - 2026-02-05
 
@@ -113,6 +119,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -123,6 +130,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
