@@ -20,17 +20,4 @@ return [
         // 'https://example.com',
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | JSON Response Formatting
-    |--------------------------------------------------------------------------
-    |
-    | This option controls whether JSON responses use pretty-printing with
-    | indentation and line breaks. Pretty-printing improves readability
-    | for humans, but will increase your agent's token usage by ~40%.
-    |
-    */
-
-    'pretty_json' => env('MCP_PRETTY_JSON', true),
-
 ];
