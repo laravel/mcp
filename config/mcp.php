@@ -27,10 +27,7 @@ return [
     |
     | This option controls whether JSON responses use pretty-printing with
     | indentation and line breaks. Pretty-printing improves readability
-    | for humans but increases token usage by ~40%. For AI agents that
-    | don't need formatting, setting this to false reduces costs.
-    |
-    | Default: true (backwards compatible - uses JSON_PRETTY_PRINT)
+    | for humans, but will increase your agent's token usage by ~40%.
     |
     */
 
