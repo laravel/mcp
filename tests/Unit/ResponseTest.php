@@ -86,7 +86,7 @@ it('creates a json response', function (): void {
         ->and($response->role())->toBe(Role::User);
 
     $content = $response->content();
-    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
+    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR));
 });
 
 it('handles nested arrays in json response', function (): void {
@@ -103,7 +103,7 @@ it('handles nested arrays in json response', function (): void {
     expect($response->content())->toBeInstanceOf(Text::class);
 
     $content = $response->content();
-    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
+    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR));
 });
 
 it('throws JsonException for invalid json data', function (): void {
@@ -121,7 +121,7 @@ it('handles empty array in json response', function (): void {
     expect($response->content())->toBeInstanceOf(Text::class);
 
     $content = $response->content();
-    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
+    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR));
 });
 
 it('creates text response with content meta', function (): void {
@@ -178,58 +178,13 @@ it('throws exception when an array contains null', function (): void {
     );
 });
 
-it('creates json response with pretty printing when config is true', function (): void {
-    config(['mcp.pretty_json' => true]);
-
+it('creates compact json response', function (): void {
     $data = ['key' => 'value', 'number' => 123];
     $response = Response::json($data);
 
     expect($response->content())->toBeInstanceOf(Text::class);
 
     $content = (string) $response->content();
-    expect($content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT))
-        ->and($content)->toContain("\n")
-        ->and($content)->toContain('    ');
-});
-
-it('creates json response without pretty printing when config is false', function (): void {
-    config(['mcp.pretty_json' => false]);
-
-    $data = ['key' => 'value', 'number' => 123];
-    $response = Response::json($data);
-
-    expect($response->content())->toBeInstanceOf(Text::class);
-
-    $content = (string) $response->content();
-    $expectedFlags = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
-    expect($content)->toBe(json_encode($data, $expectedFlags))
-        ->and($content)->not->toContain("\n")
-        ->and($content)->toBe('{"key":"value","number":123}');
-});
-
-it('compact json reduces token usage significantly', function (): void {
-    $data = [
-        'user_id' => '42',
-        'name' => 'S2S token',
-        'project_roles' => [
-            ['project_id' => '1', 'project_name' => 'Project A', 'role_name' => 'owner'],
-        ],
-    ];
-
-    // Pretty version
-    config(['mcp.pretty_json' => true]);
-    $prettyResponse = Response::json($data);
-    $prettyContent = (string) $prettyResponse->content();
-
-    // Compact version
-    config(['mcp.pretty_json' => false]);
-    $compactResponse = Response::json($data);
-    $compactContent = (string) $compactResponse->content();
-
-    $prettySizeKb = strlen($prettyContent);
-    $compactSizeKb = strlen($compactContent);
-    $savings = round((1 - $compactSizeKb / $prettySizeKb) * 100, 1);
-
-    expect($compactSizeKb)->toBeLessThan($prettySizeKb)
-        ->and($savings)->toBeGreaterThan(30); // At least 30% savings
+    expect($content)->toBe('{"key":"value","number":123}')
+        ->and($content)->not->toContain("\n");
 });

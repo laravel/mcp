@@ -395,7 +395,7 @@ it('returns structured content in tool response', function (): void {
         ])
         ->and($payload['result']['content'])->toHaveCount(1)
         ->and($payload['result']['content'][0]['type'])->toBe('text')
-        ->and($payload['result']['content'][0]['text'])->toContain('"temperature": 22.5')
+        ->and($payload['result']['content'][0]['text'])->toContain('"temperature":22.5')
         ->and($payload['result']['isError'])->toBeFalse();
 });
 
