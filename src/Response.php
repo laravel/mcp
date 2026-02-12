@@ -48,10 +48,15 @@ class Response
      */
     public static function json(mixed $content): static
     {
-        return static::text(json_encode(
-            $content,
-            JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT,
-        ));
+        $flags = JSON_THROW_ON_ERROR;
+
+        if (config('mcp.pretty_json', true)) {
+            $flags |= JSON_PRETTY_PRINT;
+        } else {
+            $flags |= JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+        }
+
+        return static::text(json_encode($content, $flags));
     }
 
     public static function blob(string $content): static
@@ -71,7 +76,15 @@ class Response
         }
 
         try {
-            $json = json_encode($response, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT);
+            $flags = JSON_THROW_ON_ERROR;
+
+            if (config('mcp.pretty_json', true)) {
+                $flags |= JSON_PRETTY_PRINT;
+            } else {
+                $flags |= JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
+            }
+
+            $json = json_encode($response, $flags);
         } catch (JsonException $jsonException) {
             throw new InvalidArgumentException("Invalid structured content: {$jsonException->getMessage()}", 0, $jsonException);
         }
