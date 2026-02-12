@@ -185,7 +185,7 @@ it('creates json response with pretty printing when config is true', function ()
     $response = Response::json($data);
 
     expect($response->content())->toBeInstanceOf(Text::class);
-    
+
     $content = (string) $response->content();
     expect($content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT))
         ->and($content)->toContain("\n")
@@ -199,7 +199,7 @@ it('creates json response without pretty printing when config is false', functio
     $response = Response::json($data);
 
     expect($response->content())->toBeInstanceOf(Text::class);
-    
+
     $content = (string) $response->content();
     $expectedFlags = JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE;
     expect($content)->toBe(json_encode($data, $expectedFlags))
