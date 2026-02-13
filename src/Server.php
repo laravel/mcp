@@ -6,6 +6,7 @@ namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Events\SessionInitialized;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
@@ -285,7 +286,16 @@ abstract class Server
     {
         $response = (new Initialize)->handle($request, $context);
 
-        $this->transport->send($response->toJson(), $this->generateSessionId());
+        $sessionId = $this->generateSessionId();
+
+        Container::getInstance()->make('events')->dispatch(new SessionInitialized(
+            sessionId: $sessionId,
+            clientInfo: $request->params['clientInfo'] ?? null,
+            protocolVersion: $request->params['protocolVersion'] ?? null,
+            clientCapabilities: $request->params['capabilities'] ?? null,
+        ));
+
+        $this->transport->send($response->toJson(), $sessionId);
     }
 
     protected function generateSessionId(): string
