@@ -32,14 +32,12 @@ it('dispatches SessionInitialized event on initialize', function (): void {
 
     ($transport->handler)($payload);
 
-    Event::assertDispatched(SessionInitialized::class, function (SessionInitialized $event): bool {
-        return $event->clientInfo['name'] === 'claude-desktop'
-            && $event->clientInfo['title'] === 'Claude Desktop'
-            && $event->clientInfo['version'] === '1.0.0'
-            && $event->protocolVersion === '2025-03-26'
-            && $event->clientCapabilities === ['sampling' => []]
-            && $event->sessionId !== null;
-    });
+    Event::assertDispatched(SessionInitialized::class, fn (SessionInitialized $event): bool => $event->clientInfo['name'] === 'claude-desktop'
+        && $event->clientInfo['title'] === 'Claude Desktop'
+        && $event->clientInfo['version'] === '1.0.0'
+        && $event->protocolVersion === '2025-03-26'
+        && $event->clientCapabilities === ['sampling' => []]
+        && $event->sessionId !== null);
 });
 
 it('dispatches SessionInitialized event with null values when not provided', function (): void {
@@ -59,12 +57,10 @@ it('dispatches SessionInitialized event with null values when not provided', fun
 
     ($transport->handler)($payload);
 
-    Event::assertDispatched(SessionInitialized::class, function (SessionInitialized $event): bool {
-        return $event->clientInfo === null
-            && $event->protocolVersion === null
-            && $event->clientCapabilities === null
-            && $event->sessionId !== null;
-    });
+    Event::assertDispatched(SessionInitialized::class, fn (SessionInitialized $event): bool => $event->clientInfo === null
+        && $event->protocolVersion === null
+        && $event->clientCapabilities === null
+        && $event->sessionId !== null);
 });
 
 it('provides helper methods on SessionInitialized event', function (): void {
