@@ -7,8 +7,10 @@ namespace Laravel\Mcp\Events;
 class SessionInitialized
 {
     /**
-     * @param  array{name?: string, version?: string}|null  $clientInfo
+     * @param  array{name?: string, title?: string, version?: string}|null  $clientInfo
      * @param  array<string, mixed>|null  $clientCapabilities
+     *
+     * @see https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle#initialization
      */
     public function __construct(
         public readonly string $sessionId,
