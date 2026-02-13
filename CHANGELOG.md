@@ -1,6 +1,12 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.6...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.7...main)
+
+## [v0.5.7](https://github.com/laravel/mcp/compare/v0.5.6...v0.5.7) - 2026-02-13
+
+* Add configurable JSON response formatting by [@LAlex14](https://github.com/LAlex14) in https://github.com/laravel/mcp/pull/150
+* Change JSON response formatting to compact by default by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/151
+* Add `SessionInitialized` event by [@jessarcher](https://github.com/jessarcher) in https://github.com/laravel/mcp/pull/152
 
 ## [v0.5.6](https://github.com/laravel/mcp/compare/v0.5.5...v0.5.6) - 2026-02-09
 
@@ -120,6 +126,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -130,6 +137,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
