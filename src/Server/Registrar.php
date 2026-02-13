@@ -8,6 +8,8 @@ use Illuminate\Container\Container;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Client\Client;
+use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController;
@@ -122,6 +124,11 @@ class Registrar
         }
 
         return $current;
+    }
+
+    public function client(string $name): Client
+    {
+        return Container::getInstance()->make(ClientManager::class)->client($name);
     }
 
     /**

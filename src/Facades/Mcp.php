@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Facades;
 
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Facade;
+use Laravel\Mcp\Client\Client;
 use Laravel\Mcp\Server\Registrar;
 
 /**
@@ -13,6 +14,7 @@ use Laravel\Mcp\Server\Registrar;
  * @method static Route web(string $handle, string $serverClass)
  * @method static callable|null getLocalServer(string $handle)
  * @method static string|null getWebServer(string $handle)
+ * @method static Client client(string $name)
  *
  * @see Registrar
  */

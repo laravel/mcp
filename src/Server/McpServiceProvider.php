@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
 use Laravel\Mcp\Console\Commands\MakePromptCommand;
 use Laravel\Mcp\Console\Commands\MakeResourceCommand;
@@ -20,6 +21,8 @@ class McpServiceProvider extends ServiceProvider
     {
         $this->app->singleton(Registrar::class, fn (): Registrar => new Registrar);
 
+        $this->app->singleton(ClientManager::class, fn (): ClientManager => new ClientManager);
+
         $this->mergeConfigFrom(__DIR__.'/../../config/mcp.php', 'mcp');
     }
 
@@ -28,6 +31,7 @@ class McpServiceProvider extends ServiceProvider
         $this->registerMcpScope();
         $this->registerRoutes();
         $this->registerContainerCallbacks();
+        $this->registerTerminatingCallback();
 
         if ($this->app->runningInConsole()) {
             $this->registerCommands();
@@ -82,6 +86,15 @@ class McpServiceProvider extends ServiceProvider
                 $request->setArguments($currentRequest->all());
                 $request->setSessionId($currentRequest->sessionId());
                 $request->setMeta($currentRequest->meta());
+            }
+        });
+    }
+
+    protected function registerTerminatingCallback(): void
+    {
+        $this->app->terminating(function (): void {
+            if ($this->app->bound(ClientManager::class)) {
+                $this->app->make(ClientManager::class)->purge();
             }
         });
     }
