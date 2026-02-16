@@ -7,6 +7,10 @@ namespace Laravel\Mcp;
 use Illuminate\Container\Container;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Events\SessionInitialized;
+use Laravel\Mcp\Server\Attributes\Instructions;
+use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\Version;
+use Laravel\Mcp\Server\Concerns\ReadsAttributes;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
@@ -37,6 +41,8 @@ use Throwable;
  */
 abstract class Server
 {
+    use ReadsAttributes;
+
     public const CAPABILITY_TOOLS = 'tools';
 
     public const CAPABILITY_RESOURCES = 'resources';
@@ -226,9 +232,9 @@ abstract class Server
         return new ServerContext(
             supportedProtocolVersions: $this->supportedProtocolVersion,
             serverCapabilities: $this->capabilities,
-            serverName: $this->name,
-            serverVersion: $this->version,
-            instructions: $this->instructions,
+            serverName: $this->resolveAttribute(Name::class) ?? $this->name,
+            serverVersion: $this->resolveAttribute(Version::class) ?? $this->version,
+            instructions: $this->resolveAttribute(Instructions::class) ?? $this->instructions,
             maxPaginationLength: $this->maxPaginationLength,
             defaultPaginationLength: $this->defaultPaginationLength,
             tools: $this->tools,
