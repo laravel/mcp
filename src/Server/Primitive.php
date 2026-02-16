@@ -7,7 +7,11 @@ namespace Laravel\Mcp\Server;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Attributes\Description;
+use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\Title;
 use Laravel\Mcp\Server\Concerns\HasMeta;
+use Laravel\Mcp\Server\Concerns\ReadsAttributes;
 
 /**
  * @implements Arrayable<string, mixed>
@@ -15,6 +19,7 @@ use Laravel\Mcp\Server\Concerns\HasMeta;
 abstract class Primitive implements Arrayable
 {
     use HasMeta;
+    use ReadsAttributes;
 
     protected string $name = '';
 
@@ -24,23 +29,29 @@ abstract class Primitive implements Arrayable
 
     public function name(): string
     {
-        return $this->name === ''
-            ? Str::kebab(class_basename($this))
-            : $this->name;
+        $attribute = $this->resolveAttribute(Name::class);
+
+        return $attribute !== null
+            ? $attribute->value
+            : ($this->name !== '' ? $this->name : Str::kebab(class_basename($this)));
     }
 
     public function title(): string
     {
-        return $this->title === ''
-            ? Str::headline(class_basename($this))
-            : $this->title;
+        $attribute = $this->resolveAttribute(Title::class);
+
+        return $attribute !== null
+            ? $attribute->value
+            : ($this->title !== '' ? $this->title : Str::headline(class_basename($this)));
     }
 
     public function description(): string
     {
-        return $this->description === ''
-            ? Str::headline(class_basename($this))
-            : $this->description;
+        $attribute = $this->resolveAttribute(Description::class);
+
+        return $attribute !== null
+            ? $attribute->value
+            : ($this->description !== '' ? $this->description : Str::headline(class_basename($this)));
     }
 
     /**
