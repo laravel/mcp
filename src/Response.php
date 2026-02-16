@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
 use InvalidArgumentException;
 use JsonException;
 use Laravel\Mcp\Enums\Role;
-use Laravel\Mcp\Exceptions\NotImplementedException;
+use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Blob;
+use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
@@ -106,20 +108,52 @@ class Response
         return $this;
     }
 
-    /**
-     * @throws NotImplementedException
-     */
-    public static function audio(): Content
+    public static function audio(string $data, string $mimeType = 'audio/wav'): static
     {
-        throw NotImplementedException::forMethod(static::class, __METHOD__);
+        return new static(new Audio($data, $mimeType));
     }
 
-    /**
-     * @throws NotImplementedException
-     */
-    public static function image(): Content
+    public static function audioFromStorage(string $path, ?string $disk = null, ?string $mimeType = null): static
     {
-        throw NotImplementedException::forMethod(static::class, __METHOD__);
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $storage */
+        $storage = Storage::disk($disk);
+
+        $data = $storage->get($path);
+
+        if ($data === null) {
+            throw new InvalidArgumentException("File not found at path [{$path}].");
+        }
+
+        return static::audio(
+            $data,
+            $mimeType ?? $storage->mimeType($path) ?: throw new InvalidArgumentException(
+                "Unable to determine MIME type for [{$path}].",
+            ),
+        );
+    }
+
+    public static function image(string $data, string $mimeType = 'image/png'): static
+    {
+        return new static(new Image($data, $mimeType));
+    }
+
+    public static function imageFromStorage(string $path, ?string $disk = null, ?string $mimeType = null): static
+    {
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $storage */
+        $storage = Storage::disk($disk);
+
+        $data = $storage->get($path);
+
+        if ($data === null) {
+            throw new InvalidArgumentException("File not found at path [{$path}].");
+        }
+
+        return static::image(
+            $data,
+            $mimeType ?? $storage->mimeType($path) ?: throw new InvalidArgumentException(
+                "Unable to determine MIME type for [{$path}].",
+            ),
+        );
     }
 
     public function asAssistant(): static
