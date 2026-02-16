@@ -4,19 +4,39 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Concerns;
 
-use Laravel\Mcp\Server\Attributes\ServerAttribute;
 use ReflectionClass;
 
 trait ReadsAttributes
 {
     /**
-     * @param  class-string<ServerAttribute>  $attributeClass
+     * @var array<string, object|null>
      */
-    protected function resolveAttribute(string $attributeClass): ?string
-    {
-        $reflection = new ReflectionClass($this);
-        $attributes = $reflection->getAttributes($attributeClass);
+    protected static array $attributeCache = [];
 
-        return $attributes === [] ? null : $attributes[0]->newInstance()->value;
+    /**
+     * @template T of object
+     *
+     * @param  class-string<T>  $attributeClass
+     * @return T|null
+     */
+    protected function resolveAttribute(string $attributeClass): mixed
+    {
+        $cacheKey = static::class.'@'.$attributeClass;
+
+        if (array_key_exists($cacheKey, static::$attributeCache)) {
+            return static::$attributeCache[$cacheKey]; // @phpstan-ignore return.type
+        }
+
+        $reflection = new ReflectionClass($this);
+
+        do {
+            $attributes = $reflection->getAttributes($attributeClass);
+
+            if ($attributes !== []) {
+                return static::$attributeCache[$cacheKey] = $attributes[0]->newInstance();
+            }
+        } while ($reflection = $reflection->getParentClass());
+
+        return static::$attributeCache[$cacheKey] = null;
     }
 }

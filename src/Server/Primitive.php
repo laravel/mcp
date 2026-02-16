@@ -29,20 +29,29 @@ abstract class Primitive implements Arrayable
 
     public function name(): string
     {
-        return $this->resolveAttribute(Name::class)
-            ?? ($this->name !== '' ? $this->name : Str::kebab(class_basename($this)));
+        $attribute = $this->resolveAttribute(Name::class);
+
+        return $attribute !== null
+            ? $attribute->value
+            : ($this->name !== '' ? $this->name : Str::kebab(class_basename($this)));
     }
 
     public function title(): string
     {
-        return $this->resolveAttribute(Title::class)
-            ?? ($this->title !== '' ? $this->title : Str::headline(class_basename($this)));
+        $attribute = $this->resolveAttribute(Title::class);
+
+        return $attribute !== null
+            ? $attribute->value
+            : ($this->title !== '' ? $this->title : Str::headline(class_basename($this)));
     }
 
     public function description(): string
     {
-        return $this->resolveAttribute(Description::class)
-            ?? ($this->description !== '' ? $this->description : Str::headline(class_basename($this)));
+        $attribute = $this->resolveAttribute(Description::class);
+
+        return $attribute !== null
+            ? $attribute->value
+            : ($this->description !== '' ? $this->description : Str::headline(class_basename($this)));
     }
 
     /**

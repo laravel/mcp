@@ -25,14 +25,20 @@ abstract class Resource extends Primitive
             return (string) $this->uriTemplate();
         }
 
-        return $this->resolveAttribute(Uri::class)
-            ?? ($this->uri !== '' ? $this->uri : 'file://resources/'.Str::kebab(class_basename($this)));
+        $attribute = $this->resolveAttribute(Uri::class);
+
+        return $attribute !== null
+            ? $attribute->value
+            : ($this->uri !== '' ? $this->uri : 'file://resources/'.Str::kebab(class_basename($this)));
     }
 
     public function mimeType(): string
     {
-        return $this->resolveAttribute(MimeType::class)
-            ?? ($this->mimeType !== '' ? $this->mimeType : 'text/plain');
+        $attribute = $this->resolveAttribute(MimeType::class);
+
+        return $attribute !== null
+            ? $attribute->value
+            : ($this->mimeType !== '' ? $this->mimeType : 'text/plain');
     }
 
     /**

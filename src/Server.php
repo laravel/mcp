@@ -229,12 +229,16 @@ abstract class Server
 
     public function createContext(): ServerContext
     {
+        $name = $this->resolveAttribute(Name::class);
+        $version = $this->resolveAttribute(Version::class);
+        $instructions = $this->resolveAttribute(Instructions::class);
+
         return new ServerContext(
             supportedProtocolVersions: $this->supportedProtocolVersion,
             serverCapabilities: $this->capabilities,
-            serverName: $this->resolveAttribute(Name::class) ?? $this->name,
-            serverVersion: $this->resolveAttribute(Version::class) ?? $this->version,
-            instructions: $this->resolveAttribute(Instructions::class) ?? $this->instructions,
+            serverName: $name !== null ? $name->value : $this->name,
+            serverVersion: $version !== null ? $version->value : $this->version,
+            instructions: $instructions !== null ? $instructions->value : $this->instructions,
             maxPaginationLength: $this->maxPaginationLength,
             defaultPaginationLength: $this->defaultPaginationLength,
             tools: $this->tools,

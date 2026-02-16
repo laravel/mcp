@@ -203,6 +203,64 @@ it('resolves multiple attributes on a single class', function (): void {
         ->and($tool->description())->toBe('A tool with all attributes');
 });
 
+it('inherits attribute from parent class', function (): void {
+    $tool = new ChildToolWithoutAttribute;
+
+    expect($tool->name())->toBe('parent-tool-name');
+});
+
+it('child attribute overrides parent attribute', function (): void {
+    $tool = new ChildToolWithOverride;
+
+    expect($tool->name())->toBe('child-tool-name');
+});
+
+it('inherits attribute from parent server class', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ChildServerWithoutAttribute($transport);
+
+    $context = $server->createContext();
+
+    expect($context->serverName)->toBe('Parent Server');
+});
+
+it('child server attribute overrides parent server attribute', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ChildServerWithOverride($transport);
+
+    $context = $server->createContext();
+
+    expect($context->serverName)->toBe('Child Server');
+});
+
+#[Name('parent-tool-name')]
+class ParentToolWithAttribute extends Tool
+{
+    public function handle(): Response
+    {
+        return Response::text('test');
+    }
+}
+
+class ChildToolWithoutAttribute extends ParentToolWithAttribute {}
+
+#[Name('child-tool-name')]
+class ChildToolWithOverride extends ParentToolWithAttribute {}
+
+#[Name('Parent Server')]
+class ParentServerWithAttribute extends \Laravel\Mcp\Server
+{
+    protected function generateSessionId(): string
+    {
+        return 'test-session';
+    }
+}
+
+class ChildServerWithoutAttribute extends ParentServerWithAttribute {}
+
+#[Name('Child Server')]
+class ChildServerWithOverride extends ParentServerWithAttribute {}
+
 #[Name('custom-tool-name')]
 class AttributeNameTool extends Tool
 {
