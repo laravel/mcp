@@ -189,6 +189,20 @@ it('includes attributes in toArray output for prompts', function (): void {
     expect($array['description'])->toBe('A prompt via attribute');
 });
 
+it('ignores uri attribute when resource implements HasUriTemplate', function (): void {
+    $resource = new UriAttributeIgnoredForTemplateResource;
+
+    expect($resource->uri())->toBe('file://users/{userId}');
+});
+
+it('resolves multiple attributes on a single class', function (): void {
+    $tool = new MultipleAttributesTool;
+
+    expect($tool->name())->toBe('multi-tool')
+        ->and($tool->title())->toBe('Multi Tool')
+        ->and($tool->description())->toBe('A tool with all attributes');
+});
+
 #[Name('custom-tool-name')]
 class AttributeNameTool extends Tool
 {
@@ -405,5 +419,30 @@ class PropertyOnlyNameServer extends \Laravel\Mcp\Server
     protected function generateSessionId(): string
     {
         return 'test-session';
+    }
+}
+
+#[Uri('file://ignored/uri')]
+class UriAttributeIgnoredForTemplateResource extends Resource implements \Laravel\Mcp\Server\Contracts\HasUriTemplate
+{
+    public function uriTemplate(): \Laravel\Mcp\Support\UriTemplate
+    {
+        return new \Laravel\Mcp\Support\UriTemplate('file://users/{userId}');
+    }
+
+    public function handle(): Response
+    {
+        return Response::text('content');
+    }
+}
+
+#[Name('multi-tool')]
+#[Title('Multi Tool')]
+#[Description('A tool with all attributes')]
+class MultipleAttributesTool extends Tool
+{
+    public function handle(): Response
+    {
+        return Response::text('test');
     }
 }

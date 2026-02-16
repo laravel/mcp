@@ -7,7 +7,4 @@ namespace Laravel\Mcp\Server\Attributes;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_CLASS)]
-class Description
-{
-    public function __construct(public string $value) {}
-}
+class Description extends ServerAttribute {}

@@ -81,7 +81,7 @@
             "rector --dry-run"
         ],
         "test:unit": "pest --ci --coverage --min=92.5",
-        "test:types": "phpstan",
+        "test:types": "phpstan --no-progress",
         "test": [
             "@test:lint",
             "@test:unit",
