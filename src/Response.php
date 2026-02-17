@@ -138,15 +138,11 @@ class Response
             "Unable to determine MIME type for [{$path}].",
         );
 
-        if (str_starts_with($mimeType, 'image/')) {
-            return static::image($data, $mimeType);
-        }
-
-        if (str_starts_with($mimeType, 'audio/')) {
-            return static::audio($data, $mimeType);
-        }
-
-        throw new InvalidArgumentException("Unsupported MIME type [{$mimeType}] for [{$path}].");
+        return match (true) {
+            str_starts_with($mimeType, 'image/') => static::image($data, $mimeType),
+            str_starts_with($mimeType, 'audio/') => static::audio($data, $mimeType),
+            default => throw new InvalidArgumentException("Unsupported MIME type [{$mimeType}] for [{$path}]."),
+        };
     }
 
     public function asAssistant(): static
