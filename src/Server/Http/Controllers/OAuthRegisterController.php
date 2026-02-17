@@ -26,6 +26,10 @@ class OAuthRegisterController
                     return;
                 }
 
+                if (config('mcp.allow_localhost_dynamic_port', true) && $this->isLocalhostUrl($value)) {
+                    return;
+                }
+
                 if (! Str::startsWith($value, $this->allowedDomains())) {
                     $fail($attribute.' is not a permitted redirect domain.');
                 }
@@ -51,6 +55,21 @@ class OAuthRegisterController
             'redirect_uris' => $client->redirect_uris,
             'scope' => 'mcp:use',
             'token_endpoint_auth_method' => 'none',
+        ]);
+    }
+
+    /**
+     * Determine if the given URL targets a loopback address over HTTP.
+     */
+    protected function isLocalhostUrl(string $url): bool
+    {
+        return Str::startsWith($url, [
+            'http://localhost:',
+            'http://localhost/',
+            'http://127.0.0.1:',
+            'http://127.0.0.1/',
+            'http://[::1]:',
+            'http://[::1]/',
         ]);
     }
 
