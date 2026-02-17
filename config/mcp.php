@@ -20,4 +20,18 @@ return [
         // 'https://example.com',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Allow Localhost Dynamic Ports
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, any HTTP redirect URI targeting localhost (localhost,
+    | 127.0.0.1, or [::1]) will be permitted regardless of the port
+    | number. This is useful for CLI-based MCP clients that bind to
+    | dynamically allocated ports on the loopback interface.
+    |
+    */
+
+    'allow_localhost_dynamic_port' => true,
+
 ];
