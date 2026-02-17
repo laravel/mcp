@@ -31,11 +31,24 @@ it('may be used in prompts', function (): void {
     ]);
 });
 
-it('throws when used in resources', function (): void {
-    $image = new Image('anything');
+it('may be used in resources', function (): void {
+    $image = new Image('raw-image-bytes', 'image/jpeg');
 
-    $image->toResource(new class extends Resource {});
-})->throws(InvalidArgumentException::class, 'Image content may not be used in resources.');
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://images/photo.jpg';
+
+        protected string $mimeType = 'image/jpeg';
+    };
+
+    $payload = $image->toResource($resource);
+
+    expect($payload)->toEqual([
+        'blob' => base64_encode('raw-image-bytes'),
+        'uri' => 'file://images/photo.jpg',
+        'mimeType' => 'image/jpeg',
+    ]);
+});
 
 it('casts to string as raw data', function (): void {
     $image = new Image('hello');

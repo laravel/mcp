@@ -31,11 +31,24 @@ it('may be used in prompts', function (): void {
     ]);
 });
 
-it('throws when used in resources', function (): void {
-    $audio = new Audio('anything');
+it('may be used in resources', function (): void {
+    $audio = new Audio('raw-audio-bytes', 'audio/mp3');
 
-    $audio->toResource(new class extends Resource {});
-})->throws(InvalidArgumentException::class, 'Audio content may not be used in resources.');
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://audio/clip.mp3';
+
+        protected string $mimeType = 'audio/mp3';
+    };
+
+    $payload = $audio->toResource($resource);
+
+    expect($payload)->toEqual([
+        'blob' => base64_encode('raw-audio-bytes'),
+        'uri' => 'file://audio/clip.mp3',
+        'mimeType' => 'audio/mp3',
+    ]);
+});
 
 it('casts to string as raw data', function (): void {
     $audio = new Audio('hello');

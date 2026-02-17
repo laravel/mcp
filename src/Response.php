@@ -16,6 +16,7 @@ use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
+use League\Flysystem\UnableToReadFile;
 
 class Response
 {
@@ -123,7 +124,11 @@ class Response
         /** @var \Illuminate\Filesystem\FilesystemAdapter $storage */
         $storage = Storage::disk($disk);
 
-        $data = $storage->get($path);
+        try {
+            $data = $storage->get($path);
+        } catch (UnableToReadFile $unableToReadFile) {
+            throw new InvalidArgumentException("File not found at path [{$path}].", 0, $unableToReadFile);
+        }
 
         if ($data === null) {
             throw new InvalidArgumentException("File not found at path [{$path}].");
@@ -141,7 +146,7 @@ class Response
             return static::audio($data, $mimeType);
         }
 
-        return static::blob($data);
+        throw new InvalidArgumentException("Unsupported MIME type [{$mimeType}] for [{$path}].");
     }
 
     public function asAssistant(): static

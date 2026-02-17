@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Content;
 
-use InvalidArgumentException;
 use Laravel\Mcp\Server\Concerns\HasMeta;
 use Laravel\Mcp\Server\Contracts\Content;
 use Laravel\Mcp\Server\Prompt;
@@ -41,9 +40,11 @@ class Image implements Content
      */
     public function toResource(Resource $resource): array
     {
-        throw new InvalidArgumentException(
-            'Image content may not be used in resources.',
-        );
+        return $this->mergeMeta([
+            'blob' => base64_encode($this->data),
+            'uri' => $resource->uri(),
+            'mimeType' => $this->mimeType,
+        ]);
     }
 
     public function __toString(): string

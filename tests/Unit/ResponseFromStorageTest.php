@@ -5,8 +5,8 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Storage;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Content\Audio;
-use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Image;
+use League\Flysystem\UnableToReadFile;
 
 it('creates image response from storage', function (): void {
     Storage::fake();
@@ -78,21 +78,28 @@ it('auto-detects mime type for audio', function (): void {
         ->and($response->content()->toArray()['mimeType'])->toBe(Storage::mimeType('recordings/clip.mp3'));
 });
 
-it('falls back to blob for other mime types', function (): void {
+it('throws for unsupported mime types', function (): void {
     Storage::fake();
     Storage::put('docs/report.pdf', 'raw-pdf-data');
 
-    $response = Response::fromStorage('docs/report.pdf');
-
-    expect($response->content())->toBeInstanceOf(Blob::class)
-        ->and((string) $response->content())->toBe('raw-pdf-data');
-});
+    Response::fromStorage('docs/report.pdf');
+})->throws(InvalidArgumentException::class, 'Unsupported MIME type [application/pdf] for [docs/report.pdf].');
 
 it('throws when file does not exist', function (): void {
     Storage::fake();
 
     Response::fromStorage('nonexistent/file.png');
 })->throws(InvalidArgumentException::class, 'File not found at path [nonexistent/file.png].');
+
+it('throws when storage disk throws on missing file', function (): void {
+    $storage = Mockery::mock(\Illuminate\Filesystem\FilesystemAdapter::class);
+    $storage->shouldReceive('get')->with('missing/file.png')
+        ->andThrow(UnableToReadFile::fromLocation('missing/file.png'));
+
+    Storage::shouldReceive('disk')->with(null)->andReturn($storage);
+
+    Response::fromStorage('missing/file.png');
+})->throws(InvalidArgumentException::class, 'File not found at path [missing/file.png].');
 
 it('throws when mime type cannot be determined', function (): void {
     $storage = Mockery::mock(\Illuminate\Filesystem\FilesystemAdapter::class);
