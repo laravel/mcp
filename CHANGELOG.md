@@ -1,6 +1,10 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.7...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.8...main)
+
+## [v0.5.8](https://github.com/laravel/mcp/compare/v0.5.7...v0.5.8) - 2026-02-16
+
+* Add attribute alternatives for primitive and server configuration by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/154
 
 ## [v0.5.7](https://github.com/laravel/mcp/compare/v0.5.6...v0.5.7) - 2026-02-13
 
@@ -127,6 +131,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -137,6 +142,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
