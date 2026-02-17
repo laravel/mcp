@@ -11,6 +11,9 @@ use Laravel\Mcp\Server\Tool;
 #[Description('A description of what this tool does.')]
 class {{ class }} extends Tool
 {
+    /**
+     * Handle the tool request.
+     */
     public function handle(Request $request): Response
     {
         //
@@ -19,6 +22,8 @@ class {{ class }} extends Tool
     }
 
     /**
+     * Get the tool's input schema.
+     *
      * @return array<string, \Illuminate\Contracts\JsonSchema\JsonSchema>
      */
     public function schema(JsonSchema $schema): array

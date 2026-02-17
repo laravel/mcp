@@ -11,6 +11,9 @@ use Laravel\Mcp\Server\Prompts\Argument;
 #[Description('A description of what this prompt does.')]
 class {{ class }} extends Prompt
 {
+    /**
+     * Handle the prompt request.
+     */
     public function handle(Request $request): Response
     {
         //
@@ -19,6 +22,8 @@ class {{ class }} extends Prompt
     }
 
     /**
+     * Get the prompt's arguments.
+     *
      * @return array<int, \Laravel\Mcp\Server\Prompts\Argument>
      */
     public function arguments(): array
