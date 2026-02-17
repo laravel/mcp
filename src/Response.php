@@ -113,31 +113,12 @@ class Response
         return new static(new Audio($data, $mimeType));
     }
 
-    public static function audioFromStorage(string $path, ?string $disk = null, ?string $mimeType = null): static
-    {
-        /** @var \Illuminate\Filesystem\FilesystemAdapter $storage */
-        $storage = Storage::disk($disk);
-
-        $data = $storage->get($path);
-
-        if ($data === null) {
-            throw new InvalidArgumentException("File not found at path [{$path}].");
-        }
-
-        return static::audio(
-            $data,
-            $mimeType ?? $storage->mimeType($path) ?: throw new InvalidArgumentException(
-                "Unable to determine MIME type for [{$path}].",
-            ),
-        );
-    }
-
     public static function image(string $data, string $mimeType = 'image/png'): static
     {
         return new static(new Image($data, $mimeType));
     }
 
-    public static function imageFromStorage(string $path, ?string $disk = null, ?string $mimeType = null): static
+    public static function fromStorage(string $path, ?string $disk = null, ?string $mimeType = null): static
     {
         /** @var \Illuminate\Filesystem\FilesystemAdapter $storage */
         $storage = Storage::disk($disk);
@@ -148,12 +129,19 @@ class Response
             throw new InvalidArgumentException("File not found at path [{$path}].");
         }
 
-        return static::image(
-            $data,
-            $mimeType ?? $storage->mimeType($path) ?: throw new InvalidArgumentException(
-                "Unable to determine MIME type for [{$path}].",
-            ),
+        $mimeType ??= $storage->mimeType($path) ?: throw new InvalidArgumentException(
+            "Unable to determine MIME type for [{$path}].",
         );
+
+        if (str_starts_with($mimeType, 'image/')) {
+            return static::image($data, $mimeType);
+        }
+
+        if (str_starts_with($mimeType, 'audio/')) {
+            return static::audio($data, $mimeType);
+        }
+
+        return static::blob($data);
     }
 
     public function asAssistant(): static
