@@ -238,7 +238,7 @@ it('handles oauth registration with allowed domains', function (): void {
     ]);
 });
 
-it('allows localhost with dynamic port when allow_localhost_dynamic_port is enabled', function (string $uri): void {
+it('allows localhost with dynamic port when localhost is in redirect_domains', function (string $uri): void {
     if (! class_exists('Laravel\Passport\ClientRepository')) {
         eval('
             namespace Laravel\Passport;
@@ -257,8 +257,7 @@ it('allows localhost with dynamic port when allow_localhost_dynamic_port is enab
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    config()->set('mcp.redirect_domains', ['https://example.com']);
-    config()->set('mcp.allow_localhost_dynamic_port', true);
+    config()->set('mcp.redirect_domains', ['https://example.com', 'http://localhost']);
 
     $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
 
@@ -274,7 +273,7 @@ it('allows localhost with dynamic port when allow_localhost_dynamic_port is enab
     'IPv6 loopback' => ['http://[::1]:39201/callback'],
 ]);
 
-it('rejects localhost with dynamic port when allow_localhost_dynamic_port is disabled', function (string $uri): void {
+it('rejects localhost with dynamic port when localhost is not in redirect_domains', function (string $uri): void {
     if (! class_exists('Laravel\Passport\ClientRepository')) {
         eval('
             namespace Laravel\Passport;
@@ -294,7 +293,6 @@ it('rejects localhost with dynamic port when allow_localhost_dynamic_port is dis
     $registrar->oauthRoutes();
 
     config()->set('mcp.redirect_domains', ['https://example.com']);
-    config()->set('mcp.allow_localhost_dynamic_port', false);
 
     $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
 
@@ -310,7 +308,7 @@ it('rejects localhost with dynamic port when allow_localhost_dynamic_port is dis
     'IPv6 loopback' => ['http://[::1]:39201/callback'],
 ]);
 
-it('does not allow non-localhost URLs via allow_localhost_dynamic_port', function (): void {
+it('does not allow non-localhost URLs when localhost is in redirect_domains', function (): void {
     if (! class_exists('Laravel\Passport\ClientRepository')) {
         eval('
             namespace Laravel\Passport;
@@ -329,8 +327,7 @@ it('does not allow non-localhost URLs via allow_localhost_dynamic_port', functio
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    config()->set('mcp.redirect_domains', ['https://example.com']);
-    config()->set('mcp.allow_localhost_dynamic_port', true);
+    config()->set('mcp.redirect_domains', ['https://example.com', 'http://localhost']);
 
     $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
 
@@ -342,7 +339,7 @@ it('does not allow non-localhost URLs via allow_localhost_dynamic_port', functio
     $response->assertStatus(422);
 });
 
-it('does not allow https localhost URLs via allow_localhost_dynamic_port', function (): void {
+it('does not allow https localhost URLs via localhost redirect domain', function (): void {
     if (! class_exists('Laravel\Passport\ClientRepository')) {
         eval('
             namespace Laravel\Passport;
@@ -361,8 +358,7 @@ it('does not allow https localhost URLs via allow_localhost_dynamic_port', funct
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    config()->set('mcp.redirect_domains', ['https://example.com']);
-    config()->set('mcp.allow_localhost_dynamic_port', true);
+    config()->set('mcp.redirect_domains', ['https://example.com', 'http://localhost']);
 
     $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
 
@@ -373,6 +369,41 @@ it('does not allow https localhost URLs via allow_localhost_dynamic_port', funct
 
     $response->assertStatus(422);
 });
+
+it('allows all localhost hosts when any localhost variant is in redirect_domains', function (string $configDomain): void {
+    if (! class_exists('Laravel\Passport\ClientRepository')) {
+        eval('
+            namespace Laravel\Passport;
+            class ClientRepository {
+                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
+                    return (object) [
+                        "id" => "test-client-id",
+                        "grant_types" => ["authorization_code"],
+                        "redirect_uris" => $redirectUris,
+                    ];
+                }
+            }
+        ');
+    }
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.redirect_domains', [$configDomain]);
+
+    $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['http://localhost:18293/callback'],
+    ]);
+
+    $response->assertStatus(200);
+})->with([
+    'http://127.0.0.1' => ['http://127.0.0.1'],
+    'http://[::1]' => ['http://[::1]'],
+    'localhost without scheme' => ['localhost'],
+]);
 
 it('handles oauth registration with incorrect redirect domain', function (): void {
     if (! class_exists('Laravel\Passport\ClientRepository')) {

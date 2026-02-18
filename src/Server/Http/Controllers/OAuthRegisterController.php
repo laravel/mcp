@@ -26,7 +26,7 @@ class OAuthRegisterController
                     return;
                 }
 
-                if (config('mcp.allow_localhost_dynamic_port', true) && $this->isLocalhostUrl($value)) {
+                if ($this->hasLocalhostDomain() && $this->isLocalhostUrl($value)) {
                     return;
                 }
 
@@ -89,5 +89,17 @@ class OAuthRegisterController
                 : "{$domain}/"
             )
             ->all();
+    }
+
+    private function hasLocalhostDomain(): bool
+    {
+        /** @var array<int, string> */
+        $domains = config('mcp.redirect_domains', []);
+
+        return collect($domains)->contains(fn (string $domain): bool => in_array(
+            rtrim(Str::after($domain, '://'), '/'),
+            ['localhost', '127.0.0.1', '[::1]'],
+            true,
+        ));
     }
 }
