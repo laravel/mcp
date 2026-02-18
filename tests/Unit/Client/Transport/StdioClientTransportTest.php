@@ -34,7 +34,7 @@ it('detects disconnected process', function (): void {
 });
 
 it('can connect to a simple process and communicate', function (): void {
-    $transport = new StdioClientTransport('php', ['-r', 'while ($line = fgets(STDIN)) { echo trim($line) . "\n"; }']);
+    $transport = new StdioClientTransport('php', ['-r', 'while ($line = fgets(STDIN)) { echo trim($line) . PHP_EOL; }']);
 
     $transport->connect();
 
@@ -48,7 +48,7 @@ it('can connect to a simple process and communicate', function (): void {
 });
 
 it('can send notifications without reading response', function (): void {
-    $transport = new StdioClientTransport('php', ['-r', 'while ($line = fgets(STDIN)) { echo trim($line) . "\n"; }']);
+    $transport = new StdioClientTransport('php', ['-r', 'while ($line = fgets(STDIN)) { echo trim($line) . PHP_EOL; }']);
 
     $transport->connect();
 
