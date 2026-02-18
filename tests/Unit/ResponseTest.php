@@ -3,10 +3,11 @@
 declare(strict_types=1);
 
 use Laravel\Mcp\Enums\Role;
-use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
+use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Blob;
+use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
 
@@ -46,16 +47,52 @@ it('creates an error response', function (): void {
         ->and($response->role())->toBe(Role::User);
 });
 
-it('throws exception for audio method', function (): void {
-    expect(function (): void {
-        Response::audio();
-    })->toThrow(NotImplementedException::class, 'The method ['.\Laravel\Mcp\Response::class.'@'.\Laravel\Mcp\Response::class.'::audio] is not implemented yet.');
+it('creates an image response', function (): void {
+    $response = Response::image('raw-bytes');
+
+    expect($response->content())->toBeInstanceOf(Image::class)
+        ->and($response->isNotification())->toBeFalse()
+        ->and($response->isError())->toBeFalse()
+        ->and($response->role())->toBe(Role::User);
 });
 
-it('throws exception for image method', function (): void {
-    expect(function (): void {
-        Response::image();
-    })->toThrow(NotImplementedException::class, 'The method ['.\Laravel\Mcp\Response::class.'@'.\Laravel\Mcp\Response::class.'::image] is not implemented yet.');
+it('creates an image response with custom mime type', function (): void {
+    $response = Response::image('raw-bytes', 'image/webp');
+
+    expect($response->content())->toBeInstanceOf(Image::class)
+        ->and($response->content()->toArray()['mimeType'])->toBe('image/webp');
+});
+
+it('creates an audio response', function (): void {
+    $response = Response::audio('raw-bytes');
+
+    expect($response->content())->toBeInstanceOf(Audio::class)
+        ->and($response->isNotification())->toBeFalse()
+        ->and($response->isError())->toBeFalse()
+        ->and($response->role())->toBe(Role::User);
+});
+
+it('creates an audio response with custom mime type', function (): void {
+    $response = Response::audio('raw-bytes', 'audio/mp3');
+
+    expect($response->content())->toBeInstanceOf(Audio::class)
+        ->and($response->content()->toArray()['mimeType'])->toBe('audio/mp3');
+});
+
+it('creates image response with content meta', function (): void {
+    $response = Response::image('raw-bytes')->withMeta(['source' => 'camera']);
+
+    expect($response->content())->toBeInstanceOf(Image::class)
+        ->and($response->content()->toArray())->toHaveKey('_meta')
+        ->and($response->content()->toArray()['_meta'])->toEqual(['source' => 'camera']);
+});
+
+it('creates audio response with content meta', function (): void {
+    $response = Response::audio('raw-bytes')->withMeta(['duration' => '3.5s']);
+
+    expect($response->content())->toBeInstanceOf(Audio::class)
+        ->and($response->content()->toArray())->toHaveKey('_meta')
+        ->and($response->content()->toArray()['_meta'])->toEqual(['duration' => '3.5s']);
 });
 
 it('can convert response to assistant role', function (): void {

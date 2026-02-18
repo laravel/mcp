@@ -321,11 +321,11 @@ class TestResponse
         return (match (true) {
             // @phpstan-ignore-next-line
             $this->primitive instanceof Tool => collect($this->response->toArray()['result']['content'] ?? [])
-                ->map(fn (array $message): string => $message['text'] ?? ''),
+                ->map(fn (array $message): string => $message['text'] ?? $message['data'] ?? ''),
             // @phpstan-ignore-next-line
             $this->primitive instanceof Prompt => collect($this->response->toArray()['result']['messages'] ?? [])
                 ->map(fn (array $message): array => $message['content'])
-                ->map(fn (array $content): string => $content['text'] ?? ''),
+                ->map(fn (array $content): string => $content['text'] ?? $content['data'] ?? ''),
             // @phpstan-ignore-next-line
             $this->primitive instanceof Resource => collect($this->response->toArray()['result']['contents'] ?? [])
                 ->map(fn (array $item): string => $item['text'] ?? $item['blob'] ?? ''),
