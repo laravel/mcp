@@ -58,9 +58,6 @@ class OAuthRegisterController
         ]);
     }
 
-    /**
-     * Determine if the given URL targets a loopback address over HTTP.
-     */
     protected function isLocalhostUrl(string $url): bool
     {
         return Str::startsWith($url, [
