@@ -26,6 +26,10 @@ class OAuthRegisterController
                     return;
                 }
 
+                if ($this->hasLocalhostDomain() && $this->isLocalhostUrl($value)) {
+                    return;
+                }
+
                 if (! Str::startsWith($value, $this->allowedDomains())) {
                     $fail($attribute.' is not a permitted redirect domain.');
                 }
@@ -54,6 +58,18 @@ class OAuthRegisterController
         ]);
     }
 
+    protected function isLocalhostUrl(string $url): bool
+    {
+        return Str::startsWith($url, [
+            'http://localhost:',
+            'http://localhost/',
+            'http://127.0.0.1:',
+            'http://127.0.0.1/',
+            'http://[::1]:',
+            'http://[::1]/',
+        ]);
+    }
+
     /**
      * Get the allowed redirect domains.
      *
@@ -70,5 +86,17 @@ class OAuthRegisterController
                 : "{$domain}/"
             )
             ->all();
+    }
+
+    private function hasLocalhostDomain(): bool
+    {
+        /** @var array<int, string> */
+        $domains = config('mcp.redirect_domains', []);
+
+        return collect($domains)->contains(fn (string $domain): bool => in_array(
+            rtrim(Str::after($domain, '://'), '/'),
+            ['localhost', '127.0.0.1', '[::1]'],
+            true,
+        ));
     }
 }

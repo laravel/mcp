@@ -18,6 +18,7 @@ return [
     'redirect_domains' => [
         '*',
         // 'https://example.com',
+        // 'http://localhost',
     ],
 
 ];
