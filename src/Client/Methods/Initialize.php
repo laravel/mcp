@@ -17,7 +17,7 @@ class Initialize implements ClientMethod
     {
         $response = $context->sendRequest('initialize', [
             'protocolVersion' => $context->protocolVersion,
-            'capabilities' => (object) [],
+            'capabilities' => $context->capabilities !== [] ? $context->capabilities : (object) [],
             'clientInfo' => [
                 'name' => $context->clientName,
                 'version' => '1.0.0',

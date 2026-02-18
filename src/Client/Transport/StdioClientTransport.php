@@ -49,7 +49,7 @@ class StdioClientTransport implements ClientTransport
 
         $this->process = $process;
 
-        stream_set_blocking($this->pipes[1], true);
+        stream_set_blocking($this->pipes[1], false);
     }
 
     public function send(string $message): string
@@ -59,13 +59,21 @@ class StdioClientTransport implements ClientTransport
         fwrite($this->pipes[0], $message."\n");
         fflush($this->pipes[0]);
 
-        $response = fgets($this->pipes[1]);
+        $startTime = microtime(true);
 
-        if ($response === false) {
-            throw new ConnectionException('Failed to read response from process.');
+        while (true) {
+            $response = fgets($this->pipes[1]);
+
+            if ($response !== false) {
+                return trim($response);
+            }
+
+            if ((microtime(true) - $startTime) >= $this->timeout) {
+                throw new ConnectionException("Read timeout after {$this->timeout} seconds.");
+            }
+
+            usleep(10000);
         }
-
-        return trim($response);
     }
 
     public function notify(string $message): void

@@ -59,6 +59,14 @@ it('can send notifications without reading response', function (): void {
     $transport->disconnect();
 });
 
+it('throws on read timeout', function (): void {
+    $transport = new StdioClientTransport('php', ['-r', 'sleep(60);'], timeout: 0.1);
+
+    $transport->connect();
+
+    $transport->send('hello');
+})->throws(ConnectionException::class, 'Read timeout after 0.1 seconds.');
+
 it('disconnect is idempotent', function (): void {
     $transport = new StdioClientTransport('php', ['-r', 'echo "ok";']);
 

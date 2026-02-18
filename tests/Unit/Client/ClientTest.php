@@ -197,6 +197,131 @@ it('caches tools when cache ttl is set', function (): void {
     $client->clearCache();
 });
 
+it('paginates tools list using cursor', function (): void {
+    $transport = new FakeClientTransport([
+        json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'result' => [
+                'protocolVersion' => '2025-11-25',
+                'capabilities' => [],
+                'serverInfo' => ['name' => 'test', 'version' => '1.0.0'],
+            ],
+        ]),
+        json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 2,
+            'result' => [
+                'tools' => [
+                    ['name' => 'tool-1', 'description' => 'First tool'],
+                ],
+                'nextCursor' => 'cursor-abc',
+            ],
+        ]),
+        json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 3,
+            'result' => [
+                'tools' => [
+                    ['name' => 'tool-2', 'description' => 'Second tool'],
+                ],
+            ],
+        ]),
+    ]);
+
+    $client = new Client($transport, 'test-client');
+    $client->connect();
+
+    $tools = $client->tools();
+
+    expect($tools)->toHaveCount(2)
+        ->and($tools->first()->name())->toBe('tool-1')
+        ->and($tools->last()->name())->toBe('tool-2');
+
+    $sent = $transport->sentMessages();
+    expect($sent)->toHaveCount(3);
+
+    $secondRequest = json_decode($sent[1], true);
+    expect($secondRequest['method'])->toBe('tools/list')
+        ->and($secondRequest)->not->toHaveKey('params');
+
+    $thirdRequest = json_decode($sent[2], true);
+    expect($thirdRequest['method'])->toBe('tools/list')
+        ->and($thirdRequest['params']['cursor'])->toBe('cursor-abc');
+});
+
+it('sends ping request', function (): void {
+    $transport = new FakeClientTransport([
+        json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'result' => [
+                'protocolVersion' => '2025-11-25',
+                'capabilities' => [],
+                'serverInfo' => ['name' => 'test', 'version' => '1.0.0'],
+            ],
+        ]),
+        json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 2,
+            'result' => [],
+        ]),
+    ]);
+
+    $client = new Client($transport, 'test-client');
+    $client->connect();
+
+    $client->ping();
+
+    $sent = $transport->sentMessages();
+    expect($sent)->toHaveCount(2);
+
+    $pingRequest = json_decode($sent[1], true);
+    expect($pingRequest['method'])->toBe('ping');
+});
+
+it('sends capabilities during initialization', function (): void {
+    $transport = new FakeClientTransport([
+        json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'result' => [
+                'protocolVersion' => '2025-11-25',
+                'capabilities' => [],
+                'serverInfo' => ['name' => 'test', 'version' => '1.0.0'],
+            ],
+        ]),
+    ]);
+
+    $client = new Client($transport, 'test-client', capabilities: ['sampling' => []]);
+    $client->connect();
+
+    $sent = $transport->sentMessages();
+    $initRequest = json_decode($sent[0], true);
+    expect($initRequest['params']['capabilities'])->toBe(['sampling' => []]);
+});
+
+it('sends empty capabilities object when none configured', function (): void {
+    $transport = new FakeClientTransport([
+        json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'result' => [
+                'protocolVersion' => '2025-11-25',
+                'capabilities' => [],
+                'serverInfo' => ['name' => 'test', 'version' => '1.0.0'],
+            ],
+        ]),
+    ]);
+
+    $client = new Client($transport, 'test-client');
+    $client->connect();
+
+    $sent = $transport->sentMessages();
+    $initRequest = json_decode($sent[0], true);
+    expect($initRequest['params']['capabilities'])->toBeEmpty();
+});
+
 it('clears cache', function (): void {
     $transport = new FakeClientTransport([
         json_encode([

@@ -7,7 +7,7 @@ namespace Laravel\Mcp\Client\Methods;
 use Laravel\Mcp\Client\ClientContext;
 use Laravel\Mcp\Client\Contracts\ClientMethod;
 
-class ListTools implements ClientMethod
+class Ping implements ClientMethod
 {
     /**
      * @param  array<string, mixed>  $params
@@ -15,7 +15,7 @@ class ListTools implements ClientMethod
      */
     public function handle(ClientContext $context, array $params = []): array
     {
-        $response = $context->sendRequest('tools/list', $params);
+        $response = $context->sendRequest('ping');
 
         return $response['result'] ?? [];
     }

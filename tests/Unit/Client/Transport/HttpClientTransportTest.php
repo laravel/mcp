@@ -81,6 +81,37 @@ it('manages connection state', function (): void {
     expect($transport->isConnected())->toBeFalse();
 });
 
+it('sends delete on disconnect when session id exists', function (): void {
+    $http = new Factory;
+    $http->fake([
+        'example.com/mcp' => $http->sequence()
+            ->push('{"jsonrpc":"2.0","id":1,"result":{}}', 200, ['MCP-Session-Id' => 'session-123'])
+            ->push('', 200),
+    ]);
+
+    $transport = new HttpClientTransport('https://example.com/mcp', [], 30, $http);
+    $transport->connect();
+
+    $transport->send('{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}');
+
+    $transport->disconnect();
+
+    $http->assertSentCount(2);
+    $http->assertSent(fn ($request): bool => $request->method() === 'DELETE'
+        && $request->hasHeader('MCP-Session-Id', 'session-123'));
+});
+
+it('does not send delete on disconnect without session id', function (): void {
+    $http = new Factory;
+    $http->fake();
+
+    $transport = new HttpClientTransport('https://example.com/mcp', [], 30, $http);
+    $transport->connect();
+    $transport->disconnect();
+
+    $http->assertNothingSent();
+});
+
 it('includes custom headers', function (): void {
     $http = new Factory;
     $http->fake([

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client\Transport;
 
 use Illuminate\Http\Client\Factory;
+use Illuminate\Http\Client\Response;
 use Laravel\Mcp\Client\Contracts\ClientTransport;
 use Laravel\Mcp\Client\Exceptions\ClientException;
 use Laravel\Mcp\Client\Exceptions\ConnectionException;
@@ -36,17 +37,7 @@ class HttpClientTransport implements ClientTransport
 
     public function send(string $message): string
     {
-        $this->ensureConnected();
-
-        $response = $this->http
-            ->timeout((int) $this->timeout)
-            ->withHeaders($this->buildHeaders())
-            ->withBody($message, 'application/json')
-            ->post($this->url);
-
-        if ($response->header('MCP-Session-Id')) {
-            $this->sessionId = $response->header('MCP-Session-Id');
-        }
+        $response = $this->post($message);
 
         if (! $response->successful()) {
             throw new ClientException("HTTP request failed with status {$response->status()}.");
@@ -57,21 +48,18 @@ class HttpClientTransport implements ClientTransport
 
     public function notify(string $message): void
     {
-        $this->ensureConnected();
-
-        $response = $this->http
-            ->timeout((int) $this->timeout)
-            ->withHeaders($this->buildHeaders())
-            ->withBody($message, 'application/json')
-            ->post($this->url);
-
-        if ($response->header('MCP-Session-Id')) {
-            $this->sessionId = $response->header('MCP-Session-Id');
-        }
+        $this->post($message);
     }
 
     public function disconnect(): void
     {
+        if ($this->connected && $this->sessionId !== null) {
+            $this->http
+                ->timeout((int) $this->timeout)
+                ->withHeaders($this->buildHeaders())
+                ->delete($this->url);
+        }
+
         $this->connected = false;
         $this->sessionId = null;
     }
@@ -86,15 +74,33 @@ class HttpClientTransport implements ClientTransport
      */
     protected function buildHeaders(): array
     {
-        $headers = array_merge($this->headers, [
+        $headers = [
+            ...$this->headers,
             'Accept' => 'application/json, text/event-stream',
-        ]);
+        ];
 
         if ($this->sessionId !== null) {
             $headers['MCP-Session-Id'] = $this->sessionId;
         }
 
         return $headers;
+    }
+
+    protected function post(string $message): Response
+    {
+        $this->ensureConnected();
+
+        $response = $this->http
+            ->timeout((int) $this->timeout)
+            ->withHeaders($this->buildHeaders())
+            ->withBody($message, 'application/json')
+            ->post($this->url);
+
+        if ($response->header('MCP-Session-Id')) {
+            $this->sessionId = $response->header('MCP-Session-Id');
+        }
+
+        return $response;
     }
 
     protected function ensureConnected(): void

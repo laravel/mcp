@@ -10,6 +10,7 @@ use Laravel\Mcp\Client\Contracts\ClientTransport;
 use Laravel\Mcp\Client\Methods\CallTool;
 use Laravel\Mcp\Client\Methods\Initialize;
 use Laravel\Mcp\Client\Methods\ListTools;
+use Laravel\Mcp\Client\Methods\Ping;
 
 class Client
 {
@@ -28,15 +29,20 @@ class Client
         'initialize' => Initialize::class,
         'tools/list' => ListTools::class,
         'tools/call' => CallTool::class,
+        'ping' => Ping::class,
     ];
 
+    /**
+     * @param  array<string, mixed>  $capabilities
+     */
     public function __construct(
         protected ClientTransport $transport,
         protected string $name = 'laravel-mcp-client',
         protected ?int $cacheTtl = null,
         protected string $protocolVersion = '2025-11-25',
+        protected array $capabilities = [],
     ) {
-        $this->context = new ClientContext($transport, $this->name, $this->protocolVersion);
+        $this->context = new ClientContext($transport, $this->name, $this->protocolVersion, $this->capabilities);
     }
 
     public function connect(): static
@@ -72,13 +78,18 @@ class Client
             return Cache::get($cacheKey);
         }
 
-        $result = $this->callMethod('tools/list');
+        $allTools = [];
+        $cursor = null;
 
-        /** @var array<int, array<string, mixed>> $toolDefinitions */
-        $toolDefinitions = $result['tools'] ?? [];
+        do {
+            $params = $cursor !== null ? ['cursor' => $cursor] : [];
+            $result = $this->callMethod('tools/list', $params);
+            array_push($allTools, ...($result['tools'] ?? []));
+            $cursor = $result['nextCursor'] ?? null;
+        } while ($cursor !== null);
 
         /** @var Collection<int, ClientTool> $tools */
-        $tools = collect($toolDefinitions)->map(
+        $tools = collect($allTools)->map(
             fn (array $definition): ClientTool => ClientTool::fromArray($definition, $this)
         );
 
@@ -120,6 +131,11 @@ class Client
     public function isConnected(): bool
     {
         return $this->initialized && $this->transport->isConnected();
+    }
+
+    public function ping(): void
+    {
+        $this->callMethod('ping');
     }
 
     public function clearCache(): void

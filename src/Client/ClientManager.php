@@ -34,6 +34,7 @@ class ClientManager
             name: $name,
             cacheTtl: isset($config['cache_ttl']) ? (int) $config['cache_ttl'] : null,
             protocolVersion: (string) config('mcp.protocol_version', '2025-11-25'),
+            capabilities: (array) ($config['capabilities'] ?? []),
         );
 
         $client->connect();

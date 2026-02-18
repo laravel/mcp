@@ -14,10 +14,14 @@ class ClientContext
 {
     protected int $requestId = 0;
 
+    /**
+     * @param  array<string, mixed>  $capabilities
+     */
     public function __construct(
         protected ClientTransport $transport,
         public string $clientName,
         public string $protocolVersion = '2025-11-25',
+        public array $capabilities = [],
     ) {}
 
     /**
