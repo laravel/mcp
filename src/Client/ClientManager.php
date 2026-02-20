@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client;
 
 use InvalidArgumentException;
+use Laravel\Mcp\Client\Auth\AuthorizationCodeProvider;
+use Laravel\Mcp\Client\Auth\AuthProvider;
+use Laravel\Mcp\Client\Auth\ClientCredentialsProvider;
 use Laravel\Mcp\Client\Contracts\ClientTransport;
 use Laravel\Mcp\Client\Transport\HttpClientTransport;
 use Laravel\Mcp\Client\Transport\StdioClientTransport;
@@ -27,7 +30,7 @@ class ClientManager
             throw new InvalidArgumentException("MCP server [{$name}] is not configured.");
         }
 
-        $transport = $this->createTransport($config);
+        $transport = $this->createTransport($config, $name);
 
         $client = new Client(
             transport: $transport,
@@ -63,7 +66,7 @@ class ClientManager
     /**
      * @param  array<string, mixed>  $config
      */
-    public function createTransport(array $config): ClientTransport
+    public function createTransport(array $config, string $name = ''): ClientTransport
     {
         $transport = $config['transport'] ?? 'stdio';
 
@@ -79,8 +82,36 @@ class ClientManager
                 url: (string) ($config['url'] ?? ''),
                 headers: (array) ($config['headers'] ?? []),
                 timeout: (float) ($config['timeout'] ?? 30),
+                authProvider: isset($config['auth']) ? $this->createAuthProvider((array) $config['auth'], $name) : null,
             ),
             default => throw new InvalidArgumentException("Unsupported MCP transport [{$transport}]."),
+        };
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    public function createAuthProvider(array $config, string $name): AuthProvider
+    {
+        $type = $config['type'] ?? null;
+
+        return match ($type) {
+            'client_credentials' => new ClientCredentialsProvider(
+                clientId: (string) ($config['client_id'] ?? ''),
+                clientSecret: (string) ($config['client_secret'] ?? ''),
+                serverName: $name,
+                tokenEndpoint: isset($config['token_endpoint']) ? (string) $config['token_endpoint'] : null,
+                scope: (string) ($config['scope'] ?? 'mcp:use'),
+            ),
+            'authorization_code' => new AuthorizationCodeProvider(
+                clientId: (string) ($config['client_id'] ?? ''),
+                redirectUri: (string) ($config['redirect_uri'] ?? ''),
+                serverName: $name,
+                authorizationEndpoint: isset($config['authorization_endpoint']) ? (string) $config['authorization_endpoint'] : null,
+                tokenEndpoint: isset($config['token_endpoint']) ? (string) $config['token_endpoint'] : null,
+                scope: (string) ($config['scope'] ?? 'mcp:use'),
+            ),
+            default => throw new InvalidArgumentException("Unsupported MCP auth type [{$type}]."),
         };
     }
 }

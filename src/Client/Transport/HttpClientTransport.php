@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Client\Transport;
 
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Response;
+use Laravel\Mcp\Client\Auth\AuthProvider;
 use Laravel\Mcp\Client\Contracts\ClientTransport;
 use Laravel\Mcp\Client\Exceptions\ClientException;
 use Laravel\Mcp\Client\Exceptions\ConnectionException;
@@ -26,6 +27,7 @@ class HttpClientTransport implements ClientTransport
         protected array $headers = [],
         protected float $timeout = 30,
         ?Factory $httpFactory = null,
+        protected ?AuthProvider $authProvider = null,
     ) {
         $this->http = $httpFactory ?? new Factory;
     }
@@ -38,6 +40,12 @@ class HttpClientTransport implements ClientTransport
     public function send(string $message): string
     {
         $response = $this->post($message);
+
+        if ($response->status() === 401 && $this->authProvider instanceof \Laravel\Mcp\Client\Auth\AuthProvider) {
+            $this->authProvider->handleUnauthorized($response->header('WWW-Authenticate') ?? '');
+
+            $response = $this->post($message);
+        }
 
         if (! $response->successful()) {
             throw new ClientException("HTTP request failed with status {$response->status()}.");
@@ -78,6 +86,14 @@ class HttpClientTransport implements ClientTransport
             ...$this->headers,
             'Accept' => 'application/json, text/event-stream',
         ];
+
+        if ($this->authProvider instanceof \Laravel\Mcp\Client\Auth\AuthProvider) {
+            $token = $this->authProvider->token();
+
+            if ($token !== null) {
+                $headers['Authorization'] = "Bearer {$token}";
+            }
+        }
 
         if ($this->sessionId !== null) {
             $headers['MCP-Session-Id'] = $this->sessionId;

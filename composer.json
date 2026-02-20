@@ -30,8 +30,12 @@
         "illuminate/validation": "^11.45.3|^12.41.1|^13.0",
         "illuminate/json-schema": "^12.41.1|^13.0"
     },
+    "suggest": {
+        "league/oauth2-client": "Required for OAuth authentication with MCP servers (^2.0)"
+    },
     "require-dev": {
         "laravel/pint": "^1.20",
+        "league/oauth2-client": "^2.0",
         "orchestra/testbench": "^9.15|^10.8|^11.0",
         "pestphp/pest": "^3.8.5|^4.3.2",
         "phpstan/phpstan": "^2.1.27",

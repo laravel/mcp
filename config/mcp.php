@@ -59,6 +59,28 @@ return [
         //     'timeout' => 30,
         //     'cache_ttl' => 300,
         // ],
+        // 'remote-oauth' => [
+        //     'transport' => 'http',
+        //     'url' => 'https://example.com/mcp',
+        //     'timeout' => 30,
+        //     'auth' => [
+        //         'type' => 'client_credentials',
+        //         'client_id' => env('MCP_CLIENT_ID'),
+        //         'client_secret' => env('MCP_CLIENT_SECRET'),
+        //         'scope' => 'mcp:use',
+        //         // 'token_endpoint' => 'https://auth.example.com/token',
+        //     ],
+        // ],
+        // 'oauth-server' => [
+        //     'transport' => 'http',
+        //     'url' => 'https://example.com/mcp',
+        //     'auth' => [
+        //         'type' => 'authorization_code',
+        //         'client_id' => env('MCP_CLIENT_ID'),
+        //         'redirect_uri' => env('MCP_REDIRECT_URI'),
+        //         'scope' => 'mcp:use',
+        //     ],
+        // ],
     ],
 
 ];

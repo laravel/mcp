@@ -1,5 +1,7 @@
 <?php
 
+use Laravel\Mcp\Client\Auth\AuthorizationCodeProvider;
+use Laravel\Mcp\Client\Auth\ClientCredentialsProvider;
 use Laravel\Mcp\Client\Client;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Client\Transport\HttpClientTransport;
@@ -119,6 +121,56 @@ it('purge ignores nonexistent named client', function (): void {
     $manager->purge('nonexistent');
 
     expect(true)->toBeTrue();
+});
+
+it('creates client credentials auth provider from config', function (): void {
+    $manager = new ClientManager;
+
+    $provider = $manager->createAuthProvider([
+        'type' => 'client_credentials',
+        'client_id' => 'my-client-id',
+        'client_secret' => 'my-client-secret',
+        'scope' => 'custom:scope',
+    ], 'test-server');
+
+    expect($provider)->toBeInstanceOf(ClientCredentialsProvider::class);
+});
+
+it('creates authorization code auth provider from config', function (): void {
+    $manager = new ClientManager;
+
+    $provider = $manager->createAuthProvider([
+        'type' => 'authorization_code',
+        'client_id' => 'my-client-id',
+        'redirect_uri' => 'https://app.example.com/callback',
+        'scope' => 'mcp:use',
+    ], 'test-server');
+
+    expect($provider)->toBeInstanceOf(AuthorizationCodeProvider::class);
+});
+
+it('throws for unsupported auth type', function (): void {
+    $manager = new ClientManager;
+
+    $manager->createAuthProvider([
+        'type' => 'private_key_jwt',
+    ], 'test-server');
+})->throws(InvalidArgumentException::class, 'Unsupported MCP auth type [private_key_jwt].');
+
+it('creates http transport with auth provider', function (): void {
+    $manager = new ClientManager;
+
+    $transport = $manager->createTransport([
+        'transport' => 'http',
+        'url' => 'https://example.com/mcp',
+        'auth' => [
+            'type' => 'client_credentials',
+            'client_id' => 'client-id',
+            'client_secret' => 'client-secret',
+        ],
+    ], 'test-server');
+
+    expect($transport)->toBeInstanceOf(HttpClientTransport::class);
 });
 
 it('returns cached client on second call', function (): void {

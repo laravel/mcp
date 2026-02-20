@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Client\Factory;
+use Laravel\Mcp\Client\Auth\AuthProvider;
 use Laravel\Mcp\Client\Exceptions\ClientException;
 use Laravel\Mcp\Client\Exceptions\ConnectionException;
 use Laravel\Mcp\Client\Transport\HttpClientTransport;
@@ -126,3 +127,89 @@ it('includes custom headers', function (): void {
     $http->assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer test-token')
         && $request->hasHeader('Accept', 'application/json, text/event-stream'));
 });
+
+it('includes auth provider token in headers', function (): void {
+    $http = new Factory;
+    $http->fake([
+        'example.com/mcp' => $http->response('{"jsonrpc":"2.0","id":1,"result":{}}', 200),
+    ]);
+
+    $authProvider = Mockery::mock(AuthProvider::class);
+    $authProvider->shouldReceive('token')->andReturn('provider-token');
+
+    $transport = new HttpClientTransport('https://example.com/mcp', [], 30, $http, $authProvider);
+    $transport->connect();
+
+    $transport->send('{"jsonrpc":"2.0","id":1,"method":"ping"}');
+
+    $http->assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer provider-token'));
+});
+
+it('auth provider token overrides static authorization header', function (): void {
+    $http = new Factory;
+    $http->fake([
+        'example.com/mcp' => $http->response('{"jsonrpc":"2.0","id":1,"result":{}}', 200),
+    ]);
+
+    $authProvider = Mockery::mock(AuthProvider::class);
+    $authProvider->shouldReceive('token')->andReturn('dynamic-token');
+
+    $transport = new HttpClientTransport('https://example.com/mcp', ['Authorization' => 'Bearer static-token'], 30, $http, $authProvider);
+    $transport->connect();
+
+    $transport->send('{"jsonrpc":"2.0","id":1,"method":"ping"}');
+
+    $http->assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer dynamic-token'));
+});
+
+it('does not set authorization header when auth provider returns null', function (): void {
+    $http = new Factory;
+    $http->fake([
+        'example.com/mcp' => $http->response('{"jsonrpc":"2.0","id":1,"result":{}}', 200),
+    ]);
+
+    $authProvider = Mockery::mock(AuthProvider::class);
+    $authProvider->shouldReceive('token')->andReturn(null);
+
+    $transport = new HttpClientTransport('https://example.com/mcp', [], 30, $http, $authProvider);
+    $transport->connect();
+
+    $transport->send('{"jsonrpc":"2.0","id":1,"method":"ping"}');
+
+    $http->assertSent(fn ($request): bool => ! $request->hasHeader('Authorization'));
+});
+
+it('handles 401 by calling auth provider and retrying', function (): void {
+    $http = new Factory;
+    $http->fake([
+        'example.com/mcp' => $http->sequence()
+            ->push('Unauthorized', 401, ['WWW-Authenticate' => 'Bearer resource_metadata="https://example.com/.well-known/oauth-protected-resource"'])
+            ->push('{"jsonrpc":"2.0","id":1,"result":{}}', 200),
+    ]);
+
+    $authProvider = Mockery::mock(AuthProvider::class);
+    $authProvider->shouldReceive('token')->andReturn(null, 'new-token');
+    $authProvider->shouldReceive('handleUnauthorized')
+        ->once()
+        ->with('Bearer resource_metadata="https://example.com/.well-known/oauth-protected-resource"');
+
+    $transport = new HttpClientTransport('https://example.com/mcp', [], 30, $http, $authProvider);
+    $transport->connect();
+
+    $response = $transport->send('{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}');
+
+    expect($response)->toBe('{"jsonrpc":"2.0","id":1,"result":{}}');
+    $http->assertSentCount(2);
+});
+
+it('does not handle 401 without auth provider', function (): void {
+    $http = new Factory;
+    $http->fake([
+        'example.com/mcp' => $http->response('Unauthorized', 401),
+    ]);
+
+    $transport = new HttpClientTransport('https://example.com/mcp', [], 30, $http);
+    $transport->connect();
+
+    $transport->send('{"jsonrpc":"2.0","id":1,"method":"ping"}');
+})->throws(ClientException::class, 'HTTP request failed with status 401.');
