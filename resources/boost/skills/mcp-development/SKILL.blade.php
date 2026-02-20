@@ -36,12 +36,12 @@ Mcp::web();
 
 Create MCP tools, resources, prompts, and servers using artisan commands:
 
-@boostsnippet("MCP Artisan Commands", "bash")
+```bash
 {{ $assist->artisanCommand('make:mcp-tool ToolName') }}        # Create a tool
 {{ $assist->artisanCommand('make:mcp-resource ResourceName') }} # Create a resource
 {{ $assist->artisanCommand('make:mcp-prompt PromptName') }}    # Create a prompt
 {{ $assist->artisanCommand('make:mcp-server ServerName') }}    # Create a server
-@endboostsnippet
+```
 
 After creating primitives, register them in your server's `$tools`, `$resources`, or `$prompts` properties.
 
