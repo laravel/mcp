@@ -61,8 +61,6 @@ class Response
 
     /**
      * @param  array<string, mixed>  $response
-     *
-     * @throws InvalidArgumentException
      */
     public static function structured(array $response): ResponseFactory
     {
