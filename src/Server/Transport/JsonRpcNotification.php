@@ -5,19 +5,10 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Transport;
 
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
+use Laravel\Mcp\Transport\JsonRpcNotification as BaseJsonRpcNotification;
 
-class JsonRpcNotification
+class JsonRpcNotification extends BaseJsonRpcNotification
 {
-    /**
-     * @param  array<string, mixed>  $params
-     */
-    public function __construct(
-        public string $method,
-        public array $params,
-    ) {
-        //
-    }
-
     /**
      * @param  array{jsonrpc?: mixed, method?: mixed, params?: array<string, mixed>}  $jsonRequest
      *
