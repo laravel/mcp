@@ -29,8 +29,10 @@ class Registrar
      */
     public function web(string $route, string $serverClass): Route
     {
-        // https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#listening-for-messages-from-the-server
-        Router::get($route, fn (): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response(status: 405));
+        // https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#listening-for-messages-from-the-server
+        Router::get($route, fn (): \Illuminate\Http\Response => response('', 405)->header('Allow', 'POST'));
+
+        Router::delete($route, fn (): \Illuminate\Http\Response => response('', 405)->header('Allow', 'POST'));
 
         $route = Router::post($route, fn (): mixed => static::startServer(
             $serverClass,
