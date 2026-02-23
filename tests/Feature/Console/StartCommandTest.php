@@ -187,7 +187,14 @@ it('returns 405 for GET requests to MCP web routes', function (): void {
     $response = $this->get('test-mcp');
 
     $response->assertStatus(405);
-    $response->assertSee('');
+    $response->assertHeader('Allow', 'POST');
+});
+
+it('returns 405 for DELETE requests to MCP web routes', function (): void {
+    $response = $this->delete('test-mcp');
+
+    $response->assertStatus(405);
+    $response->assertHeader('Allow', 'POST');
 });
 
 it('returns OAuth WWW-Authenticate header when OAuth routes are enabled and response is 401', function (): void {
