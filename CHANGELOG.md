@@ -1,6 +1,17 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.9...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.0...main)
+
+## [v0.6.0](https://github.com/laravel/mcp/compare/v0.5.9...v0.6.0) - 2026-02-24
+
+* Allow localhost redirect with dynamic ports by [@dylanbr](https://github.com/dylanbr) in https://github.com/laravel/mcp/pull/156
+* Add Image and Audio content types with Storage integration by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/155
+* Remove incorrect Response::structured docblock throw by [@nathanheffley](https://github.com/nathanheffley) in https://github.com/laravel/mcp/pull/160
+* Add Boost Guidelines & Skills by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/153
+* Add facade documenter workflow and sync Mcp facade docblocks by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/161
+* Add Allow header to 405 responses for unsupported HTTP methods by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/162
+* Fix CI failures in facade documenter and static analysis by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/163
+* Add example of registering MCP Tool in a Server by [@mohammadRezaei1380](https://github.com/mohammadRezaei1380) in https://github.com/laravel/mcp/pull/164
 
 ## [v0.5.9](https://github.com/laravel/mcp/compare/v0.5.8...v0.5.9) - 2026-02-17
 
@@ -137,6 +148,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -147,6 +159,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
