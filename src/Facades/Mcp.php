@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Facades;
 
-use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Facade;
 use Laravel\Mcp\Server\Registrar;
 
