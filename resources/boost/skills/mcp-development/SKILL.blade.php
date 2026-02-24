@@ -61,17 +61,25 @@ class MyTool extends Tool
 }
 @endboostsnippet
 
-### Registering the Tool in a Server
+### Registering Primitives in a Server
 
-Each MCP server must explicitly declare the tools it exposes.
+Each MCP server must explicitly declare the tools, resources, and prompts it exposes.
 
-@boostsnippet("Register Tool in MCP Server", "php")
+@boostsnippet("Register Primitives in MCP Server", "php")
 use Laravel\Mcp\Server;
 
 class AppServer extends Server
 {
     protected array $tools = [
         \App\Mcp\Tools\MyTool::class,
+    ];
+
+    protected array $resources = [
+        \App\Mcp\Resources\MyResource::class,
+    ];
+
+    protected array $prompts = [
+        \App\Mcp\Prompts\MyPrompt::class,
     ];
 }
 @endboostsnippet
