@@ -112,3 +112,4 @@ class AppServer extends Server
 - Not using `search-docs` for the latest MCP documentation
 - Not registering MCP server routes in `routes/ai.php`
 - Do not register `ai.php` in `bootstrap.php`; it is registered automatically.
+- If your MCP server isn't responding as expected, see Debugging MCP Connections snippet.
