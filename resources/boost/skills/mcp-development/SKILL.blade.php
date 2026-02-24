@@ -32,6 +32,22 @@ use Laravel\Mcp\Facades\Mcp;
 Mcp::web();
 @endboostsnippet
 
+### Debugging MCP Connections
+
+If your MCP server isn't responding as expected, follow these tips:
+
+@boostsnippet("Debug MCP Server", "bash")
+# List all MCP routes
+php artisan route:list | grep ai
+
+# Check Laravel logs for MCP errors
+tail -f storage/logs/laravel.log
+
+# Ensure your server transport matches your client
+# For HTTP clients: use Mcp::web()
+# For CLI/STDIO clients: use Mcp::stdio()
+@endboostsnippet
+
 ### Creating MCP Primitives
 
 Create MCP tools, resources, prompts, and servers using artisan commands:
