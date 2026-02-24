@@ -9,13 +9,13 @@ use Illuminate\Support\Facades\Facade;
 use Laravel\Mcp\Server\Registrar;
 
 /**
+ * @method static \Illuminate\Routing\Route web(string $route, string $serverClass)
  * @method static void local(string $handle, string $serverClass)
- * @method static Route web(string $route, string $serverClass)
  * @method static callable|null getLocalServer(string $handle)
- * @method static Route|null getWebServer(string $route)
- * @method static array<string, callable|Route> servers()
+ * @method static \Illuminate\Routing\Route|null getWebServer(string $route)
+ * @method static array servers()
  * @method static void oauthRoutes(string $oauthPrefix = 'oauth')
- * @method static array<string, string> ensureMcpScope()
+ * @method static array ensureMcpScope()
  *
  * @see \Laravel\Mcp\Server\Registrar
  */
