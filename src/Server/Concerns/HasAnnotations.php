@@ -29,7 +29,7 @@ trait HasAnnotations
             ->each(function (AnnotationContract $attribute): void {
                 $this->validateAnnotationUsage($attribute);
             })
-            ->mapWithKeys(fn (AnnotationContract $attribute): array => [
+            ->mapWithKeys(fn (AnnotationContract $attribute): array => [ // @phpstan-ignore argument.templateType
                 $attribute->key() => $attribute->value, // @phpstan-ignore property.notFound
             ])
             ->all();
