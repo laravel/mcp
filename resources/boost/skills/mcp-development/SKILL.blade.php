@@ -61,6 +61,21 @@ class MyTool extends Tool
 }
 @endboostsnippet
 
+### Registering the Tool in a Server
+
+Each MCP server must explicitly declare the tools it exposes.
+
+@boostsnippet("Register Tool in MCP Server", "php")
+use Laravel\Mcp\Server;
+
+class AppServer extends Server
+{
+    protected array $tools = [
+        \App\Mcp\Tools\MyTool::class,
+    ];
+}
+@endboostsnippet
+
 ## Verification
 
 1. Check `routes/ai.php` for proper registration
