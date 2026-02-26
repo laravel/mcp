@@ -19,7 +19,7 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 trait InteractsWithResponses
 {
     /**
-     * @param array<int, Response|ResponseFactory|string>|Response|ResponseFactory|string $response
+     * @param  array<int, Response|ResponseFactory|string>|Response|ResponseFactory|string $response
      *
      * @throws JsonRpcException
      */
