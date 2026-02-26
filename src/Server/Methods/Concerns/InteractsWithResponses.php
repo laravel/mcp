@@ -101,7 +101,7 @@ trait InteractsWithResponses
                     return $item;
                 }
 
-                if (! is_string($item)) {
+                if (!is_string($item)) {
                     throw new InvalidArgumentException('Response must be a Response instance or string');
                 }
 
