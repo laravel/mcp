@@ -20,6 +20,7 @@ trait InteractsWithResponses
 {
     /**
      * @param array<int, Response|ResponseFactory|string>|Response|ResponseFactory|string $response
+     *
      * @throws JsonRpcException
      */
     protected function toJsonRpcResponse(JsonRpcRequest $request, Response|ResponseFactory|array|string $response, callable $serializable): JsonRpcResponse
