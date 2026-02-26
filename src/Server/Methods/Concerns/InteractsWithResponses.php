@@ -19,7 +19,7 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 trait InteractsWithResponses
 {
     /**
-     * @param  array<int, Response|ResponseFactory|string>|Response|ResponseFactory|string $response
+     * @param  array<int, Response|ResponseFactory|string>|Response|ResponseFactory|string  $response
      *
      * @throws JsonRpcException
      */
@@ -28,7 +28,7 @@ trait InteractsWithResponses
         $responseFactory = $this->toResponseFactory($response);
 
         $responseFactory->responses()->each(function (Response $response) use ($request): void {
-            if (!$this instanceof Errable && $response->isError()) {
+            if (! $this instanceof Errable && $response->isError()) {
                 throw new JsonRpcException(
                     $response->content()->__toString(), // @phpstan-ignore-line
                     -32603,
@@ -101,7 +101,7 @@ trait InteractsWithResponses
                     return $item;
                 }
 
-                if (!is_string($item)) {
+                if (! is_string($item)) {
                     throw new InvalidArgumentException('Response must be a Response instance or string');
                 }
 
