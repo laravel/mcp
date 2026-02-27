@@ -29,7 +29,11 @@ Register MCP servers in `routes/ai.php`:
 @boostsnippet("Register MCP Server", "php")
 use Laravel\Mcp\Facades\Mcp;
 
+// Register an HTTP-based MCP server
 Mcp::web();
+
+// Or register a STDIO-based MCP server (for local MCP clients)
+Mcp::stdio();
 @endboostsnippet
 
 ### Creating MCP Primitives
