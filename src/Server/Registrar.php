@@ -89,7 +89,7 @@ class Registrar
         static::ensureMcpScope();
         Router::get('/.well-known/oauth-protected-resource/{path?}', fn (?string $path = '') => response()->json([
             'resource' => url('/'.$path),
-            'authorization_servers' => [url('/'.$path)],
+            'authorization_servers' => [url('/')],
             'scopes_supported' => ['mcp:use'],
         ]))->where('path', '.*')->name('mcp.oauth.protected-resource');
 

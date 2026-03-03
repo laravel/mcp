@@ -451,7 +451,7 @@ it('handles oauth discovery with multi-segment paths', function (): void {
     $response->assertStatus(200);
     $response->assertJson([
         'resource' => url('/mcp/weather'),
-        'authorization_servers' => [url('/mcp/weather')],
+        'authorization_servers' => [url('/')],
         'scopes_supported' => ['mcp:use'],
     ]);
 
@@ -492,7 +492,7 @@ it('handles oauth discovery with single segment paths', function (): void {
     $response->assertStatus(200);
     $response->assertJson([
         'resource' => url('/mcp'),
-        'authorization_servers' => [url('/mcp')],
+        'authorization_servers' => [url('/')],
         'scopes_supported' => ['mcp:use'],
     ]);
 
