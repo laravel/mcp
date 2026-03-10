@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server;
 
 use Illuminate\Container\Container;
+use Illuminate\Http\Response;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
 use Illuminate\Support\Str;
@@ -15,6 +16,7 @@ use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
 use Laravel\Mcp\Server\Middleware\ReorderJsonAccept;
 use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Server\Transport\StdioTransport;
+use Laravel\Passport\Passport;
 
 class Registrar
 {
@@ -30,9 +32,9 @@ class Registrar
     public function web(string $route, string $serverClass): Route
     {
         // https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#listening-for-messages-from-the-server
-        Router::get($route, fn (): \Illuminate\Http\Response => response('', 405)->header('Allow', 'POST'));
+        Router::get($route, fn (): Response => response('', 405)->header('Allow', 'POST'));
 
-        Router::delete($route, fn (): \Illuminate\Http\Response => response('', 405)->header('Allow', 'POST'));
+        Router::delete($route, fn (): Response => response('', 405)->header('Allow', 'POST'));
 
         $route = Router::post($route, fn (): mixed => static::startServer(
             $serverClass,
@@ -116,11 +118,11 @@ class Registrar
             return [];
         }
 
-        $current = \Laravel\Passport\Passport::$scopes ?? [];
+        $current = Passport::$scopes ?? [];
 
         if (! array_key_exists('mcp:use', $current)) {
             $current['mcp:use'] = 'Use MCP server';
-            \Laravel\Passport\Passport::tokensCan($current);
+            Passport::tokensCan($current);
         }
 
         return $current;

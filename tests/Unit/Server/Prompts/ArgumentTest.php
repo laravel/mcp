@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Contracts\Support\Arrayable;
 use Laravel\Mcp\Server\Prompts\Argument;
 
 it('creates an argument with required parameters', function (): void {
@@ -60,5 +61,5 @@ it('implements Arrayable interface', function (): void {
         description: 'Test argument'
     );
 
-    expect($argument)->toBeInstanceOf(\Illuminate\Contracts\Support\Arrayable::class);
+    expect($argument)->toBeInstanceOf(Arrayable::class);
 });

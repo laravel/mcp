@@ -1,12 +1,14 @@
 <?php
 
+use Illuminate\Filesystem\Filesystem;
+use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
 
 uses(TestCase::class)
     ->beforeEach(function (): void {
         $directory = app_path('Mcp');
-        $filesystem = new Illuminate\Filesystem\Filesystem;
+        $filesystem = new Filesystem;
 
         if ($filesystem->isDirectory($directory)) {
             $filesystem->deleteDirectory($directory);
@@ -51,7 +53,7 @@ function initializeMessage(): array
 
 function expectedInitializeResponse(): array
 {
-    $server = new ExampleServer(new \Tests\Fixtures\ArrayTransport);
+    $server = new ExampleServer(new ArrayTransport);
 
     [
         $capabilities,

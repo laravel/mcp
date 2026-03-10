@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\MimeType;
@@ -10,9 +11,11 @@ use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Title;
 use Laravel\Mcp\Server\Attributes\Uri;
 use Laravel\Mcp\Server\Attributes\Version;
+use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Support\UriTemplate;
 use Tests\Fixtures\ArrayTransport;
 
 it('resolves name from attribute on a tool', function (): void {
@@ -248,7 +251,7 @@ class ChildToolWithoutAttribute extends ParentToolWithAttribute {}
 class ChildToolWithOverride extends ParentToolWithAttribute {}
 
 #[Name('Parent Server')]
-class ParentServerWithAttribute extends \Laravel\Mcp\Server
+class ParentServerWithAttribute extends Server
 {
     protected function generateSessionId(): string
     {
@@ -433,7 +436,7 @@ class AttributeDescriptionPrompt extends Prompt
 }
 
 #[Name('Attribute Server')]
-class AttributeNameServer extends \Laravel\Mcp\Server
+class AttributeNameServer extends Server
 {
     protected function generateSessionId(): string
     {
@@ -442,7 +445,7 @@ class AttributeNameServer extends \Laravel\Mcp\Server
 }
 
 #[Version('2.0.0')]
-class AttributeVersionServer extends \Laravel\Mcp\Server
+class AttributeVersionServer extends Server
 {
     protected function generateSessionId(): string
     {
@@ -451,7 +454,7 @@ class AttributeVersionServer extends \Laravel\Mcp\Server
 }
 
 #[Instructions('Custom instructions via attribute')]
-class AttributeInstructionsServer extends \Laravel\Mcp\Server
+class AttributeInstructionsServer extends Server
 {
     protected function generateSessionId(): string
     {
@@ -460,7 +463,7 @@ class AttributeInstructionsServer extends \Laravel\Mcp\Server
 }
 
 #[Name('Attribute Server Name')]
-class AttributeOverridesPropertyNameServer extends \Laravel\Mcp\Server
+class AttributeOverridesPropertyNameServer extends Server
 {
     protected string $name = 'Property Server Name';
 
@@ -470,7 +473,7 @@ class AttributeOverridesPropertyNameServer extends \Laravel\Mcp\Server
     }
 }
 
-class PropertyOnlyNameServer extends \Laravel\Mcp\Server
+class PropertyOnlyNameServer extends Server
 {
     protected string $name = 'Property Server';
 
@@ -481,11 +484,11 @@ class PropertyOnlyNameServer extends \Laravel\Mcp\Server
 }
 
 #[Uri('file://ignored/uri')]
-class UriAttributeIgnoredForTemplateResource extends Resource implements \Laravel\Mcp\Server\Contracts\HasUriTemplate
+class UriAttributeIgnoredForTemplateResource extends Resource implements HasUriTemplate
 {
-    public function uriTemplate(): \Laravel\Mcp\Support\UriTemplate
+    public function uriTemplate(): UriTemplate
     {
-        return new \Laravel\Mcp\Support\UriTemplate('file://users/{userId}');
+        return new UriTemplate('file://users/{userId}');
     }
 
     public function handle(): Response

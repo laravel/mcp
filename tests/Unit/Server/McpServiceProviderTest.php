@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Laravel\Mcp\Server\McpServiceProvider;
+use Laravel\Passport\Passport;
 
 it('registers mcp scope during boot', function (): void {
     if (! class_exists('Laravel\Passport\Passport')) {
@@ -17,7 +18,7 @@ it('registers mcp scope during boot', function (): void {
         ');
     }
 
-    \Laravel\Passport\Passport::$scopes = ['custom' => 'Custom scope'];
+    Passport::$scopes = ['custom' => 'Custom scope'];
 
     $provider = new McpServiceProvider($this->app);
     $provider->register();
@@ -25,6 +26,6 @@ it('registers mcp scope during boot', function (): void {
 
     $this->app->boot();
 
-    expect(\Laravel\Passport\Passport::$scopes)->toHaveKey('mcp:use');
-    expect(\Laravel\Passport\Passport::$scopes['custom'])->toBe('Custom scope');
+    expect(Passport::$scopes)->toHaveKey('mcp:use');
+    expect(Passport::$scopes['custom'])->toBe('Custom scope');
 });
