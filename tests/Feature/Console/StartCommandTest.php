@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Testing\TestResponse;
+use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
+use Laravel\Mcp\Server\Registrar;
 use Symfony\Component\Process\Process;
 
 use function Orchestra\Testbench\remote;
@@ -199,10 +201,10 @@ it('returns 405 for DELETE requests to MCP web routes', function (): void {
 
 it('returns OAuth WWW-Authenticate header when OAuth routes are enabled and response is 401', function (): void {
     // Enable OAuth routes which registers the 'mcp.oauth.protected-resource' route
-    app(\Laravel\Mcp\Server\Registrar::class)->oauthRoutes();
+    app(Registrar::class)->oauthRoutes();
 
     // Create a test route that returns 401 to trigger the middleware
-    Route::post('test-oauth-401', fn () => response()->json(['error' => 'unauthorized'], 401))->middleware([\Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader::class]);
+    Route::post('test-oauth-401', fn () => response()->json(['error' => 'unauthorized'], 401))->middleware([AddWwwAuthenticateHeader::class]);
 
     $response = $this->postJson('test-oauth-401', []);
 
@@ -216,7 +218,7 @@ it('returns OAuth WWW-Authenticate header when OAuth routes are enabled and resp
 
 it('returns Sanctum WWW-Authenticate header when OAuth routes are not enabled and response is 401', function (): void {
     // Create a test route that returns 401 to trigger the middleware
-    Route::post('test-sanctum-401', fn () => response()->json(['error' => 'unauthorized'], 401))->middleware([\Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader::class]);
+    Route::post('test-sanctum-401', fn () => response()->json(['error' => 'unauthorized'], 401))->middleware([AddWwwAuthenticateHeader::class]);
 
     $response = $this->postJson('test-sanctum-401', []);
 
@@ -228,7 +230,7 @@ it('returns Sanctum WWW-Authenticate header when OAuth routes are not enabled an
 });
 
 it('does not add WWW-Authenticate header when response is not 401', function (): void {
-    app(\Laravel\Mcp\Server\Registrar::class)->oauthRoutes();
+    app(Registrar::class)->oauthRoutes();
 
     $response = $this->postJson('test-mcp', initializeMessage());
 

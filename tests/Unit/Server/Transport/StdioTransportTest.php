@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Transport\StdioTransport;
 
 it('creates stdio transport with session id', function (): void {
@@ -89,5 +90,5 @@ it('handles run method with handler', function (): void {
 it('implements transport interface', function (): void {
     $transport = new StdioTransport('test-session');
 
-    expect($transport)->toBeInstanceOf(\Laravel\Mcp\Server\Contracts\Transport::class);
+    expect($transport)->toBeInstanceOf(Transport::class);
 });

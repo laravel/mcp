@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
@@ -119,7 +120,7 @@ class Response
 
     public static function fromStorage(string $path, ?string $disk = null, ?string $mimeType = null): static
     {
-        /** @var \Illuminate\Filesystem\FilesystemAdapter $storage */
+        /** @var FilesystemAdapter $storage */
         $storage = Storage::disk($disk);
 
         try {

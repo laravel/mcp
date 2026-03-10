@@ -1,5 +1,6 @@
 <?php
 
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Completions\CompletionResponse;
@@ -45,7 +46,7 @@ class CompletionMethodTestPrompt extends Prompt implements Completable
         return CompletionResponse::match(['test']);
     }
 
-    public function handle(\Laravel\Mcp\Request $request): Response
+    public function handle(Request $request): Response
     {
         return Response::text('test');
     }
@@ -67,7 +68,7 @@ class CompletionMethodTestResource extends Resource implements Completable
         return CompletionResponse::match(['resource-test']);
     }
 
-    public function handle(\Laravel\Mcp\Request $request): Response
+    public function handle(Request $request): Response
     {
         return Response::text('test');
     }
@@ -77,7 +78,7 @@ class NonCompletionPrompt extends Prompt
 {
     protected string $description = 'Non-completion prompt';
 
-    public function handle(\Laravel\Mcp\Request $request): Response
+    public function handle(Request $request): Response
     {
         return Response::text('test');
     }
@@ -99,7 +100,7 @@ class CompletionMethodTestResourceWithTemplate extends Resource implements Compl
         return CompletionResponse::match(['template-test']);
     }
 
-    public function handle(\Laravel\Mcp\Request $request): Response
+    public function handle(Request $request): Response
     {
         return Response::text('test');
     }

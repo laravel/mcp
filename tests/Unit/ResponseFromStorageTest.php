@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Content\Audio;
@@ -92,7 +93,7 @@ it('throws when file does not exist', function (): void {
 })->throws(InvalidArgumentException::class, 'File not found at path [nonexistent/file.png].');
 
 it('throws when storage disk throws on missing file', function (): void {
-    $storage = Mockery::mock(\Illuminate\Filesystem\FilesystemAdapter::class);
+    $storage = Mockery::mock(FilesystemAdapter::class);
     $storage->shouldReceive('get')->with('missing/file.png')
         ->andThrow(UnableToReadFile::fromLocation('missing/file.png'));
 
@@ -102,7 +103,7 @@ it('throws when storage disk throws on missing file', function (): void {
 })->throws(InvalidArgumentException::class, 'File not found at path [missing/file.png].');
 
 it('throws when mime type cannot be determined', function (): void {
-    $storage = Mockery::mock(\Illuminate\Filesystem\FilesystemAdapter::class);
+    $storage = Mockery::mock(FilesystemAdapter::class);
     $storage->shouldReceive('get')->with('data/unknown')->andReturn('some-data');
     $storage->shouldReceive('mimeType')->with('data/unknown')->andReturn(false);
 
