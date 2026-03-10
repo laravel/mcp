@@ -1,6 +1,10 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.1...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.2...main)
+
+## [v0.6.2](https://github.com/laravel/mcp/compare/v0.6.1...v0.6.2) - 2026-03-10
+
+* Makes imports consistent by [@nunomaduro](https://github.com/nunomaduro) in https://github.com/laravel/mcp/pull/171
 
 ## [v0.6.1](https://github.com/laravel/mcp/compare/v0.6.0...v0.6.1) - 2026-03-10
 
@@ -155,6 +159,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -165,6 +170,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
