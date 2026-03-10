@@ -1,6 +1,11 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.0...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.1...main)
+
+## [v0.6.1](https://github.com/laravel/mcp/compare/v0.6.0...v0.6.1) - 2026-03-10
+
+* Add missing [@throws](https://github.com/throws) annotation to toJsonRpcResponse method by [@mohammadRezaei1380](https://github.com/mohammadRezaei1380) in https://github.com/laravel/mcp/pull/166
+* Update boost skill description and remove core guideline by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/170
 
 ## [v0.6.0](https://github.com/laravel/mcp/compare/v0.5.9...v0.6.0) - 2026-02-24
 
@@ -149,6 +154,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -159,6 +165,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
