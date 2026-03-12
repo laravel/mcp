@@ -76,14 +76,14 @@ it('fails to assert the structured content is not present', function (): void {
     ]);
 })->throws(ExpectationFailedException::class);
 
-it('succeeds to assert the structured content if closure assertion returns true', function (): void {
+it('succeeds to assert the structured content with closure', function (): void {
     $response = BookingServer::tool(GetBookingTool::class);
 
-    $response->assertStructuredContent(fn () => true);
+    $response->assertStructuredContent(fn (AssertableJson $json) => $json->where('type', 'booking')->etc());
 });
 
-it('fails to assert the structured content if closure assertion returns false', function (): void {
+it('fails to assert the structured content with closure', function (): void {
     $response = BookingServer::tool(GetBookingTool::class);
 
-    $response->assertStructuredContent(fn () => false);
+    $response->assertStructuredContent(fn (AssertableJson $json) => $json->where('type', 'foo')->etc());
 })->throws(ExpectationFailedException::class);
