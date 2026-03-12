@@ -109,7 +109,7 @@ class TestResponse
     /**
      * @param  array<string, mixed>|Closure(AssertableJson): bool  $structuredContent
      */
-    public function assertStructuredContent(array|Closure $structuredContent): static
+    public function assertStructuredContent(Closure|array $structuredContent): static
     {
         if ($structuredContent instanceof Closure) {
             $assertableJson = AssertableJson::fromArray($this->response->toArray()['result']['structuredContent'] ?? null);
