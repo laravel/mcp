@@ -75,3 +75,15 @@ it('fails to assert the structured content is not present', function (): void {
         'status' => 'confirmed',
     ]);
 })->throws(ExpectationFailedException::class);
+
+it('succeeds to assert the structured content with closure', function (): void {
+    $response = BookingServer::tool(GetBookingTool::class);
+
+    $response->assertStructuredContent(fn (AssertableJson $json) => $json->where('type', 'booking')->etc());
+});
+
+it('fails to assert the structured content with closure', function (): void {
+    $response = BookingServer::tool(GetBookingTool::class);
+
+    $response->assertStructuredContent(fn (AssertableJson $json) => $json->where('type', 'foo')->etc());
+})->throws(ExpectationFailedException::class);
