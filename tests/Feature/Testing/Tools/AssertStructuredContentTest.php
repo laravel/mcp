@@ -75,3 +75,15 @@ it('fails to assert the structured content is not present', function (): void {
         'status' => 'confirmed',
     ]);
 })->throws(ExpectationFailedException::class);
+
+it('succeeds to assert the structured content if closure assertion returns true', function (): void {
+    $response = BookingServer::tool(GetBookingTool::class);
+
+    $response->assertStructuredContent(fn () => true);
+});
+
+it('fails to assert the structured content if closure assertion returns false', function (): void {
+    $response = BookingServer::tool(GetBookingTool::class);
+
+    $response->assertStructuredContent(fn () => false);
+})->throws(ExpectationFailedException::class);

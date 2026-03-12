@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Testing;
 
+use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
+use Illuminate\Testing\AssertableJsonString;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -105,10 +107,19 @@ class TestResponse
     }
 
     /**
-     * @param  array<string, mixed>  $structuredContent
+    * @param  array<string, mixed>|Closure(AssertableJsonString): bool  $structuredContent
      */
-    public function assertStructuredContent(array $structuredContent): static
+    public function assertStructuredContent(array|Closure $structuredContent): static
     {
+        if ($structuredContent instanceof Closure) {
+            Assert::assertTrue(
+                $structuredContent(new AssertableJsonString($this->response->toArray()['result']['structuredContent'] ?? null)),
+                'The expected structured content does not match the actual structured content.'
+            );
+
+            return $this;
+        }
+
         Assert::assertSame(
             $structuredContent,
             $this->response->toArray()['result']['structuredContent'] ?? null,
