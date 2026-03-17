@@ -1,6 +1,10 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.2...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.3...main)
+
+## [v0.6.3](https://github.com/laravel/mcp/compare/v0.6.2...v0.6.3) - 2026-03-12
+
+* Add `assertStructuredContent($closure)` support by [@gdebrauwer](https://github.com/gdebrauwer) in https://github.com/laravel/mcp/pull/172
 
 ## [v0.6.2](https://github.com/laravel/mcp/compare/v0.6.1...v0.6.2) - 2026-03-10
 
@@ -160,6 +164,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -170,6 +175,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
