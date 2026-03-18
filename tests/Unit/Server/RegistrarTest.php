@@ -240,6 +240,74 @@ it('handles oauth registration with allowed domains', function (): void {
     ]);
 });
 
+it('allows custom-scheme redirect uris when all redirect domains are permitted', function (): void {
+    if (! class_exists('Laravel\Passport\ClientRepository')) {
+        eval('
+            namespace Laravel\Passport;
+            class ClientRepository {
+                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
+                    return (object) [
+                        "id" => "test-client-id",
+                        "grant_types" => ["authorization_code"],
+                        "redirect_uris" => $redirectUris,
+                    ];
+                }
+            }
+        ');
+    }
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance('Laravel\Passport\ClientRepository', new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
+    ]);
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'client_id' => 'test-client-id',
+        'grant_types' => ['authorization_code'],
+        'response_types' => ['code'],
+        'redirect_uris' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
+        'scope' => 'mcp:use',
+        'token_endpoint_auth_method' => 'none',
+    ]);
+});
+
+it('rejects custom-scheme redirect uris that do not match redirect domains', function (): void {
+    if (! class_exists('Laravel\Passport\ClientRepository')) {
+        eval('
+            namespace Laravel\Passport;
+            class ClientRepository {
+                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
+                    return (object) [
+                        "id" => "test-client-id",
+                        "grant_types" => ["authorization_code"],
+                        "redirect_uris" => $redirectUris,
+                    ];
+                }
+            }
+        ');
+    }
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.redirect_domains', ['cursor://other-app']);
+
+    $this->app->instance('Laravel\Passport\ClientRepository', new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
+    ]);
+
+    $response->assertStatus(422);
+});
+
 it('allows localhost with dynamic port when localhost is in redirect_domains', function (string $uri): void {
     if (! class_exists('Laravel\Passport\ClientRepository')) {
         eval('

@@ -21,7 +21,13 @@ class OAuthRegisterController
     {
         $validated = $request->validate([
             'redirect_uris' => ['required', 'array', 'min:1'],
-            'redirect_uris.*' => ['required', 'url', function (string $attribute, $value, $fail): void {
+            'redirect_uris.*' => ['required', 'string', function (string $attribute, $value, $fail): void {
+                if (! is_string($value) || ! $this->isValidRedirectUri($value)) {
+                    $fail($attribute.' must be a valid URL.');
+
+                    return;
+                }
+
                 if (in_array('*', config('mcp.redirect_domains', []), true)) {
                     return;
                 }
@@ -56,6 +62,25 @@ class OAuthRegisterController
             'scope' => 'mcp:use',
             'token_endpoint_auth_method' => 'none',
         ]);
+    }
+
+    protected function isValidRedirectUri(string $uri): bool
+    {
+        $scheme = parse_url($uri, PHP_URL_SCHEME);
+
+        if (! is_string($scheme) || $scheme === '') {
+            return false;
+        }
+
+        if (in_array($scheme, ['http', 'https'], true)) {
+            return filter_var($uri, FILTER_VALIDATE_URL) !== false;
+        }
+
+        $parts = parse_url($uri);
+
+        return is_array($parts)
+            && Str::contains($uri, '://')
+            && ((is_string($parts['host'] ?? null) && $parts['host'] !== '') || (is_string($parts['path'] ?? null) && $parts['path'] !== ''));
     }
 
     protected function isLocalhostUrl(string $url): bool
