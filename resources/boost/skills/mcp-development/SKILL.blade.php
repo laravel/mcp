@@ -10,14 +10,6 @@ metadata:
 @endphp
 # MCP Development
 
-## When to Apply
-
-Activate this skill when:
-
-- Creating MCP tools, resources, or prompts
-- Setting up MCP server routes
-- Debugging MCP connection issues
-
 ## Documentation
 
 Use `search-docs` for detailed Laravel MCP patterns and documentation.
