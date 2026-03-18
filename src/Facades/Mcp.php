@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Registrar;
  * @method static void oauthRoutes(string $oauthPrefix = 'oauth')
  * @method static array ensureMcpScope()
  *
- * @see \Laravel\Mcp\Server\Registrar
+ * @see Registrar
  */
 class Mcp extends Facade
 {
