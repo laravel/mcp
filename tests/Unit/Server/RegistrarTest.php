@@ -531,3 +531,134 @@ it('handles oauth discovery with no path', function (): void {
         'issuer' => url('/'),
     ]);
 });
+
+it('does not override existing oauth-authorization-server route', function (): void {
+    // Register an existing route before MCP's oauthRoutes
+    Route::get('/.well-known/oauth-authorization-server', fn () => response()->json([
+        'issuer' => 'https://existing-issuer.example.com',
+    ]))->name('existing.oauth-authorization-server');
+
+    // Fake Passport's routes so the oauthRoutes() helper can resolve them.
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    // The existing route should still be in place
+    $response = $this->getJson('/.well-known/oauth-authorization-server');
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'issuer' => 'https://existing-issuer.example.com',
+    ]);
+
+    // The MCP named route should not exist
+    $routes = Route::getRoutes();
+    $mcpRoute = $routes->getByName('mcp.oauth.authorization-server');
+    expect($mcpRoute)->toBeNull();
+});
+
+it('does not override existing oauth-protected-resource route', function (): void {
+    // Register an existing route before MCP's oauthRoutes
+    Route::get('/.well-known/oauth-protected-resource', fn () => response()->json([
+        'resource' => 'https://existing-resource.example.com',
+    ]))->name('existing.oauth-protected-resource');
+
+    // Fake Passport's routes so the oauthRoutes() helper can resolve them.
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    // The existing route should still be in place
+    $response = $this->getJson('/.well-known/oauth-protected-resource');
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'resource' => 'https://existing-resource.example.com',
+    ]);
+
+    // The MCP named route should not exist
+    $routes = Route::getRoutes();
+    $mcpRoute = $routes->getByName('mcp.oauth.protected-resource');
+    expect($mcpRoute)->toBeNull();
+});
+
+it('allows disabling discovery routes via options', function (): void {
+    $registrar = new Registrar;
+
+    $registrar->oauthRoutes('oauth', ['discovery' => false]);
+
+    $routes = Route::getRoutes();
+    $hasProtectedResource = false;
+    $hasAuthServer = false;
+    $hasRegisterRoute = false;
+
+    foreach ($routes as $route) {
+        if ($route->getName() === 'mcp.oauth.protected-resource') {
+            $hasProtectedResource = true;
+        }
+
+        if ($route->getName() === 'mcp.oauth.authorization-server') {
+            $hasAuthServer = true;
+        }
+
+        if ($route->uri() === 'oauth/register') {
+            $hasRegisterRoute = true;
+        }
+    }
+
+    expect($hasProtectedResource)->toBeFalse();
+    expect($hasAuthServer)->toBeFalse();
+    expect($hasRegisterRoute)->toBeTrue();
+});
+
+it('allows disabling individual discovery routes via options', function (): void {
+    // Fake Passport's routes so the oauthRoutes() helper can resolve them.
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+
+    $registrar->oauthRoutes('oauth', ['authorization_server' => false]);
+
+    $routes = Route::getRoutes();
+    $hasProtectedResource = false;
+    $hasAuthServer = false;
+
+    foreach ($routes as $route) {
+        if ($route->getName() === 'mcp.oauth.protected-resource') {
+            $hasProtectedResource = true;
+        }
+
+        if ($route->getName() === 'mcp.oauth.authorization-server') {
+            $hasAuthServer = true;
+        }
+    }
+
+    expect($hasProtectedResource)->toBeTrue();
+    expect($hasAuthServer)->toBeFalse();
+});
+
+it('allows disabling registration route via options', function (): void {
+    // Fake Passport's routes so the oauthRoutes() helper can resolve them.
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+
+    $registrar->oauthRoutes('oauth', ['registration' => false]);
+
+    $routes = Route::getRoutes();
+    $hasRegisterRoute = false;
+
+    foreach ($routes as $route) {
+        if ($route->uri() === 'oauth/register') {
+            $hasRegisterRoute = true;
+        }
+    }
+
+    expect($hasRegisterRoute)->toBeFalse();
+});

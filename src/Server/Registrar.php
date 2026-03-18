@@ -86,27 +86,55 @@ class Registrar
         );
     }
 
-    public function oauthRoutes(string $oauthPrefix = 'oauth'): void
+    /**
+     * @param  array{discovery?: bool, protected_resource?: bool, registration?: bool}  $options
+     */
+    public function oauthRoutes(string $oauthPrefix = 'oauth', array $options = []): void
     {
         static::ensureMcpScope();
-        Router::get('/.well-known/oauth-protected-resource/{path?}', fn (?string $path = '') => response()->json([
-            'resource' => url('/'.$path),
-            'authorization_servers' => [url('/'.$path)],
-            'scopes_supported' => ['mcp:use'],
-        ]))->where('path', '.*')->name('mcp.oauth.protected-resource');
 
-        Router::get('/.well-known/oauth-authorization-server/{path?}', fn (?string $path = '') => response()->json([
-            'issuer' => url('/'.$path),
-            'authorization_endpoint' => route('passport.authorizations.authorize'),
-            'token_endpoint' => route('passport.token'),
-            'registration_endpoint' => url($oauthPrefix.'/register'),
-            'response_types_supported' => ['code'],
-            'code_challenge_methods_supported' => ['S256'],
-            'scopes_supported' => ['mcp:use'],
-            'grant_types_supported' => ['authorization_code', 'refresh_token'],
-        ]))->where('path', '.*')->name('mcp.oauth.authorization-server');
+        $registerProtectedResource = $options['protected_resource'] ?? $options['discovery'] ?? true;
+        $registerAuthorizationServer = $options['authorization_server'] ?? $options['discovery'] ?? true;
+        $registerRegistration = $options['registration'] ?? true;
 
-        Router::post($oauthPrefix.'/register', OAuthRegisterController::class);
+        if ($registerProtectedResource && ! $this->routeExists('GET', '.well-known/oauth-protected-resource')) {
+            Router::get('/.well-known/oauth-protected-resource/{path?}', fn (?string $path = '') => response()->json([
+                'resource' => url('/'.$path),
+                'authorization_servers' => [url('/'.$path)],
+                'scopes_supported' => ['mcp:use'],
+            ]))->where('path', '.*')->name('mcp.oauth.protected-resource');
+        }
+
+        if ($registerAuthorizationServer && ! $this->routeExists('GET', '.well-known/oauth-authorization-server')) {
+            Router::get('/.well-known/oauth-authorization-server/{path?}', fn (?string $path = '') => response()->json([
+                'issuer' => url('/'.$path),
+                'authorization_endpoint' => route('passport.authorizations.authorize'),
+                'token_endpoint' => route('passport.token'),
+                'registration_endpoint' => url($oauthPrefix.'/register'),
+                'response_types_supported' => ['code'],
+                'code_challenge_methods_supported' => ['S256'],
+                'scopes_supported' => ['mcp:use'],
+                'grant_types_supported' => ['authorization_code', 'refresh_token'],
+            ]))->where('path', '.*')->name('mcp.oauth.authorization-server');
+        }
+
+        if ($registerRegistration) {
+            Router::post($oauthPrefix.'/register', OAuthRegisterController::class);
+        }
+    }
+
+    /**
+     * Determine if a route already exists for the given method and URI.
+     */
+    protected function routeExists(string $method, string $uri): bool
+    {
+        foreach (Router::getRoutes()->get($method) ?? [] as $route) {
+            if (trim($route->uri(), '/') === trim($uri, '/')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
