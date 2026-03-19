@@ -254,6 +254,7 @@ it('falls back to the legacy name field for oauth registration', function (): vo
     ]);
 
     $response->assertStatus(200);
+
     expect($clientRepository->capturedName)->toBe('Legacy Client');
 });
 
@@ -286,6 +287,7 @@ it('prefers client_name over name for oauth registration', function (): void {
     ]);
 
     $response->assertStatus(200);
+
     expect($clientRepository->capturedName)->toBe('Preferred Client');
 });
 
