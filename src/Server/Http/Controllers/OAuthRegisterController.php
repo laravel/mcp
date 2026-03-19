@@ -20,6 +20,8 @@ class OAuthRegisterController
     public function __invoke(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'client_name' => ['nullable', 'string', 'min:1', 'max:255', 'required_without:name'],
+            'name' => ['nullable', 'string', 'min:1', 'max:255', 'required_without:client_name'],
             'redirect_uris' => ['required', 'array', 'min:1'],
             'redirect_uris.*' => ['required', 'url', function (string $attribute, $value, $fail): void {
                 if (in_array('*', config('mcp.redirect_domains', []), true)) {
@@ -41,7 +43,7 @@ class OAuthRegisterController
         );
 
         $client = $clients->createAuthorizationCodeGrantClient(
-            name: $request->get('client_name', $request->get('name')),
+            name: $validated['client_name'] ?? $validated['name'],
             redirectUris: $validated['redirect_uris'],
             confidential: false,
             user: null,
