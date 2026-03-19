@@ -42,10 +42,8 @@ class OAuthRegisterController
             "Laravel\Passport\ClientRepository"
         );
 
-        $clientName = $validated['client_name'] ?? $validated['name'];
-
         $client = $clients->createAuthorizationCodeGrantClient(
-            name: $clientName,
+            name: $validated['client_name'] ?? $validated['name'],
             redirectUris: $validated['redirect_uris'],
             confidential: false,
             user: null,
