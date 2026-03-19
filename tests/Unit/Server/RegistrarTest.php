@@ -200,6 +200,95 @@ it('handles oauth registration endpoint', function (): void {
     ]);
 });
 
+it('requires an oauth client name for registration', function (): void {
+    $clientRepository = new class
+    {
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        {
+            return (object) [
+                'id' => 'test-client-id',
+                'grant_types' => ['authorization_code'],
+                'redirect_uris' => $redirectUris,
+            ];
+        }
+    };
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance('Laravel\Passport\ClientRepository', $clientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ]);
+
+    $response->assertStatus(422);
+    $response->assertJsonValidationErrors(['client_name', 'name']);
+});
+
+it('falls back to the legacy name field for oauth registration', function (): void {
+    $clientRepository = new class
+    {
+        public ?string $capturedName = null;
+
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        {
+            $this->capturedName = $name;
+
+            return (object) [
+                'id' => 'test-client-id',
+                'grant_types' => ['authorization_code'],
+                'redirect_uris' => $redirectUris,
+            ];
+        }
+    };
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance('Laravel\Passport\ClientRepository', $clientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'name' => 'Legacy Client',
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ]);
+
+    $response->assertStatus(200);
+    expect($clientRepository->capturedName)->toBe('Legacy Client');
+});
+
+it('prefers client_name over name for oauth registration', function (): void {
+    $clientRepository = new class
+    {
+        public ?string $capturedName = null;
+
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        {
+            $this->capturedName = $name;
+
+            return (object) [
+                'id' => 'test-client-id',
+                'grant_types' => ['authorization_code'],
+                'redirect_uris' => $redirectUris,
+            ];
+        }
+    };
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance('Laravel\Passport\ClientRepository', $clientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Preferred Client',
+        'name' => 'Legacy Client',
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ]);
+
+    $response->assertStatus(200);
+    expect($clientRepository->capturedName)->toBe('Preferred Client');
+});
+
 it('handles oauth registration with allowed domains', function (): void {
     if (! class_exists('Laravel\Passport\ClientRepository')) {
         // Create a mock ClientRepository class for testing
