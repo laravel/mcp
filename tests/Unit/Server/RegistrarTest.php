@@ -203,8 +203,12 @@ it('handles oauth registration endpoint', function (): void {
 it('requires an oauth client name for registration', function (): void {
     $clientRepository = new class
     {
+        public ?string $capturedName = null;
+
         public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
         {
+            $this->capturedName = $name;
+
             return (object) [
                 'id' => 'test-client-id',
                 'grant_types' => ['authorization_code'],
