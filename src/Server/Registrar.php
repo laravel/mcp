@@ -112,6 +112,9 @@ class Registrar
         Router::post($oauthPrefix.'/register', OAuthRegisterController::class);
     }
 
+    /**
+     * @return array<string, array<int, string>|string>
+     */
     protected function authorizationServerMetadata(string $path, string $oauthPrefix): array
     {
         return [
@@ -126,6 +129,9 @@ class Registrar
         ];
     }
 
+    /**
+     * @return array<string, array<int, string>|string>
+     */
     protected function protectedResourceMetadata(string $path): array
     {
         return [
@@ -137,7 +143,7 @@ class Registrar
 
     protected function hasGetRoute(string $uri): bool
     {
-        foreach (Router::getRoutes() as $route) {
+        foreach (Router::getRoutes()->getRoutes() as $route) {
             if ($route->uri() === $uri && in_array('GET', $route->methods(), true)) {
                 return true;
             }
