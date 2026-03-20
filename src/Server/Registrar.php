@@ -95,7 +95,22 @@ class Registrar
             'scopes_supported' => ['mcp:use'],
         ]))->where('path', '.*')->name('mcp.oauth.protected-resource');
 
-        Router::get('/.well-known/oauth-authorization-server/{path?}', fn (?string $path = '') => response()->json([
+        if (! $this->hasGetRoute('.well-known/oauth-authorization-server')) {
+            Router::get('/.well-known/oauth-authorization-server', fn () => response()->json(
+                $this->authorizationServerMetadata('', $oauthPrefix),
+            ))->name('mcp.oauth.authorization-server');
+        }
+
+        Router::get('/.well-known/oauth-authorization-server/{path}', fn (string $path) => response()->json(
+            $this->authorizationServerMetadata($path, $oauthPrefix),
+        ))->where('path', '.*')->name('mcp.oauth.authorization-server.nested');
+
+        Router::post($oauthPrefix.'/register', OAuthRegisterController::class);
+    }
+
+    protected function authorizationServerMetadata(string $path, string $oauthPrefix): array
+    {
+        return [
             'issuer' => url('/'.$path),
             'authorization_endpoint' => route('passport.authorizations.authorize'),
             'token_endpoint' => route('passport.token'),
@@ -104,9 +119,18 @@ class Registrar
             'code_challenge_methods_supported' => ['S256'],
             'scopes_supported' => ['mcp:use'],
             'grant_types_supported' => ['authorization_code', 'refresh_token'],
-        ]))->where('path', '.*')->name('mcp.oauth.authorization-server');
+        ];
+    }
 
-        Router::post($oauthPrefix.'/register', OAuthRegisterController::class);
+    protected function hasGetRoute(string $uri): bool
+    {
+        foreach (Router::getRoutes() as $route) {
+            if ($route->uri() === $uri && in_array('GET', $route->methods(), true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
