@@ -89,11 +89,15 @@ class Registrar
     public function oauthRoutes(string $oauthPrefix = 'oauth'): void
     {
         static::ensureMcpScope();
-        Router::get('/.well-known/oauth-protected-resource/{path?}', fn (?string $path = '') => response()->json([
-            'resource' => url('/'.$path),
-            'authorization_servers' => [url('/'.$path)],
-            'scopes_supported' => ['mcp:use'],
-        ]))->where('path', '.*')->name('mcp.oauth.protected-resource');
+        if (! $this->hasGetRoute('.well-known/oauth-protected-resource')) {
+            Router::get('/.well-known/oauth-protected-resource', fn () => response()->json(
+                $this->protectedResourceMetadata(''),
+            ))->name('mcp.oauth.protected-resource');
+        }
+
+        Router::get('/.well-known/oauth-protected-resource/{path}', fn (string $path) => response()->json(
+            $this->protectedResourceMetadata($path),
+        ))->where('path', '.*')->name('mcp.oauth.protected-resource.nested');
 
         if (! $this->hasGetRoute('.well-known/oauth-authorization-server')) {
             Router::get('/.well-known/oauth-authorization-server', fn () => response()->json(
@@ -119,6 +123,15 @@ class Registrar
             'code_challenge_methods_supported' => ['S256'],
             'scopes_supported' => ['mcp:use'],
             'grant_types_supported' => ['authorization_code', 'refresh_token'],
+        ];
+    }
+
+    protected function protectedResourceMetadata(string $path): array
+    {
+        return [
+            'resource' => url('/'.$path),
+            'authorization_servers' => [url('/'.$path)],
+            'scopes_supported' => ['mcp:use'],
         ];
     }
 

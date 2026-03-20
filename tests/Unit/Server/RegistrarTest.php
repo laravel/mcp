@@ -135,6 +135,29 @@ it('does not override an existing exact oauth authorization server route', funct
     ]);
 });
 
+it('does not override an existing exact oauth protected resource route', function (): void {
+    Route::get('/.well-known/oauth-protected-resource', fn () => response()->json(['existing' => true]));
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $response = $this->getJson('/.well-known/oauth-protected-resource');
+
+    $response->assertStatus(200);
+    $response->assertJson(['existing' => true]);
+
+    $nestedResponse = $this->getJson('/.well-known/oauth-protected-resource/mcp/weather');
+
+    $nestedResponse->assertStatus(200);
+    $nestedResponse->assertJson([
+        'resource' => url('/mcp/weather'),
+        'authorization_servers' => [url('/mcp/weather')],
+        'scopes_supported' => ['mcp:use'],
+    ]);
+});
+
 it('adds mcp scope when passport is available', function (): void {
     // Mock Passport class existence
     if (! class_exists('Laravel\Passport\Passport')) {
