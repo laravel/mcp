@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Container\Container;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Response;
@@ -51,6 +52,8 @@ class CallTool implements Errable, Method
         try {
             // @phpstan-ignore-next-line
             $response = Container::getInstance()->call([$tool, 'handle']);
+        } catch (AuthorizationException $authorizationException) {
+            $response = Response::error($authorizationException->getMessage());
         } catch (ValidationException $validationException) {
             $response = Response::error(ValidationMessages::from($validationException));
         }
