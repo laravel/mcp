@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -214,6 +215,69 @@ it('returns a valid call tool response with authorization error', function (): v
                 [
                     'type' => 'text',
                     'text' => 'This action is unauthorized.',
+                ],
+            ],
+            'isError' => true,
+        ]);
+});
+
+it('returns a valid call tool response with authentication error', function (): void {
+    $tool = new class extends Tool
+    {
+        protected string $description = 'Unauthenticated tool';
+
+        public function handle(Request $request): Response
+        {
+            throw new AuthenticationException('Unauthenticated.');
+        }
+
+        public function schema(JsonSchema $schema): array
+        {
+            return [];
+        }
+    };
+
+    $toolClass = $tool::class;
+    $this->instance($toolClass, $tool);
+
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => $tool->name(),
+            'arguments' => [],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [$toolClass],
+        resources: [],
+        prompts: [],
+    );
+
+    $method = new CallTool;
+
+    $this->instance('mcp.request', $request->toRequest());
+    $response = $method->handle($request, $context);
+
+    expect($response)->toBeInstanceOf(JsonRpcResponse::class);
+
+    $payload = $response->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'content' => [
+                [
+                    'type' => 'text',
+                    'text' => 'Unauthenticated.',
                 ],
             ],
             'isError' => true,
