@@ -1,6 +1,12 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.3...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.4...main)
+
+## [v0.6.4](https://github.com/laravel/mcp/compare/v0.6.3...v0.6.4) - 2026-03-19
+
+* Remove redundant "When to Apply" section from skill body by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/175
+* Validate OAuth registration client names by [@Gujiassh](https://github.com/Gujiassh) in https://github.com/laravel/mcp/pull/177
+* Add nested OAuth resource metadata regression coverage by [@Gujiassh](https://github.com/Gujiassh) in https://github.com/laravel/mcp/pull/178
 
 ## [v0.6.3](https://github.com/laravel/mcp/compare/v0.6.2...v0.6.3) - 2026-03-12
 
@@ -165,6 +171,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -175,6 +182,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
