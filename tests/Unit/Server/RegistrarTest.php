@@ -626,3 +626,196 @@ it('handles oauth discovery with no path', function (): void {
         'issuer' => url('/'),
     ]);
 });
+
+it('accepts custom scheme redirect URIs when the scheme is configured', function (string $uri): void {
+    if (! class_exists('Laravel\Passport\ClientRepository')) {
+        eval('
+            namespace Laravel\Passport;
+            class ClientRepository {
+                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
+                    return (object) [
+                        "id" => "test-client-id",
+                        "grant_types" => ["authorization_code"],
+                        "redirect_uris" => $redirectUris,
+                    ];
+                }
+            }
+        ');
+    }
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.allowed_custom_schemes', ['cursor', 'vscode', 'claude']);
+
+    $this->app->instance('Laravel\Passport\ClientRepository', new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Desktop Client',
+        'redirect_uris' => [$uri],
+    ]);
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'client_id' => 'test-client-id',
+        'redirect_uris' => [$uri],
+    ]);
+})->with([
+    'cursor scheme' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
+    'vscode scheme' => ['vscode://extension.mcp/callback'],
+    'claude scheme' => ['claude://desktop.app/oauth/callback'],
+]);
+
+it('rejects custom scheme redirect URIs when the scheme is not configured', function (): void {
+    if (! class_exists('Laravel\Passport\ClientRepository')) {
+        eval('
+            namespace Laravel\Passport;
+            class ClientRepository {
+                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
+                    return (object) [
+                        "id" => "test-client-id",
+                        "grant_types" => ["authorization_code"],
+                        "redirect_uris" => $redirectUris,
+                    ];
+                }
+            }
+        ');
+    }
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.allowed_custom_schemes', []);
+
+    $this->app->instance('Laravel\Passport\ClientRepository', new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Desktop Client',
+        'redirect_uris' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
+    ]);
+
+    $response->assertStatus(422);
+});
+
+it('rejects custom scheme redirect URIs when a different scheme is configured', function (): void {
+    if (! class_exists('Laravel\Passport\ClientRepository')) {
+        eval('
+            namespace Laravel\Passport;
+            class ClientRepository {
+                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
+                    return (object) [
+                        "id" => "test-client-id",
+                        "grant_types" => ["authorization_code"],
+                        "redirect_uris" => $redirectUris,
+                    ];
+                }
+            }
+        ');
+    }
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.allowed_custom_schemes', ['vscode']);
+
+    $this->app->instance('Laravel\Passport\ClientRepository', new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Desktop Client',
+        'redirect_uris' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
+    ]);
+
+    $response->assertStatus(422);
+});
+
+it('rejects custom scheme redirect URIs with missing host', function (): void {
+    if (! class_exists('Laravel\Passport\ClientRepository')) {
+        eval('
+            namespace Laravel\Passport;
+            class ClientRepository {
+                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
+                    return (object) [
+                        "id" => "test-client-id",
+                        "grant_types" => ["authorization_code"],
+                        "redirect_uris" => $redirectUris,
+                    ];
+                }
+            }
+        ');
+    }
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.allowed_custom_schemes', ['cursor']);
+
+    $this->app->instance('Laravel\Passport\ClientRepository', new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Desktop Client',
+        'redirect_uris' => ['cursor:///callback'],
+    ]);
+
+    $response->assertStatus(422);
+});
+
+it('still allows standard http URLs when custom schemes are configured', function (): void {
+    if (! class_exists('Laravel\Passport\ClientRepository')) {
+        eval('
+            namespace Laravel\Passport;
+            class ClientRepository {
+                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
+                    return (object) [
+                        "id" => "test-client-id",
+                        "grant_types" => ["authorization_code"],
+                        "redirect_uris" => $redirectUris,
+                    ];
+                }
+            }
+        ');
+    }
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.allowed_custom_schemes', ['cursor']);
+
+    $this->app->instance('Laravel\Passport\ClientRepository', new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Web Client',
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ]);
+
+    $response->assertStatus(200);
+});
+
+it('returns json validation errors even without Accept application/json header', function (): void {
+    if (! class_exists('Laravel\Passport\ClientRepository')) {
+        eval('
+            namespace Laravel\Passport;
+            class ClientRepository {
+                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
+                    return (object) [
+                        "id" => "test-client-id",
+                        "grant_types" => ["authorization_code"],
+                        "redirect_uris" => $redirectUris,
+                    ];
+                }
+            }
+        ');
+    }
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance('Laravel\Passport\ClientRepository', new ClientRepository);
+
+    $response = $this->post('/oauth/register', [
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ], ['Accept' => '*/*']);
+
+    $response->assertStatus(422);
+    $response->assertHeader('Content-Type', 'application/json');
+    $response->assertJsonStructure(['message', 'errors']);
+});

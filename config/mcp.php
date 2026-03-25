@@ -21,4 +21,25 @@ return [
         // 'http://localhost',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Allowed Custom Schemes
+    |--------------------------------------------------------------------------
+    |
+    | Native desktop OAuth clients (Cursor, VS Code, Claude Desktop, etc.)
+    | use private-use URI schemes (RFC 8252) for redirect callbacks instead
+    | of http(s) URLs. List the schemes you wish to permit here. URIs with
+    | these schemes bypass the standard 'url' validation but must still
+    | contain a valid host component.
+    |
+    | Example: ['cursor', 'vscode', 'claude']
+    |
+    */
+
+    'allowed_custom_schemes' => [
+        // 'cursor',
+        // 'vscode',
+        // 'claude',
+    ],
+
 ];

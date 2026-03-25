@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class OAuthRegisterController
@@ -19,11 +20,29 @@ class OAuthRegisterController
      */
     public function __invoke(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'client_name' => ['nullable', 'string', 'min:1', 'max:255', 'required_without:name'],
             'name' => ['nullable', 'string', 'min:1', 'max:255', 'required_without:client_name'],
             'redirect_uris' => ['required', 'array', 'min:1'],
-            'redirect_uris.*' => ['required', 'url', function (string $attribute, $value, $fail): void {
+            'redirect_uris.*' => ['required', 'string', function (string $attribute, $value, $fail): void {
+                if ($this->isAllowedCustomSchemeUri($value)) {
+                    return;
+                }
+
+                if (! filter_var($value, FILTER_VALIDATE_URL)) {
+                    $fail($attribute.' is not a valid URL.');
+
+                    return;
+                }
+
+                $scheme = parse_url($value, PHP_URL_SCHEME);
+
+                if ($scheme !== null && ! in_array($scheme, ['http', 'https'], true)) {
+                    $fail($attribute.' is not a valid URL.');
+
+                    return;
+                }
+
                 if (in_array('*', config('mcp.redirect_domains', []), true)) {
                     return;
                 }
@@ -37,6 +56,15 @@ class OAuthRegisterController
                 }
             }],
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'The given data was invalid.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
 
         $clients = Container::getInstance()->make(
             "Laravel\Passport\ClientRepository"
@@ -58,6 +86,33 @@ class OAuthRegisterController
             'scope' => 'mcp:use',
             'token_endpoint_auth_method' => 'none',
         ]);
+    }
+
+    protected function isAllowedCustomSchemeUri(string $value): bool
+    {
+        /** @var array<int, string> */
+        $allowedSchemes = config('mcp.allowed_custom_schemes', []);
+
+        if ($allowedSchemes === []) {
+            return false;
+        }
+
+        $scheme = parse_url($value, PHP_URL_SCHEME);
+
+        if ($scheme === null || $scheme === false) {
+            return false;
+        }
+
+        if (in_array($scheme, ['http', 'https'], true)) {
+            return false;
+        }
+
+        if (! in_array($scheme, $allowedSchemes, true)) {
+            return false;
+        }
+
+        return parse_url($value, PHP_URL_HOST) !== null
+            && parse_url($value, PHP_URL_HOST) !== false;
     }
 
     protected function isLocalhostUrl(string $url): bool
