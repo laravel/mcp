@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Illuminate\Container\Container;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\JsonSchema as JsonSchemaFactory;
+use Laravel\Mcp\Server\Attributes\UiLinked;
 use Laravel\Mcp\Server\Concerns\HasAnnotations;
 use Laravel\Mcp\Server\Tools\Annotations\ToolAnnotation;
 
@@ -76,6 +78,18 @@ abstract class Tool extends Primitive
 
         if (isset($outputSchema['properties'])) {
             $result['outputSchema'] = $outputSchema;
+        }
+
+        $uiLinked = $this->resolveAttribute(UiLinked::class);
+
+        if ($uiLinked !== null) {
+            /** @var UiResource $uiResource */
+            $uiResource = Container::getInstance()->make($uiLinked->resource);
+
+            $this->setMeta('ui', [
+                'resourceUri' => $uiResource->uri(),
+                'visibility' => $uiLinked->visibility,
+            ]);
         }
 
         // @phpstan-ignore return.type

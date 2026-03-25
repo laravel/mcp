@@ -45,6 +45,20 @@ class Response
         return new static(new Text($text));
     }
 
+    public static function html(string $html): static
+    {
+        return static::text($html);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $mergeData
+     */
+    public static function view(string $view, array $data = [], array $mergeData = []): static
+    {
+        return static::html(view($view, $data, $mergeData)->render());
+    }
+
     /**
      * @internal
      *

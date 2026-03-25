@@ -215,6 +215,33 @@ it('throws exception when an array contains null', function (): void {
     );
 });
 
+it('creates an html response as text content', function (): void {
+    $response = Response::html('<html><body>Hello</body></html>');
+
+    expect($response->content())->toBeInstanceOf(Text::class)
+        ->and((string) $response->content())->toBe('<html><body>Hello</body></html>')
+        ->and($response->isNotification())->toBeFalse()
+        ->and($response->isError())->toBeFalse();
+});
+
+it('creates a response from a blade view', function (): void {
+    $viewDir = resource_path('views');
+
+    if (! is_dir($viewDir)) {
+        mkdir($viewDir, 0755, true);
+    }
+
+    file_put_contents($viewDir.'/mcp-view-test.blade.php', '<p>{{ $name }}</p>');
+
+    $response = Response::view('mcp-view-test', ['name' => 'Test']);
+
+    expect($response->content())->toBeInstanceOf(Text::class)
+        ->and((string) $response->content())->toContain('<p>Test</p>')
+        ->and($response->isError())->toBeFalse();
+
+    @unlink($viewDir.'/mcp-view-test.blade.php');
+});
+
 it('creates compact json response', function (): void {
     $data = ['key' => 'value', 'number' => 123];
     $response = Response::json($data);

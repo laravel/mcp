@@ -1,6 +1,6 @@
 ---
 name: mcp-development
-description: "Use this skill for Laravel MCP development only. Trigger when creating or editing MCP tools, resources, prompts, or servers in Laravel projects. Covers: artisan make:mcp-* generators, mcp:inspector, routes/ai.php, Tool/Resource/Prompt classes, schema validation, shouldRegister(), OAuth setup, URI templates, read-only attributes, and MCP debugging. Do not use for non-Laravel MCP projects or generic AI features without MCP."
+description: "Use this skill for Laravel MCP development. Trigger when creating or editing MCP tools, resources, prompts, servers, or UI apps in Laravel projects. Covers: artisan make:mcp-* generators (including make:mcp-ui-resource for MCP Apps), routes/ai.php, Tool/Resource/Prompt/UiResource classes, schema validation, shouldRegister(), OAuth setup, URI templates, read-only attributes, MCP debugging, MCP UI apps, the x-mcp::app Blade component, createMcpApp() global (pre-bundled — no npm install needed), default UiResource handle() auto-infers view from class name, Response::view(), UiMeta/Csp/Permissions/defaultUiMeta() configuration, #[UiLinked] attribute, and host theming via CSS variables. Use this whenever the user mentions MCP apps, MCP UI, interactive MCP resources, or building visual interfaces for AI agents."
 license: MIT
 metadata:
   author: laravel
@@ -10,17 +10,11 @@ metadata:
 @endphp
 # MCP Development
 
-## When to Apply
-
-Activate this skill when:
-
-- Creating MCP tools, resources, or prompts
-- Setting up MCP server routes
-- Debugging MCP connection issues
-
 ## Documentation
 
 Use `search-docs` for detailed Laravel MCP patterns and documentation.
+
+For MCP UI apps (interactive HTML resources), read `references/ui.md` — it covers the full architecture, host theming CSS variables, tool-to-UI linking patterns, and real-world examples.
 
 ## Basic Usage
 
@@ -34,13 +28,12 @@ Mcp::web();
 
 ### Creating MCP Primitives
 
-Create MCP tools, resources, prompts, and servers using artisan commands:
-
 ```bash
-{{ $assist->artisanCommand('make:mcp-tool ToolName') }}        # Create a tool
-{{ $assist->artisanCommand('make:mcp-resource ResourceName') }} # Create a resource
-{{ $assist->artisanCommand('make:mcp-prompt PromptName') }}    # Create a prompt
-{{ $assist->artisanCommand('make:mcp-server ServerName') }}    # Create a server
+{{ $assist->artisanCommand('make:mcp-tool ToolName') }}            # Create a tool
+{{ $assist->artisanCommand('make:mcp-resource ResourceName') }}     # Create a resource
+{{ $assist->artisanCommand('make:mcp-prompt PromptName') }}        # Create a prompt
+{{ $assist->artisanCommand('make:mcp-server ServerName') }}        # Create a server
+{{ $assist->artisanCommand('make:mcp-ui-resource DashboardApp') }} # Create a UI app (2 files)
 ```
 
 After creating primitives, register them in your server's `$tools`, `$resources`, or `$prompts` properties.
@@ -48,22 +41,32 @@ After creating primitives, register them in your server's `$tools`, `$resources`
 ### Tools
 
 @boostsnippet("MCP Tool Example", "php")
+use Illuminate\Json\Schema\JsonSchema;
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Request;
-use Laravel\Mcp\Server\Response;
 
 class MyTool extends Tool
 {
+    protected string $description = 'Describe what this tool does';
+
+    public function schema(JsonSchema $schema): array
+    {
+        return [
+            'name' => $schema->string()->description('The name parameter')->required(),
+        ];
+    }
+
     public function handle(Request $request): Response
     {
-        return new Response(['result' => 'success']);
+        $request->validate(['name' => 'required|string']);
+
+        return Response::text('Hello, '.$request->get('name'));
     }
 }
 @endboostsnippet
 
 ### Registering Primitives in a Server
-
-Each MCP server must explicitly declare the tools, resources, and prompts it exposes.
 
 @boostsnippet("Register Primitives in MCP Server", "php")
 use Laravel\Mcp\Server;
@@ -84,10 +87,45 @@ class AppServer extends Server
 }
 @endboostsnippet
 
+## MCP UI Apps
+
+MCP Apps let you build interactive HTML interfaces that AI agents can display to users. `make:mcp-ui-resource` generates two files — a PHP registration stub and a Blade view. The entire app lives in the Blade view.
+
+**PHP class** — just registers the resource, no code needed:
+```php
+class DashboardApp extends UiResource {}
+```
+`handle()` is provided by default: auto-infers the view `mcp.<kebab-class-name>`. Override only when passing server-side data to the view.
+
+**Blade view** — HTML structure + inline JS, everything in one file:
+```blade
+<x-mcp::app title="Dashboard App">
+    <x-slot:head>
+        <script type="module">
+        createMcpApp(async (app) => {
+            document.getElementById('run-btn').addEventListener('click', async () => {
+                const result = await app.callServerTool({ name: 'tool-name', arguments: {} });
+                document.getElementById('output').textContent = result.content[0]?.text ?? '';
+            });
+        });
+        </script>
+    </x-slot:head>
+
+    <div id="app">
+        <h1>Dashboard App</h1>
+        <button id="run-btn">Run</button>
+        <p id="output"></p>
+    </div>
+</x-mcp::app>
+```
+
+`createMcpApp` is a global pre-bundled by the package — no npm install, no imports, no Vite required. It handles connection, error handling, and host theming automatically. Read `references/ui.md` for UiMeta/Csp/Permissions, `#[UiLinked]` tool linking, host theming CSS variables, and real-world patterns.
+
 ## Verification
 
 1. Check `routes/ai.php` for proper registration
 2. Test tool via MCP client
+3. For UI apps with Vite entry: run `npm run build` and verify `public/build/` is populated
 
 ## Common Pitfalls
 
@@ -95,4 +133,6 @@ class AppServer extends Server
 - Using HTTPS locally with Node-based MCP clients
 - Not using `search-docs` for the latest MCP documentation
 - Not registering MCP server routes in `routes/ai.php`
-- Do not register `ai.php` in `bootstrap.php`; it is registered automatically.
+- Do not register `ai.php` in `bootstrap.php`; it is registered automatically
+- For UI apps: using `@vite()` instead of inline script or `entry` prop (sandboxed iframes can't load external scripts)
+- For UI apps with Vite: forgetting to run `npm run build` after changing JS/CSS (no hot reload in iframes)

@@ -21,6 +21,7 @@ use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Server\UiResource;
 use Laravel\Mcp\Support\ValidationMessages;
 
 class ReadResource implements Method
@@ -82,11 +83,23 @@ class ReadResource implements Method
 
     protected function serializable(Resource $resource, string $uri): callable
     {
+        $uiMeta = $resource instanceof UiResource ? $resource->resolvedUiMeta() : null;
+
         return fn (ResponseFactory $factory): array => $factory->mergeMeta([
-            'contents' => $factory->responses()->map(fn (Response $response): array => [
-                ...$response->content()->toResource($resource),
-                'uri' => $uri,
-            ])->all(),
+            'contents' => $factory->responses()->map(function (Response $response) use ($resource, $uri, $uiMeta): array {
+                $content = [
+                    ...$response->content()->toResource($resource),
+                    'uri' => $uri,
+                ];
+
+                if ($uiMeta !== null && $uiMeta !== []) {
+                    $content['_meta'] = array_merge($content['_meta'] ?? [], [
+                        'ui' => $uiMeta,
+                    ]);
+                }
+
+                return $content;
+            })->all(),
         ]);
     }
 }

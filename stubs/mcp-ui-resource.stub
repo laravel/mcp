@@ -1,0 +1,23 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Attributes\UiMeta;
+use Laravel\Mcp\Server\Ui\Enum\Permission;
+use Laravel\Mcp\Server\UiResource;
+
+#[UiMeta(
+    connectDomains: [],
+    permissions: [],
+)]
+class {{ class }} extends UiResource
+{
+    public function handle(Request $request): Response
+    {
+        return Response::view('{{ view }}', [
+            'title' => $this->title(),
+        ]);
+    }
+}
