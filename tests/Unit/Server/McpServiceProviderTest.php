@@ -6,16 +6,8 @@ use Laravel\Mcp\Server\McpServiceProvider;
 use Laravel\Passport\Passport;
 
 it('registers mcp scope during boot', function (): void {
-    if (! class_exists('Laravel\Passport\Passport')) {
-        eval('
-            namespace Laravel\Passport;
-            class Passport {
-                public static $scopes = [];
-                public static function tokensCan($scopes) {
-                    self::$scopes = $scopes;
-                }
-            }
-        ');
+    if (! class_exists(Passport::class)) {
+        require_once __DIR__.'/../../Fixtures/PassportPassport.php';
     }
 
     Passport::$scopes = ['custom' => 'Custom scope'];

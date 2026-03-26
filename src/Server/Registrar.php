@@ -114,7 +114,7 @@ class Registrar
      */
     public static function ensureMcpScope(): array
     {
-        if (class_exists('Laravel\Passport\Passport') === false) {
+        if (class_exists(\Laravel\Passport\Passport::class) === false) {
             return [];
         }
 
