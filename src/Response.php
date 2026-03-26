@@ -47,7 +47,7 @@ class Response
 
     public static function html(string $path): static
     {
-        $path = str_starts_with($path, '/') ? $path : resource_path($path);
+        $path = str_starts_with($path, '/') || preg_match('/^[a-zA-Z]:[\\\\\\/]/', $path) ? $path : resource_path($path);
 
         return static::text((string) file_get_contents($path));
     }

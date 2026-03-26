@@ -14,7 +14,7 @@ metadata:
 
 Use `search-docs` for detailed Laravel MCP patterns and documentation.
 
-For MCP UI apps (interactive HTML resources), read `references/ui.md` — it covers the full architecture, host theming CSS variables, tool-to-UI linking patterns, and real-world examples.
+For MCP UI apps (interactive HTML resources), read `references/app.md` — it covers the full architecture, host theming CSS variables, tool-to-UI linking patterns, and real-world examples.
 
 ## Basic Usage
 
@@ -119,7 +119,7 @@ class DashboardApp extends UiResource {}
 </x-mcp::app>
 ```
 
-`createMcpApp` is a global pre-bundled by the package — no npm install, no imports, no Vite required. It handles connection, error handling, and host theming automatically. Read `references/ui.md` for UiMeta/Csp/Permissions, `#[UiLinked]` tool linking, host theming CSS variables, and real-world patterns.
+`createMcpApp` is a global pre-bundled by the package — no npm install, no imports, no Vite required. It handles connection, error handling, and host theming automatically. Read `references/app.md` for UiMeta/Csp/Permissions, `#[UiLinked]` tool linking, host theming CSS variables, and real-world patterns.
 
 ## Verification
 
