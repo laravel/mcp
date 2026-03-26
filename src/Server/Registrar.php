@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server;
 
 use Illuminate\Container\Container;
-use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
@@ -14,7 +13,6 @@ use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController;
 use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
-use Laravel\Mcp\Server\Middleware\HandleMcpCors;
 use Laravel\Mcp\Server\Middleware\ReorderJsonAccept;
 use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Server\Transport\StdioTransport;
