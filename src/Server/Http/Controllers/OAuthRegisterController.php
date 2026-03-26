@@ -100,7 +100,7 @@ class OAuthRegisterController
         }
 
         /** @var array<int, string> */
-        $allowedSchemes = config('mcp.allowed_custom_schemes', []);
+        $allowedSchemes = config('mcp.custom_schemes', []);
         $host = parse_url($value, PHP_URL_HOST);
 
         return in_array($scheme, $allowedSchemes, true) && is_string($host) && $host !== '';

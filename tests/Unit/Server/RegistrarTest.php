@@ -517,7 +517,7 @@ it('accepts custom scheme redirect URIs when the scheme is configured', function
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    config()->set('mcp.allowed_custom_schemes', ['cursor', 'vscode', 'claude']);
+    config()->set('mcp.custom_schemes', ['cursor', 'vscode', 'claude']);
 
     $this->app->instance(ClientRepository::class, new ClientRepository);
 
@@ -543,7 +543,7 @@ it('rejects custom scheme redirect URIs when the scheme is not configured', func
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    config()->set('mcp.allowed_custom_schemes', []);
+    config()->set('mcp.custom_schemes', []);
 
     $this->app->instance(ClientRepository::class, new ClientRepository);
 
@@ -561,7 +561,7 @@ it('rejects custom scheme redirect URIs when a different scheme is configured', 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    config()->set('mcp.allowed_custom_schemes', ['vscode']);
+    config()->set('mcp.custom_schemes', ['vscode']);
 
     $this->app->instance(ClientRepository::class, new ClientRepository);
 
@@ -579,7 +579,7 @@ it('rejects custom scheme redirect URIs with missing host', function (): void {
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    config()->set('mcp.allowed_custom_schemes', ['cursor']);
+    config()->set('mcp.custom_schemes', ['cursor']);
 
     $this->app->instance(ClientRepository::class, new ClientRepository);
 
@@ -597,7 +597,7 @@ it('still allows standard http URLs when custom schemes are configured', functio
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    config()->set('mcp.allowed_custom_schemes', ['cursor']);
+    config()->set('mcp.custom_schemes', ['cursor']);
 
     $this->app->instance(ClientRepository::class, new ClientRepository);
 
