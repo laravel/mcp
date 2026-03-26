@@ -45,7 +45,7 @@ class DashboardApp extends UiResource {
 }
 ```
 
-Auto-renders `resources/views/mcp/dashboard-app.blade.php` with `$title` available from `$this->title()`.
+Auto-renders `resources/views/mcp/dashboard-app.blade.php` with `$title` available via `$this->title()`.
 
 Override `handle()` only when passing additional server-side data:
 
