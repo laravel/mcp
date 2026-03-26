@@ -15,7 +15,7 @@ class UiMeta implements Arrayable
         protected ?Csp $csp = null,
         protected ?Permissions $permissions = null,
         protected ?string $domain = null,
-        protected ?bool $prefersBorder = null,
+        protected ?bool $prefersBorder = true,
     ) {
         //
     }

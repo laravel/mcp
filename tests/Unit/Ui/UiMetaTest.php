@@ -8,7 +8,7 @@ use Laravel\Mcp\Server\Ui\UiMeta;
 it('serializes as empty when no fields set', function (): void {
     $meta = new UiMeta;
 
-    expect($meta->toArray())->toEqual([]);
+    expect($meta->toArray())->toEqual(['prefersBorder' => true]);
 });
 
 it('serializes all fields when provided', function (): void {
@@ -73,5 +73,5 @@ it('omits empty csp and permissions objects', function (): void {
         ->csp(Csp::make())
         ->permissions(Permissions::make());
 
-    expect($meta->toArray())->toEqual([]);
+    expect($meta->toArray())->toEqual(['prefersBorder' => true]);
 });
