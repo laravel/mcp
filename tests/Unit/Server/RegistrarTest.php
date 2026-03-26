@@ -532,7 +532,7 @@ it('accepts custom scheme redirect URIs when the scheme is configured', function
         'redirect_uris' => [$uri],
     ]);
 })->with([
-    'cursor scheme' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
+    'cursor scheme' => ['cursor://anysphere.cursor/oauth/callback'],
     'vscode scheme' => ['vscode://extension.mcp/callback'],
     'claude scheme' => ['claude://desktop.app/oauth/callback'],
 ]);
@@ -549,7 +549,7 @@ it('rejects custom scheme redirect URIs when the scheme is not configured', func
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Desktop Client',
-        'redirect_uris' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
+        'redirect_uris' => ['cursor://anysphere.cursor/oauth/callback'],
     ]);
 
     $response->assertStatus(400);
@@ -567,7 +567,7 @@ it('rejects custom scheme redirect URIs when a different scheme is configured', 
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Desktop Client',
-        'redirect_uris' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
+        'redirect_uris' => ['cursor://anysphere.cursor/oauth/callback'],
     ]);
 
     $response->assertStatus(400);
