@@ -33,9 +33,9 @@ return [
     */
 
     'custom_schemes' => [
+        // 'claude',
         // 'cursor',
         // 'vscode',
-        // 'claude',
     ],
 
 ];
