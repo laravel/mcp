@@ -215,13 +215,33 @@ it('throws exception when an array contains null', function (): void {
     );
 });
 
-it('creates an html response as text content', function (): void {
-    $response = Response::html('<html><body>Hello</body></html>');
+it('reads html content from a relative file path', function (): void {
+    $dir = resource_path();
+
+    if (! is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+
+    file_put_contents($dir.'/test-response.html', '<html><body>From File</body></html>');
+
+    $response = Response::html('test-response.html');
 
     expect($response->content())->toBeInstanceOf(Text::class)
-        ->and((string) $response->content())->toBe('<html><body>Hello</body></html>')
-        ->and($response->isNotification())->toBeFalse()
-        ->and($response->isError())->toBeFalse();
+        ->and((string) $response->content())->toBe('<html><body>From File</body></html>');
+
+    @unlink($dir.'/test-response.html');
+});
+
+it('reads html content from an absolute file path', function (): void {
+    $path = sys_get_temp_dir().'/mcp-test-absolute.html';
+
+    file_put_contents($path, '<div>Absolute</div>');
+
+    $response = Response::html($path);
+
+    expect((string) $response->content())->toBe('<div>Absolute</div>');
+
+    @unlink($path);
 });
 
 it('creates a response from a blade view', function (): void {

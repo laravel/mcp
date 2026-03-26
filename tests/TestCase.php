@@ -15,11 +15,6 @@ abstract class TestCase extends TestbenchTestCase
 {
     use WithWorkbench;
 
-    protected function defineEnvironment($app): void
-    {
-        $app['config']->set('cache.default', 'array');
-    }
-
     protected function getServerContext(array $properties = []): ServerContext
     {
         $properties = array_merge([

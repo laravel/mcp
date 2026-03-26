@@ -63,7 +63,19 @@ class AnalyticsDashboard extends UiResource
 }
 ```
 
-`Response::view($view, $data = [], $mergeData = [])` renders a Blade view and wraps it in an HTML response.
+`Response::view($view, $data = [], $mergeData = [])` renders a Blade view and returns it as text.
+
+`Response::html($path)` reads an HTML file from disk and returns its content. Relative paths resolve via `resource_path()`:
+
+```php
+class StaticApp extends UiResource
+{
+    public function handle(Request $request): Response
+    {
+        return Response::html('mcp/static-app.html');
+    }
+}
+```
 
 ### UiMeta Configuration
 

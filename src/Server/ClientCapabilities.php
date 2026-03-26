@@ -9,9 +9,8 @@ class ClientCapabilities
     /**
      * @param  array<string, mixed>  $capabilities
      */
-    public function __construct(
-        protected array $capabilities = [],
-    ) {
+    public function __construct(protected array $capabilities = [])
+    {
         //
     }
 

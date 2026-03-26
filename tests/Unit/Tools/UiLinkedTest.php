@@ -44,7 +44,7 @@ class UiLinkedSpecWidgetResource extends UiResource
 {
     public function handle(Request $request): Response
     {
-        return Response::html('<html></html>');
+        return Response::text('<html></html>');
     }
 }
 

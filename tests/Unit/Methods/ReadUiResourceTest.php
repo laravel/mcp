@@ -25,7 +25,7 @@ it('includes _meta.ui on content items for ui resources', function (): void {
 
         public function handle(Request $request): Response
         {
-            return Response::html('<html><body>Hello</body></html>');
+            return Response::text('<html><body>Hello</body></html>');
         }
     };
 
@@ -58,7 +58,7 @@ it('includes auto-resolved domain in _meta.ui content when no uiMeta set', funct
     {
         public function handle(Request $request): Response
         {
-            return Response::html('<html><body>Hello</body></html>');
+            return Response::text('<html><body>Hello</body></html>');
         }
     };
 

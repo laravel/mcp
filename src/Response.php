@@ -45,9 +45,11 @@ class Response
         return new static(new Text($text));
     }
 
-    public static function html(string $html): static
+    public static function html(string $path): static
     {
-        return static::text($html);
+        $path = str_starts_with($path, '/') ? $path : resource_path($path);
+
+        return static::text((string) file_get_contents($path));
     }
 
     /**
@@ -56,7 +58,7 @@ class Response
      */
     public static function view(string $view, array $data = [], array $mergeData = []): static
     {
-        return static::html(view($view, $data, $mergeData)->render());
+        return static::text(view($view, $data, $mergeData)->render());
     }
 
     /**

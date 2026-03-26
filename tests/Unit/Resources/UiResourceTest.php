@@ -14,7 +14,7 @@ it('defaults to mcp-app mime type', function (): void {
     {
         public function handle(Request $request): Response
         {
-            return Response::html('<html></html>');
+            return Response::text('<html></html>');
         }
     };
 
@@ -26,7 +26,7 @@ it('defaults to ui:// uri scheme', function (): void {
     {
         public function handle(Request $request): Response
         {
-            return Response::html('<html></html>');
+            return Response::text('<html></html>');
         }
     };
 
@@ -43,7 +43,7 @@ it('includes _meta.ui in toArray output', function (): void {
 
         public function handle(Request $request): Response
         {
-            return Response::html('<html></html>');
+            return Response::text('<html></html>');
         }
     };
 
@@ -68,7 +68,7 @@ it('includes custom ui meta in toArray', function (): void {
 
         public function handle(Request $request): Response
         {
-            return Response::html('<html></html>');
+            return Response::text('<html></html>');
         }
     };
 
@@ -89,7 +89,7 @@ it('allows custom uri override', function (): void {
 
         public function handle(Request $request): Response
         {
-            return Response::html('<html></html>');
+            return Response::text('<html></html>');
         }
     };
 
@@ -103,7 +103,7 @@ it('serializes name title description and mimeType', function (): void {
 
         public function handle(Request $request): Response
         {
-            return Response::html('<html></html>');
+            return Response::text('<html></html>');
         }
     };
 
@@ -123,7 +123,7 @@ it('includes domain from app url in _meta.ui by default', function (): void {
     {
         public function handle(Request $request): Response
         {
-            return Response::html('<html></html>');
+            return Response::text('<html></html>');
         }
     };
 
@@ -139,7 +139,7 @@ it('attribute domain overrides auto-resolved domain', function (): void {
     {
         public function handle(Request $request): Response
         {
-            return Response::html('<html></html>');
+            return Response::text('<html></html>');
         }
     };
 
@@ -153,7 +153,7 @@ it('configures ui meta via attribute', function (): void {
     {
         public function handle(Request $request): Response
         {
-            return Response::html('<html></html>');
+            return Response::text('<html></html>');
         }
     };
 
