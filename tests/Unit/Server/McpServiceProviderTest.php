@@ -6,7 +6,7 @@ use Laravel\Mcp\Server\McpServiceProvider;
 use Laravel\Passport\Passport;
 
 it('registers mcp scope during boot', function (): void {
-    if (! class_exists(\Laravel\Passport\Passport::class)) {
+    if (! class_exists(Passport::class)) {
         require_once __DIR__.'/../../Fixtures/PassportPassport.php';
     }
 

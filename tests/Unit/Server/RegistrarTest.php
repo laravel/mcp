@@ -10,7 +10,7 @@ use Tests\Fixtures\ExampleServer;
 
 function ensureMockClientRepository(): void
 {
-    if (! class_exists(\Laravel\Passport\ClientRepository::class)) {
+    if (! class_exists(ClientRepository::class)) {
         require_once __DIR__.'/../../Fixtures/PassportClientRepository.php';
     }
 }
@@ -120,7 +120,7 @@ it('registers oauth routes with custom prefix', function (): void {
 });
 
 it('adds mcp scope when passport is available', function (): void {
-    if (! class_exists(\Laravel\Passport\Passport::class)) {
+    if (! class_exists(Passport::class)) {
         require_once __DIR__.'/../../Fixtures/PassportPassport.php';
     }
 
@@ -136,7 +136,7 @@ it('adds mcp scope when passport is available', function (): void {
 });
 
 it('does not duplicate mcp scope if already exists', function (): void {
-    if (! class_exists(\Laravel\Passport\Passport::class)) {
+    if (! class_exists(Passport::class)) {
         require_once __DIR__.'/../../Fixtures/PassportPassport.php';
     }
 
@@ -157,7 +157,7 @@ it('handles oauth registration endpoint', function (): void {
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, new ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Test Client',
@@ -195,7 +195,7 @@ it('requires an oauth client name for registration', function (): void {
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, $clientRepository);
+    $this->app->instance(ClientRepository::class, $clientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'redirect_uris' => ['http://localhost:3000/callback'],
@@ -227,7 +227,7 @@ it('falls back to the legacy name field for oauth registration', function (): vo
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, $clientRepository);
+    $this->app->instance(ClientRepository::class, $clientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'name' => 'Legacy Client',
@@ -259,7 +259,7 @@ it('prefers client_name over name for oauth registration', function (): void {
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, $clientRepository);
+    $this->app->instance(ClientRepository::class, $clientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Preferred Client',
@@ -280,7 +280,7 @@ it('handles oauth registration with allowed domains', function (): void {
 
     config()->set('mcp.redirect_domains', ['http://localhost:3000/']);
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, new ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Test Client',
@@ -306,7 +306,7 @@ it('allows localhost with dynamic port when localhost is in redirect_domains', f
 
     config()->set('mcp.redirect_domains', ['https://example.com', 'http://localhost']);
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, new ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Test Client',
@@ -328,7 +328,7 @@ it('rejects localhost with dynamic port when localhost is not in redirect_domain
 
     config()->set('mcp.redirect_domains', ['https://example.com']);
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, new ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Test Client',
@@ -350,7 +350,7 @@ it('does not allow non-localhost URLs when localhost is in redirect_domains', fu
 
     config()->set('mcp.redirect_domains', ['https://example.com', 'http://localhost']);
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, new ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Test Client',
@@ -368,7 +368,7 @@ it('does not allow https localhost URLs via localhost redirect domain', function
 
     config()->set('mcp.redirect_domains', ['https://example.com', 'http://localhost']);
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, new ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Test Client',
@@ -386,7 +386,7 @@ it('allows all localhost hosts when any localhost variant is in redirect_domains
 
     config()->set('mcp.redirect_domains', [$configDomain]);
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, new ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Test Client',
@@ -408,7 +408,7 @@ it('handles oauth registration with incorrect redirect domain', function (): voi
 
     config()->set('mcp.redirect_domains', ['http://allowed-domain.com/']);
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, new ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Test Client',
@@ -519,7 +519,7 @@ it('accepts custom scheme redirect URIs when the scheme is configured', function
 
     config()->set('mcp.allowed_custom_schemes', ['cursor', 'vscode', 'claude']);
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, new ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Desktop Client',
@@ -545,7 +545,7 @@ it('rejects custom scheme redirect URIs when the scheme is not configured', func
 
     config()->set('mcp.allowed_custom_schemes', []);
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, new ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Desktop Client',
@@ -563,7 +563,7 @@ it('rejects custom scheme redirect URIs when a different scheme is configured', 
 
     config()->set('mcp.allowed_custom_schemes', ['vscode']);
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, new ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Desktop Client',
@@ -581,7 +581,7 @@ it('rejects custom scheme redirect URIs with missing host', function (): void {
 
     config()->set('mcp.allowed_custom_schemes', ['cursor']);
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, new ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Desktop Client',
@@ -599,7 +599,7 @@ it('still allows standard http URLs when custom schemes are configured', functio
 
     config()->set('mcp.allowed_custom_schemes', ['cursor']);
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, new ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Web Client',
@@ -615,7 +615,7 @@ it('returns json validation errors even without Accept application/json header',
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    $this->app->instance(\Laravel\Passport\ClientRepository::class, new ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->post('/oauth/register', [
         'redirect_uris' => ['http://localhost:3000/callback'],

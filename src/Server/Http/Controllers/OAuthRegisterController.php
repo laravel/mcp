@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Laravel\Passport\ClientRepository;
 
 class OAuthRegisterController
 {
@@ -65,7 +66,7 @@ class OAuthRegisterController
         $validated = $validator->validated();
 
         $clients = Container::getInstance()->make(
-            \Laravel\Passport\ClientRepository::class
+            ClientRepository::class
         );
 
         $client = $clients->createAuthorizationCodeGrantClient(
