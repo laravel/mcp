@@ -58,10 +58,16 @@ class OAuthRegisterController
         ]);
 
         if ($validator->fails()) {
+            $errors = $validator->errors();
+
+            $isRedirectError = collect($errors->keys())->contains(
+                fn (string $key): bool => str_starts_with($key, 'redirect_uris')
+            );
+
             return response()->json([
-                'message' => 'The given data was invalid.',
-                'errors' => $validator->errors(),
-            ], 422);
+                'error' => $isRedirectError ? 'invalid_redirect_uri' : 'invalid_client_metadata',
+                'error_description' => $errors->first(),
+            ], 400);
         }
 
         $validated = $validator->validated();
@@ -99,11 +105,7 @@ class OAuthRegisterController
 
         $scheme = parse_url($value, PHP_URL_SCHEME);
 
-        if ($scheme === null || $scheme === false) {
-            return false;
-        }
-
-        if (in_array($scheme, ['http', 'https'], true)) {
+        if (! is_string($scheme) || in_array($scheme, ['http', 'https'], true)) {
             return false;
         }
 
@@ -111,8 +113,9 @@ class OAuthRegisterController
             return false;
         }
 
-        return parse_url($value, PHP_URL_HOST) !== null
-            && parse_url($value, PHP_URL_HOST) !== false;
+        $host = parse_url($value, PHP_URL_HOST);
+
+        return is_string($host) && $host !== '';
     }
 
     protected function isLocalhostUrl(string $url): bool

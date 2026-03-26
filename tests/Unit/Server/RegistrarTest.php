@@ -8,6 +8,13 @@ use Laravel\Passport\ClientRepository;
 use Laravel\Passport\Passport;
 use Tests\Fixtures\ExampleServer;
 
+function ensureMockClientRepository(): void
+{
+    if (! class_exists('Laravel\Passport\ClientRepository')) {
+        require_once __DIR__.'/../../Fixtures/PassportClientRepository.php';
+    }
+}
+
 it('registers a local server and retrieves it', function (): void {
     $registrar = new Registrar;
 
@@ -113,18 +120,8 @@ it('registers oauth routes with custom prefix', function (): void {
 });
 
 it('adds mcp scope when passport is available', function (): void {
-    // Mock Passport class existence
     if (! class_exists('Laravel\Passport\Passport')) {
-        // Create a mock Passport class for testing
-        eval('
-            namespace Laravel\Passport;
-            class Passport {
-                public static $scopes = [];
-                public static function tokensCan($scopes) {
-                    self::$scopes = $scopes;
-                }
-            }
-        ');
+        require_once __DIR__.'/../../Fixtures/PassportPassport.php';
     }
 
     $registrar = new Registrar;
@@ -140,15 +137,7 @@ it('adds mcp scope when passport is available', function (): void {
 
 it('does not duplicate mcp scope if already exists', function (): void {
     if (! class_exists('Laravel\Passport\Passport')) {
-        eval('
-            namespace Laravel\Passport;
-            class Passport {
-                public static $scopes = [];
-                public static function tokensCan($scopes) {
-                    self::$scopes = $scopes;
-                }
-            }
-        ');
+        require_once __DIR__.'/../../Fixtures/PassportPassport.php';
     }
 
     $registrar = new Registrar;
@@ -163,21 +152,7 @@ it('does not duplicate mcp scope if already exists', function (): void {
 });
 
 it('handles oauth registration endpoint', function (): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        // Create a mock ClientRepository class for testing
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
@@ -226,8 +201,10 @@ it('requires an oauth client name for registration', function (): void {
         'redirect_uris' => ['http://localhost:3000/callback'],
     ]);
 
-    $response->assertStatus(422);
-    $response->assertJsonValidationErrors(['client_name', 'name']);
+    $response->assertStatus(400);
+    $response->assertJson([
+        'error' => 'invalid_client_metadata',
+    ]);
 });
 
 it('falls back to the legacy name field for oauth registration', function (): void {
@@ -296,21 +273,7 @@ it('prefers client_name over name for oauth registration', function (): void {
 });
 
 it('handles oauth registration with allowed domains', function (): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        // Create a mock ClientRepository class for testing
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
@@ -336,20 +299,7 @@ it('handles oauth registration with allowed domains', function (): void {
 });
 
 it('allows localhost with dynamic port when localhost is in redirect_domains', function (string $uri): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
@@ -371,20 +321,7 @@ it('allows localhost with dynamic port when localhost is in redirect_domains', f
 ]);
 
 it('rejects localhost with dynamic port when localhost is not in redirect_domains', function (string $uri): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
@@ -398,7 +335,7 @@ it('rejects localhost with dynamic port when localhost is not in redirect_domain
         'redirect_uris' => [$uri],
     ]);
 
-    $response->assertStatus(422);
+    $response->assertStatus(400);
 })->with([
     'localhost' => ['http://localhost:18293/callback'],
     '127.0.0.1' => ['http://127.0.0.1:29100/callback'],
@@ -406,20 +343,7 @@ it('rejects localhost with dynamic port when localhost is not in redirect_domain
 ]);
 
 it('does not allow non-localhost URLs when localhost is in redirect_domains', function (): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
@@ -433,24 +357,11 @@ it('does not allow non-localhost URLs when localhost is in redirect_domains', fu
         'redirect_uris' => ['http://evil.com:18293/callback'],
     ]);
 
-    $response->assertStatus(422);
+    $response->assertStatus(400);
 });
 
 it('does not allow https localhost URLs via localhost redirect domain', function (): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
@@ -464,24 +375,11 @@ it('does not allow https localhost URLs via localhost redirect domain', function
         'redirect_uris' => ['https://localhost:18293/callback'],
     ]);
 
-    $response->assertStatus(422);
+    $response->assertStatus(400);
 });
 
 it('allows all localhost hosts when any localhost variant is in redirect_domains', function (string $configDomain): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
@@ -503,21 +401,7 @@ it('allows all localhost hosts when any localhost variant is in redirect_domains
 ]);
 
 it('handles oauth registration with incorrect redirect domain', function (): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        // Create a mock ClientRepository class for testing
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
@@ -531,7 +415,7 @@ it('handles oauth registration with incorrect redirect domain', function (): voi
         'redirect_uris' => ['http://not-allowed.com/callback'],
     ]);
 
-    $response->assertStatus(422);
+    $response->assertStatus(400);
 });
 
 it('handles oauth discovery with multi-segment paths', function (): void {
@@ -628,20 +512,7 @@ it('handles oauth discovery with no path', function (): void {
 });
 
 it('accepts custom scheme redirect URIs when the scheme is configured', function (string $uri): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
@@ -667,20 +538,7 @@ it('accepts custom scheme redirect URIs when the scheme is configured', function
 ]);
 
 it('rejects custom scheme redirect URIs when the scheme is not configured', function (): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
@@ -694,24 +552,11 @@ it('rejects custom scheme redirect URIs when the scheme is not configured', func
         'redirect_uris' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
     ]);
 
-    $response->assertStatus(422);
+    $response->assertStatus(400);
 });
 
 it('rejects custom scheme redirect URIs when a different scheme is configured', function (): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
@@ -725,24 +570,11 @@ it('rejects custom scheme redirect URIs when a different scheme is configured', 
         'redirect_uris' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
     ]);
 
-    $response->assertStatus(422);
+    $response->assertStatus(400);
 });
 
 it('rejects custom scheme redirect URIs with missing host', function (): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
@@ -756,24 +588,11 @@ it('rejects custom scheme redirect URIs with missing host', function (): void {
         'redirect_uris' => ['cursor:///callback'],
     ]);
 
-    $response->assertStatus(422);
+    $response->assertStatus(400);
 });
 
 it('still allows standard http URLs when custom schemes are configured', function (): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
@@ -791,20 +610,7 @@ it('still allows standard http URLs when custom schemes are configured', functio
 });
 
 it('returns json validation errors even without Accept application/json header', function (): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
@@ -815,7 +621,7 @@ it('returns json validation errors even without Accept application/json header',
         'redirect_uris' => ['http://localhost:3000/callback'],
     ], ['Accept' => '*/*']);
 
-    $response->assertStatus(422);
+    $response->assertStatus(400);
     $response->assertHeader('Content-Type', 'application/json');
-    $response->assertJsonStructure(['message', 'errors']);
+    $response->assertJsonStructure(['error', 'error_description']);
 });
