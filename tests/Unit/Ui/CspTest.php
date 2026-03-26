@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Contracts\Support\Arrayable;
 use Laravel\Mcp\Server\Ui\Csp;
 
 it('serializes as empty when no domains set', function (): void {
@@ -42,5 +43,5 @@ it('supports constructor parameters', function (): void {
 });
 
 it('implements Arrayable', function (): void {
-    expect(new Csp)->toBeInstanceOf(\Illuminate\Contracts\Support\Arrayable::class);
+    expect(new Csp)->toBeInstanceOf(Arrayable::class);
 });

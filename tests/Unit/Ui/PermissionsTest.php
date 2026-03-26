@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Contracts\Support\Arrayable;
+use Laravel\Mcp\Server\Ui\Enum\Permission;
 use Laravel\Mcp\Server\Ui\Permissions;
 
 it('serializes as empty when no permissions set', function (): void {
@@ -42,13 +44,13 @@ it('supports constructor parameters', function (): void {
 });
 
 it('implements Arrayable', function (): void {
-    expect(new Permissions)->toBeInstanceOf(\Illuminate\Contracts\Support\Arrayable::class);
+    expect(new Permissions)->toBeInstanceOf(Arrayable::class);
 });
 
 it('allows permissions via enum', function (): void {
     $permissions = Permissions::make()->allow(
-        \Laravel\Mcp\Server\Ui\Enum\Permission::Camera,
-        \Laravel\Mcp\Server\Ui\Enum\Permission::ClipboardWrite,
+        Permission::Camera,
+        Permission::ClipboardWrite,
     );
 
     $array = $permissions->toArray();

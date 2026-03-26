@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Contracts\Support\Arrayable;
 use Laravel\Mcp\Server\Ui\Csp;
 use Laravel\Mcp\Server\Ui\Permissions;
 use Laravel\Mcp\Server\Ui\UiMeta;
@@ -49,7 +50,7 @@ it('omits null values', function (): void {
 it('implements Arrayable', function (): void {
     $meta = new UiMeta;
 
-    expect($meta)->toBeInstanceOf(\Illuminate\Contracts\Support\Arrayable::class);
+    expect($meta)->toBeInstanceOf(Arrayable::class);
 });
 
 it('supports fluent builder via make()', function (): void {
