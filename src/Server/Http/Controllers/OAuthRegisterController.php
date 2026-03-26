@@ -20,15 +20,17 @@ class OAuthRegisterController
      */
     public function __invoke(Request $request): JsonResponse
     {
-        /** @var array<int, string> */
-        $allowedSchemes = config('mcp.allowed_custom_schemes', []);
-        $schemes = implode(',', array_merge(['http', 'https'], $allowedSchemes));
-
         $validator = Validator::make($request->all(), [
             'client_name' => ['nullable', 'string', 'min:1', 'max:255', 'required_without:name'],
             'name' => ['nullable', 'string', 'min:1', 'max:255', 'required_without:client_name'],
             'redirect_uris' => ['required', 'array', 'min:1'],
-            'redirect_uris.*' => ['bail', 'required', "url:{$schemes}", function (string $attribute, $value, $fail): void {
+            'redirect_uris.*' => ['required', 'string', function (string $attribute, $value, $fail): void {
+                if (! $this->isValidRedirectUri($value)) {
+                    $fail($attribute.' is not a valid URL.');
+
+                    return;
+                }
+
                 if (! in_array(parse_url($value, PHP_URL_SCHEME), ['http', 'https'], true)) {
                     return;
                 }
@@ -63,7 +65,7 @@ class OAuthRegisterController
         $validated = $validator->validated();
 
         $clients = Container::getInstance()->make(
-            "Laravel\Passport\ClientRepository"
+            \Laravel\Passport\ClientRepository::class
         );
 
         $client = $clients->createAuthorizationCodeGrantClient(
@@ -82,6 +84,25 @@ class OAuthRegisterController
             'scope' => 'mcp:use',
             'token_endpoint_auth_method' => 'none',
         ]);
+    }
+
+    protected function isValidRedirectUri(string $value): bool
+    {
+        $scheme = parse_url($value, PHP_URL_SCHEME);
+
+        if (! is_string($scheme)) {
+            return false;
+        }
+
+        if (in_array($scheme, ['http', 'https'], true)) {
+            return Str::isUrl($value, ['http', 'https']);
+        }
+
+        /** @var array<int, string> */
+        $allowedSchemes = config('mcp.allowed_custom_schemes', []);
+        $host = parse_url($value, PHP_URL_HOST);
+
+        return in_array($scheme, $allowedSchemes, true) && is_string($host) && $host !== '';
     }
 
     protected function isLocalhostUrl(string $url): bool

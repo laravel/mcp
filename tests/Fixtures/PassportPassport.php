@@ -8,7 +8,7 @@ class Passport
 {
     public static $scopes = [];
 
-    public static function tokensCan($scopes)
+    public static function tokensCan($scopes): void
     {
         self::$scopes = $scopes;
     }
