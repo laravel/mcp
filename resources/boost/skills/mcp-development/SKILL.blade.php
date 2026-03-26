@@ -134,5 +134,6 @@ class DashboardApp extends UiResource {}
 - Not using `search-docs` for the latest MCP documentation
 - Not registering MCP server routes in `routes/ai.php`
 - Do not register `ai.php` in `bootstrap.php`; it is registered automatically
+- OAuth registration supports custom URI schemes (e.g., `cursor://`, `vscode://`) for native desktop clients via `mcp.custom_schemes` config
 - For UI apps: using `@vite()` instead of inline script or `entry` prop (sandboxed iframes can't load external scripts)
 - For UI apps with Vite: forgetting to run `npm run build` after changing JS/CSS (no hot reload in iframes)
