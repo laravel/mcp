@@ -32,44 +32,30 @@ The server automatically advertises `io.modelcontextprotocol/ui` capability when
 
 ## Server-Side
 
-### UiResource
-
-`UiResource` extends `Resource` with MCP app defaults:
+Minimal case — empty class, entire app lives in the Blade view:
 
 ```php
-abstract class UiResource extends Resource
-{
-    protected string $mimeType = 'text/html;profile=mcp-app';
-    protected string $defaultUriScheme = 'ui';
-
-    public function handle(): Response
+class DashboardApp extends UiResource {
+    public function handle(Request $request): Response
     {
-        return Response::view('mcp.'.Str::kebab(class_basename(static::class)));
-    }
-
-    public function uiMeta(): UiMeta
-    {
-        return new UiMeta;
+        return Response::view('mcp.dashboard-app'), [
+            'title' => $this->title(),
+        ]);
     }
 }
 ```
 
-Minimal case — empty class, entire app lives in the Blade view:
+Auto-renders `resources/views/mcp/dashboard-app.blade.php` with `$title` available from `$this->title()`.
 
-```php
-class DashboardApp extends UiResource {}
-```
-
-Auto-renders `resources/views/mcp/dashboard-app.blade.php`.
-
-Override `handle()` only when passing server-side data:
+Override `handle()` only when passing additional server-side data:
 
 ```php
 class AnalyticsDashboard extends UiResource
 {
-    public function handle(): Response
+    public function handle(Request $request): Response
     {
         return Response::view('mcp.analytics-dashboard', [
+            'title' => $this->title(),
             'metrics' => Metric::latest()->take(10)->get(),
             'totalUsers' => User::count(),
         ]);
@@ -77,7 +63,7 @@ class AnalyticsDashboard extends UiResource
 }
 ```
 
-`Response::view($view, $data = [])` renders a Blade view and wraps it in an HTML response.
+`Response::view($view, $data = [], $mergeData = [])` renders a Blade view and wraps it in an HTML response.
 
 ### UiMeta Configuration
 
@@ -85,7 +71,7 @@ The simplest way to configure UI metadata is via the `#[UiMeta]` attribute direc
 
 ```php
 use Laravel\Mcp\Server\Attributes\UiMeta;
-use Laravel\Mcp\Server\Ui\Permission;
+use Laravel\Mcp\Server\Ui\Enum\Permission;
 
 #[UiMeta(
     connectDomains: ['https://api.stripe.com'],
@@ -98,6 +84,8 @@ class PaymentsResource extends UiResource {}
 For dynamic or computed configuration, override `uiMeta()` instead:
 
 ```php
+use Laravel\Mcp\Server\Ui\UiMeta;
+
 public function uiMeta(): UiMeta
 {
     return UiMeta::make()
@@ -112,7 +100,7 @@ public function uiMeta(): UiMeta
 Use the `Permission` enum for type-safe permission configuration:
 
 ```php
-use Laravel\Mcp\Server\Ui\Permission;
+use Laravel\Mcp\Server\Ui\Enum\Permission;
 
 Permission::Camera        // 'camera'
 Permission::Microphone    // 'microphone'
@@ -156,11 +144,11 @@ UiMeta::make()
     ->prefersBorder(false);
 ```
 
-`toArray()` omits null fields and empty nested objects.
+`prefersBorder` defaults to `true`. `toArray()` omits null fields and empty nested objects.
 
 #### domain
 
-The `domain` field provides a stable origin that external APIs can allowlist for CORS. It is automatically resolved from `config('app.url')` (your `APP_URL` env variable), so most apps need no configuration. Override only when a resource needs a different origin:
+The `domain` field provides a stable origin that external APIs can allowlist for CORS. It is automatically resolved from `config('app.url')` (your `APP_URL` env variable) via `resolvedUiMeta()`, so most apps need no configuration. Override only when a resource needs a different origin:
 
 ```php
 #[UiMeta(domain: 'custom.example.com')]
@@ -173,7 +161,7 @@ class PaymentsResource extends UiResource {}
 
 ### `<x-mcp::app>` Blade Component
 
-Renders a complete self-contained HTML document with SDK inlined. `createMcpApp` is available globally.
+Renders a complete self-contained HTML document with the MCP SDK inlined. `createMcpApp` is available globally.
 
 ```blade
 <x-mcp::app title="Dashboard App">
@@ -181,7 +169,7 @@ Renders a complete self-contained HTML document with SDK inlined. `createMcpApp`
         <script type="module">
         createMcpApp(async (app) => {
             document.getElementById('run-btn').addEventListener('click', async () => {
-                const result = await app.callServerTool({ name: 'tool-name', arguments: {} });
+                const result = await app.callTool({ name: 'tool-name', arguments: {} });
                 document.getElementById('output').textContent = result.content[0]?.text ?? '';
             });
         });
@@ -200,11 +188,11 @@ Renders a complete self-contained HTML document with SDK inlined. `createMcpApp`
 | Name | Type | Description |
 |------|------|-------------|
 | `title` | Prop | Sets `<title>`. Optional. |
-| `entry` | Prop | Vite entry point to inline (advanced). Optional. |
-| `buildDirectory` | Prop | Public build directory. Defaults to `'build'`. |
-| `head` | Named slot | Injected into `<head>` after inlined assets. |
+| `head` | Named slot | Injected into `<head>` after the inlined SDK script. |
 | Default slot | Slot | Body content. |
 | `$attributes` | Attribute bag | Forwarded to `<body>` (e.g. `class="dark"`). |
+
+The SDK is loaded from the `mcp.sdk` singleton (registered by `McpServiceProvider`) and inlined directly in a `<script>` tag.
 
 Publish the component: `php artisan vendor:publish --tag=mcp-views`.
 
@@ -220,9 +208,10 @@ To pass server-side data to JS, embed it as `data-*` attributes:
 const users = JSON.parse(document.getElementById('app').dataset.users);
 ```
 
----
 
 ## Client-Side
+
+This package provides a simple mcp client library to easily work with the client interaction.
 
 ### createMcpApp
 
@@ -234,55 +223,178 @@ createMcpApp(async (app) => {
 });
 ```
 
-### app.callServerTool()
+### Tools
+
+#### app.callTool() / app.callServerTool()
+
+`callServerTool` is an alias for `callTool`. Both accept an object or positional arguments:
 
 ```js
-const result = await app.callServerTool({
-    name: 'get-analytics',
-    arguments: { dateRange: '7d', metric: 'pageviews' },
-});
+// Object form
+const result = await app.callTool({ name: 'get-analytics', arguments: { dateRange: '7d' } });
 
-// result.content: [{ type: 'text', text: '...' }, ...]
-// result.isError: false
+// Positional form
+const result = await app.callTool('get-analytics', { dateRange: '7d' });
+
+// result structure depends on the server's tool response
 const text = result.content[0]?.text ?? '';
 ```
 
-### app.sendMessage()
+### Resources
+
+#### app.listResources()
+
+```js
+const resources = await app.listResources();
+// or with cursor for pagination
+const resources = await app.listResources('cursor-value');
+// or object form
+const resources = await app.listResources({ cursor: 'cursor-value' });
+```
+
+#### app.readResource()
+
+```js
+const resource = await app.readResource('ui://my-resource');
+// or object form
+const resource = await app.readResource({ uri: 'ui://my-resource' });
+```
+
+### Messaging
+
+#### app.sendMessage()
 
 Send a message to the model (creates a conversation turn):
 
 ```js
+// Object form
 await app.sendMessage({
     role: 'user',
     content: [{ type: 'text', text: 'User submitted the form.' }],
 });
+
+// Shorthand — content string with optional role
+await app.sendMessage('User submitted the form.', 'user');
 ```
 
-### app.getHostContext()
+### Host Context
+
+#### app.hostContext() / app.getHostContext()
+
+Returns the current host context, including theme and style variables:
 
 ```js
 const ctx = app.getHostContext();
-ctx?.theme;     // 'light' | 'dark'
-ctx?.locale;    // 'en-US'
-ctx?.timeZone;  // 'America/New_York'
+ctx?.theme;              // 'light' | 'dark'
+ctx?.styles?.variables;  // CSS variable map from host
+ctx?.styles?.css?.fonts; // font CSS from host
+```
+
+#### app.hostInfo() / app.getHostInfo()
+
+```js
+const info = app.getHostInfo();
+```
+
+#### app.hostCapabilities() / app.getHostCapabilities()
+
+```js
+const caps = app.getHostCapabilities();
+```
+
+### Navigation & Files
+
+#### app.openLink()
+
+```js
+await app.openLink('https://example.com');
+// or object form
+await app.openLink({ url: 'https://example.com' });
+```
+
+#### app.downloadFile()
+
+```js
+await app.downloadFile('file contents here');
+// or object form
+await app.downloadFile({ contents: 'file contents here' });
+```
+
+### Display
+
+#### app.requestDisplayMode()
+
+```js
+await app.requestDisplayMode('fullscreen');
+// or object form
+await app.requestDisplayMode({ mode: 'fullscreen' });
+```
+
+#### app.resize() / app.autoResize()
+
+`resize()` sends a one-time size notification. `autoResize()` uses `ResizeObserver` to continuously notify the host of size changes.
+
+```js
+app.autoResize();
+```
+
+### Model Context
+
+#### app.updateModelContext()
+
+```js
+await app.updateModelContext({ key: 'value' });
+```
+
+### Lifecycle
+
+#### app.requestTeardown() / app.teardown()
+
+`teardown` is an alias for `requestTeardown`. Sends a teardown notification to the host.
+
+```js
+app.requestTeardown();
+```
+
+### Logging
+
+#### app.sendLog()
+
+```js
+// Positional form
+await app.sendLog('info', 'Processing started', 'my-logger');
+
+// Object form
+await app.sendLog({ level: 'info', data: 'Processing started', logger: 'my-logger' });
+```
+
+### Event Handlers
+
+Register callbacks for host-side events. Tool input/result/cancelled events are queued until a handler is registered, then flushed.
+
+```js
+createMcpApp(async (app) => {
+    app.onToolInput((params) => { /* tool input received */ });
+    app.onToolInputPartial((params) => { /* partial tool input */ });
+    app.onToolResult((params) => { /* tool result received */ });
+    app.onToolCancelled((params) => { /* tool was cancelled */ });
+    app.onHostContextChanged((ctx) => { /* theme/styles changed */ });
+    app.onTeardown(async () => { /* cleanup before teardown */ });
+    app.onCallTool(async (params) => { /* host requests tool call */ });
+    app.onListTools(async (params) => { /* host requests tool list */ });
+});
 ```
 
 ---
 
 ## Host Theming
 
-`createMcpApp` automatically applies host CSS variables to `:root` on connect and on context change.
+`createMcpApp` automatically applies host theming on connect and on context change:
+- Sets `data-theme` attribute and `color-scheme` on `<html>`
+- Applies CSS variables from `hostContext.styles.variables` to `:root`
+- Injects font CSS from `hostContext.styles.css.fonts` into a `<style>` tag
 
-**Available variable categories:**
-- `--color-background-{primary|secondary|tertiary|inverse|ghost|info|danger|success|warning|disabled}`
-- `--color-text-{primary|secondary|tertiary|inverse|info|danger|success|warning|disabled|ghost}`
-- `--color-border-{primary|secondary|tertiary|inverse|ghost|info|danger|success|warning|disabled}`
-- `--font-sans`, `--font-mono`, `--font-weight-{normal|medium|semibold|bold}`
-- `--font-text-{xs|sm|md|lg}-size`, `--font-heading-{xs|sm|md|lg|xl|2xl|3xl}-size`
-- `--border-radius-{xs|sm|md|lg|xl|full}`
-- `--shadow-{hairline|sm|md|lg}`
-
-Always provide fallback values — use `light-dark()` for theme-aware defaults:
+The specific CSS variables available depend on the host. Always provide fallback values — use `light-dark()` for theme-aware defaults:
 
 ```css
 :root {
@@ -361,33 +473,6 @@ class GetDashboardMetrics extends Tool
 
 ---
 
-## Asset Pipeline
-
-For simple apps, write JS inline in Blade — no Vite needed. Use the `entry` prop for TypeScript, npm packages, or CSS frameworks.
-
-MCP apps run in sandboxed iframes, so standard `@vite()` `<script src="...">` tags won't load. The `<x-mcp::app>` component reads compiled Vite output from disk and inlines it directly.
-
-```js
-// vite.config.js
-laravel({
-    input: [
-        'resources/js/mcp/dashboard.js',
-    ],
-})
-```
-
-```blade
-<x-mcp::app title="Dashboard" entry="resources/js/mcp/dashboard.js">
-    <div id="app">...</div>
-</x-mcp::app>
-```
-
-`createMcpApp` is still available as a global — the pre-built SDK is inlined before your bundle.
-
-**Dev workflow** (no HMR): edit files → `npm run build` → refresh in host. For faster iteration: `npx vite build --watch`.
-
----
-
 ## Testing
 
 ```php
@@ -414,5 +499,262 @@ it('configures uimeta correctly', function () {
 
 it('includes ui metadata in tool listing', function () {
     MyServer::listTools()->assertSee('show-dashboard');
+});
+```
+
+---
+
+## Patterns
+
+### Real-time Polling
+
+Use app-only tools to fetch fresh data at regular intervals from the UI:
+
+```php
+#[UiLinked(resource: MonitorApp::class, visibility: ['app'])]
+class GetMonitorData extends Tool
+{
+    protected string $description = 'Fetch latest monitor metrics';
+
+    public function handle(Request $request): Response
+    {
+        return Response::json([
+            'cpu' => sys_getloadavg()[0],
+            'memory' => memory_get_usage(true),
+            'timestamp' => now()->toISOString(),
+        ]);
+    }
+}
+```
+
+```js
+createMcpApp(async (app) => {
+    async function poll() {
+        const result = await app.callTool('get-monitor-data');
+        const data = JSON.parse(result.content[0]?.text ?? '{}');
+        document.getElementById('cpu').textContent = data.cpu;
+    }
+
+    setInterval(poll, 2000);
+    poll();
+});
+```
+
+### Chunked Data Loading
+
+For large datasets, implement pagination via app-only tools:
+
+```php
+#[UiLinked(resource: LogViewerApp::class, visibility: ['app'])]
+class GetLogChunk extends Tool
+{
+    protected string $description = 'Fetch a chunk of log entries';
+
+    public function schema(JsonSchema $schema): array
+    {
+        return [
+            'offset' => $schema->integer()->description('Byte offset to start from')->required(),
+            'limit' => $schema->integer()->description('Max bytes to return'),
+        ];
+    }
+
+    public function handle(Request $request): Response
+    {
+        $request->validate(['offset' => 'required|integer', 'limit' => 'integer']);
+
+        $offset = $request->get('offset');
+        $limit = $request->get('limit', 500_000);
+        $content = Storage::get('logs/app.log');
+        $chunk = substr($content, $offset, $limit);
+
+        return Response::json([
+            'data' => $chunk,
+            'offset' => $offset,
+            'totalBytes' => strlen($content),
+            'hasMore' => ($offset + $limit) < strlen($content),
+        ]);
+    }
+}
+```
+
+### Binary Resource Serving
+
+Deliver images and binary content through MCP resources using `Response::blob()`:
+
+```php
+#[UiLinked(resource: GalleryApp::class, visibility: ['app'])]
+class GetImage extends Tool
+{
+    protected string $description = 'Fetch an image by ID';
+
+    public function handle(Request $request): Response
+    {
+        $request->validate(['id' => 'required|integer']);
+
+        $image = Image::findOrFail($request->get('id'));
+        $data = base64_encode(Storage::get($image->path));
+
+        return Response::blob($data);
+    }
+}
+```
+
+In the client, convert the base64 blob to a data URI for rendering:
+
+```js
+const result = await app.callTool('get-image', { id: 42 });
+const blob = result.content[0];
+img.src = `data:${blob.mimeType};base64,${blob.data}`;
+```
+
+### Streaming Argument Previews
+
+Use `onToolInputPartial` to show previews as the model streams tool arguments:
+
+```js
+createMcpApp(async (app) => {
+    app.onToolInputPartial((params) => {
+        try {
+            const partial = JSON.parse(params.arguments);
+            if (partial.query) {
+                document.getElementById('preview').textContent = partial.query;
+            }
+        } catch {
+            // partial JSON — ignore until parseable
+        }
+    });
+
+    app.onToolResult((params) => {
+        const data = JSON.parse(params.result.content[0]?.text ?? '{}');
+        renderResults(data);
+    });
+});
+```
+
+### View State Persistence
+
+Use `localStorage` to preserve UI state across re-renders. For important state, persist server-side via an app-only tool:
+
+```js
+createMcpApp(async (app) => {
+    const STATE_KEY = 'dashboard-view-state';
+
+    // Restore from localStorage
+    const saved = JSON.parse(localStorage.getItem(STATE_KEY) || '{}');
+    if (saved.activeTab) selectTab(saved.activeTab);
+
+    // Save on interaction
+    function saveState(state) {
+        localStorage.setItem(STATE_KEY, JSON.stringify(state));
+    }
+
+    // For durable state, persist server-side
+    async function saveServerState(state) {
+        await app.callTool('save-dashboard-state', { state: JSON.stringify(state) });
+    }
+});
+```
+
+### Fullscreen Toggling
+
+Switch between inline and fullscreen display modes and react to mode changes:
+
+```js
+createMcpApp(async (app) => {
+    document.getElementById('expand-btn').addEventListener('click', () => {
+        app.requestDisplayMode('fullscreen');
+    });
+
+    app.onHostContextChanged((ctx) => {
+        document.body.classList.toggle('fullscreen', ctx.displayMode === 'fullscreen');
+    });
+});
+```
+
+### Model Context Updates
+
+Keep the model informed about what the user is viewing so it can provide relevant assistance:
+
+```js
+createMcpApp(async (app) => {
+    async function notifyContext(view, detail) {
+        await app.updateModelContext({
+            currentView: view,
+            detail: detail,
+        });
+    }
+
+    // Notify on tab change
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            notifyContext(tab.dataset.view, { filters: getActiveFilters() });
+        });
+    });
+
+    // For large payloads, follow up with sendMessage
+    await app.updateModelContext({ currentView: 'report', rows: 5000 });
+    await app.sendMessage('The user is viewing a report with 5000 rows.');
+});
+```
+
+### Pause Offscreen Views
+
+Conserve resources by pausing animations and polling when the view is not visible:
+
+```js
+createMcpApp(async (app) => {
+    let pollInterval = null;
+
+    function startPolling() {
+        if (!pollInterval) {
+            pollInterval = setInterval(fetchData, 2000);
+        }
+    }
+
+    function stopPolling() {
+        clearInterval(pollInterval);
+        pollInterval = null;
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+        entry.isIntersecting ? startPolling() : stopPolling();
+    });
+
+    observer.observe(document.documentElement);
+    startPolling();
+});
+```
+
+### Error Handling
+
+Return `Response::error()` from tools and use `updateModelContext()` to signal degraded state:
+
+```php
+class ProcessData extends Tool
+{
+    public function handle(Request $request): Response
+    {
+        $request->validate(['input' => 'required|string']);
+
+        if (strlen($request->get('input')) > 10_000) {
+            return Response::error('Input exceeds 10KB limit.');
+        }
+
+        return Response::json(process($request->get('input')));
+    }
+}
+```
+
+```js
+createMcpApp(async (app) => {
+    const result = await app.callTool('process-data', { input: value });
+
+    if (result.isError) {
+        document.getElementById('error').textContent = result.content[0]?.text ?? 'Unknown error';
+        await app.updateModelContext({ state: 'error', message: result.content[0]?.text });
+        return;
+    }
+
+    renderOutput(JSON.parse(result.content[0]?.text ?? '{}'));
 });
 ```

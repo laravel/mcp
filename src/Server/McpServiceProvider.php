@@ -47,7 +47,7 @@ class McpServiceProvider extends ServiceProvider
 
         $this->publishes([
             __DIR__.'/../../resources/views/mcp/authorize.blade.php' => resource_path('views/mcp/authorize.blade.php'),
-            __DIR__.'/../../resources/views/components/app.blade.php' => resource_path('views/vendor/mcp/components/app.blade.php'),
+            __DIR__.'/../../resources/views/mcp/components/app.blade.php' => resource_path('views/vendor/mcp/components/app.blade.php'),
         ], 'mcp-views');
 
         $this->publishes([
@@ -108,7 +108,7 @@ class McpServiceProvider extends ServiceProvider
 
     protected function registerViews(): void
     {
-        $this->loadViewsFrom(__DIR__.'/../../resources/views', 'mcp');
+        $this->loadViewsFrom(__DIR__.'/../../resources/views/mcp', 'mcp');
     }
 
     protected function registerMcpScope(): void
