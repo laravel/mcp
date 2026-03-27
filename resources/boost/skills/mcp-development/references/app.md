@@ -109,13 +109,14 @@ The server automatically advertises `io.modelcontextprotocol/ui` capability when
 
 ## Server-Side
 
-Minimal case — empty class, entire app lives in the Blade view:
+Minimal case — `handle()` renders the Blade view, entire app lives there:
 
 ```php
-class DashboardApp extends AppResource {
+class DashboardApp extends AppResource
+{
     public function handle(Request $request): Response
     {
-        return Response::view('mcp.dashboard-app'), [
+        return Response::view('mcp.dashboard-app', [
             'title' => $this->title(),
         ]);
     }
