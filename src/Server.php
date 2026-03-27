@@ -33,7 +33,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Laravel\Mcp\Server\UiResource;
+use Laravel\Mcp\Server\AppResource;
 use stdClass;
 use Throwable;
 
@@ -326,7 +326,7 @@ abstract class Server
         }
 
         foreach ($this->resources as $resource) {
-            if (is_subclass_of($resource, UiResource::class)) {
+            if (is_subclass_of($resource, AppResource::class)) {
                 $this->addCapability(self::CAPABILITY_UI);
 
                 return;

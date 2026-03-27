@@ -11,7 +11,7 @@ use Laravel\Mcp\Console\Commands\MakePromptCommand;
 use Laravel\Mcp\Console\Commands\MakeResourceCommand;
 use Laravel\Mcp\Console\Commands\MakeServerCommand;
 use Laravel\Mcp\Console\Commands\MakeToolCommand;
-use Laravel\Mcp\Console\Commands\MakeUiResourceCommand;
+use Laravel\Mcp\Console\Commands\MakeAppResourceCommand;
 use Laravel\Mcp\Console\Commands\StartCommand;
 use Laravel\Mcp\Request;
 
@@ -55,8 +55,8 @@ class McpServiceProvider extends ServiceProvider
             __DIR__.'/../../stubs/mcp-resource.stub' => base_path('stubs/mcp-resource.stub'),
             __DIR__.'/../../stubs/mcp-server.stub' => base_path('stubs/mcp-server.stub'),
             __DIR__.'/../../stubs/mcp-tool.stub' => base_path('stubs/mcp-tool.stub'),
-            __DIR__.'/../../stubs/mcp-ui-resource.stub' => base_path('stubs/mcp-ui-resource.stub'),
-            __DIR__.'/../../stubs/mcp-ui-resource.view.stub' => base_path('stubs/mcp-ui-resource.view.stub'),
+            __DIR__.'/../../stubs/mcp-app-resource.stub' => base_path('stubs/mcp-app-resource.stub'),
+            __DIR__.'/../../stubs/mcp-app-resource.view.stub' => base_path('stubs/mcp-app-resource.view.stub'),
         ], 'mcp-stubs');
 
         $this->publishes([
@@ -101,7 +101,7 @@ class McpServiceProvider extends ServiceProvider
             MakeToolCommand::class,
             MakePromptCommand::class,
             MakeResourceCommand::class,
-            MakeUiResourceCommand::class,
+            MakeAppResourceCommand::class,
             InspectorCommand::class,
         ]);
     }

@@ -4,14 +4,14 @@ use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Resource;
-use Laravel\Mcp\Server\UiResource;
+use Laravel\Mcp\Server\AppResource;
 use Tests\Fixtures\ArrayTransport;
 
 it('auto-detects ui capability when ui resources are registered', function (): void {
     $server = new class(new ArrayTransport) extends Server
     {
         protected array $resources = [
-            AutoDetectUiResource::class,
+            AutoDetectAppResource::class,
         ];
     };
 
@@ -37,7 +37,7 @@ it('does not include ui capability when only regular resources are registered', 
     expect($context->serverCapabilities)->not->toHaveKey('io.modelcontextprotocol/ui');
 });
 
-class AutoDetectUiResource extends UiResource
+class AutoDetectAppResource extends AppResource
 {
     public function handle(Request $request): Response
     {

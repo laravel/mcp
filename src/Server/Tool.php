@@ -7,7 +7,7 @@ namespace Laravel\Mcp\Server;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\JsonSchema as JsonSchemaFactory;
-use Laravel\Mcp\Server\Attributes\UiLinked;
+use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Concerns\HasAnnotations;
 use Laravel\Mcp\Server\Tools\Annotations\ToolAnnotation;
 
@@ -80,15 +80,15 @@ abstract class Tool extends Primitive
             $result['outputSchema'] = $outputSchema;
         }
 
-        $uiLinked = $this->resolveAttribute(UiLinked::class);
+        $rendersApp = $this->resolveAttribute(RendersApp::class);
 
-        if ($uiLinked !== null) {
-            /** @var UiResource $uiResource */
-            $uiResource = Container::getInstance()->make($uiLinked->resource);
+        if ($rendersApp !== null) {
+            /** @var AppResource $appResource */
+            $appResource = Container::getInstance()->make($rendersApp->resource);
 
             $this->setMeta('ui', [
-                'resourceUri' => $uiResource->uri(),
-                'visibility' => $uiLinked->visibility,
+                'resourceUri' => $appResource->uri(),
+                'visibility' => $rendersApp->visibility,
             ]);
         }
 

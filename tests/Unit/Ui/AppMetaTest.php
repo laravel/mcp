@@ -3,16 +3,16 @@
 use Illuminate\Contracts\Support\Arrayable;
 use Laravel\Mcp\Server\Ui\Csp;
 use Laravel\Mcp\Server\Ui\Permissions;
-use Laravel\Mcp\Server\Ui\UiMeta;
+use Laravel\Mcp\Server\Ui\AppMeta;
 
 it('serializes as empty when no fields set', function (): void {
-    $meta = new UiMeta;
+    $meta = new AppMeta;
 
     expect($meta->toArray())->toEqual(['prefersBorder' => true]);
 });
 
 it('serializes all fields when provided', function (): void {
-    $meta = new UiMeta(
+    $meta = new AppMeta(
         csp: new Csp(
             connectDomains: ['https://api.example.com'],
             resourceDomains: ['https://cdn.example.com'],
@@ -35,7 +35,7 @@ it('serializes all fields when provided', function (): void {
 });
 
 it('omits null values', function (): void {
-    $meta = new UiMeta(
+    $meta = new AppMeta(
         prefersBorder: true,
     );
 
@@ -48,13 +48,13 @@ it('omits null values', function (): void {
 });
 
 it('implements Arrayable', function (): void {
-    $meta = new UiMeta;
+    $meta = new AppMeta;
 
     expect($meta)->toBeInstanceOf(Arrayable::class);
 });
 
 it('supports fluent builder via make()', function (): void {
-    $meta = UiMeta::make()
+    $meta = AppMeta::make()
         ->csp(Csp::make()->connectDomains(['https://api.example.com']))
         ->permissions(Permissions::make()->clipboardWrite())
         ->domain('sandbox.example.com')
@@ -69,7 +69,7 @@ it('supports fluent builder via make()', function (): void {
 });
 
 it('omits empty csp and permissions objects', function (): void {
-    $meta = UiMeta::make()
+    $meta = AppMeta::make()
         ->csp(Csp::make())
         ->permissions(Permissions::make());
 

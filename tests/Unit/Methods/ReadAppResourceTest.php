@@ -7,17 +7,17 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Ui\Csp;
-use Laravel\Mcp\Server\Ui\UiMeta;
-use Laravel\Mcp\Server\UiResource;
+use Laravel\Mcp\Server\Ui\AppMeta;
+use Laravel\Mcp\Server\AppResource;
 
 it('includes _meta.ui on content items for ui resources', function (): void {
     config(['app.url' => 'https://myapp.example.com']);
 
-    $resource = new class extends UiResource
+    $resource = new class extends AppResource
     {
-        public function uiMeta(): UiMeta
+        public function appMeta(): AppMeta
         {
-            return UiMeta::make()
+            return AppMeta::make()
                 ->csp(Csp::make()->connectDomains(['https://api.example.com']))
                 ->prefersBorder()
                 ->domain('sandbox.example.com');
@@ -51,10 +51,10 @@ it('includes _meta.ui on content items for ui resources', function (): void {
         ]);
 });
 
-it('includes auto-resolved domain in _meta.ui content when no uiMeta set', function (): void {
+it('includes auto-resolved domain in _meta.ui content when no appMeta set', function (): void {
     config(['app.url' => 'https://myapp.example.com']);
 
-    $resource = new class extends UiResource
+    $resource = new class extends AppResource
     {
         public function handle(Request $request): Response
         {

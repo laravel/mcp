@@ -2,15 +2,15 @@
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
-use Laravel\Mcp\Server\Attributes\UiMeta as UiMetaAttribute;
+use Laravel\Mcp\Server\Attributes\AppMeta as AppMetaAttribute;
 use Laravel\Mcp\Server\Ui\Csp;
 use Laravel\Mcp\Server\Ui\Enum\Permission;
 use Laravel\Mcp\Server\Ui\Permissions;
-use Laravel\Mcp\Server\Ui\UiMeta;
-use Laravel\Mcp\Server\UiResource;
+use Laravel\Mcp\Server\Ui\AppMeta;
+use Laravel\Mcp\Server\AppResource;
 
 it('defaults to mcp-app mime type', function (): void {
-    $resource = new class extends UiResource
+    $resource = new class extends AppResource
     {
         public function handle(Request $request): Response
         {
@@ -22,7 +22,7 @@ it('defaults to mcp-app mime type', function (): void {
 });
 
 it('defaults to ui:// uri scheme', function (): void {
-    $resource = new class extends UiResource
+    $resource = new class extends AppResource
     {
         public function handle(Request $request): Response
         {
@@ -34,11 +34,11 @@ it('defaults to ui:// uri scheme', function (): void {
 });
 
 it('includes _meta.ui in toArray output', function (): void {
-    $resource = new class extends UiResource
+    $resource = new class extends AppResource
     {
-        public function uiMeta(): UiMeta
+        public function appMeta(): AppMeta
         {
-            return UiMeta::make()->prefersBorder();
+            return AppMeta::make()->prefersBorder();
         }
 
         public function handle(Request $request): Response
@@ -55,11 +55,11 @@ it('includes _meta.ui in toArray output', function (): void {
 });
 
 it('includes custom ui meta in toArray', function (): void {
-    $resource = new class extends UiResource
+    $resource = new class extends AppResource
     {
-        public function uiMeta(): UiMeta
+        public function appMeta(): AppMeta
         {
-            return UiMeta::make()
+            return AppMeta::make()
                 ->csp(Csp::make()->connectDomains(['https://api.example.com']))
                 ->permissions(Permissions::make()->clipboardWrite())
                 ->domain('sandbox.example.com')
@@ -83,7 +83,7 @@ it('includes custom ui meta in toArray', function (): void {
 });
 
 it('allows custom uri override', function (): void {
-    $resource = new class extends UiResource
+    $resource = new class extends AppResource
     {
         protected string $uri = 'ui://custom/my-widget';
 
@@ -97,7 +97,7 @@ it('allows custom uri override', function (): void {
 });
 
 it('serializes name title description and mimeType', function (): void {
-    $resource = new class extends UiResource
+    $resource = new class extends AppResource
     {
         protected string $description = 'A test UI resource';
 
@@ -119,7 +119,7 @@ it('serializes name title description and mimeType', function (): void {
 it('includes domain from app url in _meta.ui by default', function (): void {
     config(['app.url' => 'https://myapp.example.com']);
 
-    $resource = new class extends UiResource
+    $resource = new class extends AppResource
     {
         public function handle(Request $request): Response
         {
@@ -135,7 +135,7 @@ it('includes domain from app url in _meta.ui by default', function (): void {
 it('attribute domain overrides auto-resolved domain', function (): void {
     config(['app.url' => 'https://myapp.example.com']);
 
-    $resource = new #[UiMetaAttribute(domain: 'custom.example.com')] class extends UiResource
+    $resource = new #[AppMetaAttribute(domain: 'custom.example.com')] class extends AppResource
     {
         public function handle(Request $request): Response
         {
@@ -149,7 +149,7 @@ it('attribute domain overrides auto-resolved domain', function (): void {
 });
 
 it('configures ui meta via attribute', function (): void {
-    $resource = new #[UiMetaAttribute(connectDomains: ['https://api.example.com'], permissions: [Permission::Camera, Permission::ClipboardWrite], prefersBorder: true, domain: 'sandbox.example.com', )] class extends UiResource
+    $resource = new #[AppMetaAttribute(connectDomains: ['https://api.example.com'], permissions: [Permission::Camera, Permission::ClipboardWrite], prefersBorder: true, domain: 'sandbox.example.com', )] class extends AppResource
     {
         public function handle(Request $request): Response
         {

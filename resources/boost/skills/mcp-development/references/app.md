@@ -2,11 +2,11 @@
 
 ## Quick Start
 
-`make:mcp-ui-resource DashboardApp` generates two files — a PHP registration stub and a Blade view. The entire app lives in the Blade view.
+`make:mcp-app-resource DashboardApp` generates two files — a PHP registration stub and a Blade view. The entire app lives in the Blade view.
 
 **PHP class** — just registers the resource, no code needed:
 ```php
-class DashboardApp extends UiResource {}
+class DashboardApp extends AppResource {}
 ```
 `handle()` is provided by default: auto-infers the view `mcp.<kebab-class-name>`. Override only when passing server-side data to the view.
 
@@ -41,21 +41,21 @@ class DashboardApp extends UiResource {}
 Every MCP App is built from two parts linked together:
 
 - **Tool** — called by the LLM or host. Returns a text/data response and tells the host which UI resource to render via `_meta.ui.resourceUri`.
-- **UiResource** — serves the self-contained HTML app. The host fetches it after the tool is called and renders it in a sandboxed iframe.
+- **AppResource** — serves the self-contained HTML app. The host fetches it after the tool is called and renders it in a sandboxed iframe.
 
 ```
 LLM calls Tool
     └─► Tool response includes _meta.ui.resourceUri → "ui://dashboard-app"
-            └─► Host fetches UiResource at that URI
+            └─► Host fetches AppResource at that URI
                     └─► Host renders HTML in sandboxed iframe
                             └─► createMcpApp() connects the iframe back to the server
                                     └─► UI calls app-only tools to load/refresh data
 ```
 
-The link is declared once with `#[UiLinked]` on the tool:
+The link is declared once with `#[RendersApp]` on the tool:
 
 ```php
-#[UiLinked(resource: DashboardApp::class)]
+#[RendersApp(resource: DashboardApp::class)]
 class ShowDashboard extends Tool
 {
     public function handle(Request $request): Response
@@ -80,7 +80,7 @@ MCP Apps add interactive UI to the Model Context Protocol. The server returns se
 │  │  Sandboxed iframe                     │  │
 │  │  ┌─────────────────────────────────┐  │  │
 │  │  │  Your MCP App (HTML/JS/CSS)     │  │  │
-│  │  │  - Rendered by UiResource       │  │  │
+│  │  │  - Rendered by AppResource       │  │  │
 │  │  │  - Single self-contained HTML   │  │  │
 │  │  │  - Themed via host CSS vars     │  │  │
 │  │  └─────────────────────────────────┘  │  │
@@ -89,13 +89,13 @@ MCP Apps add interactive UI to the Model Context Protocol. The server returns se
                    │ MCP Protocol (JSON-RPC)
 ┌──────────────────▼──────────────────────────┐
 │  Laravel MCP Server                         │
-│  - UiResource → self-contained HTML         │
-│  - Tool #[UiLinked] → triggers UI display   │
+│  - AppResource → self-contained HTML         │
+│  - Tool #[RendersApp] → triggers UI display   │
 │  - resources/read → serves HTML + _meta.ui  │
 └─────────────────────────────────────────────┘
 ```
 
-The server automatically advertises `io.modelcontextprotocol/ui` capability when any `UiResource` is registered. The client declares support in `capabilities.extensions["io.modelcontextprotocol/ui"]` during the initialize handshake.
+The server automatically advertises `io.modelcontextprotocol/ui` capability when any `AppResource` is registered. The client declares support in `capabilities.extensions["io.modelcontextprotocol/ui"]` during the initialize handshake.
 
 ---
 
@@ -104,7 +104,7 @@ The server automatically advertises `io.modelcontextprotocol/ui` capability when
 Minimal case — empty class, entire app lives in the Blade view:
 
 ```php
-class DashboardApp extends UiResource {
+class DashboardApp extends AppResource {
     public function handle(Request $request): Response
     {
         return Response::view('mcp.dashboard-app'), [
@@ -119,7 +119,7 @@ Auto-renders `resources/views/mcp/dashboard-app.blade.php` with `$title` availab
 Override `handle()` only when passing additional server-side data:
 
 ```php
-class AnalyticsDashboard extends UiResource
+class AnalyticsDashboard extends AppResource
 {
     public function handle(Request $request): Response
     {
@@ -137,7 +137,7 @@ class AnalyticsDashboard extends UiResource
 `Response::html($path)` reads an HTML file from disk and returns its content. Relative paths resolve via `resource_path()`:
 
 ```php
-class StaticApp extends UiResource
+class StaticApp extends AppResource
 {
     public function handle(Request $request): Response
     {
@@ -146,30 +146,30 @@ class StaticApp extends UiResource
 }
 ```
 
-### UiMeta Configuration
+### AppMeta Configuration
 
-The simplest way to configure UI metadata is via the `#[UiMeta]` attribute directly on your resource class:
+The simplest way to configure UI metadata is via the `#[AppMeta]` attribute directly on your resource class:
 
 ```php
-use Laravel\Mcp\Server\Attributes\UiMeta;
+use Laravel\Mcp\Server\Attributes\AppMeta;
 use Laravel\Mcp\Server\Ui\Enum\Permission;
 
-#[UiMeta(
+#[AppMeta(
     connectDomains: ['https://api.stripe.com'],
     permissions: [Permission::Camera, Permission::ClipboardWrite],
     prefersBorder: true,
 )]
-class PaymentsResource extends UiResource {}
+class PaymentsResource extends AppResource {}
 ```
 
-For dynamic or computed configuration, override `uiMeta()` instead:
+For dynamic or computed configuration, override `appMeta()` instead:
 
 ```php
-use Laravel\Mcp\Server\Ui\UiMeta;
+use Laravel\Mcp\Server\Ui\AppMeta;
 
-public function uiMeta(): UiMeta
+public function appMeta(): AppMeta
 {
-    return UiMeta::make()
+    return AppMeta::make()
         ->csp(Csp::make()->connectDomains(config('services.api.domains')))
         ->permissions(Permissions::make()->allow(Permission::Camera))
         ->domain('sandbox.example.com');
@@ -215,10 +215,10 @@ Permissions::make()
 
 Each enabled permission serializes as `"camera": {}` per the MCP spec.
 
-#### UiMeta
+#### AppMeta
 
 ```php
-UiMeta::make()
+AppMeta::make()
     ->csp(Csp::make()->connectDomains([...]))
     ->permissions(Permissions::make()->allow(Permission::Camera))
     ->domain('sandbox.example.com')  // dedicated sandbox origin (OAuth/CORS)
@@ -229,11 +229,11 @@ UiMeta::make()
 
 #### domain
 
-The `domain` field provides a stable origin that external APIs can allowlist for CORS. It is automatically resolved from `config('app.url')` (your `APP_URL` env variable) via `resolvedUiMeta()`, so most apps need no configuration. Override only when a resource needs a different origin:
+The `domain` field provides a stable origin that external APIs can allowlist for CORS. It is automatically resolved from `config('app.url')` (your `APP_URL` env variable) via `resolvedAppMeta()`, so most apps need no configuration. Override only when a resource needs a different origin:
 
 ```php
-#[UiMeta(domain: 'custom.example.com')]
-class PaymentsResource extends UiResource {}
+#[AppMeta(domain: 'custom.example.com')]
+class PaymentsResource extends AppResource {}
 ```
 
 ---
@@ -506,19 +506,19 @@ body {
 
 ## Tool-to-UI Linking
 
-### #[UiLinked] Attribute
+### #[RendersApp] Attribute
 
 Associates a Tool with a UI Resource. When the tool is called, the host fetches and renders the linked resource.
 
 ```php
-use Laravel\Mcp\Server\Attributes\UiLinked;
+use Laravel\Mcp\Server\Attributes\RendersApp;
 
 // Both model and app can call this tool (default)
-#[UiLinked(resource: DashboardApp::class)]
+#[RendersApp(resource: DashboardApp::class)]
 class ShowDashboard extends Tool { ... }
 
 // Only the app can call this tool (private to the UI)
-#[UiLinked(resource: DashboardApp::class, visibility: ['app'])]
+#[RendersApp(resource: DashboardApp::class, visibility: ['app'])]
 class RefreshDashboardData extends Tool { ... }
 ```
 
@@ -533,7 +533,7 @@ class RefreshDashboardData extends Tool { ... }
 ### Primary + Private Pattern
 
 ```php
-#[UiLinked(resource: DashboardApp::class)]
+#[RendersApp(resource: DashboardApp::class)]
 class ShowDashboard extends Tool
 {
     public function handle(Request $request): Response
@@ -542,7 +542,7 @@ class ShowDashboard extends Tool
     }
 }
 
-#[UiLinked(resource: DashboardApp::class, visibility: ['app'])]
+#[RendersApp(resource: DashboardApp::class, visibility: ['app'])]
 class GetDashboardMetrics extends Tool
 {
     public function handle(Request $request): Response
@@ -572,7 +572,7 @@ it('has correct mime type and uri scheme', function () {
 });
 
 it('configures uimeta correctly', function () {
-    $meta = (new DashboardApp)->resolvedUiMeta();
+    $meta = (new DashboardApp)->resolvedAppMeta();
 
     expect($meta['csp']['connectDomains'])->toContain('https://api.example.com')
         ->and($meta['permissions'])->toHaveKey('clipboardWrite');
@@ -592,7 +592,7 @@ it('includes ui metadata in tool listing', function () {
 Use app-only tools to fetch fresh data at regular intervals from the UI:
 
 ```php
-#[UiLinked(resource: MonitorApp::class, visibility: ['app'])]
+#[RendersApp(resource: MonitorApp::class, visibility: ['app'])]
 class GetMonitorData extends Tool
 {
     protected string $description = 'Fetch latest monitor metrics';
@@ -626,7 +626,7 @@ createMcpApp(async (app) => {
 For large datasets, implement pagination via app-only tools:
 
 ```php
-#[UiLinked(resource: LogViewerApp::class, visibility: ['app'])]
+#[RendersApp(resource: LogViewerApp::class, visibility: ['app'])]
 class GetLogChunk extends Tool
 {
     protected string $description = 'Fetch a chunk of log entries';
@@ -663,7 +663,7 @@ class GetLogChunk extends Tool
 Deliver images and binary content through MCP resources using `Response::blob()`:
 
 ```php
-#[UiLinked(resource: GalleryApp::class, visibility: ['app'])]
+#[RendersApp(resource: GalleryApp::class, visibility: ['app'])]
 class GetImage extends Tool
 {
     protected string $description = 'Fetch an image by ID';

@@ -9,7 +9,7 @@ use Illuminate\Contracts\Support\Arrayable;
 /**
  * @implements Arrayable<string, mixed>
  */
-class UiMeta implements Arrayable
+class AppMeta implements Arrayable
 {
     public function __construct(
         protected ?Csp $csp = null,

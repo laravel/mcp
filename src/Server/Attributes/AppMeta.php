@@ -8,10 +8,10 @@ use Attribute;
 use Laravel\Mcp\Server\Ui\Csp;
 use Laravel\Mcp\Server\Ui\Enum\Permission;
 use Laravel\Mcp\Server\Ui\Permissions;
-use Laravel\Mcp\Server\Ui\UiMeta as UiMetaData;
+use Laravel\Mcp\Server\Ui\AppMeta as AppMetaData;
 
 #[Attribute(Attribute::TARGET_CLASS)]
-class UiMeta
+class AppMeta
 {
     /**
      * @param  array<int, string>|null  $connectDomains
@@ -30,9 +30,9 @@ class UiMeta
         public readonly ?string $domain = null,
     ) {}
 
-    public function toUiMeta(): UiMetaData
+    public function toAppMeta(): AppMetaData
     {
-        $meta = UiMetaData::make();
+        $meta = AppMetaData::make();
 
         if ($this->connectDomains !== null || $this->resourceDomains !== null || $this->frameDomains !== null || $this->baseUriDomains !== null) {
             $csp = Csp::make();

@@ -10,12 +10,12 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputOption;
 
 #[AsCommand(
-    name: 'make:mcp-ui-resource',
-    description: 'Create a new MCP UI resource class'
+    name: 'make:mcp-app-resource',
+    description: 'Create a new MCP app resource class'
 )]
-class MakeUiResourceCommand extends GeneratorCommand
+class MakeAppResourceCommand extends GeneratorCommand
 {
-    protected $type = 'UiResource';
+    protected $type = 'AppResource';
 
     public function handle(): ?bool
     {
@@ -41,7 +41,7 @@ class MakeUiResourceCommand extends GeneratorCommand
 
     protected function getStub(): string
     {
-        return $this->resolveStub('mcp-ui-resource.stub');
+        return $this->resolveStub('mcp-app-resource.stub');
     }
 
     protected function getDefaultNamespace($rootNamespace): string
@@ -68,7 +68,7 @@ class MakeUiResourceCommand extends GeneratorCommand
 
     protected function getViewStub(): string
     {
-        return $this->resolveStub('mcp-ui-resource.view.stub');
+        return $this->resolveStub('mcp-app-resource.view.stub');
     }
 
     private function resolveStub(string $name): string

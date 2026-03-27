@@ -1,6 +1,6 @@
 ---
 name: mcp-development
-description: "Use this skill for Laravel MCP development. Trigger when creating or editing MCP tools, resources, prompts, servers, or UI apps in Laravel projects. Covers: artisan make:mcp-* generators, routes/ai.php, Tool/Resource/Prompt/UiResource classes, schema validation, shouldRegister(), OAuth setup, URI templates, read-only attributes, MCP debugging, MCP UI apps, the x-mcp::app Blade component, createMcpApp(), default UiResource handle() auto-infers view from class name, Response::view(), UiMeta/Csp/Permissions/defaultUiMeta() configuration, #[UiLinked] attribute, and host theming via CSS variables. Use this whenever the user mentions MCP apps, MCP UI, interactive MCP resources, or building visual interfaces for AI agents."
+description: "Use this skill for Laravel MCP development. Trigger when creating or editing MCP tools, resources, prompts, servers, or UI apps in Laravel projects. Covers: artisan make:mcp-* generators, routes/ai.php, Tool/Resource/Prompt/AppResource classes, schema validation, shouldRegister(), OAuth setup, URI templates, read-only attributes, MCP debugging, MCP UI apps, the x-mcp::app Blade component, createMcpApp(), default AppResource handle() auto-infers view from class name, Response::view(), AppMeta/Csp/Permissions/defaultAppMeta() configuration, #[RendersApp] attribute, and host theming via CSS variables. Use this whenever the user mentions MCP apps, MCP UI, interactive MCP resources, or building visual interfaces for AI agents."
 license: MIT
 metadata:
   author: laravel
@@ -33,7 +33,7 @@ Mcp::web();
 {{ $assist->artisanCommand('make:mcp-resource ResourceName') }}     # Create a resource
 {{ $assist->artisanCommand('make:mcp-prompt PromptName') }}        # Create a prompt
 {{ $assist->artisanCommand('make:mcp-server ServerName') }}        # Create a server
-{{ $assist->artisanCommand('make:mcp-ui-resource DashboardApp') }} # Create a UI app (2 files)
+{{ $assist->artisanCommand('make:mcp-app-resource DashboardApp') }} # Create a UI app (2 files)
 ```
 
 After creating primitives, register them in your server's `$tools`, `$resources`, or `$prompts` properties.
@@ -89,7 +89,7 @@ class AppServer extends Server
 
 ## MCP UI Apps
 
-For MCP UI apps, read `references/app.md` — it covers quick start examples, full architecture, UiMeta/Csp/Permissions, `#[UiLinked]` tool linking, host theming CSS variables, and real-world patterns.
+For MCP UI apps, read `references/app.md` — it covers quick start examples, full architecture, AppMeta/Csp/Permissions, `#[RendersApp]` tool linking, host theming CSS variables, and real-world patterns.
 
 ## Verification
 

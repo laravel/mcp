@@ -2,20 +2,20 @@
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
-use Laravel\Mcp\Server\Attributes\UiLinked;
+use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\UiResource;
+use Laravel\Mcp\Server\AppResource;
 
-it('includes _meta.ui.resourceUri when UiLinked attribute is present', function (): void {
-    $array = (new UiLinkedSpecTool)->toArray();
+it('includes _meta.ui.resourceUri when RendersApp attribute is present', function (): void {
+    $array = (new RendersAppSpecTool)->toArray();
 
     expect($array)->toHaveKey('_meta')
         ->and($array['_meta']['ui'])->toHaveKey('resourceUri')
         ->and($array['_meta']['ui']['resourceUri'])->toStartWith('ui://resources/');
 });
 
-it('includes default visibility when UiLinked attribute is present', function (): void {
-    $array = (new UiLinkedSpecTool)->toArray();
+it('includes default visibility when RendersApp attribute is present', function (): void {
+    $array = (new RendersAppSpecTool)->toArray();
 
     expect($array['_meta']['ui']['visibility'])->toEqual(['model', 'app']);
 });
@@ -26,7 +26,7 @@ it('supports custom visibility', function (): void {
     expect($array['_meta']['ui']['visibility'])->toEqual(['app']);
 });
 
-it('does not include _meta.ui when UiLinked attribute is absent', function (): void {
+it('does not include _meta.ui when RendersApp attribute is absent', function (): void {
     $tool = new class extends Tool
     {
         public function handle(Request $request): Response
@@ -40,7 +40,7 @@ it('does not include _meta.ui when UiLinked attribute is absent', function (): v
     expect($array)->not->toHaveKey('_meta');
 });
 
-class UiLinkedSpecWidgetResource extends UiResource
+class RendersAppSpecWidgetResource extends AppResource
 {
     public function handle(Request $request): Response
     {
@@ -48,8 +48,8 @@ class UiLinkedSpecWidgetResource extends UiResource
     }
 }
 
-#[UiLinked(resource: UiLinkedSpecWidgetResource::class)]
-class UiLinkedSpecTool extends Tool
+#[RendersApp(resource: RendersAppSpecWidgetResource::class)]
+class RendersAppSpecTool extends Tool
 {
     protected string $description = 'A tool linked to a UI resource';
 
@@ -59,7 +59,7 @@ class UiLinkedSpecTool extends Tool
     }
 }
 
-#[UiLinked(resource: UiLinkedSpecWidgetResource::class, visibility: ['app'])]
+#[RendersApp(resource: RendersAppSpecWidgetResource::class, visibility: ['app'])]
 class AppOnlyTool extends Tool
 {
     protected string $description = 'An app-only tool';

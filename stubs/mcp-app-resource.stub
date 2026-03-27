@@ -4,15 +4,15 @@ namespace {{ namespace }};
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
-use Laravel\Mcp\Server\Attributes\UiMeta;
+use Laravel\Mcp\Server\Attributes\AppMeta;
 use Laravel\Mcp\Server\Ui\Enum\Permission;
-use Laravel\Mcp\Server\UiResource;
+use Laravel\Mcp\Server\AppResource;
 
-#[UiMeta(
+#[AppMeta(
     connectDomains: [],
     permissions: [],
 )]
-class {{ class }} extends UiResource
+class {{ class }} extends AppResource
 {
     public function handle(Request $request): Response
     {

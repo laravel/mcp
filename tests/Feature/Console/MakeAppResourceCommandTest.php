@@ -12,18 +12,18 @@ afterEach(function (): void {
     }
 });
 
-it('can create a ui resource class', function (): void {
-    $response = $this->artisan('make:mcp-ui-resource', [
-        'name' => 'TestUiResource',
+it('can create an app resource class', function (): void {
+    $response = $this->artisan('make:mcp-app-resource', [
+        'name' => 'TestAppResource',
     ]);
 
     $response->assertExitCode(0)->run();
 
-    $this->assertFileExists(app_path('Mcp/Resources/TestUiResource.php'));
+    $this->assertFileExists(app_path('Mcp/Resources/TestAppResource.php'));
 });
 
 it('creates a blade view alongside the php class', function (): void {
-    $this->artisan('make:mcp-ui-resource', [
+    $this->artisan('make:mcp-app-resource', [
         'name' => 'DashboardResource',
     ])->assertExitCode(0)->run();
 
@@ -32,35 +32,25 @@ it('creates a blade view alongside the php class', function (): void {
 });
 
 it('does not generate a js entry file', function (): void {
-    $this->artisan('make:mcp-ui-resource', [
+    $this->artisan('make:mcp-app-resource', [
         'name' => 'DashboardResource',
     ])->assertExitCode(0)->run();
 
     $this->assertFileDoesNotExist(resource_path('js/mcp/dashboard-resource.js'));
 });
 
-it('generates php class that extends UiResource', function (): void {
-    $this->artisan('make:mcp-ui-resource', [
+it('generates php class that extends app resource', function (): void {
+    $this->artisan('make:mcp-app-resource', [
         'name' => 'DashboardResource',
     ])->assertExitCode(0)->run();
 
     $content = file_get_contents(app_path('Mcp/Resources/DashboardResource.php'));
 
-    expect($content)->toContain('extends UiResource');
-});
-
-it('generates blade view with correct title', function (): void {
-    $this->artisan('make:mcp-ui-resource', [
-        'name' => 'DashboardResource',
-    ])->assertExitCode(0)->run();
-
-    $content = file_get_contents(resource_path('views/mcp/dashboard-resource.blade.php'));
-
-    expect($content)->toContain(':title="$title"');
+    expect($content)->toContain('extends AppResource');
 });
 
 it('generates blade view with mcp app component', function (): void {
-    $this->artisan('make:mcp-ui-resource', [
+    $this->artisan('make:mcp-app-resource', [
         'name' => 'DashboardResource',
     ])->assertExitCode(0)->run();
 
@@ -70,7 +60,7 @@ it('generates blade view with mcp app component', function (): void {
 });
 
 it('generates blade view with createMcpApp inline script', function (): void {
-    $this->artisan('make:mcp-ui-resource', [
+    $this->artisan('make:mcp-app-resource', [
         'name' => 'DashboardResource',
     ])->assertExitCode(0)->run();
 
@@ -86,16 +76,16 @@ it('may publish custom stubs', function (): void {
         '--force' => true,
     ])->assertExitCode(0)->run();
 
-    $this->assertFileExists(base_path('stubs/mcp-ui-resource.stub'));
-    $this->assertFileExists(base_path('stubs/mcp-ui-resource.view.stub'));
+    $this->assertFileExists(base_path('stubs/mcp-app-resource.stub'));
+    $this->assertFileExists(base_path('stubs/mcp-app-resource.view.stub'));
 });
 
 it('respects force flag for existing files', function (): void {
-    $this->artisan('make:mcp-ui-resource', [
+    $this->artisan('make:mcp-app-resource', [
         'name' => 'DashboardResource',
     ])->assertExitCode(0)->run();
 
-    $this->artisan('make:mcp-ui-resource', [
+    $this->artisan('make:mcp-app-resource', [
         'name' => 'DashboardResource',
         '--force' => true,
     ])->assertExitCode(0)->run();
