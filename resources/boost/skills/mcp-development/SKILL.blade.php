@@ -1,6 +1,6 @@
 ---
 name: mcp-development
-description: "Use this skill for Laravel MCP development. Trigger when creating or editing MCP tools, resources, prompts, servers, or UI apps in Laravel projects. Covers: artisan make:mcp-* generators, routes/ai.php, Tool/Resource/Prompt/UiResource classes, schema validation, shouldRegister(), OAuth setup, URI templates, read-only attributes, MCP debugging, MCP UI apps, the x-mcp::app Blade component, createMcpApp() global (pre-bundled — no npm install needed), default UiResource handle() auto-infers view from class name, Response::view(), UiMeta/Csp/Permissions/defaultUiMeta() configuration, #[UiLinked] attribute, and host theming via CSS variables. Use this whenever the user mentions MCP apps, MCP UI, interactive MCP resources, or building visual interfaces for AI agents."
+description: "Use this skill for Laravel MCP development. Trigger when creating or editing MCP tools, resources, prompts, servers, or UI apps in Laravel projects. Covers: artisan make:mcp-* generators, routes/ai.php, Tool/Resource/Prompt/UiResource classes, schema validation, shouldRegister(), OAuth setup, URI templates, read-only attributes, MCP debugging, MCP UI apps, the x-mcp::app Blade component, createMcpApp(), default UiResource handle() auto-infers view from class name, Response::view(), UiMeta/Csp/Permissions/defaultUiMeta() configuration, #[UiLinked] attribute, and host theming via CSS variables. Use this whenever the user mentions MCP apps, MCP UI, interactive MCP resources, or building visual interfaces for AI agents."
 license: MIT
 metadata:
   author: laravel
@@ -89,37 +89,7 @@ class AppServer extends Server
 
 ## MCP UI Apps
 
-MCP Apps let you build interactive HTML interfaces that AI agents can display to users. `make:mcp-ui-resource` generates two files — a PHP registration stub and a Blade view. The entire app lives in the Blade view.
-
-**PHP class** — just registers the resource, no code needed:
-```php
-class DashboardApp extends UiResource {}
-```
-`handle()` is provided by default: auto-infers the view `mcp.<kebab-class-name>`. Override only when passing server-side data to the view.
-
-**Blade view** — HTML structure + inline JS, everything in one file:
-```blade
-<x-mcp::app title="Dashboard App">
-    <x-slot:head>
-        <script type="module">
-        createMcpApp(async (app) => {
-            document.getElementById('run-btn').addEventListener('click', async () => {
-                const result = await app.callServerTool({ name: 'tool-name', arguments: {} });
-                document.getElementById('output').textContent = result.content[0]?.text ?? '';
-            });
-        });
-        </script>
-    </x-slot:head>
-
-    <div id="app">
-        <h1>Dashboard App</h1>
-        <button id="run-btn">Run</button>
-        <p id="output"></p>
-    </div>
-</x-mcp::app>
-```
-
-`createMcpApp` is a global pre-bundled by the package — no npm install, no imports, no Vite required. It handles connection, error handling, and host theming automatically. Read `references/app.md` for UiMeta/Csp/Permissions, `#[UiLinked]` tool linking, host theming CSS variables, and real-world patterns.
+For MCP UI apps, read `references/app.md` — it covers quick start examples, full architecture, UiMeta/Csp/Permissions, `#[UiLinked]` tool linking, host theming CSS variables, and real-world patterns.
 
 ## Verification
 

@@ -1,5 +1,74 @@
 # MCP UI Apps Reference
 
+## Quick Start
+
+`make:mcp-ui-resource DashboardApp` generates two files — a PHP registration stub and a Blade view. The entire app lives in the Blade view.
+
+**PHP class** — just registers the resource, no code needed:
+```php
+class DashboardApp extends UiResource {}
+```
+`handle()` is provided by default: auto-infers the view `mcp.<kebab-class-name>`. Override only when passing server-side data to the view.
+
+**Blade view** — HTML structure + inline JS, everything in one file:
+```blade
+<x-mcp::app title="Dashboard App">
+    <x-slot:head>
+        <script type="module">
+        createMcpApp(async (app) => {
+            document.getElementById('run-btn').addEventListener('click', async () => {
+                const result = await app.callServerTool({ name: 'tool-name', arguments: {} });
+                document.getElementById('output').textContent = result.content[0]?.text ?? '';
+            });
+        });
+        </script>
+    </x-slot:head>
+
+    <div id="app">
+        <h1>Dashboard App</h1>
+        <button id="run-btn">Run</button>
+        <p id="output"></p>
+    </div>
+</x-mcp::app>
+```
+
+`createMcpApp` is a global pre-bundled by the package — no npm install, no imports, no Vite required. It handles connection, error handling, and host theming automatically.
+
+---
+
+## Core Concept: Tool + Resource
+
+Every MCP App is built from two parts linked together:
+
+- **Tool** — called by the LLM or host. Returns a text/data response and tells the host which UI resource to render via `_meta.ui.resourceUri`.
+- **UiResource** — serves the self-contained HTML app. The host fetches it after the tool is called and renders it in a sandboxed iframe.
+
+```
+LLM calls Tool
+    └─► Tool response includes _meta.ui.resourceUri → "ui://dashboard-app"
+            └─► Host fetches UiResource at that URI
+                    └─► Host renders HTML in sandboxed iframe
+                            └─► createMcpApp() connects the iframe back to the server
+                                    └─► UI calls app-only tools to load/refresh data
+```
+
+The link is declared once with `#[UiLinked]` on the tool:
+
+```php
+#[UiLinked(resource: DashboardApp::class)]
+class ShowDashboard extends Tool
+{
+    public function handle(Request $request): Response
+    {
+        return Response::text('Dashboard loaded.');
+    }
+}
+```
+
+After that, the host handles fetching and rendering the resource automatically — you never reference the URI by hand.
+
+---
+
 ## Architecture Overview
 
 MCP Apps add interactive UI to the Model Context Protocol. The server returns self-contained HTML with all JS/CSS inlined. The host renders it in a sandboxed iframe. Apps communicate back via `createMcpApp()` — a pre-bundled global implementing the MCP UI PostMessage protocol.

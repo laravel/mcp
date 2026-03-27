@@ -15,9 +15,6 @@ use Symfony\Component\Console\Input\InputOption;
 )]
 class MakeUiResourceCommand extends GeneratorCommand
 {
-    /**
-     * @var string
-     */
     protected $type = 'UiResource';
 
     public function handle(): ?bool
@@ -44,9 +41,7 @@ class MakeUiResourceCommand extends GeneratorCommand
 
     protected function getStub(): string
     {
-        return file_exists($customPath = $this->laravel->basePath('stubs/mcp-ui-resource.stub'))
-            ? $customPath
-            : __DIR__.'/../../../stubs/mcp-ui-resource.stub';
+        return $this->resolveStub('mcp-ui-resource.stub');
     }
 
     protected function getDefaultNamespace($rootNamespace): string
@@ -73,9 +68,14 @@ class MakeUiResourceCommand extends GeneratorCommand
 
     protected function getViewStub(): string
     {
-        return file_exists($customPath = $this->laravel->basePath('stubs/mcp-ui-resource.view.stub'))
+        return $this->resolveStub('mcp-ui-resource.view.stub');
+    }
+
+    private function resolveStub(string $name): string
+    {
+        return file_exists($customPath = $this->laravel->basePath("stubs/{$name}"))
             ? $customPath
-            : __DIR__.'/../../../stubs/mcp-ui-resource.view.stub';
+            : __DIR__."/../../../stubs/{$name}";
     }
 
     protected function getViewPath(): string
