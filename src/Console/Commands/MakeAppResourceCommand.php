@@ -32,9 +32,12 @@ class MakeAppResourceCommand extends GeneratorCommand
 
     protected function buildClass($name): string
     {
+        $viewName = collect(explode('/', $this->getKebabName()))
+            ->implode('.');
+
         return str_replace(
             '{{ view }}',
-            'mcp.'.$this->getKebabName(),
+            'mcp.'.$viewName,
             parent::buildClass($name),
         );
     }
@@ -85,7 +88,9 @@ class MakeAppResourceCommand extends GeneratorCommand
 
     protected function getKebabName(): string
     {
-        return Str::kebab(class_basename($this->getNameInput()));
+        return collect(explode('/', $this->getNameInput()))
+            ->map(fn (string $segment) => Str::kebab($segment))
+            ->implode('/');
     }
 
     /**

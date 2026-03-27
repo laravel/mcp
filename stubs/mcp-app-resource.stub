@@ -5,7 +5,6 @@ namespace {{ namespace }};
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\AppMeta;
-use Laravel\Mcp\Server\Ui\Enum\Permission;
 use Laravel\Mcp\Server\AppResource;
 
 #[AppMeta(

@@ -94,6 +94,52 @@ it('may publish custom stubs', function (): void {
     $this->assertFileExists(base_path('stubs/mcp-app-resource.view.stub'));
 });
 
+it('preserves namespace segments in view paths', function (): void {
+    $this->artisan('make:mcp-app-resource', [
+        'name' => 'Admin/DashboardApp',
+    ])->assertExitCode(0)->run();
+
+    $this->assertFileExists(app_path('Mcp/Resources/Admin/DashboardApp.php'));
+    $this->assertFileExists(resource_path('views/mcp/admin/dashboard-app.blade.php'));
+
+    $content = file_get_contents(app_path('Mcp/Resources/Admin/DashboardApp.php'));
+
+    expect($content)->toContain("Response::view('mcp.admin.dashboard-app'");
+});
+
+it('generates unique views for different namespaces with same class name', function (): void {
+    $this->artisan('make:mcp-app-resource', [
+        'name' => 'Admin/DashboardApp',
+    ])->assertExitCode(0)->run();
+
+    $this->artisan('make:mcp-app-resource', [
+        'name' => 'Reports/DashboardApp',
+    ])->assertExitCode(0)->run();
+
+    $this->assertFileExists(resource_path('views/mcp/admin/dashboard-app.blade.php'));
+    $this->assertFileExists(resource_path('views/mcp/reports/dashboard-app.blade.php'));
+});
+
+it('generates stub without unused imports', function (): void {
+    $this->artisan('make:mcp-app-resource', [
+        'name' => 'CleanResource',
+    ])->assertExitCode(0)->run();
+
+    $content = file_get_contents(app_path('Mcp/Resources/CleanResource.php'));
+
+    expect($content)->not->toContain('use Laravel\Mcp\Server\Ui\Enum\Permission');
+});
+
+it('forwards title to the app component in generated view', function (): void {
+    $this->artisan('make:mcp-app-resource', [
+        'name' => 'TitledResource',
+    ])->assertExitCode(0)->run();
+
+    $content = file_get_contents(resource_path('views/mcp/titled-resource.blade.php'));
+
+    expect($content)->toContain('<x-mcp::app :title="$title">');
+});
+
 it('respects force flag for existing files', function (): void {
     $this->artisan('make:mcp-app-resource', [
         'name' => 'DashboardResource',
