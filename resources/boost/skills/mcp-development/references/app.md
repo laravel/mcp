@@ -4,11 +4,19 @@
 
 `make:mcp-app-resource DashboardApp` generates two files — a PHP registration stub and a Blade view. The entire app lives in the Blade view.
 
-**PHP class** — just registers the resource, no code needed:
+**PHP class** — renders the Blade view. The view name is auto-inferred from the class name (`mcp.<kebab-class-name>`), so the generated stub needs no changes unless you're passing additional server-side data:
+
 ```php
-class DashboardApp extends AppResource {}
+class DashboardApp extends AppResource
+{
+    public function handle(Request $request): Response
+    {
+        return Response::view('mcp.dashboard-app', [
+            'title' => $this->title(),
+        ]);
+    }
+}
 ```
-`handle()` is provided by default: auto-infers the view `mcp.<kebab-class-name>`. Override only when passing server-side data to the view.
 
 **Blade view** — HTML structure + inline JS, everything in one file:
 ```blade
@@ -159,7 +167,10 @@ use Laravel\Mcp\Server\Ui\Enum\Permission;
     permissions: [Permission::Camera, Permission::ClipboardWrite],
     prefersBorder: true,
 )]
-class PaymentsResource extends AppResource {}
+class PaymentsResource extends AppResource
+{
+    // ...
+}
 ```
 
 For dynamic or computed configuration, override `appMeta()` instead:
@@ -233,7 +244,10 @@ The `domain` field provides a stable origin that external APIs can allowlist for
 
 ```php
 #[AppMeta(domain: 'custom.example.com')]
-class PaymentsResource extends AppResource {}
+class PaymentsResource extends AppResource
+{
+    // ...
+}
 ```
 
 ---
