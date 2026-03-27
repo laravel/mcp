@@ -74,7 +74,7 @@ class MakeAppResourceCommand extends GeneratorCommand
         return $this->resolveStub('mcp-app-resource.view.stub');
     }
 
-    private function resolveStub(string $name): string
+    protected function resolveStub(string $name): string
     {
         return file_exists($customPath = $this->laravel->basePath("stubs/{$name}"))
             ? $customPath
