@@ -1,9 +1,9 @@
 <?php
 
 use Illuminate\Contracts\Support\Arrayable;
+use Laravel\Mcp\Server\Ui\AppMeta;
 use Laravel\Mcp\Server\Ui\Csp;
 use Laravel\Mcp\Server\Ui\Permissions;
-use Laravel\Mcp\Server\Ui\AppMeta;
 
 it('serializes as empty when no fields set', function (): void {
     $meta = new AppMeta;

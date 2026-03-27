@@ -7,11 +7,11 @@ namespace Laravel\Mcp\Server;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
+use Laravel\Mcp\Console\Commands\MakeAppResourceCommand;
 use Laravel\Mcp\Console\Commands\MakePromptCommand;
 use Laravel\Mcp\Console\Commands\MakeResourceCommand;
 use Laravel\Mcp\Console\Commands\MakeServerCommand;
 use Laravel\Mcp\Console\Commands\MakeToolCommand;
-use Laravel\Mcp\Console\Commands\MakeAppResourceCommand;
 use Laravel\Mcp\Console\Commands\StartCommand;
 use Laravel\Mcp\Request;
 

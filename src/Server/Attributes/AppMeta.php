@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Attributes;
 
 use Attribute;
+use Laravel\Mcp\Server\Ui\AppMeta as AppMetaData;
 use Laravel\Mcp\Server\Ui\Csp;
 use Laravel\Mcp\Server\Ui\Enum\Permission;
 use Laravel\Mcp\Server\Ui\Permissions;
-use Laravel\Mcp\Server\Ui\AppMeta as AppMetaData;
 
 #[Attribute(Attribute::TARGET_CLASS)]
 class AppMeta

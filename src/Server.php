@@ -7,6 +7,7 @@ namespace Laravel\Mcp;
 use Illuminate\Container\Container;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Events\SessionInitialized;
+use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Version;
@@ -33,7 +34,6 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
-use Laravel\Mcp\Server\AppResource;
 use stdClass;
 use Throwable;
 

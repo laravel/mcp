@@ -2,9 +2,9 @@
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\AppResource;
 
 it('includes _meta.ui.resourceUri when RendersApp attribute is present', function (): void {
     $array = (new RendersAppSpecTool)->toArray();

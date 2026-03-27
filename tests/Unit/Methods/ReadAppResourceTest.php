@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Ui\Csp;
 use Laravel\Mcp\Server\Ui\AppMeta;
-use Laravel\Mcp\Server\AppResource;
+use Laravel\Mcp\Server\Ui\Csp;
 
 it('includes _meta.ui on content items for ui resources', function (): void {
     config(['app.url' => 'https://myapp.example.com']);

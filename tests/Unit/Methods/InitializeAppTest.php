@@ -3,8 +3,8 @@
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
-use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\AppResource;
+use Laravel\Mcp\Server\Resource;
 use Tests\Fixtures\ArrayTransport;
 
 it('auto-detects ui capability when ui resources are registered', function (): void {

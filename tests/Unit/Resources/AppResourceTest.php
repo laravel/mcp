@@ -2,12 +2,12 @@
 
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Attributes\AppMeta as AppMetaAttribute;
+use Laravel\Mcp\Server\Ui\AppMeta;
 use Laravel\Mcp\Server\Ui\Csp;
 use Laravel\Mcp\Server\Ui\Enum\Permission;
 use Laravel\Mcp\Server\Ui\Permissions;
-use Laravel\Mcp\Server\Ui\AppMeta;
-use Laravel\Mcp\Server\AppResource;
 
 it('defaults to mcp-app mime type', function (): void {
     $resource = new class extends AppResource
