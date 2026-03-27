@@ -25,7 +25,7 @@ class DashboardApp extends AppResource
         <script type="module">
         createMcpApp(async (app) => {
             document.getElementById('run-btn').addEventListener('click', async () => {
-                const result = await app.callServerTool({ name: 'tool-name', arguments: {} });
+                const result = await app.callTool({ name: 'tool-name', arguments: {} });
                 document.getElementById('output').textContent = result.content[0]?.text ?? '';
             });
         });

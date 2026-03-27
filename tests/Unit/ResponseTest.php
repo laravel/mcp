@@ -262,6 +262,10 @@ it('creates a response from a blade view', function (): void {
     @unlink($viewDir.'/mcp-view-test.blade.php');
 });
 
+it('throws exception for missing html file', function (): void {
+    Response::html('/nonexistent/path/missing.html');
+})->throws(InvalidArgumentException::class, 'File not found at path [/nonexistent/path/missing.html].');
+
 it('creates compact json response', function (): void {
     $data = ['key' => 'value', 'number' => 123];
     $response = Response::json($data);

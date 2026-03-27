@@ -49,6 +49,10 @@ class Response
     {
         $path = str_starts_with($path, '/') || preg_match('/^[a-zA-Z]:[\\\\\\/]/', $path) ? $path : resource_path($path);
 
+        if (! file_exists($path)) {
+            throw new InvalidArgumentException("File not found at path [{$path}].");
+        }
+
         return static::text((string) file_get_contents($path));
     }
 
