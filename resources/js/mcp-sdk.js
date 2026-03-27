@@ -291,7 +291,13 @@
             },
         };
 
-        requestHandlers[message.method]?.();
+        const handler = requestHandlers[message.method];
+
+        if (handler) {
+            handler();
+        } else {
+            respondError(message.id, -32601, 'Method not found: ' + message.method);
+        }
     }
 
     window.addEventListener('message', function (event) {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Filesystem\Filesystem;
 
 afterEach(function (): void {
@@ -9,6 +11,18 @@ afterEach(function (): void {
 
     if ($filesystem->isDirectory($dir)) {
         $filesystem->deleteDirectory($dir);
+    }
+
+    $mcpDir = app_path('Mcp');
+
+    if ($filesystem->isDirectory($mcpDir)) {
+        $filesystem->deleteDirectory($mcpDir);
+    }
+
+    foreach ([base_path('stubs/mcp-app-resource.stub'), base_path('stubs/mcp-app-resource.view.stub')] as $stub) {
+        if ($filesystem->exists($stub)) {
+            $filesystem->delete($stub);
+        }
     }
 });
 

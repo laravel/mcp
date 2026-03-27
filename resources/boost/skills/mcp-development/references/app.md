@@ -336,6 +336,15 @@ const result = await app.callTool('get-analytics', { dateRange: '7d' });
 const text = result.content[0]?.text ?? '';
 ```
 
+All tool results share a standard structure:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `content` | `Array` | Content items returned by the tool (each has `type` and `text` or `data`) |
+| `isError` | `boolean` | `true` when the tool returned an error response |
+
+Always check `result.isError` before consuming `content`. See [Error Handling](#error-handling) for a full example.
+
 ### Resources
 
 #### app.listResources()

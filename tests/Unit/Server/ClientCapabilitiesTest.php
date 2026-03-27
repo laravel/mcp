@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Laravel\Mcp\Server\ClientCapabilities;
 
 it('returns empty capabilities by default', function (): void {
