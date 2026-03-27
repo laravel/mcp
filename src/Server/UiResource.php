@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
-use Illuminate\Support\Str;
-use Laravel\Mcp\Request;
-use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Attributes\UiMeta as UiMetaAttribute;
 use Laravel\Mcp\Server\Ui\UiMeta;
 
@@ -15,13 +12,6 @@ abstract class UiResource extends Resource
     protected string $mimeType = 'text/html;profile=mcp-app';
 
     protected string $defaultUriScheme = 'ui';
-
-    public function handle(Request $request): Response
-    {
-        return Response::view('mcp.'.Str::kebab(class_basename($this)), [
-            'title' => $this->title(),
-        ]);
-    }
 
     public function uiMeta(): UiMeta
     {
