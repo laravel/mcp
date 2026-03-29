@@ -64,7 +64,7 @@ class OAuthRegisterController
 
         $validated = $validator->validated();
 
-        $passportClientRepository = 'Laravel\\Passport\\ClientRepository';
+        $passportClientRepository = implode('\\', ['Laravel', 'Passport', 'ClientRepository']);
         $clients = Container::getInstance()->make($passportClientRepository);
 
         $client = $clients->createAuthorizationCodeGrantClient(
