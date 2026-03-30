@@ -44,8 +44,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may configure the OAuth authorization server issuer identifier
-    | per RFC 8414. This value appears in the protected resource and auth
-    | server metadata endpoints. When null, this defaults to url('/').
+    | per RFC 8414. This value appears in your protected resource and auth
+    | server metadata endpoints. When null, this defaults to `url('/')`.
     |
     */
 
