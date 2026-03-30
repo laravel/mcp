@@ -43,14 +43,9 @@ return [
     | Authorization Server
     |--------------------------------------------------------------------------
     |
-    | The OAuth authorization server issuer identifier (RFC 8414). This URL is
-    | used as the `authorization_servers` entry in the Protected Resource
-    | Metadata document (RFC 9728) and as the `issuer` claim in the
-    | Authorization Server Metadata document.
-    |
-    | When null, this defaults to url('/') — the root URL of the application.
-    | Set this to a dedicated auth server URL when your OAuth server lives on a
-    | different domain or base path (e.g. 'https://auth.example.com').
+    | Here you may configure the OAuth authorization server issuer identifier
+    | per RFC 8414. This value appears in the protected resource and auth
+    | server metadata endpoints. When null, this defaults to url('/').
     |
     */
 

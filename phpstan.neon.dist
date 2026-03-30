@@ -10,8 +10,6 @@ parameters:
   ignoreErrors:
     - "#Unsafe usage of new static\\(\\)#"
     - "#Call to an undefined method Illuminate\\\\Contracts\\\\Foundation\\\\Application::routesAreCached#"
-    - "#Class Laravel\\\\Passport\\\\ClientRepository not found#"
-    - "#unknown class Laravel\\\\Passport\\\\ClientRepository#"
     -
       message: "#no value type specified in iterable type array#"
       path: src/Facades/Mcp.php
