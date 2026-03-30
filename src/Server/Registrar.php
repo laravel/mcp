@@ -91,12 +91,12 @@ class Registrar
         static::ensureMcpScope();
         Router::get('/.well-known/oauth-protected-resource/{path?}', fn (?string $path = '') => response()->json([
             'resource' => url('/'.$path),
-            'authorization_servers' => [url('/'.$path)],
+            'authorization_servers' => [config('mcp.authorization_server') ?? url('/')],
             'scopes_supported' => ['mcp:use'],
         ]))->where('path', '.*')->name('mcp.oauth.protected-resource');
 
         Router::get('/.well-known/oauth-authorization-server/{path?}', fn (?string $path = '') => response()->json([
-            'issuer' => url('/'.$path),
+            'issuer' => config('mcp.authorization_server') ?? url('/'),
             'authorization_endpoint' => route('passport.authorizations.authorize'),
             'token_endpoint' => route('passport.token'),
             'registration_endpoint' => url($oauthPrefix.'/register'),

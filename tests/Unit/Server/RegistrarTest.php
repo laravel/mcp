@@ -432,7 +432,7 @@ it('handles oauth discovery with multi-segment paths', function (): void {
     $response->assertStatus(200);
     $response->assertJson([
         'resource' => url('/mcp/weather'),
-        'authorization_servers' => [url('/mcp/weather')],
+        'authorization_servers' => [url('/')],
         'scopes_supported' => ['mcp:use'],
     ]);
 
@@ -451,7 +451,7 @@ it('handles oauth discovery with multi-segment paths', function (): void {
         'grant_types_supported',
     ]);
     $response->assertJson([
-        'issuer' => url('/mcp/weather'),
+        'issuer' => url('/'),
         'scopes_supported' => ['mcp:use'],
         'response_types_supported' => ['code'],
         'code_challenge_methods_supported' => ['S256'],
@@ -473,7 +473,7 @@ it('handles oauth discovery with single segment paths', function (): void {
     $response->assertStatus(200);
     $response->assertJson([
         'resource' => url('/mcp'),
-        'authorization_servers' => [url('/mcp')],
+        'authorization_servers' => [url('/')],
         'scopes_supported' => ['mcp:use'],
     ]);
 
@@ -481,7 +481,7 @@ it('handles oauth discovery with single segment paths', function (): void {
 
     $response->assertStatus(200);
     $response->assertJson([
-        'issuer' => url('/mcp'),
+        'issuer' => url('/'),
     ]);
 });
 
@@ -508,6 +508,41 @@ it('handles oauth discovery with no path', function (): void {
     $response->assertStatus(200);
     $response->assertJson([
         'issuer' => url('/'),
+    ]);
+});
+
+it('uses configured authorization_server for authorization_servers field', function (): void {
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.authorization_server', 'https://auth.example.com');
+
+    $response = $this->getJson('/.well-known/oauth-protected-resource/mcp');
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'resource' => url('/mcp'),
+        'authorization_servers' => ['https://auth.example.com'],
+    ]);
+});
+
+it('uses configured authorization_server as issuer in authorization server metadata', function (): void {
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.authorization_server', 'https://auth.example.com');
+
+    $response = $this->getJson('/.well-known/oauth-authorization-server');
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'issuer' => 'https://auth.example.com',
     ]);
 });
 
