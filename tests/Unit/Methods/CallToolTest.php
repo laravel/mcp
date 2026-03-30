@@ -284,6 +284,140 @@ it('returns a valid call tool response with authentication error', function (): 
         ]);
 });
 
+it('returns a valid call tool response with authorization error from generator tool', function (): void {
+    $tool = new class extends Tool
+    {
+        protected string $description = 'Unauthorized generator tool';
+
+        public function handle(Request $request): Generator
+        {
+            yield Response::text('Starting...');
+
+            throw new AuthorizationException;
+        }
+
+        public function schema(JsonSchema $schema): array
+        {
+            return [];
+        }
+    };
+
+    $toolClass = $tool::class;
+    $this->instance($toolClass, $tool);
+
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => $tool->name(),
+            'arguments' => [],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [$toolClass],
+        resources: [],
+        prompts: [],
+    );
+
+    $method = new CallTool;
+
+    $this->instance('mcp.request', $request->toRequest());
+    $responses = $method->handle($request, $context);
+
+    $results = iterator_to_array($responses);
+
+    expect($results)->toHaveCount(1);
+
+    $payload = $results[0]->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'content' => [
+                [
+                    'type' => 'text',
+                    'text' => 'This action is unauthorized.',
+                ],
+            ],
+            'isError' => true,
+        ]);
+});
+
+it('returns a valid call tool response with authentication error from generator tool', function (): void {
+    $tool = new class extends Tool
+    {
+        protected string $description = 'Unauthenticated generator tool';
+
+        public function handle(Request $request): Generator
+        {
+            yield Response::text('Starting...');
+
+            throw new AuthenticationException('Unauthenticated.');
+        }
+
+        public function schema(JsonSchema $schema): array
+        {
+            return [];
+        }
+    };
+
+    $toolClass = $tool::class;
+    $this->instance($toolClass, $tool);
+
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => $tool->name(),
+            'arguments' => [],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [$toolClass],
+        resources: [],
+        prompts: [],
+    );
+
+    $method = new CallTool;
+
+    $this->instance('mcp.request', $request->toRequest());
+    $responses = $method->handle($request, $context);
+
+    $results = iterator_to_array($responses);
+
+    expect($results)->toHaveCount(1);
+
+    $payload = $results[0]->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'content' => [
+                [
+                    'type' => 'text',
+                    'text' => 'Unauthenticated.',
+                ],
+            ],
+            'isError' => true,
+        ]);
+});
+
 it('includes result meta when responses provide it', function (): void {
     $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',

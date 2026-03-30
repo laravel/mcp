@@ -53,10 +53,8 @@ class CallTool implements Errable, Method
         try {
             // @phpstan-ignore-next-line
             $response = Container::getInstance()->call([$tool, 'handle']);
-        } catch (AuthenticationException $authenticationException) {
-            $response = Response::error($authenticationException->getMessage());
-        } catch (AuthorizationException $authorizationException) {
-            $response = Response::error($authorizationException->getMessage());
+        } catch (AuthenticationException|AuthorizationException $authException) {
+            $response = Response::error($authException->getMessage());
         } catch (ValidationException $validationException) {
             $response = Response::error(ValidationMessages::from($validationException));
         }
