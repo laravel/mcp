@@ -1,6 +1,21 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.4...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.5...main)
+
+## [v0.6.5](https://github.com/laravel/mcp/compare/v0.6.4...v0.6.5) - 2026-03-30
+
+### What's Changed
+
+* fix: support custom URI schemes in OAuth client registration by [@alexis-riot](https://github.com/alexis-riot) in https://github.com/laravel/mcp/pull/181
+* fix: return tool errors for auth failures by [@Gujiassh](https://github.com/Gujiassh) in https://github.com/laravel/mcp/pull/186
+* fix: authorization_servers and issuer should be the root URL, not the resource path by [@pktharindu](https://github.com/pktharindu) in https://github.com/laravel/mcp/pull/185
+
+### New Contributors
+
+* [@alexis-riot](https://github.com/alexis-riot) made their first contribution in https://github.com/laravel/mcp/pull/181
+* [@pktharindu](https://github.com/pktharindu) made their first contribution in https://github.com/laravel/mcp/pull/185
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.6.4...v0.6.5
 
 ## [v0.6.4](https://github.com/laravel/mcp/compare/v0.6.3...v0.6.4) - 2026-03-19
 
@@ -172,6 +187,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -182,6 +198,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
