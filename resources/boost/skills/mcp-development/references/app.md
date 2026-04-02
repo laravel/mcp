@@ -161,7 +161,7 @@ The simplest way to configure UI metadata is via the `#[AppMeta]` attribute dire
 
 ```php
 use Laravel\Mcp\Server\Attributes\AppMeta;
-use Laravel\Mcp\Server\Ui\Enum\Permission;
+use Laravel\Mcp\Server\Ui\Enums\Permission;
 
 #[AppMeta(
     connectDomains: ['https://api.stripe.com'],
@@ -193,7 +193,7 @@ public function appMeta(): AppMeta
 Use the `Permission` enum for type-safe permission configuration:
 
 ```php
-use Laravel\Mcp\Server\Ui\Enum\Permission;
+use Laravel\Mcp\Server\Ui\Enums\Permission;
 
 Permission::Camera        // 'camera'
 Permission::Microphone    // 'microphone'

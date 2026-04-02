@@ -8,7 +8,7 @@ use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Attributes\AppMeta as AppMetaAttribute;
 use Laravel\Mcp\Server\Ui\AppMeta;
 use Laravel\Mcp\Server\Ui\Csp;
-use Laravel\Mcp\Server\Ui\Enum\Permission;
+use Laravel\Mcp\Server\Ui\Enums\Permission;
 use Laravel\Mcp\Server\Ui\Permissions;
 
 it('defaults to mcp-app mime type', function (): void {

@@ -15,6 +15,9 @@ use Symfony\Component\Console\Input\InputOption;
 )]
 class MakeAppResourceCommand extends GeneratorCommand
 {
+    /**
+     * @var string
+     */
     protected $type = 'AppResource';
 
     public function handle(): ?bool

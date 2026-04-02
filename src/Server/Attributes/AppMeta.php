@@ -7,7 +7,7 @@ namespace Laravel\Mcp\Server\Attributes;
 use Attribute;
 use Laravel\Mcp\Server\Ui\AppMeta as AppMetaData;
 use Laravel\Mcp\Server\Ui\Csp;
-use Laravel\Mcp\Server\Ui\Enum\Permission;
+use Laravel\Mcp\Server\Ui\Enums\Permission;
 use Laravel\Mcp\Server\Ui\Permissions;
 
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -28,7 +28,9 @@ class AppMeta
         public readonly ?array $permissions = null,
         public readonly ?bool $prefersBorder = null,
         public readonly ?string $domain = null,
-    ) {}
+    ) {
+        //
+    }
 
     public function toAppMeta(): AppMetaData
     {

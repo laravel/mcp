@@ -1,7 +1,5 @@
 <?php
 
-declare(strict_types=1);
-
 use Illuminate\Filesystem\Filesystem;
 
 afterEach(function (): void {
@@ -127,7 +125,7 @@ it('generates stub without unused imports', function (): void {
 
     $content = file_get_contents(app_path('Mcp/Resources/CleanResource.php'));
 
-    expect($content)->not->toContain('use Laravel\Mcp\Server\Ui\Enum\Permission');
+    expect($content)->not->toContain('use Laravel\Mcp\Server\Ui\Enums\Permission');
 });
 
 it('forwards title to the app component in generated view', function (): void {

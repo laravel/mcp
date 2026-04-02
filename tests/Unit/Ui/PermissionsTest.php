@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Contracts\Support\Arrayable;
-use Laravel\Mcp\Server\Ui\Enum\Permission;
+use Laravel\Mcp\Server\Ui\Enums\Permission;
 use Laravel\Mcp\Server\Ui\Permissions;
 
 it('serializes as empty when no permissions set', function (): void {

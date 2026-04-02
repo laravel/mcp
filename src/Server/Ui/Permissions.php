@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Ui;
 
 use Illuminate\Contracts\Support\Arrayable;
-use Laravel\Mcp\Server\Ui\Enum\Permission;
+use Laravel\Mcp\Server\Ui\Enums\Permission;
 use stdClass;
 
 /**
