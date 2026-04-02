@@ -11,7 +11,7 @@ use Symfony\Component\Console\Input\InputOption;
 
 #[AsCommand(
     name: 'make:mcp-app-resource',
-    description: 'Create a new MCP app resource class'
+    description: 'Create a new MCP app resource class and linked view'
 )]
 class MakeAppResourceCommand extends GeneratorCommand
 {
