@@ -38,4 +38,17 @@ return [
         // 'vscode',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Authorization Server
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure the OAuth authorization server issuer identifier
+    | per RFC 8414. This value appears in your protected resource and auth
+    | server metadata endpoints. When null, this defaults to `url('/')`.
+    |
+    */
+
+    'authorization_server' => null,
+
 ];
