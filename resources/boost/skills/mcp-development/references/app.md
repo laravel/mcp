@@ -307,7 +307,7 @@ const users = JSON.parse(document.getElementById('app').dataset.users);
 
 ## Client-Side
 
-This package provides a simple mcp client library to easily work with the client interaction.
+This package provides a simple MCP client library to easily work with client interactions.
 
 ### createMcpApp
 
@@ -595,7 +595,7 @@ it('has correct mime type and uri scheme', function () {
         ->and($resource->uri())->toStartWith('ui://');
 });
 
-it('configures uimeta correctly', function () {
+it('configures ui meta correctly', function () {
     $meta = (new DashboardApp)->resolvedAppMeta();
 
     expect($meta['csp']['connectDomains'])->toContain('https://api.example.com')
