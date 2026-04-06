@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Contracts;
 
 use Closure;
+use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 
 interface Transport
 {
@@ -21,7 +22,7 @@ interface Transport
     /**
      * Send a JSON-RPC request to the client and wait for the response.
      *
-     * @throws \Laravel\Mcp\Server\Exceptions\JsonRpcException
+     * @throws JsonRpcException
      */
     public function sendRequest(string $message): string;
 }
