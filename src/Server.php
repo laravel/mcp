@@ -52,6 +52,8 @@ abstract class Server
 
     public const CAPABILITY_COMPLETIONS = 'completions';
 
+    public const CAPABILITY_ELICITATION = 'elicitation';
+
     protected string $name = 'Laravel MCP Server';
 
     protected string $version = '0.0.1';
@@ -83,7 +85,7 @@ abstract class Server
         self::CAPABILITY_PROMPTS => [
             'listChanged' => false,
         ],
-        'elicitation' => [
+        self::CAPABILITY_ELICITATION => [
             'form' => true,
             'url' => true,
         ],
