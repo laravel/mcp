@@ -71,18 +71,17 @@ class FakeTransporter implements Transport
 
     public function sendRequest(string $message): string
     {
-        $this->sentElicitations[] = json_decode($message, true);
+        $request = json_decode($message, true);
+        $this->sentElicitations[] = $request;
 
         if ($this->elicitationResponses === []) {
             throw new LogicException('No elicitation responses queued. Call expectElicitation() first.');
         }
 
-        $response = array_shift($this->elicitationResponses);
-        $decoded = json_decode($response, true);
-        $request = json_decode($message, true);
-        $decoded['id'] = $request['id'];
+        $response = json_decode(array_shift($this->elicitationResponses), true);
+        $response['id'] = $request['id'];
 
-        return (string) json_encode($decoded);
+        return (string) json_encode($response);
     }
 
     /**

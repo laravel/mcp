@@ -21,6 +21,16 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 class PendingTestResponse
 {
     /**
+     * @var array<int, array<string, mixed>>
+     */
+    protected array $elicitationExpectations = [];
+
+    /**
+     * @var array<string, mixed>|null
+     */
+    protected ?array $clientCapabilities = null;
+
+    /**
      * @param  class-string<Server>  $serverClass
      */
     public function __construct(
@@ -114,16 +124,6 @@ class PendingTestResponse
             ? Container::getInstance()->make($primitive)
             : $primitive;
     }
-
-    /**
-     * @var array<int, array<string, mixed>>
-     */
-    protected array $elicitationExpectations = [];
-
-    /**
-     * @var array<string, mixed>|null
-     */
-    protected ?array $clientCapabilities = null;
 
     /**
      * @param  array<string, mixed>  $respondWith

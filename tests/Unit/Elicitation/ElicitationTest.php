@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Laravel\Mcp\Server\Elicitation\Elicitation;
 use Laravel\Mcp\Server\Elicitation\ElicitSchema;
 use Laravel\Mcp\Server\Elicitation\UrlElicitationRequiredException;

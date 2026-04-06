@@ -315,7 +315,7 @@ class TestResponse
     public function assertElicited(): static
     {
         Assert::assertNotEmpty(
-            $this->transport?->sentElicitations() ?? [],
+            $this->elicitations(),
             'Expected at least one elicitation to be sent, but none were.',
         );
 
@@ -325,7 +325,7 @@ class TestResponse
     public function assertNotElicited(): static
     {
         Assert::assertEmpty(
-            $this->transport?->sentElicitations() ?? [],
+            $this->elicitations(),
             'Expected no elicitations to be sent, but some were.',
         );
 
@@ -334,9 +334,7 @@ class TestResponse
 
     public function assertElicitedForm(string $message): static
     {
-        $elicitations = $this->transport?->sentElicitations() ?? [];
-
-        foreach ($elicitations as $elicitation) {
+        foreach ($this->elicitations() as $elicitation) {
             if (($elicitation['params']['mode'] ?? null) === 'form'
                 && ($elicitation['params']['message'] ?? null) === $message) {
                 Assert::assertTrue(true); // @phpstan-ignore-line
@@ -350,9 +348,7 @@ class TestResponse
 
     public function assertElicitedUrl(string $message, ?string $url = null): static
     {
-        $elicitations = $this->transport?->sentElicitations() ?? [];
-
-        foreach ($elicitations as $elicitation) {
+        foreach ($this->elicitations() as $elicitation) {
             if (($elicitation['params']['mode'] ?? null) === 'url'
                 && ($elicitation['params']['message'] ?? null) === $message
                 && ($url === null || ($elicitation['params']['url'] ?? null) === $url)) {
@@ -368,7 +364,7 @@ class TestResponse
 
     public function assertElicitationCount(int $count): static
     {
-        $elicitations = $this->transport?->sentElicitations() ?? [];
+        $elicitations = $this->elicitations();
 
         Assert::assertCount(
             $count,
@@ -377,6 +373,14 @@ class TestResponse
         );
 
         return $this;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    protected function elicitations(): array
+    {
+        return $this->transport?->sentElicitations() ?? [];
     }
 
     public function dd(): void
