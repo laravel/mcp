@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Elicitation;
 use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Elicitation\Events\ElicitationReceived;
 use Laravel\Mcp\Server\Elicitation\Events\ElicitationSent;
@@ -159,7 +160,7 @@ class Elicitation
      */
     protected function ensureCapability(string $mode): void
     {
-        $elicitation = $this->clientCapabilities['elicitation'] ?? null;
+        $elicitation = $this->clientCapabilities[Server::CAPABILITY_ELICITATION] ?? null;
 
         if ($elicitation === null) {
             throw new JsonRpcException(

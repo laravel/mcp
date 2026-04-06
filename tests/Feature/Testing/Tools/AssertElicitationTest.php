@@ -86,16 +86,14 @@ class UrlRequiredTool extends Tool
 // Form elicitation tests
 
 it('may elicit a form and assert the response', function (): void {
-    $response = ElicitServer::withElicitation()
-        ->expectsElicitation(['action' => 'accept', 'content' => ['name' => 'Taylor']])
+    $response = ElicitServer::elicitation(['action' => 'accept', 'content' => ['name' => 'Taylor']])
         ->tool(FormTool::class);
 
     $response->assertSee('Hello, Taylor!');
 });
 
 it('may assert a form elicitation was sent', function (): void {
-    $response = ElicitServer::withElicitation()
-        ->expectsElicitation(['action' => 'accept', 'content' => ['name' => 'Taylor']])
+    $response = ElicitServer::elicitation(['action' => 'accept', 'content' => ['name' => 'Taylor']])
         ->tool(FormTool::class);
 
     $response->assertElicited()
@@ -104,8 +102,7 @@ it('may assert a form elicitation was sent', function (): void {
 });
 
 it('may assert a declined form elicitation', function (): void {
-    $response = ElicitServer::withElicitation()
-        ->expectsElicitation(['action' => 'decline'])
+    $response = ElicitServer::elicitation(['action' => 'decline'])
         ->tool(FormTool::class);
 
     $response->assertSee('No name provided.');
@@ -114,16 +111,14 @@ it('may assert a declined form elicitation', function (): void {
 // URL elicitation tests
 
 it('may elicit a url and assert the response', function (): void {
-    $response = ElicitServer::withElicitation()
-        ->expectsElicitation(['action' => 'accept'])
+    $response = ElicitServer::elicitation(['action' => 'accept'])
         ->tool(UrlTool::class);
 
     $response->assertSee('Authorization complete.');
 });
 
 it('may assert a url elicitation was sent', function (): void {
-    $response = ElicitServer::withElicitation()
-        ->expectsElicitation(['action' => 'accept'])
+    $response = ElicitServer::elicitation(['action' => 'accept'])
         ->tool(UrlTool::class);
 
     $response->assertElicited()
@@ -131,8 +126,7 @@ it('may assert a url elicitation was sent', function (): void {
 });
 
 it('may assert a declined url elicitation', function (): void {
-    $response = ElicitServer::withElicitation()
-        ->expectsElicitation(['action' => 'decline'])
+    $response = ElicitServer::elicitation(['action' => 'decline'])
         ->tool(UrlTool::class);
 
     $response->assertSee('Authorization declined.');
@@ -164,24 +158,21 @@ it('fails when asserting elicited but none were sent', function (): void {
 })->throws(ExpectationFailedException::class);
 
 it('fails when asserting not elicited but some were sent', function (): void {
-    $response = ElicitServer::withElicitation()
-        ->expectsElicitation(['action' => 'accept', 'content' => ['name' => 'Taylor']])
+    $response = ElicitServer::elicitation(['action' => 'accept', 'content' => ['name' => 'Taylor']])
         ->tool(FormTool::class);
 
     $response->assertNotElicited();
 })->throws(ExpectationFailedException::class);
 
 it('fails when asserting wrong form message', function (): void {
-    $response = ElicitServer::withElicitation()
-        ->expectsElicitation(['action' => 'accept', 'content' => ['name' => 'Taylor']])
+    $response = ElicitServer::elicitation(['action' => 'accept', 'content' => ['name' => 'Taylor']])
         ->tool(FormTool::class);
 
     $response->assertElicitedForm('Wrong message');
 })->throws(AssertionFailedError::class);
 
 it('fails when asserting wrong elicitation count', function (): void {
-    $response = ElicitServer::withElicitation()
-        ->expectsElicitation(['action' => 'accept', 'content' => ['name' => 'Taylor']])
+    $response = ElicitServer::elicitation(['action' => 'accept', 'content' => ['name' => 'Taylor']])
         ->tool(FormTool::class);
 
     $response->assertElicitationCount(5);

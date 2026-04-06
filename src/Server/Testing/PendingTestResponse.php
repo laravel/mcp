@@ -127,20 +127,12 @@ class PendingTestResponse
 
     /**
      * @param  array<string, mixed>  $respondWith
-     */
-    public function expectsElicitation(array $respondWith): static
-    {
-        $this->elicitationExpectations[] = $respondWith;
-
-        return $this;
-    }
-
-    /**
      * @param  array<string, mixed>  $capabilities
      */
-    public function withElicitation(array $capabilities = ['elicitation' => ['form' => [], 'url' => []]]): static
+    public function elicitation(array $respondWith, array $capabilities = [Server::CAPABILITY_ELICITATION => ['form' => [], 'url' => []]]): static
     {
         $this->clientCapabilities = $capabilities;
+        $this->elicitationExpectations[] = $respondWith;
 
         return $this;
     }
