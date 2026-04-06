@@ -216,6 +216,24 @@ it('returns OAuth WWW-Authenticate header when OAuth routes are enabled and resp
     expect($wwwAuth)->toContain('resource_metadata="'.url('/.well-known/oauth-protected-resource/test-oauth-401').'"');
 });
 
+it('returns OAuth WWW-Authenticate header for nested MCP paths', function (): void {
+    app(Registrar::class)->oauthRoutes();
+
+    Route::post('mcp/nested/test-oauth-401', fn () => response()->json(['error' => 'unauthorized'], 401))
+        ->middleware([AddWwwAuthenticateHeader::class]);
+
+    $response = $this->postJson('mcp/nested/test-oauth-401', []);
+
+    $response->assertStatus(401);
+    $response->assertHeader('WWW-Authenticate');
+
+    $wwwAuth = $response->headers->get('WWW-Authenticate');
+    expect($wwwAuth)->toContain('Bearer realm="mcp"');
+    expect($wwwAuth)->toContain(
+        'resource_metadata="'.url('/.well-known/oauth-protected-resource/mcp/nested/test-oauth-401').'"'
+    );
+});
+
 it('returns Sanctum WWW-Authenticate header when OAuth routes are not enabled and response is 401', function (): void {
     // Create a test route that returns 401 to trigger the middleware
     Route::post('test-sanctum-401', fn () => response()->json(['error' => 'unauthorized'], 401))->middleware([AddWwwAuthenticateHeader::class]);
