@@ -106,6 +106,11 @@ class HttpTransport implements Transport
         flush();
     }
 
+    public function clientCapabilities(): ?array
+    {
+        return null;
+    }
+
     public function sendRequest(string $message): string
     {
         $this->sendStreamMessage($message);
@@ -129,6 +134,8 @@ class HttpTransport implements Transport
             usleep($interval);
             $elapsed += $interval / 1_000_000;
         }
+
+        $cache->forget($cacheKey);
 
         throw new JsonRpcException('Elicitation timed out.', -32603);
     }

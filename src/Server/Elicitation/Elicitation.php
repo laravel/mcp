@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Elicitation;
 
 use Closure;
+use Illuminate\Container\Container;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Contracts\Transport;
+use Laravel\Mcp\Server\Elicitation\Events\ElicitationReceived;
+use Laravel\Mcp\Server\Elicitation\Events\ElicitationSent;
 use Laravel\Mcp\Server\Elicitation\Fields\ElicitField;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
@@ -86,12 +89,9 @@ class Elicitation
         $required = [];
 
         foreach ($fields as $name => $field) {
-            $fieldArray = $field->toArray();
-            $isRequired = $fieldArray['_required'] ?? false;
-            unset($fieldArray['_required']);
-            $properties[$name] = $fieldArray;
+            $properties[$name] = $field->toArray();
 
-            if ($isRequired) {
+            if ($field->isRequired()) {
                 $required[] = $name;
             }
         }
@@ -125,18 +125,33 @@ class Elicitation
         ], JSON_THROW_ON_ERROR);
 
         $rawResponse = $this->transport->sendRequest($request);
+
+        Container::getInstance()->make('events')->dispatch(new ElicitationSent(
+            mode: $params['mode'],
+            message: $params['message'],
+            requestId: $id,
+        ));
+
         $response = json_decode($rawResponse, true);
 
         if (($response['id'] ?? null) !== $id) {
-            throw new JsonRpcException('Elicitation response id mismatch.', -32603);
+            throw new JsonRpcException("Elicitation response id mismatch: expected [{$id}], received [{$response['id']}].", -32603);
         }
 
         $result = $response['result'] ?? [];
 
-        return new ElicitationResult(
+        $elicitationResult = new ElicitationResult(
             action: $result['action'] ?? 'cancel',
             content: $result['content'] ?? null,
         );
+
+        Container::getInstance()->make('events')->dispatch(new ElicitationReceived(
+            action: $elicitationResult->action(),
+            requestId: $id,
+            hasContent: $elicitationResult->all() !== [],
+        ));
+
+        return $elicitationResult;
     }
 
     /**
@@ -148,7 +163,7 @@ class Elicitation
 
         if ($elicitation === null) {
             throw new JsonRpcException(
-                'Client does not support elicitation.',
+                'Client does not support elicitation. Ensure the MCP client declares elicitation support in its capabilities during initialization.',
                 -32602,
             );
         }
@@ -160,7 +175,7 @@ class Elicitation
 
         if (! in_array($mode, $supportedModes, true)) {
             throw new JsonRpcException(
-                "Client does not support elicitation mode [{$mode}].",
+                "Client does not support elicitation mode [{$mode}]. The connected client only supports form mode. Use form() instead, or connect a client that declares URL elicitation support.",
                 -32602,
             );
         }

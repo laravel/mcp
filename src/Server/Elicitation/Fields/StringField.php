@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Elicitation\Fields;
 
-class StringField implements ElicitField
+class StringField extends AbstractElicitField
 {
-    protected ?string $description = null;
-
     protected ?int $minLength = null;
 
     protected ?int $maxLength = null;
@@ -17,17 +15,6 @@ class StringField implements ElicitField
     protected ?string $format = null;
 
     protected ?string $default = null;
-
-    protected bool $isRequired = false;
-
-    public function __construct(protected string $title) {}
-
-    public function description(string $description): static
-    {
-        $this->description = $description;
-
-        return $this;
-    }
 
     public function minLength(int $minLength): static
     {
@@ -64,13 +51,6 @@ class StringField implements ElicitField
         return $this;
     }
 
-    public function required(): static
-    {
-        $this->isRequired = true;
-
-        return $this;
-    }
-
     /**
      * @return array<string, mixed>
      */
@@ -103,10 +83,6 @@ class StringField implements ElicitField
 
         if ($this->default !== null) {
             $schema['default'] = $this->default;
-        }
-
-        if ($this->isRequired) {
-            $schema['_required'] = true;
         }
 
         return $schema;

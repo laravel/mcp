@@ -4,13 +4,9 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Elicitation\Fields;
 
-class EnumField implements ElicitField
+class EnumField extends AbstractElicitField
 {
-    protected ?string $description = null;
-
     protected ?string $default = null;
-
-    protected bool $isRequired = false;
 
     /**
      * @var array<string, string>|null
@@ -21,15 +17,10 @@ class EnumField implements ElicitField
      * @param  array<int, string>  $options
      */
     public function __construct(
-        protected string $title,
+        string $title,
         protected array $options,
-    ) {}
-
-    public function description(string $description): static
-    {
-        $this->description = $description;
-
-        return $this;
+    ) {
+        parent::__construct($title);
     }
 
     /**
@@ -45,13 +36,6 @@ class EnumField implements ElicitField
     public function default(string $default): static
     {
         $this->default = $default;
-
-        return $this;
-    }
-
-    public function required(): static
-    {
-        $this->isRequired = true;
 
         return $this;
     }
@@ -77,10 +61,6 @@ class EnumField implements ElicitField
 
         if ($this->default !== null) {
             $schema['default'] = $this->default;
-        }
-
-        if ($this->isRequired) {
-            $schema['_required'] = true;
         }
 
         return $schema;

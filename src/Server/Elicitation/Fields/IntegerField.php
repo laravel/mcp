@@ -4,26 +4,13 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Elicitation\Fields;
 
-class IntegerField implements ElicitField
+class IntegerField extends AbstractElicitField
 {
-    protected ?string $description = null;
-
     protected ?int $minimum = null;
 
     protected ?int $maximum = null;
 
     protected ?int $default = null;
-
-    protected bool $isRequired = false;
-
-    public function __construct(protected string $title) {}
-
-    public function description(string $description): static
-    {
-        $this->description = $description;
-
-        return $this;
-    }
 
     public function min(int $minimum): static
     {
@@ -42,13 +29,6 @@ class IntegerField implements ElicitField
     public function default(int $default): static
     {
         $this->default = $default;
-
-        return $this;
-    }
-
-    public function required(): static
-    {
-        $this->isRequired = true;
 
         return $this;
     }
@@ -77,10 +57,6 @@ class IntegerField implements ElicitField
 
         if ($this->default !== null) {
             $schema['default'] = $this->default;
-        }
-
-        if ($this->isRequired) {
-            $schema['_required'] = true;
         }
 
         return $schema;

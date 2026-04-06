@@ -126,7 +126,7 @@ it('throws when client does not support elicitation', function (): void {
     $elicitation = new Elicitation($transport, []);
 
     $elicitation->form('Name?', fn (ElicitSchema $s) => []);
-})->throws(JsonRpcException::class, 'Client does not support elicitation.');
+})->throws(JsonRpcException::class, 'Client does not support elicitation. Ensure the MCP client declares elicitation support in its capabilities during initialization.');
 
 it('throws when client does not support url mode', function (): void {
     $transport = new FakeTransporter;
@@ -162,6 +162,30 @@ it('allows form mode when explicitly declared', function (): void {
 
     expect($result->accepted())->toBeTrue();
 });
+
+it('throws on response id mismatch', function (): void {
+    $transport = new class extends FakeTransporter
+    {
+        public function sendRequest(string $message): string
+        {
+            $this->sentElicitations[] = json_decode($message, true);
+
+            return json_encode([
+                'jsonrpc' => '2.0',
+                'id' => 'wrong-id',
+                'result' => ['action' => 'accept'],
+            ]);
+        }
+    };
+
+    $transport->setClientCapabilities(['elicitation' => ['form' => []]]);
+
+    $elicitation = new Elicitation($transport, ['elicitation' => ['form' => []]]);
+
+    $elicitation->form('Name?', fn (ElicitSchema $s) => [
+        'name' => $s->string('Name'),
+    ]);
+})->throws(JsonRpcException::class, 'Elicitation response id mismatch');
 
 it('creates url elicitation required exception with correct code', function (): void {
     $exception = new UrlElicitationRequiredException('OAuth required', [

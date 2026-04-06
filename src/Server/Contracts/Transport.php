@@ -25,4 +25,11 @@ interface Transport
      * @throws JsonRpcException
      */
     public function sendRequest(string $message): string;
+
+    /**
+     * Get client capabilities stored on this transport, if any.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function clientCapabilities(): ?array;
 }

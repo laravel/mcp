@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Elicitation\Fields;
 
-class MultiEnumField implements ElicitField
+class MultiEnumField extends AbstractElicitField
 {
-    protected ?string $description = null;
-
     protected ?int $minItems = null;
 
     protected ?int $maxItems = null;
@@ -16,8 +14,6 @@ class MultiEnumField implements ElicitField
      * @var array<int, string>|null
      */
     protected ?array $default = null;
-
-    protected bool $isRequired = false;
 
     /**
      * @var array<string, string>|null
@@ -28,15 +24,10 @@ class MultiEnumField implements ElicitField
      * @param  array<int, string>  $options
      */
     public function __construct(
-        protected string $title,
+        string $title,
         protected array $options,
-    ) {}
-
-    public function description(string $description): static
-    {
-        $this->description = $description;
-
-        return $this;
+    ) {
+        parent::__construct($title);
     }
 
     /**
@@ -73,13 +64,6 @@ class MultiEnumField implements ElicitField
         return $this;
     }
 
-    public function required(): static
-    {
-        $this->isRequired = true;
-
-        return $this;
-    }
-
     /**
      * @return array<string, mixed>
      */
@@ -109,10 +93,6 @@ class MultiEnumField implements ElicitField
 
         if ($this->default !== null) {
             $schema['default'] = $this->default;
-        }
-
-        if ($this->isRequired) {
-            $schema['_required'] = true;
         }
 
         return $schema;

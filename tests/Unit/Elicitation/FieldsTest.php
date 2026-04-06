@@ -37,8 +37,9 @@ it('builds a string field with all options', function (): void {
         'pattern' => '^[^@]+@[^@]+$',
         'format' => 'email',
         'default' => 'user@example.com',
-        '_required' => true,
     ]);
+
+    expect($field->isRequired())->toBeTrue();
 });
 
 // NumberField
@@ -67,8 +68,9 @@ it('builds a number field with constraints', function (): void {
         'minimum' => 0,
         'maximum' => 1000.50,
         'default' => 10.5,
-        '_required' => true,
     ]);
+
+    expect($field->isRequired())->toBeTrue();
 });
 
 // IntegerField
@@ -97,8 +99,9 @@ it('builds an integer field with constraints', function (): void {
         'minimum' => 18,
         'maximum' => 120,
         'default' => 25,
-        '_required' => true,
     ]);
+
+    expect($field->isRequired())->toBeTrue();
 });
 
 // BooleanField
@@ -123,8 +126,9 @@ it('builds a boolean field with options', function (): void {
         'title' => 'Agree',
         'description' => 'Agree to terms',
         'default' => false,
-        '_required' => true,
     ]);
+
+    expect($field->isRequired())->toBeTrue();
 });
 
 // EnumField
@@ -152,8 +156,9 @@ it('builds a titled enum field', function (): void {
             ['const' => '#0000FF', 'title' => 'Blue'],
         ],
         'default' => '#FF0000',
-        '_required' => true,
     ]);
+
+    expect($field->isRequired())->toBeTrue();
 });
 
 it('builds an enum field with description', function (): void {
@@ -212,6 +217,7 @@ it('builds a multi-enum field with constraints', function (): void {
         'minItems' => 1,
         'maxItems' => 2,
         'default' => ['a'],
-        '_required' => true,
     ]);
+
+    expect($field->isRequired())->toBeTrue();
 });

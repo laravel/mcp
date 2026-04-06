@@ -31,7 +31,6 @@ use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Testing\PendingTestResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Server\Transport\JsonRpcNotification;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
@@ -83,6 +82,10 @@ abstract class Server
         ],
         self::CAPABILITY_PROMPTS => [
             'listChanged' => false,
+        ],
+        'elicitation' => [
+            'form' => true,
+            'url' => true,
         ],
     ];
 
@@ -188,6 +191,15 @@ abstract class Server
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', -32700);
+            }
+
+            // Route elicitation responses to the cache for HttpTransport polling
+            if (isset($jsonRequest['id'], $jsonRequest['result']) && ! isset($jsonRequest['method'])) {
+                $sessionId = $this->transport->sessionId();
+                $cacheKey = "mcp:elicitation:{$sessionId}:{$jsonRequest['id']}";
+                Container::getInstance()->make('cache')->put($cacheKey, $rawMessage, 120);
+
+                return;
             }
 
             $request = isset($jsonRequest['id'])
@@ -327,11 +339,7 @@ abstract class Server
      */
     protected function resolveClientCapabilities(): array
     {
-        if ($this->transport instanceof FakeTransporter) {
-            return $this->transport->clientCapabilities() ?? $this->clientCapabilities;
-        }
-
-        return $this->clientCapabilities;
+        return $this->transport->clientCapabilities() ?? $this->clientCapabilities;
     }
 
     protected function generateSessionId(): string
