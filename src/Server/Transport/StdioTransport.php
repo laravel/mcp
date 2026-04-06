@@ -66,7 +66,7 @@ class StdioTransport implements Transport
     {
         fwrite(STDOUT, $message.PHP_EOL);
 
-        $wasBlocking = stream_get_meta_data(STDIN)['blocked'] ?? true;
+        $wasBlocking = stream_get_meta_data(STDIN)['blocked'];
         stream_set_blocking(STDIN, true);
         stream_set_timeout(STDIN, 30);
 
@@ -76,7 +76,7 @@ class StdioTransport implements Transport
             if ($response === false) {
                 $meta = stream_get_meta_data(STDIN);
 
-                if ($meta['timed_out'] ?? false) {
+                if ($meta['timed_out']) {
                     throw new JsonRpcException('Elicitation timed out.', -32603);
                 }
 

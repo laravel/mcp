@@ -62,7 +62,7 @@ class FakeTransporter implements Transport
      */
     public function expectElicitation(array $response): void
     {
-        $this->elicitationResponses[] = json_encode([
+        $this->elicitationResponses[] = (string) json_encode([
             'jsonrpc' => '2.0',
             'id' => '_placeholder_',
             'result' => $response,
@@ -82,7 +82,7 @@ class FakeTransporter implements Transport
         $request = json_decode($message, true);
         $decoded['id'] = $request['id'];
 
-        return json_encode($decoded);
+        return (string) json_encode($decoded);
     }
 
     /**

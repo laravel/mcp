@@ -73,7 +73,7 @@ class EnumField extends AbstractElicitField
     {
         $oneOf = [];
 
-        foreach ($this->titledOptions as $value => $title) {
+        foreach ((array) $this->titledOptions as $value => $title) {
             $oneOf[] = [
                 'const' => $value,
                 'title' => $title,
