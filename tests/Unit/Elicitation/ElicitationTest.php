@@ -12,11 +12,9 @@ it('sends a form elicitation and returns accepted result', function (): void {
 
     $elicitation = new Elicitation($transport, ['elicitation' => ['form' => []]]);
 
-    $result = $elicitation->form('What is your name?', function (ElicitSchema $schema) {
-        return [
-            'name' => $schema->string('Your Name')->required(),
-        ];
-    });
+    $result = $elicitation->form('What is your name?', fn(ElicitSchema $schema): array => [
+        'name' => $schema->string('Your Name')->required(),
+    ]);
 
     expect($result->accepted())->toBeTrue();
     expect($result->get('name'))->toBe('Taylor');
@@ -100,7 +98,7 @@ it('handles declined response', function (): void {
 
     $elicitation = new Elicitation($transport, ['elicitation' => ['form' => []]]);
 
-    $result = $elicitation->form('Name?', fn (ElicitSchema $s) => [
+    $result = $elicitation->form('Name?', fn (ElicitSchema $s): array => [
         'name' => $s->string('Name'),
     ]);
 
@@ -114,7 +112,7 @@ it('handles cancelled response', function (): void {
 
     $elicitation = new Elicitation($transport, ['elicitation' => ['form' => []]]);
 
-    $result = $elicitation->form('Name?', fn (ElicitSchema $s) => [
+    $result = $elicitation->form('Name?', fn (ElicitSchema $s): array => [
         'name' => $s->string('Name'),
     ]);
 
@@ -125,7 +123,7 @@ it('throws when client does not support elicitation', function (): void {
     $transport = new FakeTransporter;
     $elicitation = new Elicitation($transport, []);
 
-    $elicitation->form('Name?', fn (ElicitSchema $s) => []);
+    $elicitation->form('Name?', fn (ElicitSchema $s): array => []);
 })->throws(JsonRpcException::class, 'Client does not support elicitation. Ensure the MCP client declares elicitation support in its capabilities during initialization.');
 
 it('throws when client does not support url mode', function (): void {
@@ -143,7 +141,7 @@ it('allows form mode when elicitation is empty object', function (): void {
     // Empty array = empty JSON object = form only per spec
     $elicitation = new Elicitation($transport, ['elicitation' => []]);
 
-    $result = $elicitation->form('Name?', fn (ElicitSchema $s) => [
+    $result = $elicitation->form('Name?', fn (ElicitSchema $s): array => [
         'name' => $s->string('Name'),
     ]);
 
@@ -156,7 +154,7 @@ it('allows form mode when explicitly declared', function (): void {
 
     $elicitation = new Elicitation($transport, ['elicitation' => ['form' => []]]);
 
-    $result = $elicitation->form('Name?', fn (ElicitSchema $s) => [
+    $result = $elicitation->form('Name?', fn (ElicitSchema $s): array => [
         'name' => $s->string('Name'),
     ]);
 
@@ -182,7 +180,7 @@ it('throws on response id mismatch', function (): void {
 
     $elicitation = new Elicitation($transport, ['elicitation' => ['form' => []]]);
 
-    $elicitation->form('Name?', fn (ElicitSchema $s) => [
+    $elicitation->form('Name?', fn (ElicitSchema $s): array => [
         'name' => $s->string('Name'),
     ]);
 })->throws(JsonRpcException::class, 'Elicitation response id mismatch');

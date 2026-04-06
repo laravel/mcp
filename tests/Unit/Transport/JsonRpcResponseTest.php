@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
 it('can return response as array', function (): void {

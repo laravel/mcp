@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Laravel\Mcp\Server\Completions\CompletionResponse;
 
 it('creates a completion result with values', function (): void {

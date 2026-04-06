@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Laravel\Mcp\Server\Elicitation\ElicitationResult;
 
 it('reports accepted action', function (): void {

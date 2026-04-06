@@ -26,11 +26,9 @@ class FormTool extends Tool
 
     public function handle(Request $request, Elicitation $elicitation): Response
     {
-        $result = $elicitation->form('What is your name?', function (ElicitSchema $schema) {
-            return [
-                'name' => $schema->string('Your Name')->required(),
-            ];
-        });
+        $result = $elicitation->form('What is your name?', fn(ElicitSchema $schema): array => [
+            'name' => $schema->string('Your Name')->required(),
+        ]);
 
         if ($result->accepted()) {
             return Response::text('Hello, '.$result->get('name').'!');

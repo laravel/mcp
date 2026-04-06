@@ -222,7 +222,7 @@ class PendingTestResponse
 
         $response = $this->executeRequest($server, $request);
 
-        $transport = (fn () => $this->transport)->call($server);
+        $transport = (fn (): \Laravel\Mcp\Server\Contracts\Transport => $this->transport)->call($server);
 
         return new TestResponse($primitive, $response, $transport instanceof FakeTransporter ? $transport : null);
     }

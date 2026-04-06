@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Laravel\Mcp\Server\Completions\DirectCompletionResponse;
 
 it('returns self when resolved', function (): void {
