@@ -39,6 +39,18 @@ class JsonRpcResponse implements Arrayable
     }
 
     /**
+     * @param  array<string, mixed>  $params
+     */
+    public static function request(int|string $id, string $method, array $params): static
+    {
+        return new static([
+            'id' => $id,
+            'method' => $method,
+            'params' => $params === [] ? (object) [] : $params,
+        ]);
+    }
+
+    /**
      * @param  array<string, mixed>|null  $data
      */
     public static function error(string|int|null $id, int $code, string $message, ?array $data = null): static

@@ -17,4 +17,11 @@ interface Transport
     public function sessionId(): ?string;
 
     public function stream(Closure $stream): void;
+
+    /**
+     * Send a JSON-RPC request to the client and wait for the response.
+     *
+     * @throws \Laravel\Mcp\Server\Exceptions\JsonRpcException
+     */
+    public function sendRequest(string $message): string;
 }

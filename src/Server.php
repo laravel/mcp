@@ -13,7 +13,9 @@ use Laravel\Mcp\Server\Attributes\Version;
 use Laravel\Mcp\Server\Concerns\ReadsAttributes;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
+use Laravel\Mcp\Server\Elicitation\Elicitation;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
+use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\Methods\CompletionComplete;
 use Laravel\Mcp\Server\Methods\GetPrompt;
@@ -98,6 +100,11 @@ abstract class Server
      * @var array<int, Prompt|class-string<Prompt>>
      */
     protected array $prompts = [];
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $clientCapabilities = [];
 
     public int $maxPaginationLength = 50;
 
@@ -283,10 +290,15 @@ abstract class Server
 
         $container->instance('mcp.request', $request->toRequest());
 
+        $clientCapabilities = $this->resolveClientCapabilities();
+        $elicitation = new Elicitation($this->transport, $clientCapabilities);
+        $container->instance(Elicitation::class, $elicitation);
+
         try {
             $response = $methodClass->handle($request, $context);
         } finally {
             $container->forgetInstance('mcp.request');
+            $container->forgetInstance(Elicitation::class);
         }
 
         return $response;
@@ -298,6 +310,8 @@ abstract class Server
 
         $sessionId = $this->generateSessionId();
 
+        $this->clientCapabilities = $request->params['capabilities'] ?? [];
+
         Container::getInstance()->make('events')->dispatch(new SessionInitialized(
             sessionId: $sessionId,
             clientInfo: $request->params['clientInfo'] ?? null,
@@ -306,6 +320,18 @@ abstract class Server
         ));
 
         $this->transport->send($response->toJson(), $sessionId);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function resolveClientCapabilities(): array
+    {
+        if ($this->transport instanceof FakeTransporter) {
+            return $this->transport->clientCapabilities() ?? $this->clientCapabilities;
+        }
+
+        return $this->clientCapabilities;
     }
 
     protected function generateSessionId(): string

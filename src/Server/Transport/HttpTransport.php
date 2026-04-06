@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Transport;
 
 use Closure;
+use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Laravel\Mcp\Server\Contracts\Transport;
+use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HttpTransport implements Transport
@@ -102,6 +104,33 @@ class HttpTransport implements Transport
         }
 
         flush();
+    }
+
+    public function sendRequest(string $message): string
+    {
+        $this->sendStreamMessage($message);
+
+        $decoded = json_decode($message, true);
+        $requestId = $decoded['id'];
+        $cacheKey = "mcp:elicitation:{$this->sessionId}:{$requestId}";
+
+        $cache = Container::getInstance()->make('cache');
+        $timeout = 120;
+        $interval = 100_000;
+        $elapsed = 0;
+
+        while ($elapsed < $timeout) {
+            $response = $cache->pull($cacheKey);
+
+            if ($response !== null) {
+                return $response;
+            }
+
+            usleep($interval);
+            $elapsed += $interval / 1_000_000;
+        }
+
+        throw new JsonRpcException('Elicitation timed out.', -32603);
     }
 
     /**

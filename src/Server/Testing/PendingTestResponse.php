@@ -114,11 +114,51 @@ class PendingTestResponse
             : $primitive;
     }
 
+    /**
+     * @var array<int, array<string, mixed>>
+     */
+    protected array $elicitationExpectations = [];
+
+    /**
+     * @var array<string, mixed>|null
+     */
+    protected ?array $clientCapabilities = null;
+
+    /**
+     * @param  array<string, mixed>  $respondWith
+     */
+    public function expectsElicitation(array $respondWith): static
+    {
+        $this->elicitationExpectations[] = $respondWith;
+
+        return $this;
+    }
+
+    /**
+     * @param  array<string, mixed>  $capabilities
+     */
+    public function withElicitation(array $capabilities = ['elicitation' => ['form' => [], 'url' => []]]): static
+    {
+        $this->clientCapabilities = $capabilities;
+
+        return $this;
+    }
+
     protected function initializeServer(): Server
     {
+        $transport = new FakeTransporter;
+
+        if ($this->clientCapabilities !== null) {
+            $transport->setClientCapabilities($this->clientCapabilities);
+        }
+
+        foreach ($this->elicitationExpectations as $expectation) {
+            $transport->expectElicitation($expectation);
+        }
+
         $server = Container::getInstance()->make(
             $this->serverClass,
-            ['transport' => new FakeTransporter]
+            ['transport' => $transport]
         );
 
         $server->start();
@@ -131,7 +171,19 @@ class PendingTestResponse
         try {
             return (fn (): iterable|JsonRpcResponse => $this->runMethodHandle($request, $this->createContext()))->call($server);
         } catch (JsonRpcException $jsonRpcException) {
-            return $jsonRpcException->toJsonRpcResponse();
+            $response = $jsonRpcException->toJsonRpcResponse();
+            $content = $response->toArray();
+
+            if (! isset($content['id'])) {
+                return JsonRpcResponse::error(
+                    id: $request->id,
+                    code: $content['error']['code'],
+                    message: $content['error']['message'],
+                    data: $content['error']['data'] ?? null,
+                );
+            }
+
+            return $response;
         }
     }
 
@@ -170,6 +222,8 @@ class PendingTestResponse
 
         $response = $this->executeRequest($server, $request);
 
-        return new TestResponse($primitive, $response);
+        $transport = (fn () => $this->transport)->call($server);
+
+        return new TestResponse($primitive, $response, $transport instanceof FakeTransporter ? $transport : null);
     }
 }
