@@ -141,10 +141,6 @@ class PendingTestResponse
     {
         $transport = new FakeTransporter;
 
-        if ($this->clientCapabilities !== null) {
-            $transport->setClientCapabilities($this->clientCapabilities);
-        }
-
         foreach ($this->elicitationExpectations as $expectation) {
             $transport->expectElicitation($expectation);
         }
@@ -155,6 +151,11 @@ class PendingTestResponse
         );
 
         $server->start();
+
+        if ($this->clientCapabilities !== null) {
+            $capabilities = $this->clientCapabilities;
+            (fn (): array => $this->clientCapabilities = $capabilities)->call($server);
+        }
 
         return $server;
     }

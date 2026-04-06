@@ -106,11 +106,6 @@ class HttpTransport implements Transport
         flush();
     }
 
-    public function clientCapabilities(): ?array
-    {
-        return null;
-    }
-
     public function sendRequest(string $message): string
     {
         $this->sendStreamMessage($message);

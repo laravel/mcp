@@ -57,11 +57,6 @@ class StdioTransport implements Transport
         $stream();
     }
 
-    public function clientCapabilities(): ?array
-    {
-        return null;
-    }
-
     public function sendRequest(string $message): string
     {
         fwrite(STDOUT, $message.PHP_EOL);

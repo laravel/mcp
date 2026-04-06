@@ -27,11 +27,6 @@ class FakeTransporter implements Transport
      */
     protected array $sentMessages = [];
 
-    /**
-     * @var array<string, mixed>|null
-     */
-    protected ?array $clientCapabilities = null;
-
     public function onReceive(Closure $handler): void
     {
         //
@@ -98,21 +93,5 @@ class FakeTransporter implements Transport
     public function sentMessages(): array
     {
         return $this->sentMessages;
-    }
-
-    /**
-     * @param  array<string, mixed>|null  $capabilities
-     */
-    public function setClientCapabilities(?array $capabilities): void
-    {
-        $this->clientCapabilities = $capabilities;
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    public function clientCapabilities(): ?array
-    {
-        return $this->clientCapabilities;
     }
 }

@@ -341,7 +341,7 @@ abstract class Server
      */
     protected function resolveClientCapabilities(): array
     {
-        return $this->transport->clientCapabilities() ?? $this->clientCapabilities;
+        return $this->clientCapabilities;
     }
 
     protected function generateSessionId(): string

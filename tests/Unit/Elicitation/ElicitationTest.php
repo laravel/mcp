@@ -178,8 +178,6 @@ it('throws on response id mismatch', function (): void {
         }
     };
 
-    $transport->setClientCapabilities(['elicitation' => ['form' => []]]);
-
     $elicitation = new Elicitation($transport, ['elicitation' => ['form' => []]]);
 
     $elicitation->form('Name?', fn (ElicitSchema $s): array => [

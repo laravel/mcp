@@ -45,11 +45,6 @@ class ArrayTransport implements Transport
         $stream();
     }
 
-    public function clientCapabilities(): ?array
-    {
-        return null;
-    }
-
     public function sendRequest(string $message): string
     {
         throw new LogicException('Not implemented.');
