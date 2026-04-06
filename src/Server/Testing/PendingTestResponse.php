@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use InvalidArgumentException;
 use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
@@ -222,7 +223,7 @@ class PendingTestResponse
 
         $response = $this->executeRequest($server, $request);
 
-        $transport = (fn (): \Laravel\Mcp\Server\Contracts\Transport => $this->transport)->call($server);
+        $transport = (fn (): Transport => $this->transport)->call($server);
 
         return new TestResponse($primitive, $response, $transport instanceof FakeTransporter ? $transport : null);
     }

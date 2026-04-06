@@ -12,7 +12,7 @@ it('sends a form elicitation and returns accepted result', function (): void {
 
     $elicitation = new Elicitation($transport, ['elicitation' => ['form' => []]]);
 
-    $result = $elicitation->form('What is your name?', fn(ElicitSchema $schema): array => [
+    $result = $elicitation->form('What is your name?', fn (ElicitSchema $schema): array => [
         'name' => $schema->string('Your Name')->required(),
     ]);
 
