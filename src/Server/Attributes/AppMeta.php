@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Attributes;
 use Attribute;
 use Laravel\Mcp\Server\Ui\AppMeta as AppMetaData;
 use Laravel\Mcp\Server\Ui\Csp;
+use Laravel\Mcp\Server\Ui\Enums\AppResourceLibrary;
 use Laravel\Mcp\Server\Ui\Enums\Permission;
 use Laravel\Mcp\Server\Ui\Permissions;
 
@@ -19,6 +20,7 @@ class AppMeta
      * @param  array<int, string>|null  $frameDomains  Domains the app may embed as nested iframes (CSP frame-src).
      * @param  array<int, string>|null  $baseUriDomains  Allowed URLs for the document's base element (CSP base-uri).
      * @param  array<int, Permission>|null  $permissions
+     * @param  array<int, AppResourceLibrary>  $libraries
      */
     public function __construct(
         public readonly ?array $connectDomains = null,
@@ -28,6 +30,7 @@ class AppMeta
         public readonly ?array $permissions = null,
         public readonly ?bool $prefersBorder = null,
         public readonly ?string $domain = null,
+        public readonly array $libraries = [],
     ) {
         //
     }
@@ -68,6 +71,10 @@ class AppMeta
 
         if ($this->domain !== null) {
             $meta->domain($this->domain);
+        }
+
+        if ($this->libraries !== []) {
+            $meta->libraries(...$this->libraries);
         }
 
         return $meta;

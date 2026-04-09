@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Laravel\Mcp\Server\Attributes\AppMeta as AppMetaAttribute;
 use Laravel\Mcp\Server\Ui\AppMeta;
+use Laravel\Mcp\Server\Ui\Enums\AppResourceLibrary;
 
 abstract class AppResource extends Resource
 {
@@ -36,6 +37,20 @@ abstract class AppResource extends Resource
         }
 
         return $appMeta;
+    }
+
+    public function libraryScripts(): string
+    {
+        $libraries = $this->appMeta()->getLibraries();
+
+        if ($libraries === []) {
+            return '';
+        }
+
+        return implode("\n", array_map(
+            fn(AppResourceLibrary $lib): string => implode("\n", $lib->scriptTags()),
+            $libraries,
+        ));
     }
 
     /**

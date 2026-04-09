@@ -5,17 +5,22 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Ui;
 
 use Illuminate\Contracts\Support\Arrayable;
+use Laravel\Mcp\Server\Ui\Enums\AppResourceLibrary;
 
 /**
  * @implements Arrayable<string, mixed>
  */
 class AppMeta implements Arrayable
 {
+    /**
+     * @param  array<int, AppResourceLibrary>  $libraries
+     */
     public function __construct(
         protected ?Csp $csp = null,
         protected ?Permissions $permissions = null,
         protected ?string $domain = null,
         protected ?bool $prefersBorder = true,
+        protected array $libraries = [],
     ) {
         //
     }
@@ -53,16 +58,45 @@ class AppMeta implements Arrayable
         return $this;
     }
 
+    public function libraries(AppResourceLibrary ...$libraries): static
+    {
+        $this->libraries = $libraries;
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, AppResourceLibrary>
+     */
+    public function getLibraries(): array
+    {
+        return $this->libraries;
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function toArray(): array
     {
+        $cspArray = $this->csp?->toArray() ?: [];
+
+        if ($this->libraries !== []) {
+            $libraryDomains = collect($this->libraries)
+                ->map(fn(AppResourceLibrary $lib) => $lib->domains())
+                ->flatten();
+
+            $cspArray['resourceDomains'] = collect($cspArray['resourceDomains'] ?? [])
+                ->merge($libraryDomains)
+                ->unique()
+                ->values()
+                ->all();
+        }
+
         return array_filter([
-            'csp' => $this->csp?->toArray() ?: null,
+            'csp' => $cspArray ?: null,
             'permissions' => $this->permissions?->toArray() ?: null,
             'domain' => $this->domain,
             'prefersBorder' => $this->prefersBorder,
-        ], fn (mixed $value): bool => $value !== null);
+        ], fn(mixed $value): bool => $value !== null);
     }
 }

@@ -1,4 +1,4 @@
-@props(['title' => null])
+@props(['title' => null, 'libraryScripts' => ''])
 @php
     $mcpSdk = app('mcp.sdk');
 @endphp
@@ -11,6 +11,7 @@
     <title>{{ $title }}</title>
     @endif
     <script>{!! $mcpSdk !!}</script>
+    {!! $libraryScripts !!}
     {{ $head ?? '' }}
 </head>
 <body {{ $attributes }}>
