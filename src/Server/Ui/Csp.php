@@ -12,10 +12,10 @@ use Illuminate\Contracts\Support\Arrayable;
 class Csp implements Arrayable
 {
     /**
-     * @param  array<int, string>|null  $connectDomains
-     * @param  array<int, string>|null  $resourceDomains
-     * @param  array<int, string>|null  $frameDomains
-     * @param  array<int, string>|null  $baseUriDomains
+     * @param  array<int, string>|null  $connectDomains  Domains the app may connect to via fetch, XHR, or WebSocket (CSP connect-src).
+     * @param  array<int, string>|null  $resourceDomains  Domains the app may load images, scripts, styles, and fonts from (CSP default-src).
+     * @param  array<int, string>|null  $frameDomains  Domains the app may embed as nested iframes (CSP frame-src).
+     * @param  array<int, string>|null  $baseUriDomains  Allowed URLs for the document's base element (CSP base-uri).
      */
     public function __construct(
         protected ?array $connectDomains = null,
