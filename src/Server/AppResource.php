@@ -48,7 +48,7 @@ abstract class AppResource extends Resource
         }
 
         return implode("\n", array_map(
-            fn(AppResourceLibrary $lib): string => implode("\n", $lib->scriptTags()),
+            fn (AppResourceLibrary $lib): string => implode("\n", $lib->scriptTags()),
             $libraries,
         ));
     }

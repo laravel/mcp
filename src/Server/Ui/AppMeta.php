@@ -82,7 +82,7 @@ class AppMeta implements Arrayable
 
         if ($this->libraries !== []) {
             $libraryDomains = collect($this->libraries)
-                ->map(fn(AppResourceLibrary $lib) => $lib->domains())
+                ->map(fn (AppResourceLibrary $lib) => $lib->domains())
                 ->flatten();
 
             $cspArray['resourceDomains'] = collect($cspArray['resourceDomains'] ?? [])
@@ -97,6 +97,6 @@ class AppMeta implements Arrayable
             'permissions' => $this->permissions?->toArray() ?: null,
             'domain' => $this->domain,
             'prefersBorder' => $this->prefersBorder,
-        ], fn(mixed $value): bool => $value !== null);
+        ], fn (mixed $value): bool => $value !== null);
     }
 }
