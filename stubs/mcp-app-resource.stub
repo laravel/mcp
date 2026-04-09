@@ -9,10 +9,7 @@ use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\AppResource;
 
 #[Description('A description of what this app resource does.')]
-#[AppMeta(
-    connectDomains: [],
-    permissions: [],
-)]
+#[AppMeta]
 class {{ class }} extends AppResource
 {
     /**
