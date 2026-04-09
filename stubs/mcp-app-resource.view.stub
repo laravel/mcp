@@ -1,4 +1,4 @@
-<x-mcp::app :title="$title" :library-scripts="$libraryScripts">
+<x-mcp::app :title="$title">
     <x-slot:head>
         <script type="module">
         createMcpApp(async (app) => {

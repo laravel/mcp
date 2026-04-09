@@ -1,6 +1,7 @@
-@props(['title' => null, 'libraryScripts' => ''])
+@props(['title' => null])
 @php
     $mcpSdk = app('mcp.sdk');
+    $libraryScripts = app()->bound('mcp.library_scripts') ? app('mcp.library_scripts') : '';
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">

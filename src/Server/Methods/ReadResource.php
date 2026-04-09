@@ -73,11 +73,16 @@ class ReadResource implements Method
 
         $container->instance(Request::class, $request);
 
+        if ($resource instanceof AppResource) {
+            $container->instance('mcp.library_scripts', $resource->libraryScripts());
+        }
+
         try {
             // @phpstan-ignore-next-line
             return $container->call([$resource, 'handle']);
         } finally {
             $container->forgetInstance(Request::class);
+            $container->forgetInstance('mcp.library_scripts');
         }
     }
 

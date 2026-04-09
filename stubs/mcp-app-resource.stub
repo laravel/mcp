@@ -19,7 +19,6 @@ class {{ class }} extends AppResource
     {
         return Response::view('{{ view }}', [
             'title' => $this->title(),
-            'libraryScripts' => $this->libraryScripts(),
         ]);
     }
 }
