@@ -8,15 +8,15 @@ use Illuminate\Support\Facades\Facade;
 use Laravel\Mcp\Server\Registrar;
 
 /**
- * @method static \Illuminate\Routing\Route web(string $route, string $serverClass)
- * @method static void local(string $handle, string $serverClass)
+ * @method static \Illuminate\Routing\Route web(string $route, string<\Laravel\Mcp\Server> $serverClass)
+ * @method static void local(string $handle, string<\Laravel\Mcp\Server> $serverClass)
  * @method static callable|null getLocalServer(string $handle)
  * @method static \Illuminate\Routing\Route|null getWebServer(string $route)
- * @method static array servers()
+ * @method static array<string, callable|\Illuminate\Routing\Route> servers()
  * @method static void oauthRoutes(string $oauthPrefix = 'oauth')
- * @method static array ensureMcpScope()
+ * @method static array<string, string> ensureMcpScope()
  *
- * @see Registrar
+ * @see \Laravel\Mcp\Server\Registrar
  */
 class Mcp extends Facade
 {
