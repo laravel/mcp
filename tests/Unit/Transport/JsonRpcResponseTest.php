@@ -83,6 +83,17 @@ it('can create a notification with params', function (): void {
     expect($response->toArray())->toEqual($expectedArray);
 });
 
+it('does not escape unicode characters in json output', function (): void {
+    $unicodeString = "\u{1F600} caf\u{00E9} \u{4F60}\u{597D}";
+
+    $response = JsonRpcResponse::result(1, ['text' => $unicodeString]);
+
+    $json = $response->toJson();
+
+    expect($json)->toContain($unicodeString)
+        ->and($json)->not->toMatch('/\\\\u[0-9a-fA-F]{4}/');
+});
+
 it('converts empty array params in notification to object', function (): void {
     $response = JsonRpcResponse::notification('notifications/initialized', []);
 
