@@ -1,6 +1,13 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.5...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.6...main)
+
+## [v0.6.6](https://github.com/laravel/mcp/compare/v0.6.5...v0.6.6) - 2026-04-14
+
+* fix: preserve unicode characters in JSON-RPC responses by [@indigoram89](https://github.com/indigoram89) in https://github.com/laravel/mcp/pull/191
+* Add MCP UI App support with interactive HTML resources by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/182
+* Revert "Add MCP UI App support with interactive HTML resources" by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/195
+* Preserve existing OAuth discovery routes by [@Gujiassh](https://github.com/Gujiassh) in https://github.com/laravel/mcp/pull/192
 
 ## [v0.6.5](https://github.com/laravel/mcp/compare/v0.6.4...v0.6.5) - 2026-03-30
 
@@ -188,6 +195,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -198,6 +206,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
