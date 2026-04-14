@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Laravel\Mcp\Support\UriTemplate;
 
 it('requires a valid URI scheme', function (): void {
