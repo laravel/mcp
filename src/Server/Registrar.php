@@ -90,26 +90,25 @@ class Registrar
     {
         static::ensureMcpScope();
         $hasExactProtectedResourceRoute = $this->hasGetRoute('.well-known/oauth-protected-resource');
-        if (! $hasExactProtectedResourceRoute) {
-            Router::get('/.well-known/oauth-protected-resource', fn () => response()->json(
-                $this->protectedResourceMetadata(''),
-            ))->name('mcp.oauth.protected-resource');
-        }
-
-        Router::get('/.well-known/oauth-protected-resource/{path}', fn (string $path) => response()->json(
-            $this->protectedResourceMetadata($path, $hasExactProtectedResourceRoute),
-        ))->where('path', '.*')->name('mcp.oauth.protected-resource.nested');
-
         $hasExactAuthorizationServerRoute = $this->hasGetRoute('.well-known/oauth-authorization-server');
-        if (! $hasExactAuthorizationServerRoute) {
-            Router::get('/.well-known/oauth-authorization-server', fn () => response()->json(
-                $this->authorizationServerMetadata('', $oauthPrefix),
-            ))->name('mcp.oauth.authorization-server');
+
+        if (! $hasExactProtectedResourceRoute) {
+            Router::get('/.well-known/oauth-protected-resource', fn () => response()->json($this->protectedResourceMetadata('')))
+                ->name('mcp.oauth.protected-resource');
         }
 
-        Router::get('/.well-known/oauth-authorization-server/{path}', fn (string $path) => response()->json(
-            $this->authorizationServerMetadata($path, $oauthPrefix, $hasExactAuthorizationServerRoute),
-        ))->where('path', '.*')->name('mcp.oauth.authorization-server.nested');
+        if (! $hasExactAuthorizationServerRoute) {
+            Router::get('/.well-known/oauth-authorization-server', fn () => response()->json($this->authorizationServerMetadata($oauthPrefix)))
+                ->name('mcp.oauth.authorization-server');
+        }
+
+        Router::get('/.well-known/oauth-protected-resource/{path}', fn (string $path) => response()->json($this->protectedResourceMetadata($path)))
+            ->where('path', '.*')
+            ->name('mcp.oauth.protected-resource.nested');
+
+        Router::get('/.well-known/oauth-authorization-server/{path}', fn (string $path) => response()->json($this->authorizationServerMetadata($oauthPrefix)))
+            ->where('path', '.*')
+            ->name('mcp.oauth.authorization-server.nested');
 
         Router::post($oauthPrefix.'/register', OAuthRegisterController::class);
     }
@@ -117,10 +116,10 @@ class Registrar
     /**
      * @return array<string, array<int, string>|string>
      */
-    protected function authorizationServerMetadata(string $path, string $oauthPrefix, bool $preserveExactRoute = false): array
+    protected function authorizationServerMetadata(string $oauthPrefix): array
     {
         return [
-            'issuer' => $preserveExactRoute ? url('/'.$path) : (config('mcp.authorization_server') ?? url('/')),
+            'issuer' => config('mcp.authorization_server') ?? url('/'),
             'authorization_endpoint' => route('passport.authorizations.authorize'),
             'token_endpoint' => route('passport.token'),
             'registration_endpoint' => url($oauthPrefix.'/register'),
@@ -134,11 +133,11 @@ class Registrar
     /**
      * @return array<string, array<int, string>|string>
      */
-    protected function protectedResourceMetadata(string $path, bool $preserveExactRoute = false): array
+    protected function protectedResourceMetadata(string $path): array
     {
         return [
             'resource' => url('/'.$path),
-            'authorization_servers' => [$preserveExactRoute ? url('/'.$path) : (config('mcp.authorization_server') ?? url('/'))],
+            'authorization_servers' => [config('mcp.authorization_server') ?? url('/')],
             'scopes_supported' => ['mcp:use'],
         ];
     }

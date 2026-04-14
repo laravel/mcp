@@ -136,7 +136,7 @@ it('does not override an existing exact oauth authorization server route', funct
 
     $nestedResponse->assertStatus(200);
     $nestedResponse->assertJson([
-        'issuer' => url('/mcp/weather'),
+        'issuer' => url('/'),
         'registration_endpoint' => url('oauth/register'),
         'scopes_supported' => ['mcp:use'],
     ]);
@@ -160,7 +160,7 @@ it('does not override an existing exact oauth protected resource route', functio
     $nestedResponse->assertStatus(200);
     $nestedResponse->assertJson([
         'resource' => url('/mcp/weather'),
-        'authorization_servers' => [url('/mcp/weather')],
+        'authorization_servers' => [url('/')],
         'scopes_supported' => ['mcp:use'],
     ]);
 });
