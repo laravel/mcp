@@ -215,6 +215,57 @@ it('throws exception when an array contains null', function (): void {
     );
 });
 
+it('reads html content from a relative file path', function (): void {
+    $dir = resource_path();
+
+    if (! is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+
+    file_put_contents($dir.'/test-response.html', '<html><body>From File</body></html>');
+
+    $response = Response::html('test-response.html');
+
+    expect($response->content())->toBeInstanceOf(Text::class)
+        ->and((string) $response->content())->toBe('<html><body>From File</body></html>');
+
+    @unlink($dir.'/test-response.html');
+});
+
+it('reads html content from an absolute file path', function (): void {
+    $path = sys_get_temp_dir().'/mcp-test-absolute.html';
+
+    file_put_contents($path, '<div>Absolute</div>');
+
+    $response = Response::html($path);
+
+    expect((string) $response->content())->toBe('<div>Absolute</div>');
+
+    @unlink($path);
+});
+
+it('creates a response from a blade view', function (): void {
+    $viewDir = resource_path('views');
+
+    if (! is_dir($viewDir)) {
+        mkdir($viewDir, 0755, true);
+    }
+
+    file_put_contents($viewDir.'/mcp-view-test.blade.php', '<p>{{ $name }}</p>');
+
+    $response = Response::view('mcp-view-test', ['name' => 'Test']);
+
+    expect($response->content())->toBeInstanceOf(Text::class)
+        ->and((string) $response->content())->toContain('<p>Test</p>')
+        ->and($response->isError())->toBeFalse();
+
+    @unlink($viewDir.'/mcp-view-test.blade.php');
+});
+
+it('throws exception for missing html file', function (): void {
+    Response::html('/nonexistent/path/missing.html');
+})->throws(InvalidArgumentException::class, 'File not found at path [/nonexistent/path/missing.html].');
+
 it('creates compact json response', function (): void {
     $data = ['key' => 'value', 'number' => 123];
     $response = Response::json($data);

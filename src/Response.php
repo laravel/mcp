@@ -45,6 +45,26 @@ class Response
         return new static(new Text($text));
     }
 
+    public static function html(string $path): static
+    {
+        $path = str_starts_with($path, '/') || preg_match('/^[a-zA-Z]:[\\\\\\/]/', $path) ? $path : resource_path($path);
+
+        if (! file_exists($path)) {
+            throw new InvalidArgumentException("File not found at path [{$path}].");
+        }
+
+        return static::text((string) file_get_contents($path));
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $mergeData
+     */
+    public static function view(string $view, array $data = [], array $mergeData = []): static
+    {
+        return static::text(view($view, $data, $mergeData)->render());
+    }
+
     /**
      * @internal
      *
