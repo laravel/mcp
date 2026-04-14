@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
-use Illuminate\Container\Container;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\JsonSchema as JsonSchemaFactory;
-use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Concerns\HasAnnotations;
 use Laravel\Mcp\Server\Tools\Annotations\ToolAnnotation;
 
@@ -78,18 +76,6 @@ abstract class Tool extends Primitive
 
         if (isset($outputSchema['properties'])) {
             $result['outputSchema'] = $outputSchema;
-        }
-
-        $rendersApp = $this->resolveAttribute(RendersApp::class);
-
-        if ($rendersApp !== null) {
-            /** @var AppResource $appResource */
-            $appResource = Container::getInstance()->make($rendersApp->resource);
-
-            $this->setMeta('ui', [
-                'resourceUri' => $appResource->uri(),
-                'visibility' => $rendersApp->visibility,
-            ]);
         }
 
         // @phpstan-ignore return.type

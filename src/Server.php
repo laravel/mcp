@@ -7,7 +7,6 @@ namespace Laravel\Mcp;
 use Illuminate\Container\Container;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Events\SessionInitialized;
-use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Version;
@@ -51,8 +50,6 @@ abstract class Server
     public const CAPABILITY_PROMPTS = 'prompts';
 
     public const CAPABILITY_COMPLETIONS = 'completions';
-
-    public const CAPABILITY_UI = 'io.modelcontextprotocol/ui';
 
     protected string $name = 'Laravel MCP Server';
 
@@ -166,7 +163,6 @@ abstract class Server
     public function start(): void
     {
         $this->boot();
-        $this->detectUiCapability();
 
         $this->transport->onReceive($this->handle(...));
     }
@@ -286,13 +282,11 @@ abstract class Server
         );
 
         $container->instance('mcp.request', $request->toRequest());
-        $container->instance('mcp.current_server', $this);
 
         try {
             $response = $methodClass->handle($request, $context);
         } finally {
             $container->forgetInstance('mcp.request');
-            $container->forgetInstance('mcp.current_server');
         }
 
         return $response;
@@ -317,21 +311,6 @@ abstract class Server
     protected function generateSessionId(): string
     {
         return Str::uuid()->toString();
-    }
-
-    protected function detectUiCapability(): void
-    {
-        if (array_key_exists(self::CAPABILITY_UI, $this->capabilities)) {
-            return;
-        }
-
-        foreach ($this->resources as $resource) {
-            if (is_subclass_of($resource, AppResource::class)) {
-                $this->addCapability(self::CAPABILITY_UI);
-
-                return;
-            }
-        }
     }
 
     /**
