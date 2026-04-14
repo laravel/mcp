@@ -10,6 +10,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Laravel\Passport\ClientRepository;
 
 class OAuthRegisterController
 {
@@ -64,7 +65,7 @@ class OAuthRegisterController
 
         $validated = $validator->validated();
 
-        if (class_exists('Laravel\Passport\ClientRepository') === false) {
+        if (class_exists(ClientRepository::class) === false) {
             return response()->json([
                 'error' => 'server_error',
                 'error_description' => 'OAuth support (Passport) is not installed.',
@@ -72,7 +73,7 @@ class OAuthRegisterController
         }
 
         $clients = Container::getInstance()->make(
-            'Laravel\Passport\ClientRepository'
+            ClientRepository::class
         );
 
         $client = $clients->createAuthorizationCodeGrantClient(

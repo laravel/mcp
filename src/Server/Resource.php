@@ -19,8 +19,6 @@ abstract class Resource extends Primitive
 
     protected string $mimeType = '';
 
-    protected string $defaultUriScheme = 'file';
-
     public function uri(): string
     {
         if ($this instanceof HasUriTemplate) {
@@ -31,7 +29,7 @@ abstract class Resource extends Primitive
 
         return $attribute !== null
             ? $attribute->value
-            : ($this->uri !== '' ? $this->uri : $this->defaultUriScheme.'://resources/'.Str::kebab(class_basename($this)));
+            : ($this->uri !== '' ? $this->uri : 'file://resources/'.Str::kebab(class_basename($this)));
     }
 
     public function mimeType(): string

@@ -72,7 +72,6 @@
             "@build",
             "@php vendor/bin/testbench serve --ansi"
         ],
-        "minify": "npx terser resources/js/mcp-sdk.js --compress --mangle --output resources/js/mcp-sdk.min.js",
         "lint": [
             "pint",
             "rector"
