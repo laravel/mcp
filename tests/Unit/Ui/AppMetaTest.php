@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Contracts\Support\Arrayable;
 use Laravel\Mcp\Server\Ui\AppMeta;
 use Laravel\Mcp\Server\Ui\Csp;
+use Laravel\Mcp\Server\Ui\Enums\AppResourceLibrary;
 use Laravel\Mcp\Server\Ui\Permissions;
 
 it('serializes as empty when no fields set', function (): void {
@@ -76,4 +77,50 @@ it('omits empty csp and permissions objects', function (): void {
         ->permissions(Permissions::make());
 
     expect($meta->toArray())->toEqual(['prefersBorder' => true]);
+});
+
+it('merges library domains into csp resource domains', function (): void {
+    $meta = AppMeta::make()
+        ->libraries(AppResourceLibrary::Tailwind, AppResourceLibrary::Alpine);
+
+    $array = $meta->toArray();
+
+    expect($array['csp']['resourceDomains'])
+        ->toContain('https://cdn.tailwindcss.com')
+        ->toContain('https://cdn.jsdelivr.net');
+});
+
+it('merges library domains with existing csp resource domains', function (): void {
+    $meta = AppMeta::make()
+        ->csp(Csp::make()->resourceDomains(['https://existing.com']))
+        ->libraries(AppResourceLibrary::Tailwind);
+
+    $array = $meta->toArray();
+
+    expect($array['csp']['resourceDomains'])
+        ->toContain('https://existing.com')
+        ->toContain('https://cdn.tailwindcss.com');
+});
+
+it('deduplicates library domains in csp', function (): void {
+    $meta = AppMeta::make()
+        ->csp(Csp::make()->resourceDomains(['https://cdn.tailwindcss.com']))
+        ->libraries(AppResourceLibrary::Tailwind);
+
+    $array = $meta->toArray();
+
+    $count = count(array_filter(
+        $array['csp']['resourceDomains'],
+        fn (string $d): bool => $d === 'https://cdn.tailwindcss.com',
+    ));
+
+    expect($count)->toBe(1);
+});
+
+it('returns libraries via getLibraries', function (): void {
+    $meta = AppMeta::make()
+        ->libraries(AppResourceLibrary::Tailwind, AppResourceLibrary::Alpine);
+
+    expect($meta->getLibraries())
+        ->toBe([AppResourceLibrary::Tailwind, AppResourceLibrary::Alpine]);
 });
