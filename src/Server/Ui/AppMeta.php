@@ -82,7 +82,7 @@ class AppMeta implements Arrayable
 
         if ($this->libraries !== []) {
             $libraryDomains = collect($this->libraries)
-                ->map(fn (AppResourceLibrary $lib) => $lib->domains())
+                ->map(fn (AppResourceLibrary $lib): array => $lib->domains())
                 ->flatten();
 
             $cspArray['resourceDomains'] = collect($cspArray['resourceDomains'] ?? [])
