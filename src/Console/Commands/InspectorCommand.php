@@ -6,7 +6,6 @@ namespace Laravel\Mcp\Console\Commands;
 
 use Exception;
 use Illuminate\Console\Command;
-use Illuminate\Routing\Route;
 use Illuminate\Support\Arr;
 use Laravel\Mcp\Server\Registrar;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -48,7 +47,7 @@ class InspectorCommand extends Command
             $server = array_shift($servers);
             [$localServer, $route] = match (true) {
                 is_callable($server) => [$server, null],
-                $server::class === Route::class => [null, $server],
+                is_string($server) => [null, $registrar->getWebServer($server)],
                 default => [null, null],
             };
         }

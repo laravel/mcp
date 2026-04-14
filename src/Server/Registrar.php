@@ -23,8 +23,8 @@ class Registrar
     /** @var array<string, callable> */
     protected array $localServers = [];
 
-    /** @var array<string, Route> */
-    protected array $httpServers = [];
+    /** @var array<string, string> */
+    protected array $httpServerUris = [];
 
     /**
      * @param  class-string<Server>  $serverClass
@@ -50,7 +50,7 @@ class Registrar
 
         assert($route instanceof Route);
 
-        $this->httpServers[$route->uri()] = $route;
+        $this->httpServerUris[$route->uri()] = $route->uri();
 
         return $route;
     }
@@ -72,17 +72,27 @@ class Registrar
 
     public function getWebServer(string $route): ?Route
     {
-        return $this->httpServers[$route] ?? null;
+        if (! isset($this->httpServerUris[$route])) {
+            return null;
+        }
+
+        foreach (Router::getRoutes()->getRoutes() as $registeredRoute) {
+            if ($registeredRoute->uri() === $route && in_array('POST', $registeredRoute->methods(), true)) {
+                return $registeredRoute;
+            }
+        }
+
+        return null;
     }
 
     /**
-     * @return array<string, callable|Route>
+     * @return array<string, callable|string>
      */
     public function servers(): array
     {
         return array_merge(
             $this->localServers,
-            $this->httpServers,
+            $this->httpServerUris,
         );
     }
 
@@ -93,20 +103,20 @@ class Registrar
         $hasExactAuthorizationServerRoute = $this->hasGetRoute('.well-known/oauth-authorization-server');
 
         if (! $hasExactProtectedResourceRoute) {
-            Router::get('/.well-known/oauth-protected-resource', fn () => response()->json($this->protectedResourceMetadata('')))
+            Router::get('/.well-known/oauth-protected-resource', fn () => response()->json(static::protectedResourceMetadata('')))
                 ->name('mcp.oauth.protected-resource');
         }
 
         if (! $hasExactAuthorizationServerRoute) {
-            Router::get('/.well-known/oauth-authorization-server', fn () => response()->json($this->authorizationServerMetadata($oauthPrefix)))
+            Router::get('/.well-known/oauth-authorization-server', fn () => response()->json(static::authorizationServerMetadata($oauthPrefix)))
                 ->name('mcp.oauth.authorization-server');
         }
 
-        Router::get('/.well-known/oauth-protected-resource/{path}', fn (string $path) => response()->json($this->protectedResourceMetadata($path)))
+        Router::get('/.well-known/oauth-protected-resource/{path}', fn (string $path) => response()->json(static::protectedResourceMetadata($path)))
             ->where('path', '.*')
             ->name('mcp.oauth.protected-resource.nested');
 
-        Router::get('/.well-known/oauth-authorization-server/{path}', fn (string $path) => response()->json($this->authorizationServerMetadata($oauthPrefix)))
+        Router::get('/.well-known/oauth-authorization-server/{path}', fn (string $path) => response()->json(static::authorizationServerMetadata($oauthPrefix)))
             ->where('path', '.*')
             ->name('mcp.oauth.authorization-server.nested');
 
@@ -116,7 +126,7 @@ class Registrar
     /**
      * @return array<string, array<int, string>|string>
      */
-    protected function authorizationServerMetadata(string $oauthPrefix): array
+    protected static function authorizationServerMetadata(string $oauthPrefix): array
     {
         return [
             'issuer' => config('mcp.authorization_server') ?? url('/'),
@@ -133,7 +143,7 @@ class Registrar
     /**
      * @return array<string, array<int, string>|string>
      */
-    protected function protectedResourceMetadata(string $path): array
+    protected static function protectedResourceMetadata(string $path): array
     {
         return [
             'resource' => url('/'.$path),
