@@ -24,6 +24,8 @@ enum AppResourceLibrary: string
 
     /**
      * HTML script tag to include in the document head.
+     *
+     * @return array<int, string>
      */
     public function scriptTags(): array
     {
