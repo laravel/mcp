@@ -16,6 +16,7 @@ use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
+use Laravel\Mcp\Server\Content\ResourceLink;
 use Laravel\Mcp\Server\Contracts\Content;
 use League\Flysystem\UnableToReadFile;
 
@@ -116,6 +117,20 @@ class Response
     public static function image(string $data, string $mimeType = 'image/png'): static
     {
         return new static(new Image($data, $mimeType));
+    }
+
+    /**
+     * Create a resource_link content item pointing to a resource URI.
+     * The client can fetch or subscribe to the URI independently.
+     * This is a URI pointer only — no content is inlined.
+     */
+    public static function resourceLink(
+        string $uri,
+        ?string $name = null,
+        ?string $mimeType = null,
+        ?string $description = null,
+    ): static {
+        return new static(new ResourceLink($uri, $name, $mimeType, $description));
     }
 
     public static function fromStorage(string $path, ?string $disk = null, ?string $mimeType = null): static
