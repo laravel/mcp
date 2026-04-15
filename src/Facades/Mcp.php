@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Facades;
 
+use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Facade;
+use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Registrar;
 
 /**
- * @method static \Illuminate\Routing\Route web(string $route, string<\Laravel\Mcp\Server> $serverClass)
- * @method static void local(string $handle, string<\Laravel\Mcp\Server> $serverClass)
+ * @method static Route web(string $route, class-string<Server> $serverClass)
+ * @method static void local(string $handle, class-string<Server> $serverClass)
  * @method static callable|null getLocalServer(string $handle)
  * @method static \Illuminate\Routing\Route|null getWebServer(string $route)
  * @method static array<string, callable|\Illuminate\Routing\Route> servers()
