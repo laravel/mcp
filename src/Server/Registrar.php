@@ -23,8 +23,8 @@ class Registrar
     /** @var array<string, callable> */
     protected array $localServers = [];
 
-    /** @var array<string, string> */
-    protected array $httpServerUris = [];
+    /** @var array<string, Route> */
+    protected array $httpServers = [];
 
     /**
      * @param  class-string<Server>  $serverClass
@@ -36,9 +36,9 @@ class Registrar
 
         Router::delete($route, fn (): Response => response('', 405)->header('Allow', 'POST'));
 
-        $route = Router::post($route, fn (): mixed => static::startServer(
+        $route = Router::post($route, static fn (): mixed => static::startServer(
             $serverClass,
-            fn (): HttpTransport => new HttpTransport(
+            static fn (): HttpTransport => new HttpTransport(
                 $request = request(),
                 // @phpstan-ignore-next-line
                 (string) $request->header('MCP-Session-Id')
@@ -50,7 +50,7 @@ class Registrar
 
         assert($route instanceof Route);
 
-        $this->httpServerUris[$route->uri()] = $route->uri();
+        $this->httpServers[$route->uri()] = $route;
 
         return $route;
     }
@@ -72,27 +72,17 @@ class Registrar
 
     public function getWebServer(string $route): ?Route
     {
-        if (! isset($this->httpServerUris[$route])) {
-            return null;
-        }
-
-        foreach (Router::getRoutes()->getRoutes() as $registeredRoute) {
-            if ($registeredRoute->uri() === $route && in_array('POST', $registeredRoute->methods(), true)) {
-                return $registeredRoute;
-            }
-        }
-
-        return null;
+        return $this->httpServers[$route] ?? null;
     }
 
     /**
-     * @return array<string, callable|string>
+     * @return array<string, callable|Route>
      */
     public function servers(): array
     {
         return array_merge(
             $this->localServers,
-            $this->httpServerUris,
+            $this->httpServers,
         );
     }
 
@@ -103,20 +93,20 @@ class Registrar
         $hasExactAuthorizationServerRoute = $this->hasGetRoute('.well-known/oauth-authorization-server');
 
         if (! $hasExactProtectedResourceRoute) {
-            Router::get('/.well-known/oauth-protected-resource', fn () => response()->json(static::protectedResourceMetadata('')))
+            Router::get('/.well-known/oauth-protected-resource', static fn () => response()->json(static::protectedResourceMetadata('')))
                 ->name('mcp.oauth.protected-resource');
         }
 
         if (! $hasExactAuthorizationServerRoute) {
-            Router::get('/.well-known/oauth-authorization-server', fn () => response()->json(static::authorizationServerMetadata($oauthPrefix)))
+            Router::get('/.well-known/oauth-authorization-server', static fn () => response()->json(static::authorizationServerMetadata($oauthPrefix)))
                 ->name('mcp.oauth.authorization-server');
         }
 
-        Router::get('/.well-known/oauth-protected-resource/{path}', fn (string $path) => response()->json(static::protectedResourceMetadata($path)))
+        Router::get('/.well-known/oauth-protected-resource/{path}', static fn (string $path) => response()->json(static::protectedResourceMetadata($path)))
             ->where('path', '.*')
             ->name('mcp.oauth.protected-resource.nested');
 
-        Router::get('/.well-known/oauth-authorization-server/{path}', fn (string $path) => response()->json(static::authorizationServerMetadata($oauthPrefix)))
+        Router::get('/.well-known/oauth-authorization-server/{path}', static fn (string $path) => response()->json(static::authorizationServerMetadata($oauthPrefix)))
             ->where('path', '.*')
             ->name('mcp.oauth.authorization-server.nested');
 
