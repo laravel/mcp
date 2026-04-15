@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Content;
 
-use Laravel\Mcp\Server\Concerns\HasMeta;
-use Laravel\Mcp\Server\Contracts\Content;
+use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
-use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Concerns\HasMeta;
+use Laravel\Mcp\Server\Contracts\Content;
 
 class ResourceLink implements Content
 {
@@ -58,12 +58,12 @@ class ResourceLink implements Content
     public function toArray(): array
     {
         $data = array_filter([
-            'type'        => 'resource_link',
-            'uri'         => $this->uri,
-            'name'        => $this->name,
+            'type' => 'resource_link',
+            'uri' => $this->uri,
+            'name' => $this->name,
             'description' => $this->description,
-            'mimeType'    => $this->mimeType,
-        ], fn ($v) => $v !== null);
+            'mimeType' => $this->mimeType,
+        ], fn ($value) => $value !== null);
 
         return $this->mergeMeta($data);
     }
