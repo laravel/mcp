@@ -36,9 +36,9 @@ class Registrar
 
         Router::delete($route, fn (): Response => response('', 405)->header('Allow', 'POST'));
 
-        $route = Router::post($route, fn (): mixed => static::startServer(
+        $route = Router::post($route, static fn (): mixed => static::startServer(
             $serverClass,
-            fn (): HttpTransport => new HttpTransport(
+            static fn (): HttpTransport => new HttpTransport(
                 $request = request(),
                 // @phpstan-ignore-next-line
                 (string) $request->header('MCP-Session-Id')
@@ -93,20 +93,20 @@ class Registrar
         $hasExactAuthorizationServerRoute = $this->hasGetRoute('.well-known/oauth-authorization-server');
 
         if (! $hasExactProtectedResourceRoute) {
-            Router::get('/.well-known/oauth-protected-resource', fn () => response()->json($this->protectedResourceMetadata('')))
+            Router::get('/.well-known/oauth-protected-resource', static fn () => response()->json(static::protectedResourceMetadata('')))
                 ->name('mcp.oauth.protected-resource');
         }
 
         if (! $hasExactAuthorizationServerRoute) {
-            Router::get('/.well-known/oauth-authorization-server', fn () => response()->json($this->authorizationServerMetadata($oauthPrefix)))
+            Router::get('/.well-known/oauth-authorization-server', static fn () => response()->json(static::authorizationServerMetadata($oauthPrefix)))
                 ->name('mcp.oauth.authorization-server');
         }
 
-        Router::get('/.well-known/oauth-protected-resource/{path}', fn (string $path) => response()->json($this->protectedResourceMetadata($path)))
+        Router::get('/.well-known/oauth-protected-resource/{path}', static fn (string $path) => response()->json(static::protectedResourceMetadata($path)))
             ->where('path', '.*')
             ->name('mcp.oauth.protected-resource.nested');
 
-        Router::get('/.well-known/oauth-authorization-server/{path}', fn (string $path) => response()->json($this->authorizationServerMetadata($oauthPrefix)))
+        Router::get('/.well-known/oauth-authorization-server/{path}', static fn (string $path) => response()->json(static::authorizationServerMetadata($oauthPrefix)))
             ->where('path', '.*')
             ->name('mcp.oauth.authorization-server.nested');
 
@@ -116,7 +116,7 @@ class Registrar
     /**
      * @return array<string, array<int, string>|string>
      */
-    protected function authorizationServerMetadata(string $oauthPrefix): array
+    protected static function authorizationServerMetadata(string $oauthPrefix): array
     {
         return [
             'issuer' => config('mcp.authorization_server') ?? url('/'),
@@ -133,7 +133,7 @@ class Registrar
     /**
      * @return array<string, array<int, string>|string>
      */
-    protected function protectedResourceMetadata(string $path): array
+    protected static function protectedResourceMetadata(string $path): array
     {
         return [
             'resource' => url('/'.$path),
