@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Content;
 
-use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Prompt;
-use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Concerns\HasMeta;
 use Laravel\Mcp\Server\Contracts\Content;
+use Laravel\Mcp\Server\Prompt;
+use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Server\Tool;
 
 class ResourceLink implements Content
 {
@@ -63,7 +63,7 @@ class ResourceLink implements Content
             'name' => $this->name,
             'description' => $this->description,
             'mimeType' => $this->mimeType,
-        ], fn ($value) => $value !== null);
+        ], fn (?string $value): bool => $value !== null);
 
         return $this->mergeMeta($data);
     }
