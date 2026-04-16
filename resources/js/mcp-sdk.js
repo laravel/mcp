@@ -9,6 +9,14 @@
         "onhostcontextchanged",
     ];
 
+    const errorCodes = {
+        parseError: -32700,
+        invalidRequest: -32600,
+        methodNotFound: -32601,
+        invalidParams: -32602,
+        internalError: -32603,
+    };
+
     let nextRequestId = 0;
 
     const pendingRequests = new Map();
@@ -251,7 +259,7 @@
         } catch (error) {
             respondWithError(
                 id,
-                -32603,
+                errorCodes.internalError,
                 error instanceof Error
                     ? error.message
                     : "Unknown teardown error",
@@ -261,7 +269,11 @@
 
     async function handleCallTool(id, params) {
         if (!handlers.oncalltool) {
-            respondWithError(id, -32601, "No tool handler registered.");
+            respondWithError(
+                id,
+                errorCodes.methodNotFound,
+                "No tool handler registered.",
+            );
             return;
         }
 
@@ -270,7 +282,7 @@
         } catch (error) {
             respondWithError(
                 id,
-                -32603,
+                errorCodes.internalError,
                 error instanceof Error ? error.message : "Unknown tool error",
             );
         }
@@ -285,7 +297,7 @@
         } catch (error) {
             respondWithError(
                 id,
-                -32603,
+                errorCodes.internalError,
                 error instanceof Error
                     ? error.message
                     : "Unknown list tools error",
@@ -339,7 +351,7 @@
         } else {
             respondWithError(
                 message.id,
-                -32601,
+                errorCodes.methodNotFound,
                 "Method not found: " + message.method,
             );
         }
