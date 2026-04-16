@@ -1,19 +1,22 @@
 (function () {
-    const jsonRpcVersion = '2.0';
-    const protocolVersion = '2026-01-26';
+    const jsonRpcVersion = "2.0";
+    const protocolVersion = "2026-01-26";
     const queuedHandlerNames = [
-        'ontoolinput',
-        'ontoolinputpartial',
-        'ontoolresult',
-        'ontoolcancelled',
-        'onhostcontextchanged',
+        "ontoolinput",
+        "ontoolinputpartial",
+        "ontoolresult",
+        "ontoolcancelled",
+        "onhostcontextchanged",
     ];
 
     let nextRequestId = 0;
 
     const pendingRequests = new Map();
     const handlers = {};
-    const queuedNotifications = queuedHandlerNames.reduce(function (queue, name) {
+    const queuedNotifications = queuedHandlerNames.reduce(function (
+        queue,
+        name,
+    ) {
         queue[name] = [];
 
         return queue;
@@ -26,8 +29,8 @@
 
     function send(message) {
         message.jsonRpcVersion = jsonRpcVersion;
-        
-        window.parent.postMessage(message, '*');
+
+        window.parent.postMessage(message, "*");
     }
 
     function request(method, params) {
@@ -35,6 +38,7 @@
             const id = ++nextRequestId;
 
             pendingRequests.set(id, { resolve, reject });
+
             send({ id, method, params });
         });
     }
@@ -58,7 +62,7 @@
     }
 
     function parseMessage(data) {
-        if (typeof data === 'string') {
+        if (typeof data === "string") {
             try {
                 return JSON.parse(data);
             } catch (error) {
@@ -66,7 +70,7 @@
             }
         }
 
-        if (data && typeof data === 'object') {
+        if (data && typeof data === "object") {
             return data;
         }
 
@@ -74,7 +78,9 @@
     }
 
     function isObject(value) {
-        return value !== null && typeof value === 'object' && !Array.isArray(value);
+        return (
+            value !== null && typeof value === "object" && !Array.isArray(value)
+        );
     }
 
     function mergeObjects(current, update) {
@@ -94,7 +100,10 @@
             const nextStyles = update.styles || {};
 
             next.styles = mergeObjects(currentStyles, nextStyles);
-            next.styles.variables = mergeObjects(currentStyles.variables, nextStyles.variables);
+            next.styles.variables = mergeObjects(
+                currentStyles.variables,
+                nextStyles.variables,
+            );
             next.styles.css = mergeObjects(currentStyles.css, nextStyles.css);
         }
 
@@ -139,7 +148,7 @@
             return;
         }
 
-        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.setAttribute("data-theme", theme);
         document.documentElement.style.colorScheme = theme;
     }
 
@@ -160,11 +169,11 @@
             return;
         }
 
-        let style = document.getElementById('__mcp-host-fonts');
+        let style = document.getElementById("__mcp-host-fonts");
 
         if (!style) {
-            style = document.createElement('style');
-            style.id = '__mcp-host-fonts';
+            style = document.createElement("style");
+            style.id = "__mcp-host-fonts";
             document.head.appendChild(style);
         }
 
@@ -181,7 +190,7 @@
         applyTheme(hostContext.theme);
         applyStyleVariables(hostContext.styles?.variables);
         applyFonts(hostContext.styles?.css?.fonts);
-        emit('onhostcontextchanged', hostContext);
+        emit("onhostcontextchanged", hostContext);
     }
 
     function currentSize() {
@@ -192,11 +201,11 @@
     }
 
     function notifySizeChanged() {
-        notify('ui/notifications/size-changed', currentSize());
+        notify("ui/notifications/size-changed", currentSize());
     }
 
     function autoResize() {
-        if (typeof ResizeObserver === 'undefined' || !document.body) {
+        if (typeof ResizeObserver === "undefined" || !document.body) {
             return;
         }
 
@@ -211,28 +220,47 @@
         try {
             respond(id, await (handlers.onteardown?.() ?? {}));
         } catch (error) {
-            respondError(id, -32603, error instanceof Error ? error.message : 'Unknown teardown error');
+            respondError(
+                id,
+                -32603,
+                error instanceof Error
+                    ? error.message
+                    : "Unknown teardown error",
+            );
         }
     }
 
     async function handleCallTool(id, params) {
         if (!handlers.oncalltool) {
-            respondError(id, -32601, 'No tool handler registered.');
+            respondError(id, -32601, "No tool handler registered.");
             return;
         }
 
         try {
             respond(id, await handlers.oncalltool(params));
         } catch (error) {
-            respondError(id, -32603, error instanceof Error ? error.message : 'Unknown tool error');
+            respondError(
+                id,
+                -32603,
+                error instanceof Error ? error.message : "Unknown tool error",
+            );
         }
     }
 
     async function handleListTools(id, params) {
         try {
-            respond(id, await (handlers.onlisttools?.(params) ?? { tools: [] }));
+            respond(
+                id,
+                await (handlers.onlisttools?.(params) ?? { tools: [] }),
+            );
         } catch (error) {
-            respondError(id, -32603, error instanceof Error ? error.message : 'Unknown list tools error');
+            respondError(
+                id,
+                -32603,
+                error instanceof Error
+                    ? error.message
+                    : "Unknown list tools error",
+            );
         }
     }
 
@@ -256,20 +284,20 @@
 
     function handleNotification(message) {
         const notificationHandlers = {
-            'ui/notifications/host-context-changed': function (params) {
+            "ui/notifications/host-context-changed": function (params) {
                 applyHostContext(params);
             },
-            'ui/notifications/tool-input': function (params) {
-                emit('ontoolinput', params ?? {});
+            "ui/notifications/tool-input": function (params) {
+                emit("ontoolinput", params ?? {});
             },
-            'ui/notifications/tool-input-partial': function (params) {
-                emit('ontoolinputpartial', params ?? {});
+            "ui/notifications/tool-input-partial": function (params) {
+                emit("ontoolinputpartial", params ?? {});
             },
-            'ui/notifications/tool-result': function (params) {
-                emit('ontoolresult', params ?? {});
+            "ui/notifications/tool-result": function (params) {
+                emit("ontoolresult", params ?? {});
             },
-            'ui/notifications/tool-cancelled': function (params) {
-                emit('ontoolcancelled', params ?? {});
+            "ui/notifications/tool-cancelled": function (params) {
+                emit("ontoolcancelled", params ?? {});
             },
         };
 
@@ -282,13 +310,13 @@
 
     function handleIncomingRequest(message) {
         const requestHandlers = {
-            'ui/resource-teardown': function () {
+            "ui/resource-teardown": function () {
                 handleTeardown(message.id);
             },
-            'tools/call': function () {
+            "tools/call": function () {
                 handleCallTool(message.id, message.params);
             },
-            'tools/list': function () {
+            "tools/list": function () {
                 handleListTools(message.id, message.params);
             },
         };
@@ -298,11 +326,15 @@
         if (handler) {
             handler();
         } else {
-            respondError(message.id, -32601, 'Method not found: ' + message.method);
+            respondError(
+                message.id,
+                -32601,
+                "Method not found: " + message.method,
+            );
         }
     }
 
-    window.addEventListener('message', function (event) {
+    window.addEventListener("message", function (event) {
         if (event.source !== window.parent) {
             return;
         }
@@ -326,11 +358,11 @@
     });
 
     window.createMcpApp = async function createMcpApp(setup) {
-        const initializeResult = await request('ui/initialize', {
+        const initializeResult = await request("ui/initialize", {
             protocolVersion: protocolVersion,
             appInfo: {
-                name: document.title || 'MCP App',
-                version: '1.0.0',
+                name: document.title || "MCP App",
+                version: "1.0.0",
             },
             appCapabilities: {},
         });
@@ -339,91 +371,103 @@
         state.hostCapabilities = initializeResult?.hostCapabilities ?? null;
         applyHostContext(initializeResult?.hostContext ?? null);
 
-        notify('ui/notifications/initialized');
+        notify("ui/notifications/initialized");
 
         function callTool(nameOrParams, args) {
             const params = isObject(nameOrParams)
                 ? {
-                    name: nameOrParams.name,
-                    arguments: nameOrParams.arguments || {},
-                }
+                      name: nameOrParams.name,
+                      arguments: nameOrParams.arguments || {},
+                  }
                 : {
-                    name: nameOrParams,
-                    arguments: args || {},
-                };
+                      name: nameOrParams,
+                      arguments: args || {},
+                  };
 
-            return request('tools/call', params);
+            return request("tools/call", params);
         }
 
         function listResources(cursorOrParams) {
             if (isObject(cursorOrParams)) {
-                return request('resources/list', cursorOrParams);
+                return request("resources/list", cursorOrParams);
             }
 
-            return request('resources/list', cursorOrParams ? { cursor: cursorOrParams } : undefined);
+            return request(
+                "resources/list",
+                cursorOrParams ? { cursor: cursorOrParams } : undefined,
+            );
         }
 
         function readResource(uriOrParams) {
-            const params = isObject(uriOrParams) ? uriOrParams : { uri: uriOrParams };
+            const params = isObject(uriOrParams)
+                ? uriOrParams
+                : { uri: uriOrParams };
 
-            return request('resources/read', params);
+            return request("resources/read", params);
         }
 
         function sendMessage(messageOrContent, role) {
-            const params = isObject(messageOrContent) && ('content' in messageOrContent || 'role' in messageOrContent)
-                ? {
-                    role: messageOrContent.role || 'user',
-                    content: messageOrContent.content,
-                }
-                : {
-                    role: role || 'user',
-                    content: messageOrContent,
-                };
+            const params =
+                isObject(messageOrContent) &&
+                ("content" in messageOrContent || "role" in messageOrContent)
+                    ? {
+                          role: messageOrContent.role || "user",
+                          content: messageOrContent.content,
+                      }
+                    : {
+                          role: role || "user",
+                          content: messageOrContent,
+                      };
 
-            return request('ui/message', params);
+            return request("ui/message", params);
         }
 
         function openLink(urlOrParams) {
-            const params = isObject(urlOrParams) ? urlOrParams : { url: urlOrParams };
+            const params = isObject(urlOrParams)
+                ? urlOrParams
+                : { url: urlOrParams };
 
-            return request('ui/open-link', params);
+            return request("ui/open-link", params);
         }
 
         function downloadFile(contentsOrParams) {
-            const params = isObject(contentsOrParams) && 'contents' in contentsOrParams
-                ? contentsOrParams
-                : { contents: contentsOrParams };
+            const params =
+                isObject(contentsOrParams) && "contents" in contentsOrParams
+                    ? contentsOrParams
+                    : { contents: contentsOrParams };
 
-            return request('ui/download-file', params);
+            return request("ui/download-file", params);
         }
 
         function requestDisplayMode(modeOrParams) {
-            const params = isObject(modeOrParams) ? modeOrParams : { mode: modeOrParams };
+            const params = isObject(modeOrParams)
+                ? modeOrParams
+                : { mode: modeOrParams };
 
-            return request('ui/request-display-mode', params);
+            return request("ui/request-display-mode", params);
         }
 
         function updateModelContext(params) {
-            return request('ui/update-model-context', params || {});
+            return request("ui/update-model-context", params || {});
         }
 
         function requestTeardown() {
-            notify('ui/notifications/request-teardown');
+            notify("ui/notifications/request-teardown");
         }
 
         function sendLog(levelOrParams, data, logger) {
             const params = isObject(levelOrParams)
                 ? levelOrParams
                 : {
-                    level: levelOrParams,
-                    data: data,
-                };
+                      level: levelOrParams,
+                      data: data,
+                  };
 
             if (!isObject(levelOrParams) && logger !== undefined) {
                 params.logger = logger;
             }
 
-            notify('notifications/message', params);
+            notify("notifications/message", params);
 
             return Promise.resolve();
         }
@@ -471,20 +515,20 @@
                 handlers.onlisttools = callback;
             },
             onToolInput: function (callback) {
-                setHandler('ontoolinput', callback);
+                setHandler("ontoolinput", callback);
             },
             onToolInputPartial: function (callback) {
-                setHandler('ontoolinputpartial', callback);
+                setHandler("ontoolinputpartial", callback);
             },
             onToolResult: function (callback) {
-                setHandler('ontoolresult', callback);
+                setHandler("ontoolresult", callback);
             },
             onToolCancelled: function (callback) {
-                setHandler('ontoolcancelled', callback);
+                setHandler("ontoolcancelled", callback);
             },
             onHostContextChanged: function (callback) {
-                setHandler('onhostcontextchanged', callback);
+                setHandler("onhostcontextchanged", callback);
             },
         });
     };
-}());
+})();
