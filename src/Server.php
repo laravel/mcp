@@ -286,13 +286,11 @@ abstract class Server
         );
 
         $container->instance('mcp.request', $request->toRequest());
-        $container->instance('mcp.current_server', $this);
 
         try {
             $response = $methodClass->handle($request, $context);
         } finally {
             $container->forgetInstance('mcp.request');
-            $container->forgetInstance('mcp.current_server');
         }
 
         return $response;
