@@ -39,25 +39,7 @@ class AppMeta
     {
         $meta = AppMetaData::make();
 
-        if ($this->connectDomains !== null || $this->resourceDomains !== null || $this->frameDomains !== null || $this->baseUriDomains !== null) {
-            $csp = Csp::make();
-
-            if ($this->connectDomains !== null) {
-                $csp->connectDomains($this->connectDomains);
-            }
-
-            if ($this->resourceDomains !== null) {
-                $csp->resourceDomains($this->resourceDomains);
-            }
-
-            if ($this->frameDomains !== null) {
-                $csp->frameDomains($this->frameDomains);
-            }
-
-            if ($this->baseUriDomains !== null) {
-                $csp->baseUriDomains($this->baseUriDomains);
-            }
-
+        if ($csp = $this->getCsp()) {
             $meta->csp($csp);
         }
 
@@ -78,5 +60,23 @@ class AppMeta
         }
 
         return $meta;
+    }
+
+    protected function getCsp(): ?Csp
+    {
+        if (
+            $this->connectDomains === null
+            && $this->resourceDomains === null
+            && $this->frameDomains === null
+            && $this->baseUriDomains === null
+        ) {
+            return null;
+        }
+
+        return Csp::make()
+            ->connectDomains($this->connectDomains ?? [])
+            ->resourceDomains($this->resourceDomains ?? [])
+            ->frameDomains($this->frameDomains ?? [])
+            ->baseUriDomains($this->baseUriDomains ?? []);
     }
 }

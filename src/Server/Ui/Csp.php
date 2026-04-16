@@ -81,6 +81,6 @@ class Csp implements Arrayable
             'resourceDomains' => $this->resourceDomains,
             'frameDomains' => $this->frameDomains,
             'baseUriDomains' => $this->baseUriDomains,
-        ], fn (mixed $value): bool => $value !== null);
+        ], fn (mixed $value): bool => $value !== null && $value !== []);
     }
 }
