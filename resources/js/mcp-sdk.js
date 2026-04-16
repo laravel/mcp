@@ -25,6 +25,8 @@
     };
 
     function send(message) {
+        message.jsonRpcVersion = jsonRpcVersion;
+        
         window.parent.postMessage(message, '*');
     }
 
@@ -33,12 +35,12 @@
             const id = ++nextRequestId;
 
             pendingRequests.set(id, { resolve, reject });
-            send({ jsonrpc: jsonRpcVersion, id, method, params });
+            send({ id, method, params });
         });
     }
 
     function notify(method, params) {
-        const message = { jsonrpc: jsonRpcVersion, method };
+        const message = { method };
 
         if (params !== undefined) {
             message.params = params;
@@ -48,11 +50,11 @@
     }
 
     function respond(id, result) {
-        send({ jsonrpc: jsonRpcVersion, id, result });
+        send({ id, result });
     }
 
     function respondError(id, code, message) {
-        send({ jsonrpc: jsonRpcVersion, id, error: { code, message } });
+        send({ id, error: { code, message } });
     }
 
     function parseMessage(data) {
