@@ -396,7 +396,7 @@
 
         notify("ui/notifications/initialized");
 
-        function callTool(nameOrParams, args) {
+        function callServerTool(nameOrParams, args) {
             const params = isObject(nameOrParams)
                 ? {
                       name: nameOrParams.name,
@@ -496,26 +496,16 @@
         }
 
         await setup({
-            hostContext: function () {
-                return state.hostContext;
-            },
             getHostContext: function () {
                 return state.hostContext;
-            },
-            hostInfo: function () {
-                return state.hostInfo;
             },
             getHostInfo: function () {
                 return state.hostInfo;
             },
-            hostCapabilities: function () {
-                return state.hostCapabilities;
-            },
             getHostCapabilities: function () {
                 return state.hostCapabilities;
             },
-            callTool: callTool,
-            callServerTool: callTool,
+            callServerTool: callServerTool,
             listResources: listResources,
             readResource: readResource,
             sendMessage: sendMessage,
@@ -524,7 +514,6 @@
             requestDisplayMode: requestDisplayMode,
             updateModelContext: updateModelContext,
             requestTeardown: requestTeardown,
-            teardown: requestTeardown,
             sendLog: sendLog,
             resize: notifySizeChanged,
             autoResize: autoResize,

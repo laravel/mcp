@@ -26,7 +26,7 @@ class DashboardApp extends AppResource
         <script type="module">
         createMcpApp(async (app) => {
             document.getElementById('run-btn').addEventListener('click', async () => {
-                const result = await app.callTool({ name: 'tool-name', arguments: {} });
+                const result = await app.callServerTool({ name: 'tool-name', arguments: {} });
                 document.getElementById('output').textContent = result.content[0]?.text ?? '';
             });
         });
@@ -306,7 +306,7 @@ Renders a complete self-contained HTML document with the MCP SDK inlined. `creat
         <script type="module">
         createMcpApp(async (app) => {
             document.getElementById('run-btn').addEventListener('click', async () => {
-                const result = await app.callTool({ name: 'tool-name', arguments: {} });
+                const result = await app.callServerTool({ name: 'tool-name', arguments: {} });
                 document.getElementById('output').textContent = result.content[0]?.text ?? '';
             });
         });
@@ -361,19 +361,16 @@ createMcpApp(async (app) => {
 
 ### Tools
 
-#### app.callTool() / app.callServerTool()
+#### app.callServerTool()
 
-`callServerTool` is an alias for `callTool`. Both accept an object or positional arguments:
+Accepts an object or positional arguments:
 
 ```js
 // Object form
-const result = await app.callTool({
-    name: "get-analytics",
-    arguments: { dateRange: "7d" },
-});
+const result = await app.callServerTool({ name: 'get-analytics', arguments: { dateRange: '7d' } });
 
 // Positional form
-const result = await app.callTool("get-analytics", { dateRange: "7d" });
+const result = await app.callServerTool('get-analytics', { dateRange: '7d' });
 
 // result structure depends on the server's tool response
 const text = result.content[0]?.text ?? "";
@@ -428,7 +425,7 @@ await app.sendMessage("System event occurred.", "user");
 
 ### Host Context
 
-#### app.hostContext() / app.getHostContext()
+#### app.getHostContext()
 
 Returns the current host context, including theme and style variables:
 
@@ -439,13 +436,13 @@ ctx?.styles?.variables; // CSS variable map from host
 ctx?.styles?.css?.fonts; // font CSS from host
 ```
 
-#### app.hostInfo() / app.getHostInfo()
+#### app.getHostInfo()
 
 ```js
 const info = app.getHostInfo();
 ```
 
-#### app.hostCapabilities() / app.getHostCapabilities()
+#### app.getHostCapabilities()
 
 ```js
 const caps = app.getHostCapabilities();
@@ -500,9 +497,9 @@ await app.updateModelContext({ key: "value" });
 
 ### Lifecycle
 
-#### app.requestTeardown() / app.teardown()
+#### app.requestTeardown()
 
-`teardown` is an alias for `requestTeardown`. Sends a teardown notification to the host.
+Sends a teardown notification to the host.
 
 ```js
 app.requestTeardown();
@@ -706,9 +703,9 @@ class GetMonitorData extends Tool
 ```js
 createMcpApp(async (app) => {
     async function poll() {
-        const result = await app.callTool("get-monitor-data");
-        const data = JSON.parse(result.content[0]?.text ?? "{}");
-        document.getElementById("cpu").textContent = data.cpu;
+        const result = await app.callServerTool('get-monitor-data');
+        const data = JSON.parse(result.content[0]?.text ?? '{}');
+        document.getElementById('cpu').textContent = data.cpu;
     }
 
     setInterval(poll, 2000);
@@ -778,7 +775,7 @@ class GetImage extends Tool
 In the client, convert the base64 blob to a data URI for rendering:
 
 ```js
-const result = await app.callTool("get-image", { id: 42 });
+const result = await app.callServerTool('get-image', { id: 42 });
 const blob = result.content[0];
 img.src = `data:${blob.mimeType};base64,${blob.data}`;
 ```
@@ -826,9 +823,7 @@ createMcpApp(async (app) => {
 
     // For durable state, persist server-side
     async function saveServerState(state) {
-        await app.callTool("save-dashboard-state", {
-            state: JSON.stringify(state),
-        });
+        await app.callServerTool('save-dashboard-state', { state: JSON.stringify(state) });
     }
 });
 ```
@@ -928,7 +923,7 @@ class ProcessData extends Tool
 
 ```js
 createMcpApp(async (app) => {
-    const result = await app.callTool("process-data", { input: value });
+    const result = await app.callServerTool('process-data', { input: value });
 
     if (result.isError) {
         document.getElementById("error").textContent =

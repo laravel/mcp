@@ -3,7 +3,7 @@
         <script type="module">
         createMcpApp(async (app) => {
             document.getElementById('run-btn').addEventListener('click', async () => {
-                const result = await app.callTool('tool-name', {});
+                const result = await app.callServerTool('tool-name', {});
                 document.getElementById('output').textContent = result.content[0]?.text ?? '';
             });
         });
