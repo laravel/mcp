@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Facades;
 
-use Laravel\Mcp\Server;
 use Illuminate\Routing\Route;
-use Laravel\Mcp\Server\Registrar;
 use Illuminate\Support\Facades\Facade;
+use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Registrar;
 
 /**
  * @method static Route web(string $route, class-string<Server> $serverClass)
