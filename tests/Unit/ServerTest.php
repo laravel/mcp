@@ -46,7 +46,6 @@ it('can add a capability', function (): void {
         ->and($capabilities)->toHaveKey('tools')
         ->and($capabilities)->toHaveKey('resources')
         ->and($capabilities)->toHaveKey('prompts');
-
 });
 
 it('can handle a list tools message', function (): void {

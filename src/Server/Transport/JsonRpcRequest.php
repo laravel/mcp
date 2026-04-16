@@ -31,15 +31,15 @@ class JsonRpcRequest
         $requestId = $jsonRequest['id'];
 
         if (! is_int($jsonRequest['id']) && ! is_string($jsonRequest['id'])) {
-            throw new JsonRpcException('Invalid Request: The [id] member must be a string, number.', -32600, $requestId);
+            throw JsonRpcException::invalidRequest('Invalid Request: The [id] member must be a string, number.', $requestId);
         }
 
         if (! isset($jsonRequest['jsonrpc']) || $jsonRequest['jsonrpc'] !== '2.0') {
-            throw new JsonRpcException('Invalid Request: The [jsonrpc] member must be exactly [2.0].', -32600, $requestId);
+            throw JsonRpcException::invalidRequest('Invalid Request: The [jsonrpc] member must be exactly [2.0].', $requestId);
         }
 
         if (! isset($jsonRequest['method']) || ! is_string($jsonRequest['method'])) {
-            throw new JsonRpcException('Invalid Request: The [method] member is required and must be a string.', -32600, $requestId);
+            throw JsonRpcException::invalidRequest('Invalid Request: The [method] member is required and must be a string.', $requestId);
         }
 
         return new static(

@@ -28,9 +28,8 @@ trait InteractsWithResponses
 
         $responseFactory->responses()->each(function (Response $response) use ($request): void {
             if (! $this instanceof Errable && $response->isError()) {
-                throw new JsonRpcException(
+                throw JsonRpcException::internalError(
                     $response->content()->__toString(), // @phpstan-ignore-line
-                    -32603,
                     $request->id,
                 );
             }

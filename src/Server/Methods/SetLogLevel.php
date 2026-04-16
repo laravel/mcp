@@ -24,19 +24,14 @@ class SetLogLevel implements Method
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
         if (! $context->hasCapability(Server::CAPABILITY_LOGGING)) {
-            throw new JsonRpcException(
-                'Logging capability is not enabled on this server.',
-                -32601,
-                $request->id,
-            );
+            throw JsonRpcException::methodNotFound('Logging capability is not enabled on this server.', $request->id);
         }
 
         $levelString = $request->get('level');
 
         if (! is_string($levelString)) {
-            throw new JsonRpcException(
+            throw JsonRpcException::invalidParams(
                 'Invalid Request: The [level] parameter is required and must be a string.',
-                -32602,
                 $request->id,
             );
         }
@@ -46,9 +41,8 @@ class SetLogLevel implements Method
         } catch (ValueError) {
             $validLevels = implode(', ', array_column(LogLevel::cases(), 'value'));
 
-            throw new JsonRpcException(
+            throw JsonRpcException::invalidParams(
                 "Invalid log level [{$levelString}]. Must be one of: {$validLevels}.",
-                -32602,
                 $request->id,
             );
         }

@@ -26,11 +26,17 @@ class JsonRpcNotification
     public static function from(array $jsonRequest): static
     {
         if (! isset($jsonRequest['jsonrpc']) || $jsonRequest['jsonrpc'] !== '2.0') {
-            throw new JsonRpcException('Invalid Request: Invalid JSON-RPC version. Must be "2.0".', -32600);
+            throw new JsonRpcException(
+                'Invalid Request: Invalid JSON-RPC version. Must be "2.0".',
+                JsonRpcException::INVALID_REQUEST,
+            );
         }
 
         if (! isset($jsonRequest['method']) || ! is_string($jsonRequest['method'])) {
-            throw new JsonRpcException('Invalid Request: Invalid or missing "method". Must be a string.', -32600);
+            throw new JsonRpcException(
+                'Invalid Request: Invalid or missing "method". Must be a string.',
+                JsonRpcException::INVALID_REQUEST,
+            );
         }
 
         return new static(

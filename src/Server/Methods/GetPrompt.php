@@ -30,21 +30,14 @@ class GetPrompt implements Method
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
         if (is_null($request->get('name'))) {
-            throw new JsonRpcException(
-                'Missing [name] parameter.',
-                -32602,
-                $request->id,
-            );
+            throw JsonRpcException::invalidParams('Missing [name] parameter.', $request->id);
         }
 
         $prompt = $context->prompts()
             ->first(
                 fn ($prompt): bool => $prompt->name() === $request->get('name'),
-                fn () => throw new JsonRpcException(
-                    "Prompt [{$request->get('name')}] not found.",
-                    -32602,
-                    $request->id,
-                ));
+                fn () => throw JsonRpcException::invalidParams("Prompt [{$request->get('name')}] not found.", $request->id),
+            );
 
         try {
             // @phpstan-ignore-next-line

@@ -173,7 +173,7 @@ abstract class Server
             $jsonRequest = json_decode($rawMessage, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', -32700);
+                throw JsonRpcException::parseError('Parse error: Invalid JSON was received by the server.');
             }
 
             $request = isset($jsonRequest['id'])
@@ -191,11 +191,7 @@ abstract class Server
             }
 
             if (! isset($this->methods[$request->method])) {
-                throw new JsonRpcException(
-                    "The method [{$request->method}] was not found.",
-                    -32601,
-                    $request->id,
-                );
+                throw JsonRpcException::methodNotFound("The method [{$request->method}] was not found.", $request->id);
             }
 
             $this->handleMessage($request, $context);
@@ -212,7 +208,7 @@ abstract class Server
 
             $jsonRpcResponse = JsonRpcResponse::error(
                 $request->id ?? null,
-                -32603,
+                JsonRpcException::INTERNAL_ERROR,
                 'Something went wrong while processing the request.',
             );
 
