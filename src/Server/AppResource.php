@@ -41,15 +41,9 @@ abstract class AppResource extends Resource
 
     public function libraryScripts(): string
     {
-        $libraries = $this->appMeta()->getLibraries();
-
-        if ($libraries === []) {
-            return '';
-        }
-
         return implode("\n", array_map(
             fn(Library $lib): string => implode("\n", $lib->scriptTags()),
-            $libraries,
+            $this->appMeta()->getLibraries(),
         ));
     }
 
