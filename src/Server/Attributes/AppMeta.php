@@ -39,7 +39,7 @@ class AppMeta
     {
         $meta = AppMetaData::make();
 
-        if ($csp = $this->getCsp()) {
+        if (($csp = $this->getCsp()) instanceof Csp) {
             $meta->csp($csp);
         }
 

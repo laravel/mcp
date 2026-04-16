@@ -10,6 +10,7 @@ use Illuminate\JsonSchema\JsonSchema as JsonSchemaFactory;
 use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Concerns\HasAnnotations;
 use Laravel\Mcp\Server\Tools\Annotations\ToolAnnotation;
+use Laravel\Mcp\Server\Ui\Enums\Visibility;
 
 abstract class Tool extends Primitive
 {
@@ -88,7 +89,7 @@ abstract class Tool extends Primitive
 
             $this->setMeta('ui', [
                 'resourceUri' => $appResource->uri(),
-                'visibility' => array_map(fn ($v) => $v->value, $rendersApp->visibility),
+                'visibility' => array_map(fn (Visibility $visiblity) => $visiblity->value, $rendersApp->visibility),
             ]);
         }
 

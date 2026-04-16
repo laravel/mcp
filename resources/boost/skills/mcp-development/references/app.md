@@ -415,14 +415,15 @@ const resource = await app.readResource({ uri: "ui://my-resource" });
 Send a message to the model (creates a conversation turn):
 
 ```js
-// Object form
+// Object form with structured content
 await app.sendMessage({
     role: "user",
     content: [{ type: "text", text: "User submitted the form." }],
 });
 
-// Shorthand — content string with optional role
-await app.sendMessage("User submitted the form.", "user");
+// Shorthand — plain string content with optional role (defaults to 'user')
+await app.sendMessage("User submitted the form.");
+await app.sendMessage("System event occurred.", "user");
 ```
 
 ### Host Context
@@ -480,10 +481,13 @@ await app.requestDisplayMode({ mode: "fullscreen" });
 
 #### app.resize() / app.autoResize()
 
-`resize()` sends a one-time size notification. `autoResize()` uses `ResizeObserver` to continuously notify the host of size changes.
+`resize()` sends a one-time size notification. `autoResize()` uses `ResizeObserver` to continuously notify the host of size changes. It returns a cleanup function that disconnects the observer — useful if you need to stop observing before teardown. The observer is also automatically disconnected on teardown.
 
 ```js
-app.autoResize();
+const stopObserving = app.autoResize();
+
+// Later, if needed:
+stopObserving();
 ```
 
 ### Model Context
@@ -600,23 +604,26 @@ Associates a Tool with a UI Resource. When the tool is called, the host fetches 
 
 ```php
 use Laravel\Mcp\Server\Attributes\RendersApp;
+use Laravel\Mcp\Server\Ui\Enums\Visibility;
 
 // Both model and app can call this tool (default)
 #[RendersApp(resource: DashboardApp::class)]
 class ShowDashboard extends Tool { ... }
 
 // Only the app can call this tool (private to the UI)
-#[RendersApp(resource: DashboardApp::class, visibility: ['app'])]
+#[RendersApp(resource: DashboardApp::class, visibility: [Visibility::App])]
 class RefreshDashboardData extends Tool { ... }
 ```
 
 **Visibility:**
 
-| Visibility         | Model | App | Use case                                               |
-| ------------------ | ----- | --- | ------------------------------------------------------ |
-| `['model', 'app']` | Yes   | Yes | Primary tools that trigger UI display                  |
-| `['app']`          | No    | Yes | Backend actions the UI calls (refresh, save, paginate) |
-| `['model']`        | Yes   | No  | Model-only tools linked to a UI                        |
+The `Visibility` enum (`Laravel\Mcp\Server\Ui\Enums\Visibility`) has two cases: `Model` and `App`. The default is `[Visibility::Model, Visibility::App]`.
+
+| Visibility                             | Model | App | Use case                                               |
+| -------------------------------------- | ----- | --- | ------------------------------------------------------ |
+| `[Visibility::Model, Visibility::App]` | Yes   | Yes | Primary tools that trigger UI display                  |
+| `[Visibility::App]`                    | No    | Yes | Backend actions the UI calls (refresh, save, paginate) |
+| `[Visibility::Model]`                  | Yes   | No  | Model-only tools linked to a UI                        |
 
 ### Primary + Private Pattern
 
@@ -630,7 +637,7 @@ class ShowDashboard extends Tool
     }
 }
 
-#[RendersApp(resource: DashboardApp::class, visibility: ['app'])]
+#[RendersApp(resource: DashboardApp::class, visibility: [Visibility::App])]
 class GetDashboardMetrics extends Tool
 {
     public function handle(Request $request): Response
@@ -680,7 +687,7 @@ it('includes ui metadata in tool listing', function () {
 Use app-only tools to fetch fresh data at regular intervals from the UI:
 
 ```php
-#[RendersApp(resource: MonitorApp::class, visibility: ['app'])]
+#[RendersApp(resource: MonitorApp::class, visibility: [Visibility::App])]
 class GetMonitorData extends Tool
 {
     protected string $description = 'Fetch latest monitor metrics';
@@ -714,7 +721,7 @@ createMcpApp(async (app) => {
 For large datasets, implement pagination via app-only tools:
 
 ```php
-#[RendersApp(resource: LogViewerApp::class, visibility: ['app'])]
+#[RendersApp(resource: LogViewerApp::class, visibility: [Visibility::App])]
 class GetLogChunk extends Tool
 {
     protected string $description = 'Fetch a chunk of log entries';
@@ -751,7 +758,7 @@ class GetLogChunk extends Tool
 Deliver images and binary content through MCP resources using `Response::blob()`:
 
 ```php
-#[RendersApp(resource: GalleryApp::class, visibility: ['app'])]
+#[RendersApp(resource: GalleryApp::class, visibility: [Visibility::App])]
 class GetImage extends Tool
 {
     protected string $description = 'Fetch an image by ID';

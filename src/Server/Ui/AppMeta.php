@@ -82,7 +82,7 @@ class AppMeta implements Arrayable
 
         if ($this->libraries !== []) {
             $libraryDomains = collect($this->libraries)
-                ->map(fn (Library $lib) => $lib->domains())
+                ->map(fn (Library $lib): array => $lib->domains())
                 ->flatten();
 
             /** @var array<int, string> $existingDomains */

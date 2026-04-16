@@ -27,6 +27,31 @@
         hostCapabilities: null,
     };
 
+    let resizeObserver = null;
+
+    function disconnectResizeObserver() {
+        if (resizeObserver) {
+            resizeObserver.disconnect();
+            resizeObserver = null;
+        }
+    }
+
+    const notificationHandlers = {
+        "ui/notifications/host-context-changed": applyHostContext,
+        "ui/notifications/tool-input": function (params) {
+            emit("ontoolinput", params ?? {});
+        },
+        "ui/notifications/tool-input-partial": function (params) {
+            emit("ontoolinputpartial", params ?? {});
+        },
+        "ui/notifications/tool-result": function (params) {
+            emit("ontoolresult", params ?? {});
+        },
+        "ui/notifications/tool-cancelled": function (params) {
+            emit("ontoolcancelled", params ?? {});
+        },
+    };
+
     function send(message) {
         message.jsonrpc = jsonRpcVersion;
 
@@ -209,15 +234,19 @@
             return;
         }
 
-        const observer = new ResizeObserver(notifySizeChanged);
+        disconnectResizeObserver();
 
-        observer.observe(document.body);
+        resizeObserver = new ResizeObserver(notifySizeChanged);
 
-        return observer;
+        resizeObserver.observe(document.body);
+
+        return disconnectResizeObserver;
     }
 
     async function handleTeardown(id) {
         try {
+            disconnectResizeObserver();
+
             respond(id, await (handlers.onteardown?.() ?? {}));
         } catch (error) {
             respondWithError(
@@ -283,24 +312,6 @@
     }
 
     function handleNotification(message) {
-        const notificationHandlers = {
-            "ui/notifications/host-context-changed": function (params) {
-                applyHostContext(params);
-            },
-            "ui/notifications/tool-input": function (params) {
-                emit("ontoolinput", params ?? {});
-            },
-            "ui/notifications/tool-input-partial": function (params) {
-                emit("ontoolinputpartial", params ?? {});
-            },
-            "ui/notifications/tool-result": function (params) {
-                emit("ontoolresult", params ?? {});
-            },
-            "ui/notifications/tool-cancelled": function (params) {
-                emit("ontoolcancelled", params ?? {});
-            },
-        };
-
         const handler = notificationHandlers[message.method];
 
         if (handler) {
@@ -308,23 +319,23 @@
         }
     }
 
-    function handleIncomingRequest(message) {
-        const requestHandlers = {
-            "ui/resource-teardown": function () {
-                handleTeardown(message.id);
-            },
-            "tools/call": function () {
-                handleCallTool(message.id, message.params);
-            },
-            "tools/list": function () {
-                handleListTools(message.id, message.params);
-            },
-        };
+    const requestHandlers = {
+        "ui/resource-teardown": function (message) {
+            handleTeardown(message.id);
+        },
+        "tools/call": function (message) {
+            handleCallTool(message.id, message.params);
+        },
+        "tools/list": function (message) {
+            handleListTools(message.id, message.params);
+        },
+    };
 
+    function handleIncomingRequest(message) {
         const handler = requestHandlers[message.method];
 
         if (handler) {
-            handler();
+            handler(message);
         } else {
             respondWithError(
                 message.id,
