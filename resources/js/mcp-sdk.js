@@ -57,7 +57,7 @@
         send({ id, result });
     }
 
-    function respondError(id, code, message) {
+    function respondWithError(id, code, message) {
         send({ id, error: { code, message } });
     }
 
@@ -220,7 +220,7 @@
         try {
             respond(id, await (handlers.onteardown?.() ?? {}));
         } catch (error) {
-            respondError(
+            respondWithError(
                 id,
                 -32603,
                 error instanceof Error
@@ -232,14 +232,14 @@
 
     async function handleCallTool(id, params) {
         if (!handlers.oncalltool) {
-            respondError(id, -32601, "No tool handler registered.");
+            respondWithError(id, -32601, "No tool handler registered.");
             return;
         }
 
         try {
             respond(id, await handlers.oncalltool(params));
         } catch (error) {
-            respondError(
+            respondWithError(
                 id,
                 -32603,
                 error instanceof Error ? error.message : "Unknown tool error",
@@ -254,7 +254,7 @@
                 await (handlers.onlisttools?.(params) ?? { tools: [] }),
             );
         } catch (error) {
-            respondError(
+            respondWithError(
                 id,
                 -32603,
                 error instanceof Error
@@ -326,7 +326,7 @@
         if (handler) {
             handler();
         } else {
-            respondError(
+            respondWithError(
                 message.id,
                 -32601,
                 "Method not found: " + message.method,
