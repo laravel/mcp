@@ -13,58 +13,37 @@ use stdClass;
  */
 class Permissions implements Arrayable
 {
-    public function __construct(
-        protected bool $camera = false,
-        protected bool $microphone = false,
-        protected bool $geolocation = false,
-        protected bool $clipboardWrite = false,
-    ) {
-        //
-    }
+    /** @var array<int, Permission> */
+    protected array $enabled = [];
 
     public static function make(): static
     {
         return new static;
     }
 
-    public function camera(bool $enabled = true): static
+    public function camera(): static
     {
-        $this->camera = $enabled;
-
-        return $this;
+        return $this->allow(Permission::Camera);
     }
 
-    public function microphone(bool $enabled = true): static
+    public function microphone(): static
     {
-        $this->microphone = $enabled;
-
-        return $this;
+        return $this->allow(Permission::Microphone);
     }
 
-    public function geolocation(bool $enabled = true): static
+    public function geolocation(): static
     {
-        $this->geolocation = $enabled;
-
-        return $this;
+        return $this->allow(Permission::Geolocation);
     }
 
-    public function clipboardWrite(bool $enabled = true): static
+    public function clipboardWrite(): static
     {
-        $this->clipboardWrite = $enabled;
-
-        return $this;
+        return $this->allow(Permission::ClipboardWrite);
     }
 
     public function allow(Permission ...$permissions): static
     {
-        foreach ($permissions as $permission) {
-            match ($permission) {
-                Permission::Camera => $this->camera = true,
-                Permission::Microphone => $this->microphone = true,
-                Permission::Geolocation => $this->geolocation = true,
-                Permission::ClipboardWrite => $this->clipboardWrite = true,
-            };
-        }
+        array_push($this->enabled, ...$permissions);
 
         return $this;
     }
@@ -74,14 +53,12 @@ class Permissions implements Arrayable
      */
     public function toArray(): array
     {
-        return array_map(
-            fn (): stdClass => new stdClass,
-            array_filter([
-                'camera' => $this->camera,
-                'microphone' => $this->microphone,
-                'geolocation' => $this->geolocation,
-                'clipboardWrite' => $this->clipboardWrite,
-            ]),
-        );
+        $result = [];
+
+        foreach ($this->enabled as $permission) {
+            $result[$permission->value] = new stdClass;
+        }
+
+        return $result;
     }
 }
