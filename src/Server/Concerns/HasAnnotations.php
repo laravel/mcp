@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Concerns;
 
+use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use Laravel\Mcp\Server\Contracts\Annotation as AnnotationContract;
 use ReflectionAttribute;
@@ -18,7 +19,7 @@ trait HasAnnotations
     {
         $reflection = new ReflectionClass($this);
 
-        /** @var \Illuminate\Support\Collection<int, AnnotationContract> $annotations */
+        /** @var Collection<int, AnnotationContract> $annotations */
         $annotations = collect($reflection->getAttributes())
             ->map(fn (ReflectionAttribute $attributeReflection): object => $attributeReflection->newInstance())
             ->filter(fn (object $attribute): bool => $attribute instanceof AnnotationContract)

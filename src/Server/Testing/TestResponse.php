@@ -276,7 +276,7 @@ class TestResponse
     }
 
     /**
-     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     * @return Collection<int, array<string, mixed>>
      */
     protected function getLogNotifications(): Collection
     {

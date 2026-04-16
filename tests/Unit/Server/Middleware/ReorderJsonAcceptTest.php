@@ -1,6 +1,8 @@
 <?php
 
+use Illuminate\Contracts\Routing\ResponseFactory;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Laravel\Mcp\Server\Middleware\ReorderJsonAccept;
 
 it('leaves single accept header unchanged', function (): void {
@@ -9,7 +11,7 @@ it('leaves single accept header unchanged', function (): void {
 
     $middleware = new ReorderJsonAccept;
 
-    $middleware->handle($request, fn ($req): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response('test'));
+    $middleware->handle($request, fn ($req): ResponseFactory|\Illuminate\Http\Response => response('test'));
 
     expect($request->header('Accept'))->toBe('application/json');
 });
@@ -20,7 +22,7 @@ it('leaves non-comma separated accept header unchanged', function (): void {
 
     $middleware = new ReorderJsonAccept;
 
-    $middleware->handle($request, fn ($req): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response('test'));
+    $middleware->handle($request, fn ($req): ResponseFactory|\Illuminate\Http\Response => response('test'));
 
     expect($request->header('Accept'))->toBe('text/html');
 });
@@ -31,7 +33,7 @@ it('reorders multiple accept headers to prioritize json', function (): void {
 
     $middleware = new ReorderJsonAccept;
 
-    $middleware->handle($request, fn ($req): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response('test'));
+    $middleware->handle($request, fn ($req): ResponseFactory|\Illuminate\Http\Response => response('test'));
 
     expect($request->header('Accept'))->toBe('application/json, text/html, text/plain');
 });
@@ -42,7 +44,7 @@ it('handles json already first in list', function (): void {
 
     $middleware = new ReorderJsonAccept;
 
-    $middleware->handle($request, fn ($req): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response('test'));
+    $middleware->handle($request, fn ($req): ResponseFactory|\Illuminate\Http\Response => response('test'));
 
     expect($request->header('Accept'))->toBe('application/json, text/html, text/plain');
 });
@@ -53,7 +55,7 @@ it('handles multiple json types correctly', function (): void {
 
     $middleware = new ReorderJsonAccept;
 
-    $middleware->handle($request, fn ($req): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response('test'));
+    $middleware->handle($request, fn ($req): ResponseFactory|\Illuminate\Http\Response => response('test'));
 
     $accept = $request->header('Accept');
     $parts = array_map(trim(...), explode(',', $accept));
@@ -68,7 +70,7 @@ it('handles accept header with quality values', function (): void {
 
     $middleware = new ReorderJsonAccept;
 
-    $middleware->handle($request, fn ($req): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response('test'));
+    $middleware->handle($request, fn ($req): ResponseFactory|\Illuminate\Http\Response => response('test'));
 
     $accept = $request->header('Accept');
     $parts = array_map(trim(...), explode(',', $accept));
@@ -82,7 +84,7 @@ it('handles whitespace in accept header', function (): void {
 
     $middleware = new ReorderJsonAccept;
 
-    $middleware->handle($request, fn ($req): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response('test'));
+    $middleware->handle($request, fn ($req): ResponseFactory|\Illuminate\Http\Response => response('test'));
 
     expect($request->header('Accept'))->toBe('application/json, text/html, text/plain');
 });
@@ -93,7 +95,7 @@ it('handles no json in accept header', function (): void {
 
     $middleware = new ReorderJsonAccept;
 
-    $middleware->handle($request, fn ($req): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response('test'));
+    $middleware->handle($request, fn ($req): ResponseFactory|\Illuminate\Http\Response => response('test'));
 
     expect($request->header('Accept'))->toBe('text/html, text/plain, image/png');
 });
@@ -104,7 +106,7 @@ it('handles empty accept header', function (): void {
 
     $middleware = new ReorderJsonAccept;
 
-    $middleware->handle($request, fn ($req): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response('test'));
+    $middleware->handle($request, fn ($req): ResponseFactory|\Illuminate\Http\Response => response('test'));
 
     expect($request->header('Accept'))->toBe('');
 });
@@ -114,7 +116,7 @@ it('handles missing accept header', function (): void {
 
     $middleware = new ReorderJsonAccept;
 
-    $response = $middleware->handle($request, fn ($req): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response => response('test'));
+    $response = $middleware->handle($request, fn ($req): ResponseFactory|\Illuminate\Http\Response => response('test'));
 
     expect($response->getContent())->toBe('test');
 });
@@ -125,7 +127,7 @@ it('passes request through middleware correctly', function (): void {
 
     $middleware = new ReorderJsonAccept;
 
-    $response = $middleware->handle($request, function ($req): \Illuminate\Contracts\Routing\ResponseFactory|\Illuminate\Http\Response {
+    $response = $middleware->handle($request, function ($req): ResponseFactory|Response {
         expect($req->header('Accept'))->toBe('application/json, text/html');
 
         return response('middleware worked');

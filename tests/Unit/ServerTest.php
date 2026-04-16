@@ -1,8 +1,14 @@
 <?php
 
+use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\CustomMethodHandler;
 use Tests\Fixtures\ExampleServer;
+use Tests\Fixtures\ThrowingMethodHandler;
 
 it('can handle an initialized message', function (): void {
     $transport = new ArrayTransport;
@@ -150,7 +156,7 @@ it('can handle a custom method message', function (): void {
 
     $server->addMethod('custom/method', CustomMethodHandler::class);
 
-    $this->app->bind(CustomMethodHandler::class, fn (): \Tests\Fixtures\CustomMethodHandler => new CustomMethodHandler('custom-dependency'));
+    $this->app->bind(CustomMethodHandler::class, fn (): CustomMethodHandler => new CustomMethodHandler('custom-dependency'));
 
     $server->start();
 
@@ -193,7 +199,7 @@ it('can handle a ping message', function (): void {
 it('calls boot method on connect', function (): void {
     $transport = new ArrayTransport;
 
-    $server = new class($transport) extends \Laravel\Mcp\Server
+    $server = new class($transport) extends Server
     {
         public function boot(): void
         {
@@ -246,18 +252,18 @@ it('handles exceptions in debug mode', function (): void {
     config()->set('app.debug', true);
 
     $transport = new ArrayTransport;
-    $server = new class($transport) extends \Laravel\Mcp\Server
+    $server = new class($transport) extends Server
     {
         protected array $methods = [
-            'test/method' => \Tests\Fixtures\ThrowingMethodHandler::class,
+            'test/method' => ThrowingMethodHandler::class,
         ];
     };
 
-    $this->app->bind(\Tests\Fixtures\ThrowingMethodHandler::class, fn (): \Laravel\Mcp\Server\Contracts\Method => new class implements \Laravel\Mcp\Server\Contracts\Method
+    $this->app->bind(ThrowingMethodHandler::class, fn (): Method => new class implements Method
     {
-        public function handle(\Laravel\Mcp\Server\Transport\JsonRpcRequest $request, \Laravel\Mcp\Server\ServerContext $context): \Laravel\Mcp\Server\Transport\JsonRpcResponse
+        public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
         {
-            throw new \Exception('Test exception');
+            throw new Exception('Test exception');
         }
     });
 
@@ -272,25 +278,25 @@ it('handles exceptions in debug mode', function (): void {
 
     expect(function () use ($transport, $payload): void {
         ($transport->handler)($payload);
-    })->toThrow(\Exception::class, 'Test exception');
+    })->toThrow(Exception::class, 'Test exception');
 });
 
 it('handles exceptions in production mode', function (): void {
     config()->set('app.debug', false);
 
     $transport = new ArrayTransport;
-    $server = new class($transport) extends \Laravel\Mcp\Server
+    $server = new class($transport) extends Server
     {
         protected array $methods = [
-            'test/method' => \Tests\Fixtures\ThrowingMethodHandler::class,
+            'test/method' => ThrowingMethodHandler::class,
         ];
     };
 
-    $this->app->bind(\Tests\Fixtures\ThrowingMethodHandler::class, fn (): \Laravel\Mcp\Server\Contracts\Method => new class implements \Laravel\Mcp\Server\Contracts\Method
+    $this->app->bind(ThrowingMethodHandler::class, fn (): Method => new class implements Method
     {
-        public function handle(\Laravel\Mcp\Server\Transport\JsonRpcRequest $request, \Laravel\Mcp\Server\ServerContext $context): \Laravel\Mcp\Server\Transport\JsonRpcResponse
+        public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
         {
-            throw new \Exception('Test exception');
+            throw new Exception('Test exception');
         }
     });
 

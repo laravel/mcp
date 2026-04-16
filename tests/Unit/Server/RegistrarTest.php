@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Server\Registrar;
+use Laravel\Passport\ClientRepository;
+use Laravel\Passport\Passport;
 use Tests\Fixtures\ExampleServer;
 
 it('registers a local server and retrieves it', function (): void {
@@ -31,7 +33,7 @@ it('registers a web server and retrieves it', function (): void {
 
     $webServer = $registrar->getWebServer('api/mcp');
 
-    expect($webServer)->toBeInstanceOf(\Illuminate\Routing\Route::class);
+    expect($webServer)->toBeInstanceOf(Illuminate\Routing\Route::class);
     expect($webServer)->toBe($route);
 });
 
@@ -128,12 +130,12 @@ it('adds mcp scope when passport is available', function (): void {
     $registrar = new Registrar;
 
     // Clear any existing scopes
-    \Laravel\Passport\Passport::$scopes = [];
+    Passport::$scopes = [];
 
     $registrar->oauthRoutes();
 
-    expect(\Laravel\Passport\Passport::$scopes)->toHaveKey('mcp:use');
-    expect(\Laravel\Passport\Passport::$scopes['mcp:use'])->toBe('Use MCP server');
+    expect(Passport::$scopes)->toHaveKey('mcp:use');
+    expect(Passport::$scopes['mcp:use'])->toBe('Use MCP server');
 });
 
 it('does not duplicate mcp scope if already exists', function (): void {
@@ -152,12 +154,12 @@ it('does not duplicate mcp scope if already exists', function (): void {
     $registrar = new Registrar;
 
     // Set existing scope
-    \Laravel\Passport\Passport::$scopes = ['mcp:use' => 'Existing MCP scope'];
+    Passport::$scopes = ['mcp:use' => 'Existing MCP scope'];
 
     $registrar->oauthRoutes();
 
     // Should not overwrite existing scope
-    expect(\Laravel\Passport\Passport::$scopes['mcp:use'])->toBe('Existing MCP scope');
+    expect(Passport::$scopes['mcp:use'])->toBe('Existing MCP scope');
 });
 
 it('handles oauth registration endpoint', function (): void {
@@ -180,7 +182,7 @@ it('handles oauth registration endpoint', function (): void {
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
+    $this->app->instance('Laravel\Passport\ClientRepository', new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Test Client',
@@ -220,7 +222,7 @@ it('handles oauth registration with allowed domains', function (): void {
 
     config()->set('mcp.redirect_domains', ['http://localhost:3000/']);
 
-    $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
+    $this->app->instance('Laravel\Passport\ClientRepository', new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Test Client',
@@ -260,7 +262,7 @@ it('handles oauth registration with incorrect redirect domain', function (): voi
 
     config()->set('mcp.redirect_domains', ['http://allowed-domain.com/']);
 
-    $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
+    $this->app->instance('Laravel\Passport\ClientRepository', new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Test Client',

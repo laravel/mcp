@@ -34,7 +34,7 @@ class LoggingTestServer extends Server
 
 class LoggingTestTool extends Tool
 {
-    public function handle(Request $request): \Generator
+    public function handle(Request $request): Generator
     {
         yield Response::log(LogLevel::Emergency, 'Emergency message');
         yield Response::log(LogLevel::Error, 'Error message');
@@ -48,7 +48,7 @@ class LoggingTestTool extends Tool
 
 class StructuredLogTool extends Tool
 {
-    public function handle(Request $request): \Generator
+    public function handle(Request $request): Generator
     {
         yield Response::log(
             LogLevel::Error,
@@ -68,7 +68,7 @@ class StructuredLogTool extends Tool
 
 class LogLevelTestTool extends Tool
 {
-    public function handle(Request $request, LoggingManager $logManager): \Generator
+    public function handle(Request $request, LoggingManager $logManager): Generator
     {
         yield Response::log(LogLevel::Warning, 'This is a warning message');
         yield Response::log(LogLevel::Emergency, 'This is an emergency message');

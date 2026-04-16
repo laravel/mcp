@@ -92,7 +92,7 @@ class McpServiceProvider extends ServiceProvider
 
     protected function registerSessionBindings(): void
     {
-        $this->app->bind(SessionStore::class, function ($app): Support\SessionStore {
+        $this->app->bind(SessionStore::class, function ($app): SessionStore {
             $sessionId = null;
 
             if ($app->bound('mcp.request')) {

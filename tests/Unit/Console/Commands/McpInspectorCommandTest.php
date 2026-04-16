@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Illuminate\Routing\Route;
+use Illuminate\Routing\UrlGenerator;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
 use Laravel\Mcp\Server\Registrar;
 
@@ -97,7 +99,7 @@ it('uses single server when only one is registered', function (): void {
 });
 
 it('handles http transport with https url', function (): void {
-    $route = Mockery::mock(\Illuminate\Routing\Route::class);
+    $route = Mockery::mock(Route::class);
     $route->shouldReceive('uri')->andReturn('api/mcp');
 
     $this->registrar
@@ -142,7 +144,7 @@ it('handles non-string handle argument', function (): void {
 });
 
 it('handles single server with Route class', function (): void {
-    $route = Mockery::mock(\Illuminate\Routing\Route::class);
+    $route = Mockery::mock(Route::class);
     $route->shouldReceive('uri')->andReturn('api/mcp');
 
     $this->registrar
@@ -158,7 +160,7 @@ it('handles single server with Route class', function (): void {
     $this->registrar->shouldReceive('servers')->andReturn(['single' => $route]);
 
     // Can't test the actual Process execution in unit tests
-    expect($route)->toBeInstanceOf(\Illuminate\Routing\Route::class);
+    expect($route)->toBeInstanceOf(Route::class);
 });
 
 it('handles single server with unknown type', function (): void {
@@ -202,12 +204,12 @@ it('verifies process timeout is set correctly', function (): void {
 });
 
 it('handles http transport with http url', function (): void {
-    $route = Mockery::mock(\Illuminate\Routing\Route::class);
+    $route = Mockery::mock(Route::class);
     $route->shouldReceive('uri')->andReturn('api/mcp');
 
     // Mock url() helper to return http URL
     app()->bind('url', function () {
-        $url = Mockery::mock(\Illuminate\Routing\UrlGenerator::class);
+        $url = Mockery::mock(UrlGenerator::class);
         $url->shouldReceive('to')->andReturn('http://localhost/api/mcp');
 
         return $url;
@@ -230,7 +232,7 @@ it('handles http transport with http url', function (): void {
 });
 
 it('retrieves php binary path correctly', function (): void {
-    $command = new \Laravel\Mcp\Console\Commands\InspectorCommand;
+    $command = new InspectorCommand;
     $reflection = new ReflectionClass($command);
     $method = $reflection->getMethod('phpBinary');
 
