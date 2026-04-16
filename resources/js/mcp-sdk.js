@@ -28,7 +28,7 @@
     };
 
     function send(message) {
-        message.jsonRpcVersion = jsonRpcVersion;
+        message.jsonrpc = jsonRpcVersion;
 
         window.parent.postMessage(message, "*");
     }
