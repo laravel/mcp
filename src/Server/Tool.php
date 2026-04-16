@@ -88,7 +88,7 @@ abstract class Tool extends Primitive
 
             $this->setMeta('ui', [
                 'resourceUri' => $appResource->uri(),
-                'visibility' => $rendersApp->visibility,
+                'visibility' => array_map(fn ($v) => $v->value, $rendersApp->visibility),
             ]);
         }
 

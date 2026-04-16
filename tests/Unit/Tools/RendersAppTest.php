@@ -7,6 +7,7 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Ui\Enums\Visibility;
 
 it('includes _meta.ui.resourceUri when RendersApp attribute is present', function (): void {
     $array = (new RendersAppSpecTool)->toArray();
@@ -61,7 +62,7 @@ class RendersAppSpecTool extends Tool
     }
 }
 
-#[RendersApp(resource: RendersAppSpecWidgetResource::class, visibility: ['app'])]
+#[RendersApp(resource: RendersAppSpecWidgetResource::class, visibility: [Visibility::App])]
 class AppOnlyTool extends Tool
 {
     protected string $description = 'An app-only tool';
