@@ -19,6 +19,7 @@ class DashboardApp extends AppResource
 ```
 
 **Blade view** — HTML structure + inline JS, everything in one file:
+
 ```blade
 <x-mcp::app title="Dashboard App">
     <x-slot:head>
@@ -161,14 +162,14 @@ The simplest way to configure UI metadata is via the `#[AppMeta]` attribute dire
 
 ```php
 use Laravel\Mcp\Server\Attributes\AppMeta;
-use Laravel\Mcp\Server\Ui\Enums\AppResourceLibrary;
+use Laravel\Mcp\Server\Ui\Enums\Library;
 use Laravel\Mcp\Server\Ui\Enums\Permission;
 
 #[AppMeta(
     connectDomains: ['https://api.stripe.com'],
     permissions: [Permission::Camera, Permission::ClipboardWrite],
     prefersBorder: true,
-    libraries: [AppResourceLibrary::Tailwind, AppResourceLibrary::Alpine],
+    libraries: [Library::Tailwind, Library::Alpine],
 )]
 class PaymentsResource extends AppResource
 {
@@ -186,7 +187,7 @@ public function appMeta(): AppMeta
     return AppMeta::make()
         ->csp(Csp::make()->connectDomains(config('services.api.domains')))
         ->permissions(Permissions::make()->allow(Permission::Camera))
-        ->libraries(AppResourceLibrary::Tailwind)
+        ->libraries(Library::Tailwind)
         ->domain('sandbox.example.com');
 }
 ```
@@ -236,7 +237,7 @@ Each enabled permission serializes as `"camera": {}` per the MCP spec.
 AppMeta::make()
     ->csp(Csp::make()->connectDomains([...]))
     ->permissions(Permissions::make()->allow(Permission::Camera))
-    ->libraries(AppResourceLibrary::Tailwind, AppResourceLibrary::Alpine)
+    ->libraries(Library::Tailwind, Library::Alpine)
     ->domain('sandbox.example.com')  // dedicated sandbox origin (OAuth/CORS)
     ->prefersBorder(false);
 ```
@@ -260,20 +261,21 @@ class PaymentsResource extends AppResource
 The `libraries` parameter adds pre-configured CDN scripts to the `<head>` of your app. Available libraries:
 
 ```php
-use Laravel\Mcp\Server\Ui\Enums\AppResourceLibrary;
+use Laravel\Mcp\Server\Ui\Enums\Library;
 
-AppResourceLibrary::Tailwind  // Tailwind CSS CDN + dark mode config
-AppResourceLibrary::Alpine    // Alpine.js CDN + x-cloak style
+Library::Tailwind  // Tailwind CSS CDN + dark mode config
+Library::Alpine    // Alpine.js CDN + x-cloak style
 ```
 
 When libraries are specified, the package automatically:
+
 1. Injects the CDN `<script>` tags into the Blade view's `<head>` (after the MCP SDK, before your `<x-slot:head>`)
 2. Merges each library's CDN domains into `csp.resourceDomains` so the host allows loading them
 
 Via attribute:
 
 ```php
-#[AppMeta(libraries: [AppResourceLibrary::Tailwind])]
+#[AppMeta(libraries: [Library::Tailwind])]
 class StyledApp extends AppResource
 {
     // Tailwind is available in the Blade view — no extra setup
@@ -286,7 +288,7 @@ Via fluent builder:
 public function appMeta(): AppMeta
 {
     return AppMeta::make()
-        ->libraries(AppResourceLibrary::Tailwind, AppResourceLibrary::Alpine);
+        ->libraries(Library::Tailwind, Library::Alpine);
 }
 ```
 
@@ -320,12 +322,12 @@ Renders a complete self-contained HTML document with the MCP SDK inlined. `creat
 
 **Props and slots:**
 
-| Name | Type | Description |
-|------|------|-------------|
-| `title` | Prop | Sets `<title>`. Optional. |
-| `head` | Named slot | Injected into `<head>` after the inlined SDK script. |
-| Default slot | Slot | Body content. |
-| `$attributes` | Attribute bag | Forwarded to `<body>` (e.g. `class="dark"`). |
+| Name          | Type          | Description                                          |
+| ------------- | ------------- | ---------------------------------------------------- |
+| `title`       | Prop          | Sets `<title>`. Optional.                            |
+| `head`        | Named slot    | Injected into `<head>` after the inlined SDK script. |
+| Default slot  | Slot          | Body content.                                        |
+| `$attributes` | Attribute bag | Forwarded to `<body>` (e.g. `class="dark"`).         |
 
 The SDK is loaded from the `mcp.sdk` singleton (registered by `McpServiceProvider`) and inlined directly in a `<script>` tag. Library scripts (Tailwind, Alpine) configured via `#[AppMeta]` are injected after the SDK and before the `head` slot.
 
@@ -340,9 +342,8 @@ To pass server-side data to JS, embed it as `data-*` attributes:
 ```
 
 ```js
-const users = JSON.parse(document.getElementById('app').dataset.users);
+const users = JSON.parse(document.getElementById("app").dataset.users);
 ```
-
 
 ## Client-Side
 
@@ -366,21 +367,24 @@ createMcpApp(async (app) => {
 
 ```js
 // Object form
-const result = await app.callTool({ name: 'get-analytics', arguments: { dateRange: '7d' } });
+const result = await app.callTool({
+    name: "get-analytics",
+    arguments: { dateRange: "7d" },
+});
 
 // Positional form
-const result = await app.callTool('get-analytics', { dateRange: '7d' });
+const result = await app.callTool("get-analytics", { dateRange: "7d" });
 
 // result structure depends on the server's tool response
-const text = result.content[0]?.text ?? '';
+const text = result.content[0]?.text ?? "";
 ```
 
 All tool results share a standard structure:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `content` | `Array` | Content items returned by the tool (each has `type` and `text` or `data`) |
-| `isError` | `boolean` | `true` when the tool returned an error response |
+| Property  | Type      | Description                                                               |
+| --------- | --------- | ------------------------------------------------------------------------- |
+| `content` | `Array`   | Content items returned by the tool (each has `type` and `text` or `data`) |
+| `isError` | `boolean` | `true` when the tool returned an error response                           |
 
 Always check `result.isError` before consuming `content`. See [Error Handling](#error-handling) for a full example.
 
@@ -391,17 +395,17 @@ Always check `result.isError` before consuming `content`. See [Error Handling](#
 ```js
 const resources = await app.listResources();
 // or with cursor for pagination
-const resources = await app.listResources('cursor-value');
+const resources = await app.listResources("cursor-value");
 // or object form
-const resources = await app.listResources({ cursor: 'cursor-value' });
+const resources = await app.listResources({ cursor: "cursor-value" });
 ```
 
 #### app.readResource()
 
 ```js
-const resource = await app.readResource('ui://my-resource');
+const resource = await app.readResource("ui://my-resource");
 // or object form
-const resource = await app.readResource({ uri: 'ui://my-resource' });
+const resource = await app.readResource({ uri: "ui://my-resource" });
 ```
 
 ### Messaging
@@ -413,12 +417,12 @@ Send a message to the model (creates a conversation turn):
 ```js
 // Object form
 await app.sendMessage({
-    role: 'user',
-    content: [{ type: 'text', text: 'User submitted the form.' }],
+    role: "user",
+    content: [{ type: "text", text: "User submitted the form." }],
 });
 
 // Shorthand — content string with optional role
-await app.sendMessage('User submitted the form.', 'user');
+await app.sendMessage("User submitted the form.", "user");
 ```
 
 ### Host Context
@@ -429,8 +433,8 @@ Returns the current host context, including theme and style variables:
 
 ```js
 const ctx = app.getHostContext();
-ctx?.theme;              // 'light' | 'dark'
-ctx?.styles?.variables;  // CSS variable map from host
+ctx?.theme; // 'light' | 'dark'
+ctx?.styles?.variables; // CSS variable map from host
 ctx?.styles?.css?.fonts; // font CSS from host
 ```
 
@@ -451,17 +455,17 @@ const caps = app.getHostCapabilities();
 #### app.openLink()
 
 ```js
-await app.openLink('https://example.com');
+await app.openLink("https://example.com");
 // or object form
-await app.openLink({ url: 'https://example.com' });
+await app.openLink({ url: "https://example.com" });
 ```
 
 #### app.downloadFile()
 
 ```js
-await app.downloadFile('file contents here');
+await app.downloadFile("file contents here");
 // or object form
-await app.downloadFile({ contents: 'file contents here' });
+await app.downloadFile({ contents: "file contents here" });
 ```
 
 ### Display
@@ -469,9 +473,9 @@ await app.downloadFile({ contents: 'file contents here' });
 #### app.requestDisplayMode()
 
 ```js
-await app.requestDisplayMode('fullscreen');
+await app.requestDisplayMode("fullscreen");
 // or object form
-await app.requestDisplayMode({ mode: 'fullscreen' });
+await app.requestDisplayMode({ mode: "fullscreen" });
 ```
 
 #### app.resize() / app.autoResize()
@@ -487,7 +491,7 @@ app.autoResize();
 #### app.updateModelContext()
 
 ```js
-await app.updateModelContext({ key: 'value' });
+await app.updateModelContext({ key: "value" });
 ```
 
 ### Lifecycle
@@ -506,10 +510,14 @@ app.requestTeardown();
 
 ```js
 // Positional form
-await app.sendLog('info', 'Processing started', 'my-logger');
+await app.sendLog("info", "Processing started", "my-logger");
 
 // Object form
-await app.sendLog({ level: 'info', data: 'Processing started', logger: 'my-logger' });
+await app.sendLog({
+    level: "info",
+    data: "Processing started",
+    logger: "my-logger",
+});
 ```
 
 ### Event Handlers
@@ -518,14 +526,30 @@ Register callbacks for host-side events. Tool input/result/cancelled events are 
 
 ```js
 createMcpApp(async (app) => {
-    app.onToolInput((params) => { /* tool input received */ });
-    app.onToolInputPartial((params) => { /* partial tool input */ });
-    app.onToolResult((params) => { /* tool result received */ });
-    app.onToolCancelled((params) => { /* tool was cancelled */ });
-    app.onHostContextChanged((ctx) => { /* theme/styles changed */ });
-    app.onTeardown(async () => { /* cleanup before teardown */ });
-    app.onCallTool(async (params) => { /* host requests tool call */ });
-    app.onListTools(async (params) => { /* host requests tool list */ });
+    app.onToolInput((params) => {
+        /* tool input received */
+    });
+    app.onToolInputPartial((params) => {
+        /* partial tool input */
+    });
+    app.onToolResult((params) => {
+        /* tool result received */
+    });
+    app.onToolCancelled((params) => {
+        /* tool was cancelled */
+    });
+    app.onHostContextChanged((ctx) => {
+        /* theme/styles changed */
+    });
+    app.onTeardown(async () => {
+        /* cleanup before teardown */
+    });
+    app.onCallTool(async (params) => {
+        /* host requests tool call */
+    });
+    app.onListTools(async (params) => {
+        /* host requests tool list */
+    });
 });
 ```
 
@@ -534,6 +558,7 @@ createMcpApp(async (app) => {
 ## Host Theming
 
 `createMcpApp` automatically applies host theming on connect and on context change:
+
 - Sets `data-theme` attribute and `color-scheme` on `<html>`
 - Applies CSS variables from `hostContext.styles.variables` to `:root`
 - Injects font CSS from `hostContext.styles.css.fonts` into a `<style>` tag
@@ -587,11 +612,11 @@ class RefreshDashboardData extends Tool { ... }
 
 **Visibility:**
 
-| Visibility | Model | App | Use case |
-|-----------|-------|-----|----------|
-| `['model', 'app']` | Yes | Yes | Primary tools that trigger UI display |
-| `['app']` | No | Yes | Backend actions the UI calls (refresh, save, paginate) |
-| `['model']` | Yes | No | Model-only tools linked to a UI |
+| Visibility         | Model | App | Use case                                               |
+| ------------------ | ----- | --- | ------------------------------------------------------ |
+| `['model', 'app']` | Yes   | Yes | Primary tools that trigger UI display                  |
+| `['app']`          | No    | Yes | Backend actions the UI calls (refresh, save, paginate) |
+| `['model']`        | Yes   | No  | Model-only tools linked to a UI                        |
 
 ### Primary + Private Pattern
 
@@ -674,9 +699,9 @@ class GetMonitorData extends Tool
 ```js
 createMcpApp(async (app) => {
     async function poll() {
-        const result = await app.callTool('get-monitor-data');
-        const data = JSON.parse(result.content[0]?.text ?? '{}');
-        document.getElementById('cpu').textContent = data.cpu;
+        const result = await app.callTool("get-monitor-data");
+        const data = JSON.parse(result.content[0]?.text ?? "{}");
+        document.getElementById("cpu").textContent = data.cpu;
     }
 
     setInterval(poll, 2000);
@@ -746,7 +771,7 @@ class GetImage extends Tool
 In the client, convert the base64 blob to a data URI for rendering:
 
 ```js
-const result = await app.callTool('get-image', { id: 42 });
+const result = await app.callTool("get-image", { id: 42 });
 const blob = result.content[0];
 img.src = `data:${blob.mimeType};base64,${blob.data}`;
 ```
@@ -761,7 +786,7 @@ createMcpApp(async (app) => {
         try {
             const partial = JSON.parse(params.arguments);
             if (partial.query) {
-                document.getElementById('preview').textContent = partial.query;
+                document.getElementById("preview").textContent = partial.query;
             }
         } catch {
             // partial JSON — ignore until parseable
@@ -769,7 +794,7 @@ createMcpApp(async (app) => {
     });
 
     app.onToolResult((params) => {
-        const data = JSON.parse(params.result.content[0]?.text ?? '{}');
+        const data = JSON.parse(params.result.content[0]?.text ?? "{}");
         renderResults(data);
     });
 });
@@ -781,10 +806,10 @@ Use `localStorage` to preserve UI state across re-renders. For important state, 
 
 ```js
 createMcpApp(async (app) => {
-    const STATE_KEY = 'dashboard-view-state';
+    const STATE_KEY = "dashboard-view-state";
 
     // Restore from localStorage
-    const saved = JSON.parse(localStorage.getItem(STATE_KEY) || '{}');
+    const saved = JSON.parse(localStorage.getItem(STATE_KEY) || "{}");
     if (saved.activeTab) selectTab(saved.activeTab);
 
     // Save on interaction
@@ -794,7 +819,9 @@ createMcpApp(async (app) => {
 
     // For durable state, persist server-side
     async function saveServerState(state) {
-        await app.callTool('save-dashboard-state', { state: JSON.stringify(state) });
+        await app.callTool("save-dashboard-state", {
+            state: JSON.stringify(state),
+        });
     }
 });
 ```
@@ -805,12 +832,15 @@ Switch between inline and fullscreen display modes and react to mode changes:
 
 ```js
 createMcpApp(async (app) => {
-    document.getElementById('expand-btn').addEventListener('click', () => {
-        app.requestDisplayMode('fullscreen');
+    document.getElementById("expand-btn").addEventListener("click", () => {
+        app.requestDisplayMode("fullscreen");
     });
 
     app.onHostContextChanged((ctx) => {
-        document.body.classList.toggle('fullscreen', ctx.displayMode === 'fullscreen');
+        document.body.classList.toggle(
+            "fullscreen",
+            ctx.displayMode === "fullscreen",
+        );
     });
 });
 ```
@@ -829,15 +859,15 @@ createMcpApp(async (app) => {
     }
 
     // Notify on tab change
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', () => {
+    document.querySelectorAll(".tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
             notifyContext(tab.dataset.view, { filters: getActiveFilters() });
         });
     });
 
     // For large payloads, follow up with sendMessage
-    await app.updateModelContext({ currentView: 'report', rows: 5000 });
-    await app.sendMessage('The user is viewing a report with 5000 rows.');
+    await app.updateModelContext({ currentView: "report", rows: 5000 });
+    await app.sendMessage("The user is viewing a report with 5000 rows.");
 });
 ```
 
@@ -891,14 +921,18 @@ class ProcessData extends Tool
 
 ```js
 createMcpApp(async (app) => {
-    const result = await app.callTool('process-data', { input: value });
+    const result = await app.callTool("process-data", { input: value });
 
     if (result.isError) {
-        document.getElementById('error').textContent = result.content[0]?.text ?? 'Unknown error';
-        await app.updateModelContext({ state: 'error', message: result.content[0]?.text });
+        document.getElementById("error").textContent =
+            result.content[0]?.text ?? "Unknown error";
+        await app.updateModelContext({
+            state: "error",
+            message: result.content[0]?.text,
+        });
         return;
     }
 
-    renderOutput(JSON.parse(result.content[0]?.text ?? '{}'));
+    renderOutput(JSON.parse(result.content[0]?.text ?? "{}"));
 });
 ```
