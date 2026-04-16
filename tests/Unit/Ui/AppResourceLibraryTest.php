@@ -2,20 +2,20 @@
 
 declare(strict_types=1);
 
-use Laravel\Mcp\Server\Ui\Enums\AppResourceLibrary;
+use Laravel\Mcp\Server\Ui\Enums\Library;
 
 it('returns correct domains for tailwind', function (): void {
-    expect(AppResourceLibrary::Tailwind->domains())
+    expect(Library::Tailwind->domains())
         ->toBe(['https://cdn.tailwindcss.com']);
 });
 
 it('returns correct domains for alpine', function (): void {
-    expect(AppResourceLibrary::Alpine->domains())
+    expect(Library::Alpine->domains())
         ->toBe(['https://cdn.jsdelivr.net']);
 });
 
 it('returns script tags for tailwind', function (): void {
-    $tags = AppResourceLibrary::Tailwind->scriptTags();
+    $tags = Library::Tailwind->scriptTags();
 
     expect($tags)->toHaveCount(2)
         ->and($tags[0])->toContain('cdn.tailwindcss.com')
@@ -23,7 +23,7 @@ it('returns script tags for tailwind', function (): void {
 });
 
 it('returns script tags for alpine', function (): void {
-    $tags = AppResourceLibrary::Alpine->scriptTags();
+    $tags = Library::Alpine->scriptTags();
 
     expect($tags)->toHaveCount(2)
         ->and($tags[0])->toContain('x-cloak')

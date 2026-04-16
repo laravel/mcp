@@ -34,8 +34,8 @@ it('serializes multiple permissions', function (): void {
         ->toHaveKey('clipboardWrite');
 });
 
-it('supports constructor parameters', function (): void {
-    $permissions = new Permissions(camera: true, clipboardWrite: true);
+it('supports allow with multiple enums', function (): void {
+    $permissions = Permissions::make()->allow(Permission::Camera, Permission::ClipboardWrite);
 
     $array = $permissions->toArray();
 

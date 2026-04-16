@@ -5,7 +5,8 @@ declare(strict_types=1);
 use Illuminate\Contracts\Support\Arrayable;
 use Laravel\Mcp\Server\Ui\AppMeta;
 use Laravel\Mcp\Server\Ui\Csp;
-use Laravel\Mcp\Server\Ui\Enums\AppResourceLibrary;
+use Laravel\Mcp\Server\Ui\Enums\Library;
+use Laravel\Mcp\Server\Ui\Enums\Permission;
 use Laravel\Mcp\Server\Ui\Permissions;
 
 it('serializes as empty when no fields set', function (): void {
@@ -20,7 +21,7 @@ it('serializes all fields when provided', function (): void {
             connectDomains: ['https://api.example.com'],
             resourceDomains: ['https://cdn.example.com'],
         ),
-        permissions: new Permissions(camera: true, clipboardWrite: true),
+        permissions: Permissions::make()->allow(Permission::Camera, Permission::ClipboardWrite),
         domain: 'a904794854a047f6.claudemcpcontent.com',
         prefersBorder: false,
     );
@@ -81,7 +82,7 @@ it('omits empty csp and permissions objects', function (): void {
 
 it('merges library domains into csp resource domains', function (): void {
     $meta = AppMeta::make()
-        ->libraries(AppResourceLibrary::Tailwind, AppResourceLibrary::Alpine);
+        ->libraries(Library::Tailwind, Library::Alpine);
 
     $array = $meta->toArray();
 
@@ -93,7 +94,7 @@ it('merges library domains into csp resource domains', function (): void {
 it('merges library domains with existing csp resource domains', function (): void {
     $meta = AppMeta::make()
         ->csp(Csp::make()->resourceDomains(['https://existing.com']))
-        ->libraries(AppResourceLibrary::Tailwind);
+        ->libraries(Library::Tailwind);
 
     $array = $meta->toArray();
 
@@ -105,7 +106,7 @@ it('merges library domains with existing csp resource domains', function (): voi
 it('deduplicates library domains in csp', function (): void {
     $meta = AppMeta::make()
         ->csp(Csp::make()->resourceDomains(['https://cdn.tailwindcss.com']))
-        ->libraries(AppResourceLibrary::Tailwind);
+        ->libraries(Library::Tailwind);
 
     $array = $meta->toArray();
 
@@ -119,8 +120,8 @@ it('deduplicates library domains in csp', function (): void {
 
 it('returns libraries via getLibraries', function (): void {
     $meta = AppMeta::make()
-        ->libraries(AppResourceLibrary::Tailwind, AppResourceLibrary::Alpine);
+        ->libraries(Library::Tailwind, Library::Alpine);
 
     expect($meta->getLibraries())
-        ->toBe([AppResourceLibrary::Tailwind, AppResourceLibrary::Alpine]);
+        ->toBe([Library::Tailwind, Library::Alpine]);
 });
