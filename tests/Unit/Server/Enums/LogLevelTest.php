@@ -26,26 +26,25 @@ it('correctly determines if a log should be sent', function (): void {
         ->and(LogLevel::Emergency->shouldLog(LogLevel::Debug))->toBeTrue()
         ->and(LogLevel::Debug->shouldLog(LogLevel::Debug))->toBeTrue()
         ->and(LogLevel::Info->shouldLog(LogLevel::Debug))->toBeTrue();
-
 });
 
 it('can be created from string', function (): void {
-    expect(LogLevel::fromString('emergency'))->toBe(LogLevel::Emergency)
-        ->and(LogLevel::fromString('alert'))->toBe(LogLevel::Alert)
-        ->and(LogLevel::fromString('critical'))->toBe(LogLevel::Critical)
-        ->and(LogLevel::fromString('error'))->toBe(LogLevel::Error)
-        ->and(LogLevel::fromString('warning'))->toBe(LogLevel::Warning)
-        ->and(LogLevel::fromString('notice'))->toBe(LogLevel::Notice)
-        ->and(LogLevel::fromString('info'))->toBe(LogLevel::Info)
-        ->and(LogLevel::fromString('debug'))->toBe(LogLevel::Debug);
+    expect(LogLevel::from('emergency'))->toBe(LogLevel::Emergency)
+        ->and(LogLevel::from('alert'))->toBe(LogLevel::Alert)
+        ->and(LogLevel::from('critical'))->toBe(LogLevel::Critical)
+        ->and(LogLevel::from('error'))->toBe(LogLevel::Error)
+        ->and(LogLevel::from('warning'))->toBe(LogLevel::Warning)
+        ->and(LogLevel::from('notice'))->toBe(LogLevel::Notice)
+        ->and(LogLevel::from('info'))->toBe(LogLevel::Info)
+        ->and(LogLevel::from('debug'))->toBe(LogLevel::Debug);
 });
 
 it('handles case insensitive string conversion', function (): void {
-    expect(LogLevel::fromString('EMERGENCY'))->toBe(LogLevel::Emergency)
-        ->and(LogLevel::fromString('Error'))->toBe(LogLevel::Error)
-        ->and(LogLevel::fromString('INFO'))->toBe(LogLevel::Info);
+    expect(LogLevel::from('EMERGENCY'))->toBe(LogLevel::Emergency)
+        ->and(LogLevel::from('Error'))->toBe(LogLevel::Error)
+        ->and(LogLevel::from('INFO'))->toBe(LogLevel::Info);
 });
 
 it('throws exception for invalid level string', function (): void {
-    LogLevel::fromString('invalid');
+    LogLevel::from('invalid');
 })->throws(ValueError::class);
