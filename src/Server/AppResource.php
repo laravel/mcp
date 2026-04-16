@@ -42,7 +42,7 @@ abstract class AppResource extends Resource
     public function libraryScripts(): string
     {
         return implode("\n", array_map(
-            fn(Library $lib): string => implode("\n", $lib->scriptTags()),
+            fn (Library $lib): string => implode("\n", $lib->scriptTags()),
             $this->appMeta()->getLibraries(),
         ));
     }
