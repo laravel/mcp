@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Ui\Enums;
 
-enum AppResourceLibrary: string
+enum Library: string
 {
     case Tailwind = 'tailwind';
     case Alpine = 'alpine';

@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Laravel\Mcp\Server\Attributes\AppMeta as AppMetaAttribute;
 use Laravel\Mcp\Server\Ui\AppMeta;
-use Laravel\Mcp\Server\Ui\Enums\AppResourceLibrary;
+use Laravel\Mcp\Server\Ui\Enums\Library;
 
 abstract class AppResource extends Resource
 {
@@ -48,7 +48,7 @@ abstract class AppResource extends Resource
         }
 
         return implode("\n", array_map(
-            fn(AppResourceLibrary $lib): string => implode("\n", $lib->scriptTags()),
+            fn(Library $lib): string => implode("\n", $lib->scriptTags()),
             $libraries,
         ));
     }

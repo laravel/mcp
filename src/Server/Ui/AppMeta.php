@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Ui;
 
 use Illuminate\Contracts\Support\Arrayable;
-use Laravel\Mcp\Server\Ui\Enums\AppResourceLibrary;
+use Laravel\Mcp\Server\Ui\Enums\Library;
 
 /**
  * @implements Arrayable<string, mixed>
@@ -13,7 +13,7 @@ use Laravel\Mcp\Server\Ui\Enums\AppResourceLibrary;
 class AppMeta implements Arrayable
 {
     /**
-     * @param  array<int, AppResourceLibrary>  $libraries
+     * @param  array<int, Library>  $libraries
      */
     public function __construct(
         protected ?Csp $csp = null,
@@ -58,7 +58,7 @@ class AppMeta implements Arrayable
         return $this;
     }
 
-    public function libraries(AppResourceLibrary ...$libraries): static
+    public function libraries(Library ...$libraries): static
     {
         $this->libraries = $libraries;
 
@@ -66,7 +66,7 @@ class AppMeta implements Arrayable
     }
 
     /**
-     * @return array<int, AppResourceLibrary>
+     * @return array<int, Library>
      */
     public function getLibraries(): array
     {
@@ -82,7 +82,7 @@ class AppMeta implements Arrayable
 
         if ($this->libraries !== []) {
             $libraryDomains = collect($this->libraries)
-                ->map(fn(AppResourceLibrary $lib) => $lib->domains())
+                ->map(fn(Library $lib) => $lib->domains())
                 ->flatten();
 
             $cspArray['resourceDomains'] = collect($cspArray['resourceDomains'] ?? [])
