@@ -116,6 +116,10 @@
         );
     }
 
+    function normalizeParams(value, key) {
+        return isObject(value) ? value : { [key]: value };
+    }
+
     function mergeObjects(original, toMerge) {
         return Object.assign({}, original || {}, toMerge || {});
     }
@@ -411,22 +415,16 @@
         }
 
         function listResources(cursorOrParams) {
-            if (isObject(cursorOrParams)) {
-                return request("resources/list", cursorOrParams);
-            }
-
             return request(
                 "resources/list",
-                cursorOrParams ? { cursor: cursorOrParams } : undefined,
+                cursorOrParams
+                    ? normalizeParams(cursorOrParams, "cursor")
+                    : undefined,
             );
         }
 
         function readResource(uriOrParams) {
-            const params = isObject(uriOrParams)
-                ? uriOrParams
-                : { uri: uriOrParams };
-
-            return request("resources/read", params);
+            return request("resources/read", normalizeParams(uriOrParams, "uri"));
         }
 
         function sendMessage(messageOrContent, role) {
@@ -446,11 +444,7 @@
         }
 
         function openLink(urlOrParams) {
-            const params = isObject(urlOrParams)
-                ? urlOrParams
-                : { url: urlOrParams };
-
-            return request("ui/open-link", params);
+            return request("ui/open-link", normalizeParams(urlOrParams, "url"));
         }
 
         function downloadFile(contentsOrParams) {
@@ -463,11 +457,10 @@
         }
 
         function requestDisplayMode(modeOrParams) {
-            const params = isObject(modeOrParams)
-                ? modeOrParams
-                : { mode: modeOrParams };
-
-            return request("ui/request-display-mode", params);
+            return request(
+                "ui/request-display-mode",
+                normalizeParams(modeOrParams, "mode"),
+            );
         }
 
         function updateModelContext(params) {
