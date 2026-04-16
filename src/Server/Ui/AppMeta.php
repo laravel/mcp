@@ -60,7 +60,7 @@ class AppMeta implements Arrayable
 
     public function libraries(Library ...$libraries): static
     {
-        $this->libraries = $libraries;
+        $this->libraries = array_values($libraries);
 
         return $this;
     }
@@ -85,7 +85,10 @@ class AppMeta implements Arrayable
                 ->map(fn(Library $lib) => $lib->domains())
                 ->flatten();
 
-            $cspArray['resourceDomains'] = collect($cspArray['resourceDomains'] ?? [])
+            /** @var array<int, string> $existingDomains */
+            $existingDomains = $cspArray['resourceDomains'] ?? [];
+
+            $cspArray['resourceDomains'] = collect($existingDomains)
                 ->merge($libraryDomains)
                 ->unique()
                 ->values()

@@ -161,12 +161,14 @@ The simplest way to configure UI metadata is via the `#[AppMeta]` attribute dire
 
 ```php
 use Laravel\Mcp\Server\Attributes\AppMeta;
+use Laravel\Mcp\Server\Ui\Enums\AppResourceLibrary;
 use Laravel\Mcp\Server\Ui\Enums\Permission;
 
 #[AppMeta(
     connectDomains: ['https://api.stripe.com'],
     permissions: [Permission::Camera, Permission::ClipboardWrite],
     prefersBorder: true,
+    libraries: [AppResourceLibrary::Tailwind, AppResourceLibrary::Alpine],
 )]
 class PaymentsResource extends AppResource
 {
@@ -184,6 +186,7 @@ public function appMeta(): AppMeta
     return AppMeta::make()
         ->csp(Csp::make()->connectDomains(config('services.api.domains')))
         ->permissions(Permissions::make()->allow(Permission::Camera))
+        ->libraries(AppResourceLibrary::Tailwind)
         ->domain('sandbox.example.com');
 }
 ```
@@ -233,11 +236,12 @@ Each enabled permission serializes as `"camera": {}` per the MCP spec.
 AppMeta::make()
     ->csp(Csp::make()->connectDomains([...]))
     ->permissions(Permissions::make()->allow(Permission::Camera))
+    ->libraries(AppResourceLibrary::Tailwind, AppResourceLibrary::Alpine)
     ->domain('sandbox.example.com')  // dedicated sandbox origin (OAuth/CORS)
     ->prefersBorder(false);
 ```
 
-`prefersBorder` defaults to `true`. `toArray()` omits null fields and empty nested objects.
+`prefersBorder` defaults to `true`. `toArray()` omits null fields and empty nested objects. Library CDN domains are automatically merged into `csp.resourceDomains`.
 
 #### domain
 
@@ -248,6 +252,41 @@ The `domain` field provides a stable origin that external APIs can allowlist for
 class PaymentsResource extends AppResource
 {
     // ...
+}
+```
+
+#### Library Scripts
+
+The `libraries` parameter adds pre-configured CDN scripts to the `<head>` of your app. Available libraries:
+
+```php
+use Laravel\Mcp\Server\Ui\Enums\AppResourceLibrary;
+
+AppResourceLibrary::Tailwind  // Tailwind CSS CDN + dark mode config
+AppResourceLibrary::Alpine    // Alpine.js CDN + x-cloak style
+```
+
+When libraries are specified, the package automatically:
+1. Injects the CDN `<script>` tags into the Blade view's `<head>` (after the MCP SDK, before your `<x-slot:head>`)
+2. Merges each library's CDN domains into `csp.resourceDomains` so the host allows loading them
+
+Via attribute:
+
+```php
+#[AppMeta(libraries: [AppResourceLibrary::Tailwind])]
+class StyledApp extends AppResource
+{
+    // Tailwind is available in the Blade view — no extra setup
+}
+```
+
+Via fluent builder:
+
+```php
+public function appMeta(): AppMeta
+{
+    return AppMeta::make()
+        ->libraries(AppResourceLibrary::Tailwind, AppResourceLibrary::Alpine);
 }
 ```
 
@@ -288,7 +327,7 @@ Renders a complete self-contained HTML document with the MCP SDK inlined. `creat
 | Default slot | Slot | Body content. |
 | `$attributes` | Attribute bag | Forwarded to `<body>` (e.g. `class="dark"`). |
 
-The SDK is loaded from the `mcp.sdk` singleton (registered by `McpServiceProvider`) and inlined directly in a `<script>` tag.
+The SDK is loaded from the `mcp.sdk` singleton (registered by `McpServiceProvider`) and inlined directly in a `<script>` tag. Library scripts (Tailwind, Alpine) configured via `#[AppMeta]` are injected after the SDK and before the `head` slot.
 
 Publish the component: `php artisan vendor:publish --tag=mcp-views`.
 
@@ -307,7 +346,7 @@ const users = JSON.parse(document.getElementById('app').dataset.users);
 
 ## Client-Side
 
-This package provides a simple mcp client library to easily work with the client interaction.
+This package provides a simple MCP client library to easily work with client interactions.
 
 ### createMcpApp
 
@@ -595,7 +634,7 @@ it('has correct mime type and uri scheme', function () {
         ->and($resource->uri())->toStartWith('ui://');
 });
 
-it('configures uimeta correctly', function () {
+it('configures ui meta correctly', function () {
     $meta = (new DashboardApp)->resolvedAppMeta();
 
     expect($meta['csp']['connectDomains'])->toContain('https://api.example.com')

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Laravel\Mcp\Server\ServerContext;
 
 it('clamps perPage to default and max values', function (): void {

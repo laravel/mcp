@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Tool;
 use PHPUnit\Framework\ExpectationFailedException;

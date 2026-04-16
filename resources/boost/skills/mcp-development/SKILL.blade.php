@@ -1,6 +1,6 @@
 ---
 name: mcp-development
-description: "Use this skill for Laravel MCP development. Trigger when creating or editing MCP tools, resources, prompts, servers, or UI apps in Laravel projects. Covers: artisan make:mcp-* generators, routes/ai.php, Tool/Resource/Prompt/AppResource classes, schema validation, shouldRegister(), OAuth setup, URI templates, read-only attributes, MCP debugging, MCP UI apps, the x-mcp::app Blade component, createMcpApp(), default AppResource handle() auto-infers view from class name, Response::view(), AppMeta/Csp/Permissions/defaultAppMeta() configuration, #[RendersApp] attribute, and host theming via CSS variables. Use this whenever the user mentions MCP apps, MCP UI, interactive MCP resources, or building visual interfaces for AI agents."
+description: "Use this skill for Laravel MCP development. Trigger when creating or editing MCP tools, resources, prompts, servers, or UI apps in Laravel projects. Covers: artisan make:mcp-* generators, routes/ai.php, Tool/Resource/Prompt/AppResource classes, schema validation, shouldRegister(), OAuth setup, URI templates, read-only attributes, MCP debugging, MCP UI apps, the x-mcp::app Blade component, createMcpApp(), default AppResource handle() auto-infers view from class name, Response::view(), AppMeta/Csp/Permissions/appMeta() configuration, #[RendersApp] attribute, AppResourceLibrary enum for CDN libraries (Tailwind, Alpine), and host theming via CSS variables. Use this whenever the user mentions MCP apps, MCP UI, interactive MCP resources, styling MCP apps with Tailwind or Alpine, or building visual interfaces for AI agents."
 license: MIT
 metadata:
   author: laravel
@@ -14,7 +14,7 @@ metadata:
 
 Use `search-docs` for detailed Laravel MCP patterns and documentation.
 
-For MCP UI apps (interactive HTML resources), read `references/app.md` — it covers the full architecture, host theming CSS variables, tool-to-UI linking patterns, and real-world examples.
+For MCP UI apps (interactive HTML resources), read `references/app.md` — it covers the full architecture, host theming CSS variables, tool-to-UI linking patterns, library scripts (Tailwind, Alpine via `AppResourceLibrary`), and real-world examples.
 
 ## Basic Usage
 
@@ -89,13 +89,12 @@ class AppServer extends Server
 
 ## MCP UI Apps
 
-For MCP UI apps, read `references/app.md` — it covers quick start examples, full architecture, AppMeta/Csp/Permissions, `#[RendersApp]` tool linking, host theming CSS variables, and real-world patterns.
+For MCP UI apps, read `references/app.md` — it covers quick start examples, full architecture, AppMeta/Csp/Permissions, `#[RendersApp]` tool linking, library scripts (Tailwind/Alpine via `AppResourceLibrary`), host theming CSS variables, and real-world patterns.
 
 ## Verification
 
 1. Check `routes/ai.php` for proper registration
 2. Test tool via MCP client
-3. For UI apps with Vite entry: run `npm run build` and verify `public/build/` is populated
 
 ## Common Pitfalls
 
@@ -105,5 +104,3 @@ For MCP UI apps, read `references/app.md` — it covers quick start examples, fu
 - Not registering MCP server routes in `routes/ai.php`
 - Do not register `ai.php` in `bootstrap.php`; it is registered automatically
 - OAuth registration supports custom URI schemes (e.g., `cursor://`, `vscode://`) for native desktop clients via `mcp.custom_schemes` config
-- For UI apps: using `@vite()` instead of inline script or `entry` prop (sandboxed iframes can't load external scripts)
-- For UI apps with Vite: forgetting to run `npm run build` after changing JS/CSS (no hot reload in iframes)
