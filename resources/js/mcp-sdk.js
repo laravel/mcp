@@ -83,8 +83,8 @@
         );
     }
 
-    function mergeObjects(current, update) {
-        return Object.assign({}, current || {}, update || {});
+    function mergeObjects(original, toMerge) {
+        return Object.assign({}, original || {}, toMerge || {});
     }
 
     function mergeHostContext(update) {
@@ -157,11 +157,11 @@
             return;
         }
 
-        Object.keys(variables).forEach(function (key) {
-            if (variables[key] !== undefined) {
+        Object.keys(variables)
+            .filter((key) => variables[key] !== undefined)
+            .forEach(function (key) {
                 document.documentElement.style.setProperty(key, variables[key]);
-            }
-        });
+            });
     }
 
     function applyFonts(fontCss) {
