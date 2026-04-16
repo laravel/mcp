@@ -42,7 +42,7 @@ class SetLogLevel implements Method
         }
 
         try {
-            $level = LogLevel::fromString($levelString);
+            $level = LogLevel::from(strtolower($levelString));
         } catch (ValueError) {
             $validLevels = implode(', ', array_column(LogLevel::cases(), 'value'));
 

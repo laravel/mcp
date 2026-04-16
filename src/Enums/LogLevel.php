@@ -33,9 +33,4 @@ enum LogLevel: string
     {
         return $this->severity() <= $configuredLevel->severity();
     }
-
-    public static function fromString(string $level): self
-    {
-        return self::from(strtolower($level));
-    }
 }
