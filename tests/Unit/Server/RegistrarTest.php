@@ -119,6 +119,52 @@ it('registers oauth routes with custom prefix', function (): void {
     expect($hasRegisterRoute)->toBeTrue();
 });
 
+it('does not override an existing exact oauth authorization server route', function (): void {
+    Route::get('/.well-known/oauth-authorization-server', fn () => response()->json(['existing' => true]));
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $response = $this->getJson('/.well-known/oauth-authorization-server');
+
+    $response->assertStatus(200);
+    $response->assertJson(['existing' => true]);
+
+    $nestedResponse = $this->getJson('/.well-known/oauth-authorization-server/mcp/weather');
+
+    $nestedResponse->assertStatus(200);
+    $nestedResponse->assertJson([
+        'issuer' => url('/'),
+        'registration_endpoint' => url('oauth/register'),
+        'scopes_supported' => ['mcp:use'],
+    ]);
+});
+
+it('does not override an existing exact oauth protected resource route', function (): void {
+    Route::get('/.well-known/oauth-protected-resource', fn () => response()->json(['existing' => true]));
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $response = $this->getJson('/.well-known/oauth-protected-resource');
+
+    $response->assertStatus(200);
+    $response->assertJson(['existing' => true]);
+
+    $nestedResponse = $this->getJson('/.well-known/oauth-protected-resource/mcp/weather');
+
+    $nestedResponse->assertStatus(200);
+    $nestedResponse->assertJson([
+        'resource' => url('/mcp/weather'),
+        'authorization_servers' => [url('/')],
+        'scopes_supported' => ['mcp:use'],
+    ]);
+});
+
 it('adds mcp scope when passport is available', function (): void {
     if (! class_exists(Passport::class)) {
         require_once __DIR__.'/../../Fixtures/PassportPassport.php';
