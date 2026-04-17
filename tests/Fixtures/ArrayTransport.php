@@ -5,6 +5,7 @@ namespace Tests\Fixtures;
 use Closure;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Contracts\Transport;
+use LogicException;
 
 class ArrayTransport implements Transport
 {
@@ -42,5 +43,10 @@ class ArrayTransport implements Transport
     public function stream(Closure $stream): void
     {
         $stream();
+    }
+
+    public function sendRequest(string $message): string
+    {
+        throw new LogicException('Not implemented.');
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use InvalidArgumentException;
 use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
@@ -19,6 +20,16 @@ use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 
 class PendingTestResponse
 {
+    /**
+     * @var array<int, array<string, mixed>>
+     */
+    protected array $elicitationExpectations = [];
+
+    /**
+     * @var array<string, mixed>|null
+     */
+    protected ?array $clientCapabilities = null;
+
     /**
      * @param  class-string<Server>  $serverClass
      */
@@ -114,14 +125,37 @@ class PendingTestResponse
             : $primitive;
     }
 
+    /**
+     * @param  array<string, mixed>  $respondWith
+     * @param  array<string, mixed>  $capabilities
+     */
+    public function elicitation(array $respondWith, array $capabilities = [Server::CAPABILITY_ELICITATION => ['form' => [], 'url' => []]]): static
+    {
+        $this->clientCapabilities = $capabilities;
+        $this->elicitationExpectations[] = $respondWith;
+
+        return $this;
+    }
+
     protected function initializeServer(): Server
     {
+        $transport = new FakeTransporter;
+
+        foreach ($this->elicitationExpectations as $expectation) {
+            $transport->expectElicitation($expectation);
+        }
+
         $server = Container::getInstance()->make(
             $this->serverClass,
-            ['transport' => new FakeTransporter]
+            ['transport' => $transport]
         );
 
         $server->start();
+
+        if ($this->clientCapabilities !== null) {
+            $capabilities = $this->clientCapabilities;
+            (fn (): array => $this->clientCapabilities = $capabilities)->call($server);
+        }
 
         return $server;
     }
@@ -131,7 +165,19 @@ class PendingTestResponse
         try {
             return (fn (): iterable|JsonRpcResponse => $this->runMethodHandle($request, $this->createContext()))->call($server);
         } catch (JsonRpcException $jsonRpcException) {
-            return $jsonRpcException->toJsonRpcResponse();
+            $response = $jsonRpcException->toJsonRpcResponse();
+            $content = $response->toArray();
+
+            if (! isset($content['id'])) {
+                return JsonRpcResponse::error(
+                    id: $request->id,
+                    code: $content['error']['code'],
+                    message: $content['error']['message'],
+                    data: $content['error']['data'] ?? null,
+                );
+            }
+
+            return $response;
         }
     }
 
@@ -170,6 +216,8 @@ class PendingTestResponse
 
         $response = $this->executeRequest($server, $request);
 
-        return new TestResponse($primitive, $response);
+        $transport = (fn (): Transport => $this->transport)->call($server);
+
+        return new TestResponse($primitive, $response, $transport instanceof FakeTransporter ? $transport : null);
     }
 }

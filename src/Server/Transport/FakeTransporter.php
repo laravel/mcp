@@ -12,6 +12,21 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FakeTransporter implements Transport
 {
+    /**
+     * @var array<int, string>
+     */
+    protected array $elicitationResponses = [];
+
+    /**
+     * @var array<int, array<string, mixed>>
+     */
+    protected array $sentElicitations = [];
+
+    /**
+     * @var array<int, string>
+     */
+    protected array $sentMessages = [];
+
     public function onReceive(Closure $handler): void
     {
         //
@@ -19,7 +34,7 @@ class FakeTransporter implements Transport
 
     public function send(string $message, ?string $sessionId = null): void
     {
-        //
+        $this->sentMessages[] = $message;
     }
 
     public function run(): Response|StreamedResponse
@@ -35,5 +50,48 @@ class FakeTransporter implements Transport
     public function stream(Closure $stream): void
     {
         //
+    }
+
+    /**
+     * @param  array<string, mixed>  $response
+     */
+    public function expectElicitation(array $response): void
+    {
+        $this->elicitationResponses[] = (string) json_encode([
+            'jsonrpc' => '2.0',
+            'id' => '_placeholder_',
+            'result' => $response,
+        ]);
+    }
+
+    public function sendRequest(string $message): string
+    {
+        $request = json_decode($message, true);
+        $this->sentElicitations[] = $request;
+
+        if ($this->elicitationResponses === []) {
+            throw new LogicException('No elicitation responses queued. Call expectElicitation() first.');
+        }
+
+        $response = json_decode(array_shift($this->elicitationResponses), true);
+        $response['id'] = $request['id'];
+
+        return (string) json_encode($response);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function sentElicitations(): array
+    {
+        return $this->sentElicitations;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function sentMessages(): array
+    {
+        return $this->sentMessages;
     }
 }

@@ -13,6 +13,7 @@ use Laravel\Mcp\Server\Attributes\Version;
 use Laravel\Mcp\Server\Concerns\ReadsAttributes;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
+use Laravel\Mcp\Server\Elicitation\Elicitation;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\Methods\CompletionComplete;
@@ -51,6 +52,8 @@ abstract class Server
 
     public const CAPABILITY_COMPLETIONS = 'completions';
 
+    public const CAPABILITY_ELICITATION = 'elicitation';
+
     protected string $name = 'Laravel MCP Server';
 
     protected string $version = '0.0.1';
@@ -82,6 +85,10 @@ abstract class Server
         self::CAPABILITY_PROMPTS => [
             'listChanged' => false,
         ],
+        self::CAPABILITY_ELICITATION => [
+            'form' => true,
+            'url' => true,
+        ],
     ];
 
     /**
@@ -98,6 +105,11 @@ abstract class Server
      * @var array<int, Prompt|class-string<Prompt>>
      */
     protected array $prompts = [];
+
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $clientCapabilities = [];
 
     public int $maxPaginationLength = 50;
 
@@ -181,6 +193,15 @@ abstract class Server
 
             if (json_last_error() !== JSON_ERROR_NONE) {
                 throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', -32700);
+            }
+
+            // Route elicitation responses to the cache for HttpTransport polling
+            if (isset($jsonRequest['id'], $jsonRequest['result']) && ! isset($jsonRequest['method'])) {
+                $sessionId = $this->transport->sessionId();
+                $cacheKey = "mcp:elicitation:{$sessionId}:{$jsonRequest['id']}";
+                Container::getInstance()->make('cache')->put($cacheKey, $rawMessage, 120);
+
+                return;
             }
 
             $request = isset($jsonRequest['id'])
@@ -283,10 +304,15 @@ abstract class Server
 
         $container->instance('mcp.request', $request->toRequest());
 
+        $clientCapabilities = $this->resolveClientCapabilities();
+        $elicitation = new Elicitation($this->transport, $clientCapabilities);
+        $container->instance(Elicitation::class, $elicitation);
+
         try {
             $response = $methodClass->handle($request, $context);
         } finally {
             $container->forgetInstance('mcp.request');
+            $container->forgetInstance(Elicitation::class);
         }
 
         return $response;
@@ -298,6 +324,8 @@ abstract class Server
 
         $sessionId = $this->generateSessionId();
 
+        $this->clientCapabilities = $request->params['capabilities'] ?? [];
+
         Container::getInstance()->make('events')->dispatch(new SessionInitialized(
             sessionId: $sessionId,
             clientInfo: $request->params['clientInfo'] ?? null,
@@ -306,6 +334,14 @@ abstract class Server
         ));
 
         $this->transport->send($response->toJson(), $sessionId);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function resolveClientCapabilities(): array
+    {
+        return $this->clientCapabilities;
     }
 
     protected function generateSessionId(): string

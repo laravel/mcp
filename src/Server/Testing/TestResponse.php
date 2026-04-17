@@ -14,6 +14,7 @@ use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use PHPUnit\Framework\Assert;
 use RuntimeException;
@@ -36,6 +37,7 @@ class TestResponse
     public function __construct(
         protected Primitive $primitive,
         iterable|JsonRpcResponse $response,
+        protected ?FakeTransporter $transport = null,
     ) {
         $responses = is_iterable($response)
             ? iterator_to_array($response)
@@ -308,6 +310,77 @@ class TestResponse
         );
 
         return $this;
+    }
+
+    public function assertElicited(): static
+    {
+        Assert::assertNotEmpty(
+            $this->elicitations(),
+            'Expected at least one elicitation to be sent, but none were.',
+        );
+
+        return $this;
+    }
+
+    public function assertNotElicited(): static
+    {
+        Assert::assertEmpty(
+            $this->elicitations(),
+            'Expected no elicitations to be sent, but some were.',
+        );
+
+        return $this;
+    }
+
+    public function assertElicitedForm(string $message): static
+    {
+        foreach ($this->elicitations() as $elicitation) {
+            if (($elicitation['params']['mode'] ?? null) === 'form'
+                && ($elicitation['params']['message'] ?? null) === $message) {
+                Assert::assertTrue(true); // @phpstan-ignore-line
+
+                return $this;
+            }
+        }
+
+        Assert::fail("Expected a form elicitation with message [{$message}], but it was not found.");
+    }
+
+    public function assertElicitedUrl(string $message, ?string $url = null): static
+    {
+        foreach ($this->elicitations() as $elicitation) {
+            if (($elicitation['params']['mode'] ?? null) === 'url'
+                && ($elicitation['params']['message'] ?? null) === $message
+                && ($url === null || ($elicitation['params']['url'] ?? null) === $url)) {
+                Assert::assertTrue(true); // @phpstan-ignore-line
+
+                return $this;
+            }
+        }
+
+        $suffix = $url !== null ? " and URL [{$url}]" : '';
+        Assert::fail("Expected a URL elicitation with message [{$message}]{$suffix}, but it was not found.");
+    }
+
+    public function assertElicitationCount(int $count): static
+    {
+        $elicitations = $this->elicitations();
+
+        Assert::assertCount(
+            $count,
+            $elicitations,
+            "Expected [{$count}] elicitations, but got [".count($elicitations).'].',
+        );
+
+        return $this;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    protected function elicitations(): array
+    {
+        return $this->transport?->sentElicitations() ?? [];
     }
 
     public function dd(): void
