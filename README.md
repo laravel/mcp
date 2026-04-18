@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-<a href="https://github.com/laravel/mcp/actions"><img src="https://github.com/laravel/mcp/workflows/tests/badge.svg" alt="Build Status"></a>
+<a href="https://github.com/laravel/mcp/actions/workflows/tests.yml"><img src="https://github.com/laravel/mcp/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
 <a href="https://packagist.org/packages/laravel/mcp"><img src="https://img.shields.io/packagist/dt/laravel/mcp" alt="Total Downloads"></a>
 <a href="https://packagist.org/packages/laravel/mcp"><img src="https://img.shields.io/packagist/v/laravel/mcp" alt="Latest Stable Version"></a>
 <a href="https://packagist.org/packages/laravel/mcp"><img src="https://img.shields.io/packagist/l/laravel/mcp" alt="License"></a>
