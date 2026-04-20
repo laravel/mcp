@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Facades;
 
 use Illuminate\Support\Facades\Facade;
+use Laravel\Mcp\Client\Client;
 use Laravel\Mcp\Server\Registrar;
 
 /**
@@ -15,6 +16,7 @@ use Laravel\Mcp\Server\Registrar;
  * @method static array<string, callable|\Illuminate\Routing\Route> servers()
  * @method static void oauthRoutes(string $oauthPrefix = 'oauth')
  * @method static array<string, string> ensureMcpScope()
+ * @method static Client client(string $name)
  *
  * @see Registrar
  */
