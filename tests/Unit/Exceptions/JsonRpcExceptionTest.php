@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 
 it('converts to JsonRpc error without id and with data', function (): void {

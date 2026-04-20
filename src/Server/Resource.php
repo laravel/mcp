@@ -6,6 +6,8 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Annotations\Annotation;
+use Laravel\Mcp\Server\Attributes\MimeType;
+use Laravel\Mcp\Server\Attributes\Uri;
 use Laravel\Mcp\Server\Concerns\HasAnnotations;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 
@@ -23,14 +25,20 @@ abstract class Resource extends Primitive
             return (string) $this->uriTemplate();
         }
 
-        return $this->uri !== '' ? $this->uri : 'file://resources/'.Str::kebab(class_basename($this));
+        $attribute = $this->resolveAttribute(Uri::class);
+
+        return $attribute !== null
+            ? $attribute->value
+            : ($this->uri !== '' ? $this->uri : 'file://resources/'.Str::kebab(class_basename($this)));
     }
 
     public function mimeType(): string
     {
-        return $this->mimeType !== ''
-            ? $this->mimeType
-            : 'text/plain';
+        $attribute = $this->resolveAttribute(MimeType::class);
+
+        return $attribute !== null
+            ? $attribute->value
+            : ($this->mimeType !== '' ? $this->mimeType : 'text/plain');
     }
 
     /**

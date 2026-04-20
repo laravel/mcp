@@ -3,10 +3,11 @@
 declare(strict_types=1);
 
 use Laravel\Mcp\Enums\Role;
-use Laravel\Mcp\Exceptions\NotImplementedException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
+use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Blob;
+use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\Text;
 
@@ -46,16 +47,52 @@ it('creates an error response', function (): void {
         ->and($response->role())->toBe(Role::User);
 });
 
-it('throws exception for audio method', function (): void {
-    expect(function (): void {
-        Response::audio();
-    })->toThrow(NotImplementedException::class, 'The method ['.\Laravel\Mcp\Response::class.'@'.\Laravel\Mcp\Response::class.'::audio] is not implemented yet.');
+it('creates an image response', function (): void {
+    $response = Response::image('raw-bytes');
+
+    expect($response->content())->toBeInstanceOf(Image::class)
+        ->and($response->isNotification())->toBeFalse()
+        ->and($response->isError())->toBeFalse()
+        ->and($response->role())->toBe(Role::User);
 });
 
-it('throws exception for image method', function (): void {
-    expect(function (): void {
-        Response::image();
-    })->toThrow(NotImplementedException::class, 'The method ['.\Laravel\Mcp\Response::class.'@'.\Laravel\Mcp\Response::class.'::image] is not implemented yet.');
+it('creates an image response with custom mime type', function (): void {
+    $response = Response::image('raw-bytes', 'image/webp');
+
+    expect($response->content())->toBeInstanceOf(Image::class)
+        ->and($response->content()->toArray()['mimeType'])->toBe('image/webp');
+});
+
+it('creates an audio response', function (): void {
+    $response = Response::audio('raw-bytes');
+
+    expect($response->content())->toBeInstanceOf(Audio::class)
+        ->and($response->isNotification())->toBeFalse()
+        ->and($response->isError())->toBeFalse()
+        ->and($response->role())->toBe(Role::User);
+});
+
+it('creates an audio response with custom mime type', function (): void {
+    $response = Response::audio('raw-bytes', 'audio/mp3');
+
+    expect($response->content())->toBeInstanceOf(Audio::class)
+        ->and($response->content()->toArray()['mimeType'])->toBe('audio/mp3');
+});
+
+it('creates image response with content meta', function (): void {
+    $response = Response::image('raw-bytes')->withMeta(['source' => 'camera']);
+
+    expect($response->content())->toBeInstanceOf(Image::class)
+        ->and($response->content()->toArray())->toHaveKey('_meta')
+        ->and($response->content()->toArray()['_meta'])->toEqual(['source' => 'camera']);
+});
+
+it('creates audio response with content meta', function (): void {
+    $response = Response::audio('raw-bytes')->withMeta(['duration' => '3.5s']);
+
+    expect($response->content())->toBeInstanceOf(Audio::class)
+        ->and($response->content()->toArray())->toHaveKey('_meta')
+        ->and($response->content()->toArray()['_meta'])->toEqual(['duration' => '3.5s']);
 });
 
 it('can convert response to assistant role', function (): void {
@@ -86,7 +123,7 @@ it('creates a json response', function (): void {
         ->and($response->role())->toBe(Role::User);
 
     $content = $response->content();
-    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
+    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR));
 });
 
 it('handles nested arrays in json response', function (): void {
@@ -103,7 +140,7 @@ it('handles nested arrays in json response', function (): void {
     expect($response->content())->toBeInstanceOf(Text::class);
 
     $content = $response->content();
-    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
+    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR));
 });
 
 it('throws JsonException for invalid json data', function (): void {
@@ -121,7 +158,7 @@ it('handles empty array in json response', function (): void {
     expect($response->content())->toBeInstanceOf(Text::class);
 
     $content = $response->content();
-    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT));
+    expect((string) $content)->toBe(json_encode($data, JSON_THROW_ON_ERROR));
 });
 
 it('creates text response with content meta', function (): void {
@@ -176,4 +213,15 @@ it('throws exception when an array contains null', function (): void {
     ]))->toThrow(
         InvalidArgumentException::class,
     );
+});
+
+it('creates compact json response', function (): void {
+    $data = ['key' => 'value', 'number' => 123];
+    $response = Response::json($data);
+
+    expect($response->content())->toBeInstanceOf(Text::class);
+
+    $content = (string) $response->content();
+    expect($content)->toBe('{"key":"value","number":123}')
+        ->and($content)->not->toContain("\n");
 });

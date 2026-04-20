@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Testing\Fluent\AssertableJson;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server;
@@ -74,4 +75,16 @@ it('fails to assert the structured content is not present', function (): void {
         'id' => 123,
         'status' => 'confirmed',
     ]);
+})->throws(ExpectationFailedException::class);
+
+it('succeeds to assert the structured content with closure', function (): void {
+    $response = BookingServer::tool(GetBookingTool::class);
+
+    $response->assertStructuredContent(fn (AssertableJson $json): AssertableJson => $json->where('type', 'booking')->etc());
+});
+
+it('fails to assert the structured content with closure', function (): void {
+    $response = BookingServer::tool(GetBookingTool::class);
+
+    $response->assertStructuredContent(fn (AssertableJson $json): AssertableJson => $json->where('type', 'foo')->etc());
 })->throws(ExpectationFailedException::class);

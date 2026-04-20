@@ -4,7 +4,16 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Server\Registrar;
+use Laravel\Passport\ClientRepository;
+use Laravel\Passport\Passport;
 use Tests\Fixtures\ExampleServer;
+
+function ensureMockClientRepository(): void
+{
+    if (! class_exists(ClientRepository::class)) {
+        require_once __DIR__.'/../../Fixtures/PassportClientRepository.php';
+    }
+}
 
 it('registers a local server and retrieves it', function (): void {
     $registrar = new Registrar;
@@ -31,7 +40,7 @@ it('registers a web server and retrieves it', function (): void {
 
     $webServer = $registrar->getWebServer('api/mcp');
 
-    expect($webServer)->toBeInstanceOf(\Illuminate\Routing\Route::class);
+    expect($webServer)->toBeInstanceOf(Illuminate\Routing\Route::class);
     expect($webServer)->toBe($route);
 });
 
@@ -110,77 +119,91 @@ it('registers oauth routes with custom prefix', function (): void {
     expect($hasRegisterRoute)->toBeTrue();
 });
 
+it('does not override an existing exact oauth authorization server route', function (): void {
+    Route::get('/.well-known/oauth-authorization-server', fn () => response()->json(['existing' => true]));
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $response = $this->getJson('/.well-known/oauth-authorization-server');
+
+    $response->assertStatus(200);
+    $response->assertJson(['existing' => true]);
+
+    $nestedResponse = $this->getJson('/.well-known/oauth-authorization-server/mcp/weather');
+
+    $nestedResponse->assertStatus(200);
+    $nestedResponse->assertJson([
+        'issuer' => url('/'),
+        'registration_endpoint' => url('oauth/register'),
+        'scopes_supported' => ['mcp:use'],
+    ]);
+});
+
+it('does not override an existing exact oauth protected resource route', function (): void {
+    Route::get('/.well-known/oauth-protected-resource', fn () => response()->json(['existing' => true]));
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $response = $this->getJson('/.well-known/oauth-protected-resource');
+
+    $response->assertStatus(200);
+    $response->assertJson(['existing' => true]);
+
+    $nestedResponse = $this->getJson('/.well-known/oauth-protected-resource/mcp/weather');
+
+    $nestedResponse->assertStatus(200);
+    $nestedResponse->assertJson([
+        'resource' => url('/mcp/weather'),
+        'authorization_servers' => [url('/')],
+        'scopes_supported' => ['mcp:use'],
+    ]);
+});
+
 it('adds mcp scope when passport is available', function (): void {
-    // Mock Passport class existence
-    if (! class_exists('Laravel\Passport\Passport')) {
-        // Create a mock Passport class for testing
-        eval('
-            namespace Laravel\Passport;
-            class Passport {
-                public static $scopes = [];
-                public static function tokensCan($scopes) {
-                    self::$scopes = $scopes;
-                }
-            }
-        ');
+    if (! class_exists(Passport::class)) {
+        require_once __DIR__.'/../../Fixtures/PassportPassport.php';
     }
 
     $registrar = new Registrar;
 
     // Clear any existing scopes
-    \Laravel\Passport\Passport::$scopes = [];
+    Passport::$scopes = [];
 
     $registrar->oauthRoutes();
 
-    expect(\Laravel\Passport\Passport::$scopes)->toHaveKey('mcp:use');
-    expect(\Laravel\Passport\Passport::$scopes['mcp:use'])->toBe('Use MCP server');
+    expect(Passport::$scopes)->toHaveKey('mcp:use');
+    expect(Passport::$scopes['mcp:use'])->toBe('Use MCP server');
 });
 
 it('does not duplicate mcp scope if already exists', function (): void {
-    if (! class_exists('Laravel\Passport\Passport')) {
-        eval('
-            namespace Laravel\Passport;
-            class Passport {
-                public static $scopes = [];
-                public static function tokensCan($scopes) {
-                    self::$scopes = $scopes;
-                }
-            }
-        ');
+    if (! class_exists(Passport::class)) {
+        require_once __DIR__.'/../../Fixtures/PassportPassport.php';
     }
 
     $registrar = new Registrar;
 
     // Set existing scope
-    \Laravel\Passport\Passport::$scopes = ['mcp:use' => 'Existing MCP scope'];
+    Passport::$scopes = ['mcp:use' => 'Existing MCP scope'];
 
     $registrar->oauthRoutes();
 
     // Should not overwrite existing scope
-    expect(\Laravel\Passport\Passport::$scopes['mcp:use'])->toBe('Existing MCP scope');
+    expect(Passport::$scopes['mcp:use'])->toBe('Existing MCP scope');
 });
 
 it('handles oauth registration endpoint', function (): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        // Create a mock ClientRepository class for testing
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
-    $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Test Client',
@@ -198,29 +221,112 @@ it('handles oauth registration endpoint', function (): void {
     ]);
 });
 
+it('requires an oauth client name for registration', function (): void {
+    $clientRepository = new class
+    {
+        public ?string $capturedName = null;
+
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        {
+            $this->capturedName = $name;
+
+            return (object) [
+                'id' => 'test-client-id',
+                'grant_types' => ['authorization_code'],
+                'redirect_uris' => $redirectUris,
+            ];
+        }
+    };
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance(ClientRepository::class, $clientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ]);
+
+    $response->assertStatus(400);
+    $response->assertJson([
+        'error' => 'invalid_client_metadata',
+    ]);
+});
+
+it('falls back to the legacy name field for oauth registration', function (): void {
+    $clientRepository = new class
+    {
+        public ?string $capturedName = null;
+
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        {
+            $this->capturedName = $name;
+
+            return (object) [
+                'id' => 'test-client-id',
+                'grant_types' => ['authorization_code'],
+                'redirect_uris' => $redirectUris,
+            ];
+        }
+    };
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance(ClientRepository::class, $clientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'name' => 'Legacy Client',
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ]);
+
+    $response->assertStatus(200);
+
+    expect($clientRepository->capturedName)->toBe('Legacy Client');
+});
+
+it('prefers client_name over name for oauth registration', function (): void {
+    $clientRepository = new class
+    {
+        public ?string $capturedName = null;
+
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        {
+            $this->capturedName = $name;
+
+            return (object) [
+                'id' => 'test-client-id',
+                'grant_types' => ['authorization_code'],
+                'redirect_uris' => $redirectUris,
+            ];
+        }
+    };
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance(ClientRepository::class, $clientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Preferred Client',
+        'name' => 'Legacy Client',
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ]);
+
+    $response->assertStatus(200);
+
+    expect($clientRepository->capturedName)->toBe('Preferred Client');
+});
+
 it('handles oauth registration with allowed domains', function (): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        // Create a mock ClientRepository class for testing
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
     config()->set('mcp.redirect_domains', ['http://localhost:3000/']);
 
-    $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Test Client',
@@ -238,36 +344,124 @@ it('handles oauth registration with allowed domains', function (): void {
     ]);
 });
 
+it('allows localhost with dynamic port when localhost is in redirect_domains', function (string $uri): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.redirect_domains', ['https://example.com', 'http://localhost']);
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => [$uri],
+    ]);
+
+    $response->assertStatus(200);
+})->with([
+    'localhost' => ['http://localhost:18293/callback'],
+    '127.0.0.1' => ['http://127.0.0.1:29100/callback'],
+    'IPv6 loopback' => ['http://[::1]:39201/callback'],
+]);
+
+it('rejects localhost with dynamic port when localhost is not in redirect_domains', function (string $uri): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.redirect_domains', ['https://example.com']);
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => [$uri],
+    ]);
+
+    $response->assertStatus(400);
+})->with([
+    'localhost' => ['http://localhost:18293/callback'],
+    '127.0.0.1' => ['http://127.0.0.1:29100/callback'],
+    'IPv6 loopback' => ['http://[::1]:39201/callback'],
+]);
+
+it('does not allow non-localhost URLs when localhost is in redirect_domains', function (): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.redirect_domains', ['https://example.com', 'http://localhost']);
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['http://evil.com:18293/callback'],
+    ]);
+
+    $response->assertStatus(400);
+});
+
+it('does not allow https localhost URLs via localhost redirect domain', function (): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.redirect_domains', ['https://example.com', 'http://localhost']);
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['https://localhost:18293/callback'],
+    ]);
+
+    $response->assertStatus(400);
+});
+
+it('allows all localhost hosts when any localhost variant is in redirect_domains', function (string $configDomain): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.redirect_domains', [$configDomain]);
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['http://localhost:18293/callback'],
+    ]);
+
+    $response->assertStatus(200);
+})->with([
+    'http://127.0.0.1' => ['http://127.0.0.1'],
+    'http://[::1]' => ['http://[::1]'],
+    'localhost without scheme' => ['localhost'],
+]);
+
 it('handles oauth registration with incorrect redirect domain', function (): void {
-    if (! class_exists('Laravel\Passport\ClientRepository')) {
-        // Create a mock ClientRepository class for testing
-        eval('
-            namespace Laravel\Passport;
-            class ClientRepository {
-                public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false) {
-                    return (object) [
-                        "id" => "test-client-id",
-                        "grant_types" => ["authorization_code"],
-                        "redirect_uris" => $redirectUris,
-                    ];
-                }
-            }
-        ');
-    }
+    ensureMockClientRepository();
 
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
     config()->set('mcp.redirect_domains', ['http://allowed-domain.com/']);
 
-    $this->app->instance('Laravel\Passport\ClientRepository', new \Laravel\Passport\ClientRepository);
+    $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->postJson('/oauth/register', [
         'client_name' => 'Test Client',
         'redirect_uris' => ['http://not-allowed.com/callback'],
     ]);
 
-    $response->assertStatus(422);
+    $response->assertStatus(400);
 });
 
 it('handles oauth discovery with multi-segment paths', function (): void {
@@ -284,7 +478,7 @@ it('handles oauth discovery with multi-segment paths', function (): void {
     $response->assertStatus(200);
     $response->assertJson([
         'resource' => url('/mcp/weather'),
-        'authorization_servers' => [url('/mcp/weather')],
+        'authorization_servers' => [url('/')],
         'scopes_supported' => ['mcp:use'],
     ]);
 
@@ -303,7 +497,7 @@ it('handles oauth discovery with multi-segment paths', function (): void {
         'grant_types_supported',
     ]);
     $response->assertJson([
-        'issuer' => url('/mcp/weather'),
+        'issuer' => url('/'),
         'scopes_supported' => ['mcp:use'],
         'response_types_supported' => ['code'],
         'code_challenge_methods_supported' => ['S256'],
@@ -325,7 +519,7 @@ it('handles oauth discovery with single segment paths', function (): void {
     $response->assertStatus(200);
     $response->assertJson([
         'resource' => url('/mcp'),
-        'authorization_servers' => [url('/mcp')],
+        'authorization_servers' => [url('/')],
         'scopes_supported' => ['mcp:use'],
     ]);
 
@@ -333,7 +527,7 @@ it('handles oauth discovery with single segment paths', function (): void {
 
     $response->assertStatus(200);
     $response->assertJson([
-        'issuer' => url('/mcp'),
+        'issuer' => url('/'),
     ]);
 });
 
@@ -361,4 +555,154 @@ it('handles oauth discovery with no path', function (): void {
     $response->assertJson([
         'issuer' => url('/'),
     ]);
+});
+
+it('uses configured authorization_server for authorization_servers field', function (): void {
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.authorization_server', 'https://auth.example.com');
+
+    $response = $this->getJson('/.well-known/oauth-protected-resource/mcp');
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'resource' => url('/mcp'),
+        'authorization_servers' => ['https://auth.example.com'],
+    ]);
+});
+
+it('uses configured authorization_server as issuer in authorization server metadata', function (): void {
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.authorization_server', 'https://auth.example.com');
+
+    $response = $this->getJson('/.well-known/oauth-authorization-server');
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'issuer' => 'https://auth.example.com',
+    ]);
+});
+
+it('accepts custom scheme redirect URIs when the scheme is configured', function (string $uri): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.custom_schemes', ['cursor', 'vscode', 'claude']);
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Desktop Client',
+        'redirect_uris' => [$uri],
+    ]);
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'client_id' => 'test-client-id',
+        'redirect_uris' => [$uri],
+    ]);
+})->with([
+    'cursor scheme' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
+    'vscode scheme' => ['vscode://extension.mcp/callback'],
+    'claude scheme' => ['claude://desktop.app/oauth/callback'],
+]);
+
+it('rejects custom scheme redirect URIs when the scheme is not configured', function (): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.custom_schemes', []);
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Desktop Client',
+        'redirect_uris' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
+    ]);
+
+    $response->assertStatus(400);
+});
+
+it('rejects custom scheme redirect URIs when a different scheme is configured', function (): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.custom_schemes', ['vscode']);
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Desktop Client',
+        'redirect_uris' => ['cursor://anysphere.cursor-mcp/oauth/callback'],
+    ]);
+
+    $response->assertStatus(400);
+});
+
+it('rejects custom scheme redirect URIs with missing host', function (): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.custom_schemes', ['cursor']);
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Desktop Client',
+        'redirect_uris' => ['cursor:///callback'],
+    ]);
+
+    $response->assertStatus(400);
+});
+
+it('still allows standard http URLs when custom schemes are configured', function (): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.custom_schemes', ['cursor']);
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Web Client',
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ]);
+
+    $response->assertStatus(200);
+});
+
+it('returns json validation errors even without Accept application/json header', function (): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->post('/oauth/register', [
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ], ['Accept' => '*/*']);
+
+    $response->assertStatus(400);
+    $response->assertHeader('Content-Type', 'application/json');
+    $response->assertJsonStructure(['error', 'error_description']);
 });

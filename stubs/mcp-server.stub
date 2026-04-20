@@ -3,49 +3,23 @@
 namespace {{ namespace }};
 
 use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Attributes\Instructions;
+use Laravel\Mcp\Server\Attributes\Name;
+use Laravel\Mcp\Server\Attributes\Version;
 
+#[Name('{{ serverDisplayName }}')]
+#[Version('0.0.1')]
+#[Instructions('Instructions describing how to use the server and its features.')]
 class {{ class }} extends Server
 {
-    /**
-     * The MCP server's name.
-     */
-    protected string $name = '{{ serverDisplayName }}';
-
-    /**
-     * The MCP server's version.
-     */
-    protected string $version = '0.0.1';
-
-    /**
-     * The MCP server's instructions for the LLM.
-     */
-    protected string $instructions = <<<'MARKDOWN'
-        Instructions describing how to use the server and its features.
-    MARKDOWN;
-
-    /**
-     * The tools registered with this MCP server.
-     *
-     * @var array<int, class-string<\Laravel\Mcp\Server\Tool>>
-     */
     protected array $tools = [
         //
     ];
 
-    /**
-     * The resources registered with this MCP server.
-     *
-     * @var array<int, class-string<\Laravel\Mcp\Server\Resource>>
-     */
     protected array $resources = [
         //
     ];
 
-    /**
-     * The prompts registered with this MCP server.
-     *
-     * @var array<int, class-string<\Laravel\Mcp\Server\Prompt>>
-     */
     protected array $prompts = [
         //
     ];

@@ -1,6 +1,90 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.5.5...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.7...main)
+
+## [v0.6.7](https://github.com/laravel/mcp/compare/v0.6.6...v0.6.7) - 2026-04-15
+
+### What's Changed
+
+* Fix route:cache memory exhaustion caused by circular reference by [@radumetes](https://github.com/radumetes) in https://github.com/laravel/mcp/pull/197
+
+### New Contributors
+
+* [@radumetes](https://github.com/radumetes) made their first contribution in https://github.com/laravel/mcp/pull/197
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.6.6...v0.6.7
+
+## [v0.6.6](https://github.com/laravel/mcp/compare/v0.6.5...v0.6.6) - 2026-04-14
+
+* fix: preserve unicode characters in JSON-RPC responses by [@indigoram89](https://github.com/indigoram89) in https://github.com/laravel/mcp/pull/191
+* Add MCP UI App support with interactive HTML resources by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/182
+* Revert "Add MCP UI App support with interactive HTML resources" by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/195
+* Preserve existing OAuth discovery routes by [@Gujiassh](https://github.com/Gujiassh) in https://github.com/laravel/mcp/pull/192
+
+## [v0.6.5](https://github.com/laravel/mcp/compare/v0.6.4...v0.6.5) - 2026-03-30
+
+### What's Changed
+
+* fix: support custom URI schemes in OAuth client registration by [@alexis-riot](https://github.com/alexis-riot) in https://github.com/laravel/mcp/pull/181
+* fix: return tool errors for auth failures by [@Gujiassh](https://github.com/Gujiassh) in https://github.com/laravel/mcp/pull/186
+* fix: authorization_servers and issuer should be the root URL, not the resource path by [@pktharindu](https://github.com/pktharindu) in https://github.com/laravel/mcp/pull/185
+
+### New Contributors
+
+* [@alexis-riot](https://github.com/alexis-riot) made their first contribution in https://github.com/laravel/mcp/pull/181
+* [@pktharindu](https://github.com/pktharindu) made their first contribution in https://github.com/laravel/mcp/pull/185
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.6.4...v0.6.5
+
+## [v0.6.4](https://github.com/laravel/mcp/compare/v0.6.3...v0.6.4) - 2026-03-19
+
+* Remove redundant "When to Apply" section from skill body by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/175
+* Validate OAuth registration client names by [@Gujiassh](https://github.com/Gujiassh) in https://github.com/laravel/mcp/pull/177
+* Add nested OAuth resource metadata regression coverage by [@Gujiassh](https://github.com/Gujiassh) in https://github.com/laravel/mcp/pull/178
+
+## [v0.6.3](https://github.com/laravel/mcp/compare/v0.6.2...v0.6.3) - 2026-03-12
+
+* Add `assertStructuredContent($closure)` support by [@gdebrauwer](https://github.com/gdebrauwer) in https://github.com/laravel/mcp/pull/172
+
+## [v0.6.2](https://github.com/laravel/mcp/compare/v0.6.1...v0.6.2) - 2026-03-10
+
+* Makes imports consistent by [@nunomaduro](https://github.com/nunomaduro) in https://github.com/laravel/mcp/pull/171
+
+## [v0.6.1](https://github.com/laravel/mcp/compare/v0.6.0...v0.6.1) - 2026-03-10
+
+* Add missing [@throws](https://github.com/throws) annotation to toJsonRpcResponse method by [@mohammadRezaei1380](https://github.com/mohammadRezaei1380) in https://github.com/laravel/mcp/pull/166
+* Update boost skill description and remove core guideline by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/170
+
+## [v0.6.0](https://github.com/laravel/mcp/compare/v0.5.9...v0.6.0) - 2026-02-24
+
+* Allow localhost redirect with dynamic ports by [@dylanbr](https://github.com/dylanbr) in https://github.com/laravel/mcp/pull/156
+* Add Image and Audio content types with Storage integration by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/155
+* Remove incorrect Response::structured docblock throw by [@nathanheffley](https://github.com/nathanheffley) in https://github.com/laravel/mcp/pull/160
+* Add Boost Guidelines & Skills by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/153
+* Add facade documenter workflow and sync Mcp facade docblocks by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/161
+* Add Allow header to 405 responses for unsupported HTTP methods by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/162
+* Fix CI failures in facade documenter and static analysis by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/163
+* Add example of registering MCP Tool in a Server by [@mohammadRezaei1380](https://github.com/mohammadRezaei1380) in https://github.com/laravel/mcp/pull/164
+
+## [v0.5.9](https://github.com/laravel/mcp/compare/v0.5.8...v0.5.9) - 2026-02-17
+
+* Update stubs to use attribute syntax by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/157
+
+## [v0.5.8](https://github.com/laravel/mcp/compare/v0.5.7...v0.5.8) - 2026-02-16
+
+* Add attribute alternatives for primitive and server configuration by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/154
+
+## [v0.5.7](https://github.com/laravel/mcp/compare/v0.5.6...v0.5.7) - 2026-02-13
+
+* Add configurable JSON response formatting by [@LAlex14](https://github.com/LAlex14) in https://github.com/laravel/mcp/pull/150
+* Change JSON response formatting to compact by default by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/151
+* Add `SessionInitialized` event by [@jessarcher](https://github.com/jessarcher) in https://github.com/laravel/mcp/pull/152
+
+## [v0.5.6](https://github.com/laravel/mcp/compare/v0.5.5...v0.5.6) - 2026-02-09
+
+* Update command description formatting to match all other Laravel Commands by [@matthewjohns0n](https://github.com/matthewjohns0n) in https://github.com/laravel/mcp/pull/146
+* Add host and port options to MCP Inspector command by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/147
+* Fix streaming generator handling under Octane by [@csfh](https://github.com/csfh) in https://github.com/laravel/mcp/pull/148
 
 ## [v0.5.5](https://github.com/laravel/mcp/compare/v0.5.4...v0.5.5) - 2026-02-05
 
@@ -113,6 +197,18 @@ public function schema(JsonSchema $schema): array
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 ```
 **After**
 
@@ -123,6 +219,18 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

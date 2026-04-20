@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Testing;
 
+use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
+use Illuminate\Testing\Fluent\AssertableJson;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -105,10 +107,20 @@ class TestResponse
     }
 
     /**
-     * @param  array<string, mixed>  $structuredContent
+     * @param  array<string, mixed>|Closure(AssertableJson): bool  $structuredContent
      */
-    public function assertStructuredContent(array $structuredContent): static
+    public function assertStructuredContent(Closure|array $structuredContent): static
     {
+        if ($structuredContent instanceof Closure) {
+            $assertableJson = AssertableJson::fromArray($this->response->toArray()['result']['structuredContent'] ?? null);
+
+            $structuredContent($assertableJson);
+
+            $assertableJson->interacted();
+
+            return $this;
+        }
+
         Assert::assertSame(
             $structuredContent,
             $this->response->toArray()['result']['structuredContent'] ?? null,
@@ -321,11 +333,11 @@ class TestResponse
         return (match (true) {
             // @phpstan-ignore-next-line
             $this->primitive instanceof Tool => collect($this->response->toArray()['result']['content'] ?? [])
-                ->map(fn (array $message): string => $message['text'] ?? ''),
+                ->map(fn (array $message): string => $message['text'] ?? $message['data'] ?? ''),
             // @phpstan-ignore-next-line
             $this->primitive instanceof Prompt => collect($this->response->toArray()['result']['messages'] ?? [])
                 ->map(fn (array $message): array => $message['content'])
-                ->map(fn (array $content): string => $content['text'] ?? ''),
+                ->map(fn (array $content): string => $content['text'] ?? $content['data'] ?? ''),
             // @phpstan-ignore-next-line
             $this->primitive instanceof Resource => collect($this->response->toArray()['result']['contents'] ?? [])
                 ->map(fn (array $item): string => $item['text'] ?? $item['blob'] ?? ''),

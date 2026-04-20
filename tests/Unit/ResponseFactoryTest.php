@@ -81,7 +81,7 @@ it('creates a structured content response with Response::structured', function (
 
     $textResponse = $factory->responses()->first();
     expect($textResponse->content()->toArray()['text'])
-        ->toContain('"result": "The result of the tool."');
+        ->toContain('"result":"The result of the tool."');
 });
 
 it('creates a structured content response with meta using Response::structured', function (): void {

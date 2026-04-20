@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Laravel\Mcp\Server\Completions\CompletionHelper;
 
 it('filters items by prefix case-insensitively', function (): void {

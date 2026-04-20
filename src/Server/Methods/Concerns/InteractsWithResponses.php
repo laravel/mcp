@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods\Concerns;
 
 use Generator;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -20,6 +22,8 @@ trait InteractsWithResponses
 {
     /**
      * @param  array<int, Response|ResponseFactory|string>|Response|ResponseFactory|string  $response
+     *
+     * @throws JsonRpcException
      */
     protected function toJsonRpcResponse(JsonRpcRequest $request, Response|ResponseFactory|array|string $response, callable $serializable): JsonRpcResponse
     {
@@ -62,12 +66,22 @@ trait InteractsWithResponses
 
                 $pendingResponses[] = $response;
             }
+        } catch (AuthenticationException|AuthorizationException $authException) {
+            yield $this->toJsonRpcResponse(
+                $request,
+                Response::error($authException->getMessage()),
+                $serializable,
+            );
+
+            return;
         } catch (ValidationException $validationException) {
             yield $this->toJsonRpcResponse(
                 $request,
                 Response::error($validationException->getMessage()),
                 $serializable,
             );
+
+            return;
         }
 
         yield $this->toJsonRpcResponse($request, $pendingResponses, $serializable);

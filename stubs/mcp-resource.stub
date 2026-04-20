@@ -2,19 +2,14 @@
 
 namespace {{ namespace }};
 
-use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Attributes\Description;
+use Laravel\Mcp\Server\Resource;
 
+#[Description('A description of what this resource contains.')]
 class {{ class }} extends Resource
 {
-    /**
-     * The resource's description.
-     */
-    protected string $description = <<<'MARKDOWN'
-        A description of what this resource contains.
-    MARKDOWN;
-
     /**
      * Handle the resource request.
      */
