@@ -41,7 +41,7 @@ class HttpClientTransport implements ClientTransport
     {
         $response = $this->post($message);
 
-        if ($response->status() === 401 && $this->authProvider instanceof \Laravel\Mcp\Client\Auth\AuthProvider) {
+        if ($response->status() === 401 && $this->authProvider instanceof AuthProvider) {
             $this->authProvider->handleUnauthorized($response->header('WWW-Authenticate') ?? '');
 
             $response = $this->post($message);
@@ -87,7 +87,7 @@ class HttpClientTransport implements ClientTransport
             'Accept' => 'application/json, text/event-stream',
         ];
 
-        if ($this->authProvider instanceof \Laravel\Mcp\Client\Auth\AuthProvider) {
+        if ($this->authProvider instanceof AuthProvider) {
             $token = $this->authProvider->token();
 
             if ($token !== null) {

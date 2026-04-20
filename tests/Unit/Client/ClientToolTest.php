@@ -2,6 +2,8 @@
 
 use Laravel\Mcp\Client\Client;
 use Laravel\Mcp\Client\ClientTool;
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Content\Text;
 use Tests\Fixtures\FakeClientTransport;
 
 it('creates from array definition', function (): void {
@@ -80,10 +82,10 @@ it('handles request by proxying to client', function (): void {
         'description' => 'Says hello',
     ], $client);
 
-    $request = new \Laravel\Mcp\Request(['name' => 'World']);
+    $request = new Request(['name' => 'World']);
     $response = $tool->handle($request);
 
-    expect($response->content())->toBeInstanceOf(\Laravel\Mcp\Server\Content\Text::class);
+    expect($response->content())->toBeInstanceOf(Text::class);
 });
 
 it('exposes remote input schema', function (): void {

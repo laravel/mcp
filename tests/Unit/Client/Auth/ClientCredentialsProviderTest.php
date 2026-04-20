@@ -86,7 +86,7 @@ it('runs discovery on handle unauthorized when no token endpoint', function (): 
     );
 
     expect(fn () => $provider->handleUnauthorized('Bearer resource_metadata="https://example.com/.well-known/oauth-protected-resource"'))
-        ->toThrow(\Exception::class);
+        ->toThrow(Exception::class);
 });
 
 it('skips discovery when token endpoint is configured', function (): void {
@@ -102,7 +102,7 @@ it('skips discovery when token endpoint is configured', function (): void {
     );
 
     expect(fn () => $provider->handleUnauthorized('Bearer realm="example"'))
-        ->toThrow(\Exception::class);
+        ->toThrow(Exception::class);
 });
 
 it('wraps oauth exceptions in client exception', function (): void {

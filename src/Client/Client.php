@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Client;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Laravel\Mcp\Client\Contracts\ClientMethod;
 use Laravel\Mcp\Client\Contracts\ClientTransport;
 use Laravel\Mcp\Client\Methods\CallTool;
 use Laravel\Mcp\Client\Methods\Initialize;
@@ -24,7 +25,7 @@ class Client
 
     protected ClientContext $context;
 
-    /** @var array<string, class-string<\Laravel\Mcp\Client\Contracts\ClientMethod>> */
+    /** @var array<string, class-string<ClientMethod>> */
     protected array $methods = [
         'initialize' => Initialize::class,
         'tools/list' => ListTools::class,
