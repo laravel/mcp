@@ -70,17 +70,18 @@ class InspectorCommand extends Command
             $env['CLIENT_PORT'] = $port;
         }
 
+        $configPath = null;
+
         if ($localServer !== null) {
             $artisanPath = base_path('artisan');
 
             $command = [
                 'npx',
                 '@modelcontextprotocol/inspector',
-                '--transport',
-                'stdio',
                 $this->phpBinary(),
                 $artisanPath,
-                "mcp:start {$handle}",
+                'mcp:start',
+                $handle,
             ];
 
             $guidance = [
@@ -98,13 +99,23 @@ class InspectorCommand extends Command
                 $env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
             }
 
+            $configPath = tempnam(sys_get_temp_dir(), 'mcp-inspector-').'.json';
+            file_put_contents($configPath, (string) json_encode([
+                'mcpServers' => [
+                    'default-server' => [
+                        'type' => 'streamable-http',
+                        'url' => $serverUrl,
+                    ],
+                ],
+            ], JSON_PRETTY_PRINT));
+
             $command = [
                 'npx',
                 '@modelcontextprotocol/inspector',
-                '--transport',
-                'http',
-                '--server-url',
-                $serverUrl,
+                '--config',
+                $configPath,
+                '--server',
+                'default-server',
             ];
 
             $guidance = [
@@ -131,6 +142,10 @@ class InspectorCommand extends Command
             $this->components->error('Failed to start MCP Inspector: '.$exception->getMessage());
 
             return static::FAILURE;
+        } finally {
+            if ($configPath !== null && file_exists($configPath)) {
+                unlink($configPath);
+            }
         }
 
         return static::SUCCESS;
