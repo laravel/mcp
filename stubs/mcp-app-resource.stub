@@ -1,0 +1,24 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
+use Laravel\Mcp\Server\Attributes\AppMeta;
+use Laravel\Mcp\Server\Attributes\Description;
+use Laravel\Mcp\Server\AppResource;
+
+#[Description('A description of what this app resource does.')]
+#[AppMeta]
+class {{ class }} extends AppResource
+{
+    /**
+     * Handle the app resource request.
+     */
+    public function handle(Request $request): Response
+    {
+        return Response::view('{{ view }}', [
+            'title' => $this->title(),
+        ]);
+    }
+}
