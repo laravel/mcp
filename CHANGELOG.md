@@ -1,6 +1,23 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.6...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.7.0...main)
+
+## [v0.7.0](https://github.com/laravel/mcp/compare/v0.6.7...v0.7.0) - 2026-04-21
+
+* docs(readme): point test badge to workflow file URL by [@Gujiassh](https://github.com/Gujiassh) in https://github.com/laravel/mcp/pull/201
+* Add MCP UI App support by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/196
+
+## [v0.6.7](https://github.com/laravel/mcp/compare/v0.6.6...v0.6.7) - 2026-04-15
+
+### What's Changed
+
+* Fix route:cache memory exhaustion caused by circular reference by [@radumetes](https://github.com/radumetes) in https://github.com/laravel/mcp/pull/197
+
+### New Contributors
+
+* [@radumetes](https://github.com/radumetes) made their first contribution in https://github.com/laravel/mcp/pull/197
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.6.6...v0.6.7
 
 ## [v0.6.6](https://github.com/laravel/mcp/compare/v0.6.5...v0.6.6) - 2026-04-14
 
@@ -196,6 +213,8 @@ public function schema(JsonSchema $schema): array
 
 
 
+
+
 ```
 **After**
 
@@ -206,6 +225,8 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
+
 
 
 
