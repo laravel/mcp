@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Methods;
 
+use Closure;
 use Generator;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Laravel\Mcp\Events\InvokingTool;
+use Laravel\Mcp\Events\ToolInvoked;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Contracts\Errable;
@@ -50,6 +55,16 @@ class CallTool implements Errable, Method
                     $request->id,
                 ));
 
+        $events = Container::getInstance()->make(Dispatcher::class);
+        $toolRequest = $request->toRequest();
+        $invocationId = (string) Str::uuid7();
+
+        $events->dispatch(new InvokingTool(
+            invocationId: $invocationId,
+            tool: $tool,
+            request: $toolRequest,
+        ));
+
         try {
             // @phpstan-ignore-next-line
             $response = Container::getInstance()->call([$tool, 'handle']);
@@ -59,9 +74,46 @@ class CallTool implements Errable, Method
             $response = Response::error(ValidationMessages::from($validationException));
         }
 
+        $dispatchInvoked = fn (mixed $finalResponse): mixed => tap($finalResponse, fn () => $events->dispatch(new ToolInvoked(
+            invocationId: $invocationId,
+            tool: $tool,
+            request: $toolRequest,
+            response: $finalResponse,
+        )));
+
+        if ($response instanceof Generator) {
+            return $this->toJsonRpcStreamedResponse(
+                $request,
+                $this->collectStreamedResponses($response, $dispatchInvoked),
+                $this->serializable($tool),
+            );
+        }
+
+        $dispatchInvoked($response);
+
         return is_iterable($response)
             ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($tool))
             : $this->toJsonRpcResponse($request, $response, $this->serializable($tool));
+    }
+
+    /**
+     * @param  Generator<int, Response|ResponseFactory|string>  $stream
+     * @param  Closure(array<int, Response|ResponseFactory|string>): mixed  $afterCompleted
+     * @return Generator<int, Response|ResponseFactory|string>
+     */
+    protected function collectStreamedResponses(Generator $stream, Closure $afterCompleted): Generator
+    {
+        $collected = [];
+
+        try {
+            foreach ($stream as $key => $value) {
+                $collected[] = $value;
+
+                yield $key => $value;
+            }
+        } finally {
+            $afterCompleted($collected);
+        }
     }
 
     /**
