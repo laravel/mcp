@@ -90,7 +90,7 @@ class OAuthRegisterController
             'redirect_uris' => $client->redirect_uris,
             'scope' => 'mcp:use',
             'token_endpoint_auth_method' => 'none',
-        ]);
+        ], 201);
     }
 
     protected function isValidRedirectUri(string $value): bool
