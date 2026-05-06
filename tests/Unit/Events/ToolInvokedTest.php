@@ -59,11 +59,11 @@ it('uses the same invocationId for InvokingTool and ToolInvoked', function (): v
     $invoking = null;
     $invoked = null;
 
-    Event::listen(function (InvokingTool $event) use (&$invoking) {
+    Event::listen(function (InvokingTool $event) use (&$invoking): void {
         $invoking = $event;
     });
 
-    Event::listen(function (ToolInvoked $event) use (&$invoked) {
+    Event::listen(function (ToolInvoked $event) use (&$invoked): void {
         $invoked = $event;
     });
 
@@ -181,12 +181,10 @@ it('dispatches ToolInvoked with collected responses after a streamed tool finish
     iterator_to_array($responses);
 
     Event::assertDispatched(InvokingTool::class, 1);
-    Event::assertDispatched(ToolInvoked::class, function (ToolInvoked $event): bool {
-        return is_array($event->response)
-            && count($event->response) === 2
-            && $event->response[0] instanceof Response
-            && $event->response[1] instanceof Response;
-    });
+    Event::assertDispatched(ToolInvoked::class, fn (ToolInvoked $event): bool => is_array($event->response)
+        && count($event->response) === 2
+        && $event->response[0] instanceof Response
+        && $event->response[1] instanceof Response);
 });
 
 it('does not break the streamed response when a listener inspects ToolInvoked', function (): void {
@@ -210,7 +208,7 @@ it('does not break the streamed response when a listener inspects ToolInvoked', 
     $this->instance($toolClass, $tool);
 
     $listenerSawResponses = null;
-    Event::listen(function (ToolInvoked $event) use (&$listenerSawResponses) {
+    Event::listen(function (ToolInvoked $event) use (&$listenerSawResponses): void {
         $listenerSawResponses = is_array($event->response) ? count($event->response) : null;
     });
 
@@ -431,7 +429,7 @@ it('dispatches InvokingTool but not ToolInvoked when the tool throws an uncaught
 
     $this->instance('mcp.request', $request->toRequest());
 
-    expect(fn () => (new CallTool)->handle($request, $context))
+    expect(fn (): Generator|\Laravel\Mcp\Server\Transport\JsonRpcResponse => (new CallTool)->handle($request, $context))
         ->toThrow(RuntimeException::class, 'boom');
 
     Event::assertDispatched(InvokingTool::class);
