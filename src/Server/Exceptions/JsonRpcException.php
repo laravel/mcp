@@ -23,8 +23,12 @@ class JsonRpcException extends Exception
 
     public function toJsonRpcResponse(): JsonRpcResponse
     {
+        $id = is_string($this->requestId) || is_int($this->requestId)
+            ? $this->requestId
+            : null;
+
         return JsonRpcResponse::error(
-            id: $this->requestId,
+            id: $id,
             code: $this->getCode(),
             message: $this->getMessage(),
             data: $this->data,
