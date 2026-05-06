@@ -10,7 +10,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Laravel\Passport\ClientRepository;
 
 class OAuthRegisterController
 {
@@ -65,7 +64,7 @@ class OAuthRegisterController
 
         $validated = $validator->validated();
 
-        if (class_exists(ClientRepository::class) === false) {
+        if (class_exists('Laravel\Passport\ClientRepository') === false) {
             return response()->json([
                 'error' => 'server_error',
                 'error_description' => 'OAuth support (Passport) is not installed.',
@@ -73,7 +72,7 @@ class OAuthRegisterController
         }
 
         $clients = Container::getInstance()->make(
-            ClientRepository::class
+            'Laravel\Passport\ClientRepository'
         );
 
         $client = $clients->createAuthorizationCodeGrantClient(
@@ -91,7 +90,7 @@ class OAuthRegisterController
             'redirect_uris' => $client->redirect_uris,
             'scope' => 'mcp:use',
             'token_endpoint_auth_method' => 'none',
-        ]);
+        ], 201);
     }
 
     protected function isValidRedirectUri(string $value): bool
