@@ -210,7 +210,7 @@ it('handles oauth registration endpoint', function (): void {
         'redirect_uris' => ['http://localhost:3000/callback'],
     ]);
 
-    $response->assertStatus(200);
+    $response->assertStatus(201);
     $response->assertJson([
         'client_id' => 'test-client-id',
         'grant_types' => ['authorization_code'],
@@ -280,7 +280,7 @@ it('falls back to the legacy name field for oauth registration', function (): vo
         'redirect_uris' => ['http://localhost:3000/callback'],
     ]);
 
-    $response->assertStatus(200);
+    $response->assertStatus(201);
 
     expect($clientRepository->capturedName)->toBe('Legacy Client');
 });
@@ -313,7 +313,7 @@ it('prefers client_name over name for oauth registration', function (): void {
         'redirect_uris' => ['http://localhost:3000/callback'],
     ]);
 
-    $response->assertStatus(200);
+    $response->assertStatus(201);
 
     expect($clientRepository->capturedName)->toBe('Preferred Client');
 });
@@ -333,7 +333,7 @@ it('handles oauth registration with allowed domains', function (): void {
         'redirect_uris' => ['http://localhost:3000/callback'],
     ]);
 
-    $response->assertStatus(200);
+    $response->assertStatus(201);
     $response->assertJson([
         'client_id' => 'test-client-id',
         'grant_types' => ['authorization_code'],
@@ -359,7 +359,7 @@ it('allows localhost with dynamic port when localhost is in redirect_domains', f
         'redirect_uris' => [$uri],
     ]);
 
-    $response->assertStatus(200);
+    $response->assertStatus(201);
 })->with([
     'localhost' => ['http://localhost:18293/callback'],
     '127.0.0.1' => ['http://127.0.0.1:29100/callback'],
@@ -439,7 +439,7 @@ it('allows all localhost hosts when any localhost variant is in redirect_domains
         'redirect_uris' => ['http://localhost:18293/callback'],
     ]);
 
-    $response->assertStatus(200);
+    $response->assertStatus(201);
 })->with([
     'http://127.0.0.1' => ['http://127.0.0.1'],
     'http://[::1]' => ['http://[::1]'],
@@ -607,7 +607,7 @@ it('accepts custom scheme redirect URIs when the scheme is configured', function
         'redirect_uris' => [$uri],
     ]);
 
-    $response->assertStatus(200);
+    $response->assertStatus(201);
     $response->assertJson([
         'client_id' => 'test-client-id',
         'redirect_uris' => [$uri],
@@ -687,7 +687,7 @@ it('still allows standard http URLs when custom schemes are configured', functio
         'redirect_uris' => ['http://localhost:3000/callback'],
     ]);
 
-    $response->assertStatus(200);
+    $response->assertStatus(201);
 });
 
 it('returns json validation errors even without Accept application/json header', function (): void {
