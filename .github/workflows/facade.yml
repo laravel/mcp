@@ -39,6 +39,9 @@ jobs:
       - name: Update facade docblocks
         run: php -f vendor/bin/facade.php -- Laravel\\Mcp\\Facades\\Mcp
 
+      - name: Format with Pint
+        run: vendor/bin/pint src/Facades/Mcp.php
+
       - name: Commit facade docblocks
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
