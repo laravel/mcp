@@ -15,6 +15,9 @@ class ResourceLink implements Content
 {
     use HasMeta;
 
+    /**
+     * @param  array<string, mixed>  $annotations
+     */
     public function __construct(
         protected string $uri,
         protected string $name,
@@ -22,9 +25,6 @@ class ResourceLink implements Content
         protected ?string $title = null,
         protected ?string $description = null,
         protected ?int $size = null,
-        /**
-         * @var array<string, mixed>
-         */
         protected array $annotations = [],
     ) {}
 
