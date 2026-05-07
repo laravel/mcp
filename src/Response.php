@@ -139,13 +139,35 @@ class Response
         return new static(new Image($data, $mimeType));
     }
 
+    /**
+     * @param  Role|array<int, Role>|null  $audience
+     */
     public static function resourceLink(
         string $uri,
         ?string $name = null,
-        ?string $mimeType = null,
+        ?string $title = null,
         ?string $description = null,
+        ?string $mimeType = null,
+        ?int $size = null,
+        Role|array|null $audience = null,
+        ?float $priority = null,
+        ?string $lastModified = null,
     ): static {
-        return new static(new ResourceLink($uri, $name, $mimeType, $description));
+        $link = new ResourceLink($uri, $name, $title, $description, $mimeType, $size);
+
+        if ($audience !== null) {
+            $link->audience($audience);
+        }
+
+        if ($priority !== null) {
+            $link->priority($priority);
+        }
+
+        if ($lastModified !== null) {
+            $link->lastModified($lastModified);
+        }
+
+        return new static($link);
     }
 
     public static function fromStorage(string $path, ?string $disk = null, ?string $mimeType = null): static
