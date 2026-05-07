@@ -282,10 +282,10 @@ it('creates compact json response', function (): void {
 
 it('creates a resource link from a uri string', function (): void {
     $response = Response::resourceLink(
-        uri: 'file:///data/report.json',
-        name: 'Monthly Report',
+        'file:///data/report.json',
+        'Monthly Report',
+        'application/json',
         description: 'Generated sales report',
-        mimeType: 'application/json',
     );
 
     expect($response->content()->toArray())->toEqual([
@@ -295,6 +295,11 @@ it('creates a resource link from a uri string', function (): void {
         'description' => 'Generated sales report',
         'mimeType' => 'application/json',
     ]);
+});
+
+it('requires a name when creating a resource link from a uri string', function (): void {
+    expect(fn (): Response => Response::resourceLink('file:///data/report.json'))
+        ->toThrow(InvalidArgumentException::class, 'Resource link name is required when using a URI string.');
 });
 
 it('creates a resource link from a Resource class-string', function (): void {
@@ -326,10 +331,15 @@ it('inherits annotations from a Resource', function (): void {
 });
 
 it('wraps a pre-built ResourceLink instance', function (): void {
-    $link = (new ResourceLink('file:///data/report.json', name: 'Monthly Report'))
-        ->audience([Role::User, Role::Assistant])
-        ->priority(0.9)
-        ->lastModified('2026-05-07T12:00:00Z');
+    $link = new ResourceLink(
+        'file:///data/report.json',
+        'Monthly Report',
+        annotations: [
+            'audience' => ['user', 'assistant'],
+            'priority' => 0.9,
+            'lastModified' => '2026-05-07T12:00:00Z',
+        ],
+    );
 
     $response = Response::resourceLink($link);
 

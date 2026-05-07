@@ -5,10 +5,6 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Content;
 
 use InvalidArgumentException;
-use Laravel\Mcp\Enums\Role;
-use Laravel\Mcp\Server\Annotations\Audience;
-use Laravel\Mcp\Server\Annotations\LastModified;
-use Laravel\Mcp\Server\Annotations\Priority;
 use Laravel\Mcp\Server\Concerns\HasMeta;
 use Laravel\Mcp\Server\Contracts\Content;
 use Laravel\Mcp\Server\Prompt;
@@ -19,53 +15,18 @@ class ResourceLink implements Content
 {
     use HasMeta;
 
-    /**
-     * @var array<string, mixed>
-     */
-    protected array $annotations = [];
-
     public function __construct(
         protected string $uri,
-        protected ?string $name = null,
+        protected string $name,
+        protected ?string $mimeType = null,
         protected ?string $title = null,
         protected ?string $description = null,
-        protected ?string $mimeType = null,
         protected ?int $size = null,
+        /**
+         * @var array<string, mixed>
+         */
+        protected array $annotations = [],
     ) {}
-
-    /**
-     * @param  Role|array<int, Role>  $roles
-     */
-    public function audience(Role|array $roles): self
-    {
-        $this->annotations['audience'] = (new Audience($roles))->value;
-
-        return $this;
-    }
-
-    public function priority(float $priority): self
-    {
-        $this->annotations['priority'] = (new Priority($priority))->value;
-
-        return $this;
-    }
-
-    public function lastModified(string $timestamp): self
-    {
-        $this->annotations['lastModified'] = (new LastModified($timestamp))->value;
-
-        return $this;
-    }
-
-    /**
-     * @param  array<string, mixed>  $annotations
-     */
-    public function withAnnotations(array $annotations): self
-    {
-        $this->annotations = array_merge($this->annotations, $annotations);
-
-        return $this;
-    }
 
     /**
      * @return array<string, mixed>

@@ -143,18 +143,16 @@ class Response
 
     /**
      * @param  string|class-string<Resource>|Resource|ResourceLink  $uri
-     * @param  Role|array<int, Role>|null  $audience
+     * @param  array<string, mixed>  $annotations
      */
     public static function resourceLink(
         string|Resource|ResourceLink $uri,
         ?string $name = null,
+        ?string $mimeType = null,
         ?string $title = null,
         ?string $description = null,
-        ?string $mimeType = null,
         ?int $size = null,
-        Role|array|null $audience = null,
-        ?float $priority = null,
-        ?string $lastModified = null,
+        array $annotations = [],
     ): static {
         if (is_string($uri) && is_subclass_of($uri, Resource::class)) {
             $uri = Container::getInstance()->make($uri);
@@ -165,25 +163,22 @@ class Response
             $uri instanceof Resource => (new ResourceLink(
                 uri: $uri->uri(),
                 name: $name ?? $uri->name(),
+                mimeType: $mimeType ?? $uri->mimeType(),
                 title: $title ?? $uri->title(),
                 description: $description ?? $uri->description(),
-                mimeType: $mimeType ?? $uri->mimeType(),
                 size: $size,
-            ))->withAnnotations($uri->annotations()),
-            default => new ResourceLink($uri, $name, $title, $description, $mimeType, $size),
+                annotations: array_merge($uri->annotations(), $annotations),
+            )),
+            default => new ResourceLink(
+                uri: $uri,
+                name: $name ?? throw new InvalidArgumentException('Resource link name is required when using a URI string.'),
+                mimeType: $mimeType,
+                title: $title,
+                description: $description,
+                size: $size,
+                annotations: $annotations,
+            ),
         };
-
-        if ($audience !== null) {
-            $link->audience($audience);
-        }
-
-        if ($priority !== null) {
-            $link->priority($priority);
-        }
-
-        if ($lastModified !== null) {
-            $link->lastModified($lastModified);
-        }
 
         return new static($link);
     }
