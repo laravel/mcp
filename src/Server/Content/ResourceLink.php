@@ -58,6 +58,16 @@ class ResourceLink implements Content
     }
 
     /**
+     * @param  array<string, mixed>  $annotations
+     */
+    public function withAnnotations(array $annotations): self
+    {
+        $this->annotations = array_merge($this->annotations, $annotations);
+
+        return $this;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toTool(Tool $tool): array

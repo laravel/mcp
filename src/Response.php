@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Illuminate\Container\Container;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Traits\Conditionable;
@@ -18,6 +19,7 @@ use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\ResourceLink;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
+use Laravel\Mcp\Server\Resource;
 use League\Flysystem\UnableToReadFile;
 
 class Response
@@ -140,10 +142,19 @@ class Response
     }
 
     /**
+     * Return a resource_link content block.
+     *
+     * Pass a URI string, a Resource class-string/instance to inherit metadata
+     * from a declared Resource, or a pre-built ResourceLink (e.g. from a fluent
+     * chain) to wrap as-is. The URI does not need to point at a registered
+     * Resource — clients may fetch or subscribe to it independently of
+     * resources/list.
+     *
+     * @param  string|class-string<Resource>|Resource|ResourceLink  $uri
      * @param  Role|array<int, Role>|null  $audience
      */
     public static function resourceLink(
-        string $uri,
+        string|Resource|ResourceLink $uri,
         ?string $name = null,
         ?string $title = null,
         ?string $description = null,
@@ -153,7 +164,22 @@ class Response
         ?float $priority = null,
         ?string $lastModified = null,
     ): static {
-        $link = new ResourceLink($uri, $name, $title, $description, $mimeType, $size);
+        if (is_string($uri) && is_subclass_of($uri, Resource::class)) {
+            $uri = Container::getInstance()->make($uri);
+        }
+
+        $link = match (true) {
+            $uri instanceof ResourceLink => $uri,
+            $uri instanceof Resource => (new ResourceLink(
+                uri: $uri->uri(),
+                name: $name ?? $uri->name(),
+                title: $title ?? $uri->title(),
+                description: $description ?? $uri->description(),
+                mimeType: $mimeType ?? $uri->mimeType(),
+                size: $size,
+            ))->withAnnotations($uri->annotations()),
+            default => new ResourceLink($uri, $name, $title, $description, $mimeType, $size),
+        };
 
         if ($audience !== null) {
             $link->audience($audience);
