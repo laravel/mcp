@@ -142,14 +142,6 @@ class Response
     }
 
     /**
-     * Return a resource_link content block.
-     *
-     * Pass a URI string, a Resource class-string/instance to inherit metadata
-     * from a declared Resource, or a pre-built ResourceLink (e.g. from a fluent
-     * chain) to wrap as-is. The URI does not need to point at a registered
-     * Resource — clients may fetch or subscribe to it independently of
-     * resources/list.
-     *
      * @param  string|class-string<Resource>|Resource|ResourceLink  $uri
      * @param  Role|array<int, Role>|null  $audience
      */
