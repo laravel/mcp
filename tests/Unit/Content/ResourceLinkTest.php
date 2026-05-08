@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Server\Annotations\Audience;
 use Laravel\Mcp\Server\Content\ResourceLink;
-use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Tool;
 

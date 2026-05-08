@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Content;
 
+use Laravel\Mcp\Server\Annotations\Annotation;
 use Laravel\Mcp\Server\Concerns\HasAnnotations;
 use Laravel\Mcp\Server\Concerns\HasMeta;
 use Laravel\Mcp\Server\Contracts\Content;
@@ -91,7 +92,7 @@ class ResourceLink implements Content
     protected function allowedAnnotations(): array
     {
         return [
-            \Laravel\Mcp\Server\Annotations\Annotation::class,
+            Annotation::class,
         ];
     }
 }
