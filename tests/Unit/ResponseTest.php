@@ -9,6 +9,7 @@ use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
+use Laravel\Mcp\Server\Content\ResourceLink;
 use Laravel\Mcp\Server\Content\Text;
 
 it('creates a notification response', function (): void {
@@ -77,6 +78,24 @@ it('creates an audio response with custom mime type', function (): void {
 
     expect($response->content())->toBeInstanceOf(Audio::class)
         ->and($response->content()->toArray()['mimeType'])->toBe('audio/mp3');
+});
+
+it('creates a resource link response', function (): void {
+    $response = Response::resourceLink(
+        'file:///tmp/report.csv',
+        'report.csv',
+        'text/csv',
+        'Generated report'
+    );
+
+    expect($response->content())->toBeInstanceOf(ResourceLink::class)
+        ->and($response->content()->toArray())->toEqual([
+            'type' => 'resource_link',
+            'uri' => 'file:///tmp/report.csv',
+            'name' => 'report.csv',
+            'description' => 'Generated report',
+            'mimeType' => 'text/csv',
+        ]);
 });
 
 it('creates image response with content meta', function (): void {
