@@ -9,7 +9,10 @@ use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
+use Laravel\Mcp\Server\Content\ResourceLink;
 use Laravel\Mcp\Server\Content\Text;
+use Tests\Fixtures\AnnotatedResource;
+use Tests\Fixtures\DailyPlanResource;
 
 it('creates a notification response', function (): void {
     $response = Response::notification('test.method', ['key' => 'value']);
@@ -275,4 +278,93 @@ it('creates compact json response', function (): void {
     $content = (string) $response->content();
     expect($content)->toBe('{"key":"value","number":123}')
         ->and($content)->not->toContain("\n");
+});
+
+it('creates a resource link from a uri string', function (): void {
+    $response = Response::resourceLink(
+        'file:///data/report.json',
+        'Monthly Report',
+        'application/json',
+        description: 'Generated sales report',
+    );
+
+    expect($response->content()->toArray())->toEqual([
+        'type' => 'resource_link',
+        'uri' => 'file:///data/report.json',
+        'name' => 'Monthly Report',
+        'description' => 'Generated sales report',
+        'mimeType' => 'application/json',
+    ]);
+});
+
+it('requires a name when creating a resource link from a uri string', function (): void {
+    expect(fn (): Response => Response::resourceLink('file:///data/report.json'))
+        ->toThrow(InvalidArgumentException::class, 'Resource link name is required when using a URI string.');
+});
+
+it('creates a resource link from a Resource class-string', function (): void {
+    $response = Response::resourceLink(DailyPlanResource::class);
+
+    $payload = $response->content()->toArray();
+
+    expect($payload['type'])->toBe('resource_link')
+        ->and($payload['uri'])->toBe((new DailyPlanResource)->uri())
+        ->and($payload['name'])->toBe((new DailyPlanResource)->name())
+        ->and($payload['mimeType'])->toBe((new DailyPlanResource)->mimeType());
+});
+
+it('creates a resource link from a Resource instance', function (): void {
+    $resource = new DailyPlanResource;
+    $response = Response::resourceLink($resource);
+
+    expect($response->content()->toArray()['uri'])->toBe($resource->uri());
+});
+
+it('inherits annotations from a Resource', function (): void {
+    $response = Response::resourceLink(AnnotatedResource::class);
+
+    expect($response->content()->toArray()['annotations'])->toEqual([
+        'audience' => ['user'],
+        'priority' => 0.7,
+        'lastModified' => '2026-05-01T00:00:00Z',
+    ]);
+});
+
+it('wraps a pre-built ResourceLink instance', function (): void {
+    $link = new ResourceLink(
+        'file:///data/report.json',
+        'Monthly Report',
+        annotations: [
+            'audience' => ['user', 'assistant'],
+            'priority' => 0.9,
+            'lastModified' => '2026-05-07T12:00:00Z',
+        ],
+    );
+
+    $response = Response::resourceLink($link);
+
+    expect($response->content())->toBe($link)
+        ->and($response->content()->toArray())->toEqual([
+            'type' => 'resource_link',
+            'uri' => 'file:///data/report.json',
+            'name' => 'Monthly Report',
+            'annotations' => [
+                'audience' => ['user', 'assistant'],
+                'priority' => 0.9,
+                'lastModified' => '2026-05-07T12:00:00Z',
+            ],
+        ]);
+});
+
+it('allows overriding fields when given a Resource', function (): void {
+    $response = Response::resourceLink(
+        DailyPlanResource::class,
+        title: 'Custom Title',
+        size: 4096,
+    );
+
+    $payload = $response->content()->toArray();
+
+    expect($payload['title'])->toBe('Custom Title')
+        ->and($payload['size'])->toBe(4096);
 });
