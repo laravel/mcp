@@ -1,6 +1,11 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.6.7...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.7.0...main)
+
+## [v0.7.0](https://github.com/laravel/mcp/compare/v0.6.7...v0.7.0) - 2026-04-21
+
+* docs(readme): point test badge to workflow file URL by [@Gujiassh](https://github.com/Gujiassh) in https://github.com/laravel/mcp/pull/201
+* Add MCP UI App support by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/196
 
 ## [v0.6.7](https://github.com/laravel/mcp/compare/v0.6.6...v0.6.7) - 2026-04-15
 
@@ -209,6 +214,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -219,6 +225,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 

@@ -12,6 +12,7 @@ use InvalidArgumentException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
+use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Exceptions\JsonRpcException;
@@ -72,21 +73,38 @@ class ReadResource implements Method
 
         $container->instance(Request::class, $request);
 
+        if ($resource instanceof AppResource) {
+            $container->instance('mcp.library_scripts', $resource->libraryScripts());
+        }
+
         try {
             // @phpstan-ignore-next-line
             return $container->call([$resource, 'handle']);
         } finally {
             $container->forgetInstance(Request::class);
+            $container->forgetInstance('mcp.library_scripts');
         }
     }
 
     protected function serializable(Resource $resource, string $uri): callable
     {
+        $appMeta = $resource instanceof AppResource ? $resource->resolvedAppMeta() : null;
+
         return fn (ResponseFactory $factory): array => $factory->mergeMeta([
-            'contents' => $factory->responses()->map(fn (Response $response): array => [
-                ...$response->content()->toResource($resource),
-                'uri' => $uri,
-            ])->all(),
+            'contents' => $factory->responses()->map(function (Response $response) use ($resource, $uri, $appMeta): array {
+                $content = [
+                    ...$response->content()->toResource($resource),
+                    'uri' => $uri,
+                ];
+
+                if ($appMeta !== null && $appMeta !== []) {
+                    $content['_meta'] = array_merge($content['_meta'] ?? [], [
+                        'ui' => $appMeta,
+                    ]);
+                }
+
+                return $content;
+            })->all(),
         ]);
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
+use Laravel\Mcp\Console\Commands\MakeAppResourceCommand;
 use Laravel\Mcp\Console\Commands\MakePromptCommand;
 use Laravel\Mcp\Console\Commands\MakeResourceCommand;
 use Laravel\Mcp\Console\Commands\MakeServerCommand;
@@ -23,6 +24,8 @@ class McpServiceProvider extends ServiceProvider
 
         $this->app->singleton(ClientManager::class, fn (): ClientManager => new ClientManager);
 
+        $this->app->singleton('mcp.sdk', fn (): string => (string) file_get_contents(__DIR__.'/../../resources/js/mcp-sdk.min.js'));
+
         $this->mergeConfigFrom(__DIR__.'/../../config/mcp.php', 'mcp');
     }
 
@@ -32,6 +35,7 @@ class McpServiceProvider extends ServiceProvider
         $this->registerRoutes();
         $this->registerContainerCallbacks();
         $this->registerTerminatingCallback();
+        $this->registerViews();
 
         if ($this->app->runningInConsole()) {
             $this->registerCommands();
@@ -47,6 +51,7 @@ class McpServiceProvider extends ServiceProvider
 
         $this->publishes([
             __DIR__.'/../../resources/views/mcp/authorize.blade.php' => resource_path('views/mcp/authorize.blade.php'),
+            __DIR__.'/../../resources/views/mcp/components/app.blade.php' => resource_path('views/vendor/mcp/components/app.blade.php'),
         ], 'mcp-views');
 
         $this->publishes([
@@ -54,6 +59,8 @@ class McpServiceProvider extends ServiceProvider
             __DIR__.'/../../stubs/mcp-resource.stub' => base_path('stubs/mcp-resource.stub'),
             __DIR__.'/../../stubs/mcp-server.stub' => base_path('stubs/mcp-server.stub'),
             __DIR__.'/../../stubs/mcp-tool.stub' => base_path('stubs/mcp-tool.stub'),
+            __DIR__.'/../../stubs/mcp-app-resource.stub' => base_path('stubs/mcp-app-resource.stub'),
+            __DIR__.'/../../stubs/mcp-app-resource.view.stub' => base_path('stubs/mcp-app-resource.view.stub'),
         ], 'mcp-stubs');
 
         $this->publishes([
@@ -107,8 +114,14 @@ class McpServiceProvider extends ServiceProvider
             MakeToolCommand::class,
             MakePromptCommand::class,
             MakeResourceCommand::class,
+            MakeAppResourceCommand::class,
             InspectorCommand::class,
         ]);
+    }
+
+    protected function registerViews(): void
+    {
+        $this->loadViewsFrom(__DIR__.'/../../resources/views/mcp', 'mcp');
     }
 
     protected function registerMcpScope(): void

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Illuminate\Container\Container;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Traits\Conditionable;
@@ -15,8 +16,10 @@ use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
+use Laravel\Mcp\Server\Content\ResourceLink;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
+use Laravel\Mcp\Server\Resource;
 use League\Flysystem\UnableToReadFile;
 
 class Response
@@ -43,6 +46,26 @@ class Response
     public static function text(string $text): static
     {
         return new static(new Text($text));
+    }
+
+    public static function html(string $path): static
+    {
+        $path = str_starts_with($path, '/') || preg_match('/^[a-zA-Z]:[\\\\\\/]/', $path) ? $path : resource_path($path);
+
+        if (! file_exists($path)) {
+            throw new InvalidArgumentException("File not found at path [{$path}].");
+        }
+
+        return static::text((string) file_get_contents($path));
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>  $mergeData
+     */
+    public static function view(string $view, array $data = [], array $mergeData = []): static
+    {
+        return static::text(view($view, $data, $mergeData)->render());
     }
 
     /**
@@ -116,6 +139,48 @@ class Response
     public static function image(string $data, string $mimeType = 'image/png'): static
     {
         return new static(new Image($data, $mimeType));
+    }
+
+    /**
+     * @param  string|class-string<Resource>|Resource|ResourceLink  $uri
+     * @param  array<string, mixed>  $annotations
+     */
+    public static function resourceLink(
+        string|Resource|ResourceLink $uri,
+        ?string $name = null,
+        ?string $mimeType = null,
+        ?string $title = null,
+        ?string $description = null,
+        ?int $size = null,
+        array $annotations = [],
+    ): static {
+        if (is_string($uri) && is_subclass_of($uri, Resource::class)) {
+            $uri = Container::getInstance()->make($uri);
+        }
+
+        $link = match (true) {
+            $uri instanceof ResourceLink => $uri,
+            $uri instanceof Resource => (new ResourceLink(
+                uri: $uri->uri(),
+                name: $name ?? $uri->name(),
+                mimeType: $mimeType ?? $uri->mimeType(),
+                title: $title ?? $uri->title(),
+                description: $description ?? $uri->description(),
+                size: $size,
+                annotations: array_merge($uri->annotations(), $annotations),
+            )),
+            default => new ResourceLink(
+                uri: $uri,
+                name: $name ?? throw new InvalidArgumentException('Resource link name is required when using a URI string.'),
+                mimeType: $mimeType,
+                title: $title,
+                description: $description,
+                size: $size,
+                annotations: $annotations,
+            ),
+        };
+
+        return new static($link);
     }
 
     public static function fromStorage(string $path, ?string $disk = null, ?string $mimeType = null): static

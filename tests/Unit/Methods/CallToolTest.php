@@ -12,6 +12,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Tests\Fixtures\CurrentTimeTool;
+use Tests\Fixtures\ResourceLinkTool;
 use Tests\Fixtures\ResponseFactoryWithStructuredContentTool;
 use Tests\Fixtures\SayHiTool;
 use Tests\Fixtures\SayHiTwiceTool;
@@ -866,4 +867,55 @@ it('does not set uri on request when calling tools', function (): void {
         ->and($payload['result']['content'])->toHaveCount(1)
         ->and($payload['result']['content'][0]['type'])->toBe('text')
         ->and($payload['result']['content'][0]['text'])->toBe('null');
+});
+
+it('returns a resource link content block in the wire payload', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'resource-link-tool',
+            'arguments' => [],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        serverName: 'Test Server',
+        serverVersion: '1.0.0',
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [ResourceLinkTool::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $this->instance('mcp.request', $request->toRequest());
+
+    $method = new CallTool;
+    $payload = $method->handle($request, $context)->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'content' => [
+                [
+                    'type' => 'resource_link',
+                    'uri' => 'file:///reports/monthly.pdf',
+                    'name' => 'monthly-report',
+                    'title' => 'Monthly Report',
+                    'description' => 'Sales rollup by region.',
+                    'mimeType' => 'application/pdf',
+                    'size' => 2048,
+                    'annotations' => [
+                        'audience' => ['user'],
+                        'priority' => 0.9,
+                        'lastModified' => '2026-05-07T12:00:00Z',
+                    ],
+                ],
+            ],
+            'isError' => false,
+        ]);
 });
