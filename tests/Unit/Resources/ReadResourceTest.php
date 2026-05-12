@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use Laravel\Mcp\Server\Exceptions\JsonRpcException;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\ReadResource;
-use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 
 it('returns a valid resource result', function (): void {
     $resource = $this->makeResource('resource-content');

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Server\Transport;
+namespace Laravel\Mcp\Transport;
 
 use Illuminate\Contracts\Support\Arrayable;
 

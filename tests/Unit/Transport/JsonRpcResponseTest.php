@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 
 it('can return response as array', function (): void {
     $response = JsonRpcResponse::result(1, ['foo' => 'bar']);

@@ -8,17 +8,17 @@ use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Contracts\Method;
-use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
 use Laravel\Mcp\Server\Methods\Concerns\ResolvesPrompts;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
 use Laravel\Mcp\Support\ValidationMessages;
+use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 
 class GetPrompt implements Method
 {

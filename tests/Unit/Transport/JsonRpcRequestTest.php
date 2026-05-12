@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Laravel\Mcp\Server\Exceptions\JsonRpcException;
-use Laravel\Mcp\Server\Transport\JsonRpcRequest;
+use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 
 it('can create a message from valid json', function (): void {
     $request = JsonRpcRequest::from([
