@@ -1,19 +1,19 @@
 <?php
 
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Completions\CompletionResponse;
 use Laravel\Mcp\Server\Contracts\Completable;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
-use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\CompletionComplete;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\Argument;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Transport\FakeTransporter;
-use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Support\UriTemplate;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 
 class CompletionMethodTestServer extends Server
 {

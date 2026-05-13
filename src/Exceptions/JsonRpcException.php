@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Server\Exceptions;
+namespace Laravel\Mcp\Exceptions;
 
 use Exception;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 
 class JsonRpcException extends Exception
 {
