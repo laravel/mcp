@@ -166,3 +166,30 @@ it('passes meta to Request object', function (): void {
 
     expect($request->meta())->toEqual(['requestId' => '456']);
 });
+
+it('serializes to an array with params when present', function (): void {
+    $request = new JsonRpcRequest(1, 'tools/call', ['name' => 'echo']);
+
+    expect($request->toArray())->toEqual([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => ['name' => 'echo'],
+    ]);
+});
+
+it('omits empty params when serializing', function (): void {
+    $request = new JsonRpcRequest(2, 'ping', []);
+
+    expect($request->toArray())->toEqual([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'method' => 'ping',
+    ]);
+});
+
+it('serializes to json', function (): void {
+    $request = new JsonRpcRequest(3, 'ping', []);
+
+    expect($request->toJson())->toEqual('{"jsonrpc":"2.0","id":3,"method":"ping"}');
+});
