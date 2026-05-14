@@ -99,6 +99,39 @@ it('disconnects cleanly', function (): void {
     expect($client->isConnected())->toBeFalse();
 });
 
+it('skips notification frames received before the matching response', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'method' => 'notifications/message',
+        'params' => ['level' => 'info', 'data' => 'hello'],
+    ]);
+    $transport->responses[] = pingResponse(2);
+
+    $client = new Client($transport);
+    $client->ping();
+
+    expect($transport->responses)->toBeEmpty();
+});
+
+it('disconnects the transport when the initialize handshake fails', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'error' => ['code' => -32600, 'message' => 'Invalid request'],
+    ]);
+
+    $client = new Client($transport);
+
+    expect(fn (): Client => $client->connect())
+        ->toThrow(JsonRpcException::class);
+
+    expect($transport->connected)->toBeFalse();
+    expect($client->isConnected())->toBeFalse();
+});
+
 it('throws when the server returns a JSON-RPC error', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = json_encode([

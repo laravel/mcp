@@ -13,6 +13,7 @@ use Laravel\Mcp\Client\Transport\StdioTransport;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
+use Throwable;
 
 class Client
 {
@@ -46,9 +47,14 @@ class Client
 
         $this->transport->connect();
 
-        $this->call(new Initialize($this->clientName, $this->clientVersion));
+        try {
+            $this->call(new Initialize($this->clientName, $this->clientVersion));
+            $this->notify('notifications/initialized');
+        } catch (Throwable $throwable) {
+            $this->transport->disconnect();
 
-        $this->notify('notifications/initialized');
+            throw $throwable;
+        }
 
         $this->connected = true;
 
@@ -87,12 +93,14 @@ class Client
 
         $this->transport->send($request->toJson());
 
-        $raw = $this->transport->receive();
-        $response = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
+        do {
+            $raw = $this->transport->receive();
+            $response = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
 
-        if (! is_array($response)) {
-            throw new ClientException('Invalid JSON-RPC response from server.');
-        }
+            if (! is_array($response)) {
+                throw new ClientException('Invalid JSON-RPC response from server.');
+            }
+        } while (($response['id'] ?? null) !== $request->id);
 
         if (isset($response['error']) && is_array($response['error'])) {
             $message = $response['error']['message'] ?? 'Unknown JSON-RPC error.';
