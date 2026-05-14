@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Fixtures\Client;
 
 use Laravel\Mcp\Client\Contracts\Transport;
