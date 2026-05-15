@@ -34,7 +34,7 @@ class Client
     /**
      * @param  array<int, string>  $args
      */
-    public static function stdio(string $command, array $args = []): static
+    public static function local(string $command, array $args = []): static
     {
         return new static(new StdioTransport($command, $args));
     }

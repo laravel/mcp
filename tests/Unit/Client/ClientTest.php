@@ -146,8 +146,8 @@ it('throws when the server returns a JSON-RPC error', function (): void {
         ->toThrow(JsonRpcException::class, 'Invalid request');
 });
 
-it('provides a stdio static factory', function (): void {
-    $client = Client::stdio('php', ['-v']);
+it('provides a local static factory', function (): void {
+    $client = Client::local('php', ['-v']);
 
     expect($client)->toBeInstanceOf(Client::class);
     expect($client->isConnected())->toBeFalse();
