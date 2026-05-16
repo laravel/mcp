@@ -327,7 +327,7 @@ abstract class Server
 
         $this->clientCapabilities = $request->params['capabilities'] ?? [];
 
-        if ($this->transport instanceof HttpTransport) {
+        if ($this->transport instanceof HttpTransport && $this->clientCapabilities !== []) {
             $this->storeClientCapabilities($sessionId, $this->clientCapabilities);
         }
 
@@ -349,7 +349,11 @@ abstract class Server
         $sessionId = $this->transport->sessionId();
 
         if ($this->transport instanceof HttpTransport && $sessionId !== null) {
-            $capabilities = Container::getInstance()->make('cache')->get($this->clientCapabilitiesCacheKey($sessionId));
+            try {
+                $capabilities = Container::getInstance()->make('cache')->get($this->clientCapabilitiesCacheKey($sessionId));
+            } catch (Throwable) {
+                return $this->clientCapabilities;
+            }
 
             if (is_array($capabilities)) {
                 return $capabilities;

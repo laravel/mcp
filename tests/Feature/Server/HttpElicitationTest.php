@@ -39,6 +39,8 @@ class HttpFormElicitationTool extends Tool
 }
 
 it('can complete an elicitation round trip over streamable http', function (): void {
+    config()->set('cache.default', 'array');
+
     app(Registrar::class)->web('test-mcp-elicit', HttpElicitationServer::class);
 
     $elicitationRequestId = '00000000-0000-4000-8000-000000000001';
@@ -93,6 +95,8 @@ it('can complete an elicitation round trip over streamable http', function (): v
 });
 
 it('returns a clear error when an http elicitation request is not streaming', function (): void {
+    config()->set('cache.default', 'array');
+
     app(Registrar::class)->web('test-mcp-elicit-no-stream', HttpElicitationServer::class);
 
     $sessionId = initializeHttpElicitationConnection($this, 'test-mcp-elicit-no-stream');
