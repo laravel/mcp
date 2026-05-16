@@ -2,8 +2,8 @@
 
 use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 use Tests\Fixtures\ReviewMyCodePrompt;
 use Tests\Fixtures\TellMeHiPrompt;
 

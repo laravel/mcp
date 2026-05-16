@@ -6,8 +6,8 @@ use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Methods\ListResourceTemplates;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Server\Transport\JsonRpcRequest;
 use Laravel\Mcp\Support\UriTemplate;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 
 it('lists only resource templates', function (): void {
     $staticResource = new class extends Resource

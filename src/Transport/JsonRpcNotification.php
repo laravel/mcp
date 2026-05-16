@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Server\Transport;
+namespace Laravel\Mcp\Transport;
 
-use Laravel\Mcp\Server\Exceptions\JsonRpcException;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 
 class JsonRpcNotification
 {

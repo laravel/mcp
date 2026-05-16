@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Laravel\Mcp\Server\Exceptions\JsonRpcException;
-use Laravel\Mcp\Server\Transport\JsonRpcNotification;
+use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\Transport\JsonRpcNotification;
 
 it('can create a notification message from valid json', function (): void {
     $request = JsonRpcNotification::from([

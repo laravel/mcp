@@ -8,8 +8,8 @@ use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Contracts\Transport;
-use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HttpTransport implements Transport

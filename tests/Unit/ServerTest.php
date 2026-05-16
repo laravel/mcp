@@ -3,8 +3,8 @@
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\CustomMethodHandler;
 use Tests\Fixtures\ExampleServer;

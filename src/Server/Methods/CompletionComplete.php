@@ -7,19 +7,19 @@ namespace Laravel\Mcp\Server\Methods;
 use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
 use InvalidArgumentException;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Completions\CompletionResponse;
 use Laravel\Mcp\Server\Contracts\Completable;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Contracts\Method;
-use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Concerns\ResolvesPrompts;
 use Laravel\Mcp\Server\Methods\Concerns\ResolvesResources;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 
 class CompletionComplete implements Method
 {

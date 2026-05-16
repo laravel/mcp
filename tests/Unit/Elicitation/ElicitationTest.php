@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Elicitation\Elicitation;
 use Laravel\Mcp\Server\Elicitation\ElicitSchema;
 use Laravel\Mcp\Server\Elicitation\UrlElicitationRequiredException;
-use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Transport\FakeTransporter;
 
 it('sends a form elicitation and returns accepted result', function (): void {

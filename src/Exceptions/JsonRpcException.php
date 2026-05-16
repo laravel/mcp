@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Server\Exceptions;
+namespace Laravel\Mcp\Exceptions;
 
 use Exception;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 
 class JsonRpcException extends Exception
 {
@@ -23,8 +23,12 @@ class JsonRpcException extends Exception
 
     public function toJsonRpcResponse(): JsonRpcResponse
     {
+        $id = is_string($this->requestId) || is_int($this->requestId)
+            ? $this->requestId
+            : null;
+
         return JsonRpcResponse::error(
-            id: $this->requestId,
+            id: $id,
             code: $this->getCode(),
             message: $this->getMessage(),
             data: $this->data,

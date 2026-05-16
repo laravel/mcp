@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Contracts;
 
 use Closure;
-use Laravel\Mcp\Server\Exceptions\JsonRpcException;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 
 interface Transport
 {

@@ -7,13 +7,13 @@ namespace Laravel\Mcp\Server\Elicitation;
 use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Elicitation\Events\ElicitationReceived;
 use Laravel\Mcp\Server\Elicitation\Events\ElicitationSent;
 use Laravel\Mcp\Server\Elicitation\Fields\ElicitField;
-use Laravel\Mcp\Server\Exceptions\JsonRpcException;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 
 class Elicitation
 {

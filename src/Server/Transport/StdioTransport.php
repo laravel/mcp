@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Transport;
 
 use Closure;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Contracts\Transport;
-use Laravel\Mcp\Server\Exceptions\JsonRpcException;
 
 class StdioTransport implements Transport
 {

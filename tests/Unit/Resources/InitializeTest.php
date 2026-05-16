@@ -1,10 +1,10 @@
 <?php
 
-use Laravel\Mcp\Server\Exceptions\JsonRpcException;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Methods\Initialize;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Server\Transport\JsonRpcRequest;
-use Laravel\Mcp\Server\Transport\JsonRpcResponse;
+use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 
 it('returns a valid initialize response', function (): void {
     $request = JsonRpcRequest::from([
