@@ -103,15 +103,10 @@ class MultiEnumField extends AbstractElicitField
      */
     protected function buildTitledItems(): array
     {
-        $anyOf = [];
-
-        foreach ((array) $this->titledOptions as $value => $title) {
-            $anyOf[] = [
-                'const' => $value,
-                'title' => $title,
-            ];
-        }
-
-        return ['anyOf' => $anyOf];
+        return [
+            'type' => 'string',
+            'enum' => array_keys((array) $this->titledOptions),
+            'enumNames' => array_values((array) $this->titledOptions),
+        ];
     }
 }

@@ -152,11 +152,10 @@ it('builds a titled enum field', function (): void {
         ->required();
 
     expect($field->toArray())->toBe([
+        'type' => 'string',
         'title' => 'Color',
-        'oneOf' => [
-            ['const' => '#FF0000', 'title' => 'Red'],
-            ['const' => '#0000FF', 'title' => 'Blue'],
-        ],
+        'enum' => ['#FF0000', '#0000FF'],
+        'enumNames' => ['Red', 'Blue'],
         'default' => '#FF0000',
     ]);
 
@@ -195,10 +194,9 @@ it('builds a titled multi-enum field', function (): void {
         'type' => 'array',
         'title' => 'Colors',
         'items' => [
-            'anyOf' => [
-                ['const' => '#FF0000', 'title' => 'Red'],
-                ['const' => '#0000FF', 'title' => 'Blue'],
-            ],
+            'type' => 'string',
+            'enum' => ['#FF0000', '#0000FF'],
+            'enumNames' => ['Red', 'Blue'],
         ],
     ]);
 });

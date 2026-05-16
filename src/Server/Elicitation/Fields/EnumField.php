@@ -71,18 +71,11 @@ class EnumField extends AbstractElicitField
      */
     protected function buildTitledSchema(): array
     {
-        $oneOf = [];
-
-        foreach ((array) $this->titledOptions as $value => $title) {
-            $oneOf[] = [
-                'const' => $value,
-                'title' => $title,
-            ];
-        }
-
         return [
+            'type' => 'string',
             'title' => $this->title,
-            'oneOf' => $oneOf,
+            'enum' => array_keys((array) $this->titledOptions),
+            'enumNames' => array_values((array) $this->titledOptions),
         ];
     }
 }
