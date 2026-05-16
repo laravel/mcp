@@ -33,6 +33,7 @@ use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Testing\PendingTestResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -326,6 +327,10 @@ abstract class Server
 
         $this->clientCapabilities = $request->params['capabilities'] ?? [];
 
+        if ($this->transport instanceof HttpTransport) {
+            $this->storeClientCapabilities($sessionId, $this->clientCapabilities);
+        }
+
         Container::getInstance()->make('events')->dispatch(new SessionInitialized(
             sessionId: $sessionId,
             clientInfo: $request->params['clientInfo'] ?? null,
@@ -341,7 +346,30 @@ abstract class Server
      */
     protected function resolveClientCapabilities(): array
     {
+        $sessionId = $this->transport->sessionId();
+
+        if ($this->transport instanceof HttpTransport && $sessionId !== null) {
+            $capabilities = Container::getInstance()->make('cache')->get($this->clientCapabilitiesCacheKey($sessionId));
+
+            if (is_array($capabilities)) {
+                return $capabilities;
+            }
+        }
+
         return $this->clientCapabilities;
+    }
+
+    /**
+     * @param  array<string, mixed>  $capabilities
+     */
+    protected function storeClientCapabilities(string $sessionId, array $capabilities): void
+    {
+        Container::getInstance()->make('cache')->put($this->clientCapabilitiesCacheKey($sessionId), $capabilities, 120);
+    }
+
+    protected function clientCapabilitiesCacheKey(string $sessionId): string
+    {
+        return "mcp:session:{$sessionId}:clientCapabilities";
     }
 
     protected function generateSessionId(): string

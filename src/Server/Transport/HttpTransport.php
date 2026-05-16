@@ -24,6 +24,7 @@ class HttpTransport implements Transport
         protected ?string $reply = null,
         protected ?string $replySessionId = null,
         protected ?Closure $stream = null,
+        protected bool $streamingResponse = false,
     ) {
         //
     }
@@ -35,7 +36,7 @@ class HttpTransport implements Transport
 
     public function send(string $message, ?string $sessionId = null): void
     {
-        if ($this->stream instanceof Closure) {
+        if ($this->streamingResponse || $this->stream instanceof Closure) {
             $this->sendStreamMessage($message);
         }
 
@@ -45,6 +46,35 @@ class HttpTransport implements Transport
 
     public function run(): Response|StreamedResponse
     {
+        if ($this->acceptsEventStream()) {
+            $this->streamingResponse = true;
+
+            return response()->stream(function (): void {
+                if (is_callable($this->handler)) {
+                    ($this->handler)($this->request->getContent());
+                }
+
+                if (! $this->stream instanceof Closure) {
+                    return;
+                }
+
+                $stream = $this->stream;
+                $result = $stream();
+
+                if (! is_iterable($result)) {
+                    return;
+                }
+
+                foreach ($result as $message) {
+                    if (connection_aborted() !== 0) {
+                        return;
+                    }
+
+                    $this->sendStreamMessage((string) $message);
+                }
+            }, 200, $this->getHeaders());
+        }
+
         if (is_callable($this->handler)) {
             ($this->handler)($this->request->getContent());
         }
@@ -108,6 +138,10 @@ class HttpTransport implements Transport
 
     public function sendRequest(string $message): string
     {
+        if (! $this->streamingResponse) {
+            throw new JsonRpcException('HTTP elicitation requires a text/event-stream response. Send the request with Accept: text/event-stream.', -32603);
+        }
+
         $this->sendStreamMessage($message);
 
         $decoded = json_decode($message, true);
@@ -141,17 +175,24 @@ class HttpTransport implements Transport
     protected function getHeaders(): array
     {
         $headers = [
-            'Content-Type' => $this->stream instanceof Closure ? 'text/event-stream' : 'application/json',
+            'Content-Type' => ($this->streamingResponse || $this->stream instanceof Closure) ? 'text/event-stream' : 'application/json',
         ];
 
         if ($this->replySessionId !== null) {
             $headers['MCP-Session-Id'] = $this->replySessionId;
         }
 
-        if ($this->stream instanceof Closure) {
+        if ($this->streamingResponse || $this->stream instanceof Closure) {
             $headers['X-Accel-Buffering'] = 'no';
         }
 
         return $headers;
+    }
+
+    protected function acceptsEventStream(): bool
+    {
+        $accept = $this->request->header('Accept');
+
+        return is_string($accept) && str_contains($accept, 'text/event-stream');
     }
 }
