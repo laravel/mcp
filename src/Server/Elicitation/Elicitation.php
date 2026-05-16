@@ -148,6 +148,14 @@ class Elicitation
             throw new JsonRpcException("Elicitation response id mismatch: expected [{$id}], received [{$response['id']}].", -32603);
         }
 
+        if (isset($response['error']) && is_array($response['error'])) {
+            throw new JsonRpcException(
+                message: is_string($response['error']['message'] ?? null) ? $response['error']['message'] : 'Elicitation failed.',
+                code: is_int($response['error']['code'] ?? null) ? $response['error']['code'] : -32603,
+                data: is_array($response['error']['data'] ?? null) ? $response['error']['data'] : null,
+            );
+        }
+
         $result = $response['result'] ?? [];
 
         $elicitationResult = new ElicitationResult(

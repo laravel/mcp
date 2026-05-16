@@ -199,7 +199,7 @@ abstract class Server
             }
 
             // Route elicitation responses to the cache for HttpTransport polling
-            if (isset($jsonRequest['id'], $jsonRequest['result']) && ! isset($jsonRequest['method'])) {
+            if (is_array($jsonRequest) && $this->isJsonRpcResponse($jsonRequest)) {
                 $sessionId = $this->transport->sessionId();
                 $cacheKey = "mcp:elicitation:{$sessionId}:{$jsonRequest['id']}";
                 Container::getInstance()->make('cache')->put($cacheKey, $rawMessage, 120);
@@ -345,6 +345,16 @@ abstract class Server
     }
 
     /**
+     * @param  array<string, mixed>  $message
+     */
+    protected function isJsonRpcResponse(array $message): bool
+    {
+        return isset($message['id'])
+            && array_key_exists('method', $message) === false
+            && (array_key_exists('result', $message) || array_key_exists('error', $message));
+    }
+
+    /**
      * @return array<string, mixed>
      */
     protected function resolveClientCapabilities(): array
@@ -409,14 +419,26 @@ abstract class Server
     protected function storeHttpSessionState(string $sessionId): void
     {
         $cache = Container::getInstance()->make('cache');
+        $ttl = $this->httpSessionTtl();
 
         if ($this->clientCapabilities !== []) {
-            $cache->put($this->clientCapabilitiesCacheKey($sessionId), $this->clientCapabilities, 120);
+            $cache->put($this->clientCapabilitiesCacheKey($sessionId), $this->clientCapabilities, $ttl);
         }
 
         if ($this->protocolVersion !== null) {
-            $cache->put($this->protocolVersionCacheKey($sessionId), $this->protocolVersion, 120);
+            $cache->put($this->protocolVersionCacheKey($sessionId), $this->protocolVersion, $ttl);
         }
+    }
+
+    protected function httpSessionTtl(): int
+    {
+        $ttl = Container::getInstance()->make('config')->get('mcp.http_session_ttl', 3600);
+
+        if (! is_int($ttl)) {
+            return 3600;
+        }
+
+        return max($ttl, 121);
     }
 
     protected function clientSupportsElicitation(): bool

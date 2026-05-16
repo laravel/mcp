@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -137,6 +138,71 @@ it('uses the initialized protocol version when later http requests omit the prot
         expect($messages[0]['method'])->toBe('elicitation/create')
             ->and($messages[0]['params'])->not->toHaveKey('mode')
             ->and($messages[1]['result']['content'][0]['text'])->toBe('Hello, Taylor!');
+    } finally {
+        Str::createUuidsUsing();
+    }
+});
+
+it('stores initialized http session metadata longer than the elicitation response timeout', function (): void {
+    config()->set('cache.default', 'array');
+    config()->set('mcp.http_session_ttl', 600);
+
+    app(Registrar::class)->web('test-mcp-elicit-session-ttl', HttpElicitationServer::class);
+
+    $sessionId = initializeHttpElicitationConnection(
+        $this,
+        'test-mcp-elicit-session-ttl',
+        '2025-06-18',
+        [Server::CAPABILITY_ELICITATION => []],
+    );
+
+    $now = Carbon::now()->getPreciseTimestamp(3) / 1000;
+    $items = cache()->getStore()->all();
+
+    expect($items["mcp:session:{$sessionId}:clientCapabilities"]['expiresAt'] - $now)->toBeGreaterThan(120)
+        ->and($items["mcp:session:{$sessionId}:protocolVersion"]['expiresAt'] - $now)->toBeGreaterThan(120);
+});
+
+it('routes http elicitation json rpc error responses to the waiting request', function (): void {
+    config()->set('cache.default', 'array');
+
+    app(Registrar::class)->web('test-mcp-elicit-error-response', HttpElicitationServer::class);
+
+    $elicitationRequestId = '00000000-0000-4000-8000-000000000003';
+
+    Str::createUuidsUsingSequence([
+        Uuid::fromString($elicitationRequestId),
+    ]);
+
+    try {
+        $sessionId = initializeHttpElicitationConnection($this, 'test-mcp-elicit-error-response');
+
+        $response = $this->postJson('test-mcp-elicit-error-response', [
+            'jsonrpc' => '2.0',
+            'id' => $elicitationRequestId,
+            'error' => [
+                'code' => -32001,
+                'message' => 'User rejected elicitation.',
+            ],
+        ], ['MCP-Session-Id' => $sessionId]);
+
+        $response->assertStatus(202);
+        expect($response->content())->toBe('');
+
+        $response = postJsonAcceptingEventStream(
+            $this,
+            'test-mcp-elicit-error-response',
+            callHttpElicitationToolMessage(),
+            $sessionId,
+        );
+
+        $response->assertStatus(200);
+
+        $messages = parseJsonRpcMessagesFromSseStream($response->streamedContent());
+
+        expect($messages[0]['method'])->toBe('elicitation/create')
+            ->and($messages[1]['error']['code'])->toBe(-32001)
+            ->and($messages[1]['error']['message'])->toBe('User rejected elicitation.');
     } finally {
         Str::createUuidsUsing();
     }

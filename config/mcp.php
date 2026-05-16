@@ -51,4 +51,18 @@ return [
 
     'authorization_server' => null,
 
+    /*
+    |--------------------------------------------------------------------------
+    | HTTP Session TTL
+    |--------------------------------------------------------------------------
+    |
+    | Streamable HTTP requests are stateless at the PHP process level, so MCP
+    | session metadata such as negotiated protocol version and client
+    | capabilities is cached between requests. This lifetime is separate from
+    | the shorter per-elicitation response timeout.
+    |
+    */
+
+    'http_session_ttl' => 3600,
+
 ];
