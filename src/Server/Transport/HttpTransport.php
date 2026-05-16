@@ -46,7 +46,7 @@ class HttpTransport implements Transport
 
     public function run(): Response|StreamedResponse
     {
-        if ($this->acceptsEventStream()) {
+        if ($this->shouldStreamResponse()) {
             $this->streamingResponse = true;
 
             return response()->stream(function (): void {
@@ -111,6 +111,13 @@ class HttpTransport implements Transport
     public function sessionId(): ?string
     {
         return $this->sessionId;
+    }
+
+    public function protocolVersion(): ?string
+    {
+        $protocolVersion = $this->request->header('MCP-Protocol-Version');
+
+        return is_string($protocolVersion) && $protocolVersion !== '' ? $protocolVersion : null;
     }
 
     /**
@@ -194,5 +201,15 @@ class HttpTransport implements Transport
         $accept = $this->request->header('Accept');
 
         return is_string($accept) && str_contains($accept, 'text/event-stream');
+    }
+
+    protected function shouldStreamResponse(): bool
+    {
+        $message = json_decode($this->request->getContent(), true);
+
+        return $this->acceptsEventStream()
+            && is_array($message)
+            && isset($message['id'], $message['method'])
+            && $message['method'] !== 'initialize';
     }
 }

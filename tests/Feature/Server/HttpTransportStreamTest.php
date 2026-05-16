@@ -3,6 +3,15 @@
 use Illuminate\Testing\TestResponse;
 use Laravel\Mcp\Server\Transport\HttpTransport;
 
+it('reads the protocol version header', function (): void {
+    $request = request();
+    $request->headers->set('MCP-Protocol-Version', '2025-06-18');
+
+    $transport = new HttpTransport($request, 'test-session');
+
+    expect($transport->protocolVersion())->toBe('2025-06-18');
+});
+
 it('streams iterable responses returned from the stream callback', function (): void {
     $transport = new HttpTransport(request(), 'test-session');
 

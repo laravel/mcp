@@ -111,6 +111,8 @@ abstract class Server
      */
     protected array $clientCapabilities = [];
 
+    protected ?string $protocolVersion = null;
+
     public int $maxPaginationLength = 50;
 
     public int $defaultPaginationLength = 15;
@@ -306,7 +308,7 @@ abstract class Server
         $container->instance('mcp.request', $request->toRequest());
 
         $clientCapabilities = $this->resolveClientCapabilities();
-        $elicitation = new Elicitation($this->transport, $clientCapabilities);
+        $elicitation = new Elicitation($this->transport, $clientCapabilities, $this->resolveProtocolVersion($context));
         $container->instance(Elicitation::class, $elicitation);
 
         try {
@@ -326,9 +328,10 @@ abstract class Server
         $sessionId = $this->generateSessionId();
 
         $this->clientCapabilities = $request->params['capabilities'] ?? [];
+        $this->protocolVersion = $response->toArray()['result']['protocolVersion'] ?? null;
 
-        if ($this->transport instanceof HttpTransport && $this->clientCapabilities !== []) {
-            $this->storeClientCapabilities($sessionId, $this->clientCapabilities);
+        if ($this->transport instanceof HttpTransport && $this->clientSupportsElicitation()) {
+            $this->storeHttpSessionState($sessionId);
         }
 
         Container::getInstance()->make('events')->dispatch(new SessionInitialized(
@@ -363,17 +366,72 @@ abstract class Server
         return $this->clientCapabilities;
     }
 
-    /**
-     * @param  array<string, mixed>  $capabilities
-     */
-    protected function storeClientCapabilities(string $sessionId, array $capabilities): void
+    protected function resolveProtocolVersion(ServerContext $context): string
     {
-        Container::getInstance()->make('cache')->put($this->clientCapabilitiesCacheKey($sessionId), $capabilities, 120);
+        if ($this->transport instanceof HttpTransport) {
+            $protocolVersion = $this->transport->protocolVersion();
+
+            if ($protocolVersion !== null) {
+                if (! in_array($protocolVersion, $context->supportedProtocolVersions, true)) {
+                    throw new JsonRpcException(
+                        message: 'Unsupported protocol version',
+                        code: -32602,
+                        data: [
+                            'supported' => $context->supportedProtocolVersions,
+                            'requested' => $protocolVersion,
+                        ],
+                    );
+                }
+
+                return $protocolVersion;
+            }
+
+            $sessionId = $this->transport->sessionId();
+
+            if ($sessionId !== null && $sessionId !== '') {
+                try {
+                    $protocolVersion = Container::getInstance()->make('cache')->get($this->protocolVersionCacheKey($sessionId));
+                } catch (Throwable) {
+                    $protocolVersion = null;
+                }
+
+                if (is_string($protocolVersion) && in_array($protocolVersion, $context->supportedProtocolVersions, true)) {
+                    return $protocolVersion;
+                }
+            }
+
+            return ProtocolVersion::V2025_03_26->value;
+        }
+
+        return $this->protocolVersion ?? $context->supportedProtocolVersions[0];
+    }
+
+    protected function storeHttpSessionState(string $sessionId): void
+    {
+        $cache = Container::getInstance()->make('cache');
+
+        if ($this->clientCapabilities !== []) {
+            $cache->put($this->clientCapabilitiesCacheKey($sessionId), $this->clientCapabilities, 120);
+        }
+
+        if ($this->protocolVersion !== null) {
+            $cache->put($this->protocolVersionCacheKey($sessionId), $this->protocolVersion, 120);
+        }
+    }
+
+    protected function clientSupportsElicitation(): bool
+    {
+        return array_key_exists(Server::CAPABILITY_ELICITATION, $this->clientCapabilities);
     }
 
     protected function clientCapabilitiesCacheKey(string $sessionId): string
     {
         return "mcp:session:{$sessionId}:clientCapabilities";
+    }
+
+    protected function protocolVersionCacheKey(string $sessionId): string
+    {
+        return "mcp:session:{$sessionId}:protocolVersion";
     }
 
     protected function generateSessionId(): string

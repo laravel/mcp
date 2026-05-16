@@ -26,6 +26,34 @@ it('receives a session id over http', function (): void {
     expect($response->headers->get('MCP-Session-Id'))->toMatch('/^[\x21-\x7E]+$/');
 });
 
+it('receives a session id when initialize accepts event streams', function (): void {
+    $response = $this->postJson(
+        'test-mcp',
+        initializeMessage(),
+        ['Accept' => 'application/json, text/event-stream'],
+    );
+
+    $response->assertStatus(200);
+    $response->assertHeader('MCP-Session-Id');
+
+    expect(strtolower((string) $response->headers->get('Content-Type')))->toContain('application/json')
+        ->and($response->json())->toEqual(expectedInitializeResponse());
+});
+
+it('returns accepted for initialized notifications that accept event streams', function (): void {
+    $sessionId = initializeHttpConnection($this);
+
+    $response = $this->postJson(
+        'test-mcp',
+        initializeNotificationMessage(),
+        ['MCP-Session-Id' => $sessionId, 'Accept' => 'application/json, text/event-stream'],
+    );
+
+    $response->assertStatus(202);
+
+    expect($response->content())->toBe('');
+});
+
 it('can list resources over http', function (): void {
     $sessionId = initializeHttpConnection($this);
 

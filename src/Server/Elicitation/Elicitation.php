@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Elicitation;
 use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Transport;
@@ -23,7 +24,10 @@ class Elicitation
     public function __construct(
         protected Transport $transport,
         protected ?array $clientCapabilities = null,
-    ) {}
+        protected ?string $protocolVersion = null,
+    ) {
+        $this->protocolVersion ??= ProtocolVersion::LATEST->value;
+    }
 
     /**
      * Send a form-mode elicitation request.
@@ -38,11 +42,16 @@ class Elicitation
             ? $this->buildSchema($schema)
             : $schema;
 
-        return $this->send([
-            'mode' => 'form',
+        $params = [
             'message' => $message,
             'requestedSchema' => $requestedSchema,
-        ]);
+        ];
+
+        if ($this->supportsElicitationModes()) {
+            $params = ['mode' => 'form', ...$params];
+        }
+
+        return $this->send($params);
     }
 
     /**
@@ -128,7 +137,7 @@ class Elicitation
         $rawResponse = $this->transport->sendRequest($request);
 
         Container::getInstance()->make('events')->dispatch(new ElicitationSent(
-            mode: $params['mode'],
+            mode: $params['mode'] ?? 'form',
             message: $params['message'],
             requestId: $id,
         ));
@@ -160,11 +169,29 @@ class Elicitation
      */
     protected function ensureCapability(string $mode): void
     {
+        if (! $this->supportsElicitation()) {
+            throw new JsonRpcException(
+                "Protocol version [{$this->protocolVersion}] does not support elicitation.",
+                -32602,
+            );
+        }
+
         $elicitation = $this->clientCapabilities[Server::CAPABILITY_ELICITATION] ?? null;
 
         if ($elicitation === null) {
             throw new JsonRpcException(
                 'Client does not support elicitation. Ensure the MCP client declares elicitation support in its capabilities during initialization.',
+                -32602,
+            );
+        }
+
+        if (! $this->supportsElicitationModes()) {
+            if ($mode === 'form') {
+                return;
+            }
+
+            throw new JsonRpcException(
+                "Protocol version [{$this->protocolVersion}] does not support elicitation mode [{$mode}].",
                 -32602,
             );
         }
@@ -180,5 +207,18 @@ class Elicitation
                 -32602,
             );
         }
+    }
+
+    protected function supportsElicitation(): bool
+    {
+        return in_array($this->protocolVersion, [
+            ProtocolVersion::V2025_06_18->value,
+            ProtocolVersion::V2025_11_25->value,
+        ], true);
+    }
+
+    protected function supportsElicitationModes(): bool
+    {
+        return $this->protocolVersion === ProtocolVersion::V2025_11_25->value;
     }
 }

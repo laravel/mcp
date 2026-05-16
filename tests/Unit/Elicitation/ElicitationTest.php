@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Elicitation\Elicitation;
 use Laravel\Mcp\Server\Elicitation\ElicitSchema;
@@ -48,6 +49,22 @@ it('sends a form elicitation with an array schema', function (): void {
 
     $sent = $transport->sentElicitations();
     expect($sent[0]['params']['requestedSchema']['properties']['name']['type'])->toBe('string');
+});
+
+it('omits form mode for the 2025-06-18 protocol version', function (): void {
+    $transport = new FakeTransporter;
+    $transport->expectElicitation(['action' => 'accept', 'content' => ['name' => 'Taylor']]);
+
+    $elicitation = new Elicitation($transport, ['elicitation' => []], ProtocolVersion::V2025_06_18->value);
+
+    $elicitation->form('Name?', fn (ElicitSchema $schema): array => [
+        'name' => $schema->string('Name'),
+    ]);
+
+    $sent = $transport->sentElicitations();
+
+    expect($sent[0]['params'])->not->toHaveKey('mode')
+        ->and($sent[0]['params']['message'])->toBe('Name?');
 });
 
 it('sends a url elicitation', function (): void {
@@ -135,6 +152,20 @@ it('throws when client does not support url mode', function (): void {
 
     $elicitation->url('Authorize', 'https://example.com');
 })->throws(JsonRpcException::class, 'Client does not support elicitation mode [url].');
+
+it('throws when url mode is used before the 2025-11-25 protocol version', function (): void {
+    $transport = new FakeTransporter;
+    $elicitation = new Elicitation($transport, ['elicitation' => []], ProtocolVersion::V2025_06_18->value);
+
+    $elicitation->url('Authorize', 'https://example.com');
+})->throws(JsonRpcException::class, 'Protocol version [2025-06-18] does not support elicitation mode [url].');
+
+it('throws when elicitation is used before the 2025-06-18 protocol version', function (): void {
+    $transport = new FakeTransporter;
+    $elicitation = new Elicitation($transport, ['elicitation' => []], ProtocolVersion::V2025_03_26->value);
+
+    $elicitation->form('Name?', fn (ElicitSchema $s): array => []);
+})->throws(JsonRpcException::class, 'Protocol version [2025-03-26] does not support elicitation.');
 
 it('allows form mode when elicitation is empty object', function (): void {
     $transport = new FakeTransporter;
