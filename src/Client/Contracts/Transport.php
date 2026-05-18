@@ -12,5 +12,5 @@ interface Transport
 
     public function send(string $message): void;
 
-    public function receive(): string;
+    public function receive(?float $timeoutSeconds = null): string;
 }

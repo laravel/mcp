@@ -10,9 +10,11 @@ use Laravel\Mcp\Client\Exceptions\ClientException;
 use Laravel\Mcp\Client\Methods\Initialize;
 use Laravel\Mcp\Client\Methods\Ping;
 use Laravel\Mcp\Client\Transport\StdioTransport;
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 use Throwable;
 
 class Client
@@ -25,8 +27,17 @@ class Client
 
     protected string $clientVersion = '0.0.1';
 
+    protected ?string $protocolVersion = null;
+
+    protected ?object $serverCapabilities = null;
+
+    protected ?ServerInfo $serverInfo = null;
+
+    protected ?string $instructions = null;
+
     public function __construct(
         protected Transport $transport,
+        protected float $timeoutSeconds = 5.0,
     ) {
         //
     }
@@ -34,9 +45,9 @@ class Client
     /**
      * @param  array<int, string>  $args
      */
-    public static function local(string $command, array $args = []): static
+    public static function local(string $command, array $args = [], float $timeoutSeconds = 5.0): static
     {
-        return new static(new StdioTransport($command, $args));
+        return new static(new StdioTransport($command, $args), $timeoutSeconds);
     }
 
     public function connect(): static
@@ -48,7 +59,7 @@ class Client
         $this->transport->connect();
 
         try {
-            $this->call(new Initialize($this->clientName, $this->clientVersion));
+            $this->storeInitializeResult($this->call(new Initialize($this->clientName, $this->clientVersion)));
             $this->notify('notifications/initialized');
         } catch (Throwable $throwable) {
             $this->transport->disconnect();
@@ -73,6 +84,36 @@ class Client
         return $this->connected;
     }
 
+    public function protocolVersion(): ?string
+    {
+        return $this->protocolVersion;
+    }
+
+    public function serverCapabilities(): ?object
+    {
+        return $this->serverCapabilities;
+    }
+
+    public function serverInfo(): ?ServerInfo
+    {
+        return $this->serverInfo;
+    }
+
+    public function serverName(): ?string
+    {
+        return $this->serverInfo?->name;
+    }
+
+    public function serverVersion(): ?string
+    {
+        return $this->serverInfo?->version;
+    }
+
+    public function instructions(): ?string
+    {
+        return $this->instructions;
+    }
+
     public function ping(): void
     {
         $this->connect();
@@ -92,14 +133,23 @@ class Client
         );
 
         $this->transport->send($request->toJson());
+        $deadline = microtime(true) + $this->timeoutSeconds;
 
         do {
-            $raw = $this->transport->receive();
+            $remaining = $deadline - microtime(true);
+
+            if ($remaining <= 0) {
+                throw new ClientException('Timed out while waiting for server response.');
+            }
+
+            $raw = $this->transport->receive($remaining);
             $response = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
 
             if (! is_array($response)) {
                 throw new ClientException('Invalid JSON-RPC response from server.');
             }
+
+            $this->handleServerRequest($response);
         } while (($response['id'] ?? null) !== $request->id);
 
         if (isset($response['error']) && is_array($response['error'])) {
@@ -120,11 +170,53 @@ class Client
         return is_array($result) ? $result : [];
     }
 
+    protected function storeInitializeResult(mixed $result): void
+    {
+        $protocolVersion = is_array($result) ? ($result['protocolVersion'] ?? null) : null;
+        $capabilities = is_array($result) ? ($result['capabilities'] ?? null) : null;
+        $serverInfo = is_array($result) ? ($result['serverInfo'] ?? null) : null;
+
+        if (! is_string($protocolVersion)
+            || ! in_array($protocolVersion, ProtocolVersion::supported(), true)
+            || ! is_array($capabilities)
+            || ! is_array($serverInfo)
+            || ! is_string($serverInfo['name'] ?? null)
+            || ! is_string($serverInfo['version'] ?? null)) {
+            throw new ClientException('Invalid initialize response from server.');
+        }
+
+        $instructions = $result['instructions'] ?? null;
+
+        $this->protocolVersion = $protocolVersion;
+        $this->serverCapabilities = (object) $capabilities;
+        $this->serverInfo = ServerInfo::fromArray($serverInfo);
+        $this->instructions = is_string($instructions) ? $instructions : null;
+    }
+
     protected function notify(string $method): void
     {
         $notification = new JsonRpcNotification($method, []);
 
         $this->transport->send($notification->toJson());
+    }
+
+    /**
+     * @param  array<string, mixed>  $frame
+     */
+    protected function handleServerRequest(array $frame): void
+    {
+        $id = $frame['id'] ?? null;
+        $method = $frame['method'] ?? null;
+
+        if (! is_string($method) || (! is_int($id) && ! is_string($id))) {
+            return;
+        }
+
+        if ($method === 'ping') {
+            $response = JsonRpcResponse::result($id, []);
+
+            $this->transport->send($response->toJson());
+        }
     }
 
     public function __destruct()

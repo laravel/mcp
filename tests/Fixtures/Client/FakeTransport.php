@@ -17,6 +17,8 @@ class FakeTransport implements Transport
     /** @var array<int, string> */
     public array $responses = [];
 
+    public ?string $repeatResponse = null;
+
     public function connect(): void
     {
         $this->connected = true;
@@ -32,9 +34,13 @@ class FakeTransport implements Transport
         $this->sent[] = $message;
     }
 
-    public function receive(): string
+    public function receive(?float $timeoutSeconds = null): string
     {
         if ($this->responses === []) {
+            if ($this->repeatResponse !== null) {
+                return $this->repeatResponse;
+            }
+
             throw new RuntimeException('No queued responses in FakeTransport.');
         }
 
