@@ -20,9 +20,6 @@ class Icon
     ) {}
 
     /**
-     * Build an Icon from a src that may be a remote URL or a relative asset path.
-     * Strings without a URI scheme are resolved via Laravel's asset() helper.
-     *
      * @param  list<string>  $sizes
      */
     public static function from(string $src, ?string $mimeType = null, array $sizes = [], ?IconTheme $theme = null): self
