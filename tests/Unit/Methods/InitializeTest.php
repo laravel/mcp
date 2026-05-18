@@ -1,8 +1,8 @@
 <?php
 
 use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\Icon;
-use Laravel\Mcp\Implementation;
+use Laravel\Mcp\Schema\Icon;
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Methods\Initialize;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;

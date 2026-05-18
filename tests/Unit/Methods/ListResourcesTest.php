@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 use Laravel\Mcp\Enums\Role;
-use Laravel\Mcp\Implementation;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Annotations\Audience;
 use Laravel\Mcp\Server\Annotations\LastModified;
 use Laravel\Mcp\Server\Annotations\Priority;

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\URL;
-use Laravel\Mcp\Icon;
+use Laravel\Mcp\Schema\Icon;
 
 it('accepts https URLs', function (): void {
     $icon = new Icon('https://example.com/icon.png', mimeType: 'image/png', sizes: ['48x48']);

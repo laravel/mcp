@@ -1,6 +1,6 @@
 <?php
 
-use Laravel\Mcp\Icon;
+use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\ServerContext;

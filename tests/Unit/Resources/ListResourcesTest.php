@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 
-use Laravel\Mcp\Implementation;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;

@@ -7,7 +7,7 @@ namespace Laravel\Mcp\Server;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
-use Laravel\Mcp\Icon;
+use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Title;

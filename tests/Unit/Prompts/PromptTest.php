@@ -1,7 +1,7 @@
 <?php
 
-use Laravel\Mcp\Icon;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\Argument;
 

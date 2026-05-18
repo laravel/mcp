@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Contracts\JsonSchema\JsonSchema;
-use Laravel\Mcp\Icon;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;

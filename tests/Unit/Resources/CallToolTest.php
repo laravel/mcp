@@ -1,6 +1,6 @@
 <?php
 
-use Laravel\Mcp\Implementation;
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;

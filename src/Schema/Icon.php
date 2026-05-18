@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp;
+namespace Laravel\Mcp\Schema;
 
 use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use RuntimeException;
 
-final readonly class Icon
+class Icon
 {
     /**
      * @param  list<string>  $sizes

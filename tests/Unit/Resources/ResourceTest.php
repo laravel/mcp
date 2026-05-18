@@ -1,7 +1,7 @@
 <?php
 
-use Laravel\Mcp\Icon;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server\Resource;
 
 it('returns a valid resource result for text resources', function (): void {

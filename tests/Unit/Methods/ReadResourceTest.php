@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 use Illuminate\Container\Container;
 use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\Implementation;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Resource;

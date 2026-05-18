@@ -1,7 +1,7 @@
 <?php
 
-use Laravel\Mcp\Implementation;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Methods\ListPrompts;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;

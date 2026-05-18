@@ -1,7 +1,7 @@
 <?php
 
 use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\Implementation;
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;

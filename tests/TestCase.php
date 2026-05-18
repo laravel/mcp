@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests;
 
-use Laravel\Mcp\Implementation;
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\Resources\Content;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;

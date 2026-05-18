@@ -9,6 +9,8 @@ use Illuminate\Support\Str;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Events\SessionInitialized;
 use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\Schema\Icon;
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;

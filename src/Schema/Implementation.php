@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp;
+namespace Laravel\Mcp\Schema;
 
 use Illuminate\Support\Arr;
 
-final readonly class Implementation
+class Implementation
 {
     /**
      * @param  list<Icon>  $icons
