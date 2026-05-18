@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\Transport;
 
+use Illuminate\Process\InvokedProcess;
+use Illuminate\Support\Facades\Process;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Exceptions\ClientException;
+use Symfony\Component\Process\Exception\ExceptionInterface;
+use Symfony\Component\Process\InputStream;
+use Symfony\Component\Process\Process as SymfonyProcess;
 
 class StdioTransport implements Transport
 {
-    /** @var resource|null */
-    protected $process;
+    protected ?InvokedProcess $process = null;
 
-    /** @var array<int, resource|null> */
-    protected array $pipes = [];
+    protected ?InputStream $input = null;
 
-    protected ?string $stderrPath = null;
+    protected string $buffer = '';
 
     /**
      * @param  array<int, string>  $args
@@ -29,97 +32,92 @@ class StdioTransport implements Transport
 
     public function connect(): void
     {
-        if (is_resource($this->process)) {
+        if ($this->process?->running()) {
             return;
         }
 
-        $process = proc_open(
-            array_merge([$this->command], $this->args),
-            [
-                0 => ['pipe', 'r'],
-                1 => ['pipe', 'w'],
-                2 => ['file', '/dev/null', 'w'],
-            ],
-            $pipes,
-        );
+        $this->input = new InputStream;
 
-        if (! is_resource($process)) {
-            throw new ClientException("Failed to start process [{$this->command}].");
+        try {
+            $this->process = Process::input($this->input)
+                ->timeout(0)
+                ->idleTimeout(0)
+                ->start(
+                    array_merge([$this->command], $this->args),
+                    function (string $type, string $chunk): void {
+                        if ($type === SymfonyProcess::OUT) {
+                            $this->buffer .= $chunk;
+                        }
+                    },
+                );
+        } catch (ExceptionInterface $exceptionInterface) {
+            throw new ClientException(
+                "Failed to start process [{$this->command}]. Make sure the command exists ".
+                'and is reachable via an absolute path or the PATH of the running PHP process.'
+            );
         }
-
-        $this->process = $process;
-        $this->pipes = $pipes;
     }
 
     public function disconnect(): void
     {
-        foreach ($this->pipes as $pipe) {
-            if (is_resource($pipe)) {
-                fclose($pipe);
-            }
-        }
+        $this->input?->close();
+        $this->input = null;
 
-        $this->pipes = [];
-
-        if (is_resource($this->process)) {
-            proc_terminate($this->process);
-            proc_close($this->process);
+        if ($this->process?->running()) {
+            $this->process->stop(0.1);
         }
 
         $this->process = null;
+        $this->buffer = '';
     }
 
     public function send(string $message): void
     {
-        $stdin = $this->pipes[0] ?? null;
-
-        if (! is_resource($stdin)) {
+        if ($this->input === null || ! $this->process?->running()) {
             throw new ClientException('Transport is not connected.');
         }
 
-        fwrite($stdin, $message.PHP_EOL);
-        fflush($stdin);
+        $this->input->write($message.PHP_EOL);
     }
 
     public function receive(?float $timeoutSeconds = null): string
     {
-        $stdout = $this->pipes[1] ?? null;
-
-        if (! is_resource($stdout)) {
+        if ($this->process === null) {
             throw new ClientException('Transport is not connected.');
         }
 
-        if ($timeoutSeconds !== null) {
-            $this->waitForReadable($stdout, $timeoutSeconds);
+        $deadline = $timeoutSeconds === null ? null : microtime(true) + $timeoutSeconds;
+
+        while (true) {
+            $newlinePos = strpos($this->buffer, "\n");
+
+            if ($newlinePos !== false) {
+                $line = substr($this->buffer, 0, $newlinePos + 1);
+                $this->buffer = substr($this->buffer, $newlinePos + 1);
+
+                return $line;
+            }
+
+            $running = $this->process->running();
+
+            if (! $running) {
+                throw new ClientException($this->subprocessFailureMessage());
+            }
+
+            if ($deadline !== null && microtime(true) >= $deadline) {
+                throw new ClientException('Timed out while waiting for server response.');
+            }
+
+            usleep(20_000);
         }
-
-        $line = fgets($stdout);
-
-        if ($line === false) {
-            throw new ClientException($this->subprocessFailureMessage());
-        }
-
-        return $line;
     }
 
     protected function subprocessFailureMessage(): string
     {
         $message = "Subprocess [{$this->command}] closed its output before sending a complete response.";
 
-        if (is_resource($this->process)) {
-            $status = proc_get_status($this->process);
-
-            if (! $status['running']) {
-                if ($status['signaled']) {
-                    $message .= " It was terminated by signal {$status['termsig']}.";
-                } elseif ($status['exitcode'] !== -1) {
-                    $message .= " It exited with code {$status['exitcode']}.";
-                }
-            }
-        }
-
-        if ($this->stderrPath !== null && is_file($this->stderrPath)) {
-            $stderr = trim((string) @file_get_contents($this->stderrPath));
+        if ($this->process !== null) {
+            $stderr = trim($this->process->errorOutput());
 
             if ($stderr !== '') {
                 $message .= ' stderr: '.$stderr;
@@ -127,26 +125,6 @@ class StdioTransport implements Transport
         }
 
         return $message;
-    }
-
-    protected function waitForReadable(mixed $stream, float $timeoutSeconds): void
-    {
-        $timeoutSeconds = max(0.0, $timeoutSeconds);
-        $seconds = (int) $timeoutSeconds;
-        $microseconds = (int) (($timeoutSeconds - $seconds) * 1000000);
-        $read = [$stream];
-        $write = null;
-        $except = null;
-
-        $ready = stream_select($read, $write, $except, $seconds, $microseconds);
-
-        if ($ready === false) {
-            throw new ClientException('Failed while waiting for server response.');
-        }
-
-        if ($ready === 0) {
-            throw new ClientException('Timed out while waiting for server response.');
-        }
     }
 
     public function __destruct()

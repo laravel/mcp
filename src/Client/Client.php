@@ -37,7 +37,7 @@ class Client
 
     public function __construct(
         protected Transport $transport,
-        protected float $timeoutSeconds = 5.0,
+        protected float $timeoutSeconds = 30.0,
     ) {
         //
     }
@@ -45,7 +45,7 @@ class Client
     /**
      * @param  array<int, string>  $args
      */
-    public static function local(string $command, array $args = [], float $timeoutSeconds = 5.0): static
+    public static function local(string $command, array $args = [], float $timeoutSeconds = 30.0): static
     {
         return new static(new StdioTransport($command, $args), $timeoutSeconds);
     }
