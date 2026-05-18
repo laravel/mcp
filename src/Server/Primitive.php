@@ -11,16 +11,16 @@ use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Title;
+use Laravel\Mcp\Server\Concerns\HasIcons;
 use Laravel\Mcp\Server\Concerns\HasMeta;
-use Laravel\Mcp\Server\Concerns\ReadsAttributes;
 
 /**
  * @implements Arrayable<string, mixed>
  */
 abstract class Primitive implements Arrayable
 {
+    use HasIcons;
     use HasMeta;
-    use ReadsAttributes;
 
     protected string $name = '';
 
@@ -79,7 +79,7 @@ abstract class Primitive implements Arrayable
      */
     protected function mergeIcons(array $baseArray): array
     {
-        $icons = $this->icons();
+        $icons = $this->resolvedIcons();
 
         if ($icons === []) {
             return $baseArray;

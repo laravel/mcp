@@ -1,7 +1,9 @@
 <?php
 
+use Laravel\Mcp\Enums\IconTheme;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Attributes\Icon as IconAttribute;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;
@@ -338,3 +340,39 @@ it('forwards icons() into the server context', function (): void {
         ->and($context->implementation->icons[0])->toBeInstanceOf(Icon::class)
         ->and($context->implementation->icons[0]->src)->toBe('https://example.com/server.png');
 });
+
+it('reads class-level Icon attributes into the server context', function (): void {
+    $server = new IconAttributeServer(new ArrayTransport);
+
+    $context = $server->createContext();
+
+    expect($context->implementation->icons)->toHaveCount(2)
+        ->and($context->implementation->icons[0]->src)->toBe('https://example.com/icon.png')
+        ->and($context->implementation->icons[0]->mimeType)->toBe('image/png')
+        ->and($context->implementation->icons[0]->sizes)->toBe(['48x48'])
+        ->and($context->implementation->icons[1]->src)->toBe('https://example.com/icon-dark.svg')
+        ->and($context->implementation->icons[1]->theme)->toBe(IconTheme::Dark);
+});
+
+it('merges Icon attributes with icons() method output', function (): void {
+    $server = new MixedIconServer(new ArrayTransport);
+
+    $context = $server->createContext();
+
+    expect($context->implementation->icons)->toHaveCount(2)
+        ->and($context->implementation->icons[0]->src)->toBe('https://example.com/from-attribute.png')
+        ->and($context->implementation->icons[1]->src)->toBe('https://example.com/from-method.png');
+});
+
+#[IconAttribute('https://example.com/icon.png', mimeType: 'image/png', sizes: ['48x48'])]
+#[IconAttribute('https://example.com/icon-dark.svg', theme: IconTheme::Dark)]
+class IconAttributeServer extends Server {}
+
+#[IconAttribute('https://example.com/from-attribute.png')]
+class MixedIconServer extends Server
+{
+    protected function icons(): array
+    {
+        return [new Icon('https://example.com/from-method.png')];
+    }
+}

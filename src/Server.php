@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Version;
-use Laravel\Mcp\Server\Concerns\ReadsAttributes;
+use Laravel\Mcp\Server\Concerns\HasIcons;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Methods\CallTool;
@@ -45,7 +45,7 @@ use Throwable;
  */
 abstract class Server
 {
-    use ReadsAttributes;
+    use HasIcons;
 
     public const CAPABILITY_TOOLS = 'tools';
 
@@ -241,7 +241,7 @@ abstract class Server
             implementation: new Implementation(
                 name: $name !== null ? $name->value : $this->name,
                 version: $version !== null ? $version->value : $this->version,
-                icons: $this->icons(),
+                icons: $this->resolvedIcons(),
             ),
             instructions: $instructions !== null ? $instructions->value : $this->instructions,
             maxPaginationLength: $this->maxPaginationLength,

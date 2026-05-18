@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Enums\IconTheme;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server\Content\ResourceLink;
 use Laravel\Mcp\Server\Prompt;
@@ -120,7 +121,7 @@ it('includes icons when provided', function (): void {
         name: 'Resource',
         icons: [
             new Icon('https://example.com/icon.png', mimeType: 'image/png', sizes: ['48x48']),
-            new Icon('https://example.com/icon-dark.svg', theme: 'dark'),
+            new Icon('https://example.com/icon-dark.svg', theme: IconTheme::Dark),
         ],
     );
 

@@ -1,5 +1,6 @@
 <?php
 
+use Laravel\Mcp\Enums\IconTheme;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Schema\Implementation;
@@ -114,7 +115,7 @@ it('emits the full implementation payload in serverInfo regardless of negotiated
             description: 'A test server',
             icons: [
                 new Icon('https://example.com/server.png', mimeType: 'image/png', sizes: ['48x48']),
-                new Icon('https://example.com/server-dark.svg', mimeType: 'image/svg+xml', theme: 'dark'),
+                new Icon('https://example.com/server-dark.svg', mimeType: 'image/svg+xml', theme: IconTheme::Dark),
             ],
             websiteUrl: 'https://example.com',
         ),
