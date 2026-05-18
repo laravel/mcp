@@ -5,12 +5,14 @@ declare(strict_types=1);
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
+use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\ResourceLink;
 use Laravel\Mcp\Server\Content\Text;
+use Laravel\Mcp\Server\Resource;
 use Tests\Fixtures\AnnotatedResource;
 use Tests\Fixtures\DailyPlanResource;
 
@@ -367,4 +369,65 @@ it('allows overriding fields when given a Resource', function (): void {
 
     expect($payload['title'])->toBe('Custom Title')
         ->and($payload['size'])->toBe(4096);
+});
+
+it('inherits icons from a Resource when none are provided', function (): void {
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://resources/iconic';
+
+        public function handle(): string
+        {
+            return 'content';
+        }
+
+        public function icons(): array
+        {
+            return [new Icon('https://example.com/resource.png', mimeType: 'image/png')];
+        }
+    };
+
+    $response = Response::resourceLink($resource);
+
+    expect($response->content()->toArray()['icons'])->toBe([
+        ['src' => 'https://example.com/resource.png', 'mimeType' => 'image/png'],
+    ]);
+});
+
+it('lets explicit icons override the Resource icons', function (): void {
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://resources/iconic';
+
+        public function handle(): string
+        {
+            return 'content';
+        }
+
+        public function icons(): array
+        {
+            return [new Icon('https://example.com/inherited.png')];
+        }
+    };
+
+    $response = Response::resourceLink(
+        $resource,
+        icons: [new Icon('https://example.com/override.png', mimeType: 'image/png')],
+    );
+
+    expect($response->content()->toArray()['icons'])->toBe([
+        ['src' => 'https://example.com/override.png', 'mimeType' => 'image/png'],
+    ]);
+});
+
+it('attaches icons to a resource link built from a URI string', function (): void {
+    $response = Response::resourceLink(
+        'https://example.com/data.json',
+        name: 'Dataset',
+        icons: [new Icon('https://example.com/data.png', mimeType: 'image/png')],
+    );
+
+    expect($response->content()->toArray()['icons'])->toBe([
+        ['src' => 'https://example.com/data.png', 'mimeType' => 'image/png'],
+    ]);
 });

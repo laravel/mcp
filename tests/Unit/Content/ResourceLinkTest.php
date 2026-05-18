@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server\Content\ResourceLink;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -111,6 +112,28 @@ it('includes annotations when provided', function (): void {
             'lastModified' => '2026-05-07T12:00:00Z',
         ],
     ]);
+});
+
+it('includes icons when provided', function (): void {
+    $resourceLink = new ResourceLink(
+        uri: 'https://example.com/resource',
+        name: 'Resource',
+        icons: [
+            new Icon('https://example.com/icon.png', mimeType: 'image/png', sizes: ['48x48']),
+            new Icon('https://example.com/icon-dark.svg', theme: 'dark'),
+        ],
+    );
+
+    expect($resourceLink->toArray()['icons'])->toBe([
+        ['src' => 'https://example.com/icon.png', 'mimeType' => 'image/png', 'sizes' => ['48x48']],
+        ['src' => 'https://example.com/icon-dark.svg', 'theme' => 'dark'],
+    ]);
+});
+
+it('omits icons key when none are provided', function (): void {
+    $resourceLink = new ResourceLink('https://example.com/resource', 'Resource');
+
+    expect($resourceLink->toArray())->not->toHaveKey('icons');
 });
 
 it('supports meta via setMeta', function (): void {

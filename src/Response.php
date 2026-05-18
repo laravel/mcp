@@ -12,6 +12,7 @@ use Illuminate\Support\Traits\Macroable;
 use InvalidArgumentException;
 use JsonException;
 use Laravel\Mcp\Enums\Role;
+use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Image;
@@ -144,6 +145,7 @@ class Response
     /**
      * @param  string|class-string<Resource>|Resource|ResourceLink  $uri
      * @param  array<string, mixed>  $annotations
+     * @param  list<Icon>  $icons
      */
     public static function resourceLink(
         string|Resource|ResourceLink $uri,
@@ -153,6 +155,7 @@ class Response
         ?string $description = null,
         ?int $size = null,
         array $annotations = [],
+        array $icons = [],
     ): static {
         if (is_string($uri) && is_subclass_of($uri, Resource::class)) {
             $uri = Container::getInstance()->make($uri);
@@ -168,6 +171,7 @@ class Response
                 description: $description ?? $uri->description(),
                 size: $size,
                 annotations: array_merge($uri->annotations(), $annotations),
+                icons: $icons === [] ? $uri->icons() : $icons,
             )),
             default => new ResourceLink(
                 uri: $uri,
@@ -177,6 +181,7 @@ class Response
                 description: $description,
                 size: $size,
                 annotations: $annotations,
+                icons: $icons,
             ),
         };
 
