@@ -41,6 +41,7 @@ it('returns a valid initialize response', function (): void {
                 'name' => 'Test Server',
                 'version' => '1.0.0',
             ],
+            'instructions' => 'Test instructions',
         ]);
 });
 
