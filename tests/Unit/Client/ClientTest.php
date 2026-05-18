@@ -38,13 +38,13 @@ it('performs the initialize handshake on connect', function (): void {
     $client->connect();
 
     expect($transport->connected)->toBeTrue();
-    expect($client->isConnected())->toBeTrue();
-    expect($client->protocolVersion())->toBe(ProtocolVersion::LATEST->value);
-    expect($client->serverName())->toBe('Test Server');
-    expect($client->serverVersion())->toBe('1.0.0');
-    expect($client->serverCapabilities())->toBeInstanceOf(stdClass::class);
-    expect($client->serverInfo())->not->toBeNull();
-    expect($client->instructions())->toBeNull();
+    expect($client->connected)->toBeTrue();
+    expect($client->protocolVersion)->toBe(ProtocolVersion::LATEST->value);
+    expect($client->serverInfo?->name)->toBe('Test Server');
+    expect($client->serverInfo?->version)->toBe('1.0.0');
+    expect($client->serverCapabilities)->toBeInstanceOf(stdClass::class);
+    expect($client->serverInfo)->not->toBeNull();
+    expect($client->instructions)->toBeNull();
 
     $initialize = json_decode($transport->sent[0], true);
     expect($initialize['method'])->toBe('initialize');
@@ -76,11 +76,11 @@ it('lazily connects when ping is called first', function (): void {
 
     $client = new Client($transport);
 
-    expect($client->isConnected())->toBeFalse();
+    expect($client->connected)->toBeFalse();
 
     $client->ping();
 
-    expect($client->isConnected())->toBeTrue();
+    expect($client->connected)->toBeTrue();
 });
 
 it('does not reconnect when already connected', function (): void {
@@ -103,7 +103,7 @@ it('disconnects cleanly', function (): void {
     $client->disconnect();
 
     expect($transport->connected)->toBeFalse();
-    expect($client->isConnected())->toBeFalse();
+    expect($client->connected)->toBeFalse();
 });
 
 it('skips notification frames received before the matching response', function (): void {
@@ -154,7 +154,7 @@ it('disconnects the transport when the initialize handshake fails', function ():
         ->toThrow(JsonRpcException::class);
 
     expect($transport->connected)->toBeFalse();
-    expect($client->isConnected())->toBeFalse();
+    expect($client->connected)->toBeFalse();
 });
 
 it('throws when the server returns a JSON-RPC error', function (): void {
@@ -193,7 +193,7 @@ it('provides a local static factory', function (): void {
     $client = Client::local('php', ['-v']);
 
     expect($client)->toBeInstanceOf(Client::class);
-    expect($client->isConnected())->toBeFalse();
+    expect($client->connected)->toBeFalse();
 });
 
 it('can ping a registered Laravel MCP stdio server', function (): void {
@@ -201,7 +201,7 @@ it('can ping a registered Laravel MCP stdio server', function (): void {
 
     $client->ping();
 
-    expect($client->serverName())->toBe('Laravel MCP Server');
+    expect($client->serverInfo?->name)->toBe('Laravel MCP Server');
 
     $client->disconnect();
 });
@@ -248,7 +248,7 @@ it('stores the full server info and instructions from initialize', function (): 
     $client = new Client($transport);
     $client->connect();
 
-    $info = $client->serverInfo();
+    $info = $client->serverInfo;
     expect($info)->not->toBeNull();
     expect($info->name)->toBe('ExampleServer');
     expect($info->title)->toBe('Example Server Display Name');
@@ -256,7 +256,7 @@ it('stores the full server info and instructions from initialize', function (): 
     expect($info->description)->toBe('An example MCP server providing tools and resources');
     expect($info->icons)->toHaveCount(1);
     expect($info->websiteUrl)->toBe('https://example.com/server');
-    expect($client->instructions())->toBe('Optional instructions for the client');
+    expect($client->instructions)->toBe('Optional instructions for the client');
 });
 
 it('times out when a stdio process stays silent', function (): void {

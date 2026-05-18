@@ -98,10 +98,11 @@ class StdioTransport implements Transport
                 return $line;
             }
 
-            $running = $this->process->running();
+            if (! $this->process->running()) {
+                $stderr = trim($this->process->errorOutput());
+                $stderrPart = $stderr === '' ? '' : " stderr: {$stderr}";
 
-            if (! $running) {
-                throw new ClientException($this->subprocessFailureMessage());
+                throw new ClientException("Subprocess [{$this->command}] closed its output before sending a complete response.{$stderrPart}");
             }
 
             if ($deadline !== null && microtime(true) >= $deadline) {
@@ -110,21 +111,6 @@ class StdioTransport implements Transport
 
             usleep(20_000);
         }
-    }
-
-    protected function subprocessFailureMessage(): string
-    {
-        $message = "Subprocess [{$this->command}] closed its output before sending a complete response.";
-
-        if ($this->process !== null) {
-            $stderr = trim($this->process->errorOutput());
-
-            if ($stderr !== '') {
-                $message .= ' stderr: '.$stderr;
-            }
-        }
-
-        return $message;
     }
 
     public function __destruct()

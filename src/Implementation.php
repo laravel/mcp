@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Client;
+namespace Laravel\Mcp;
 
-final readonly class ServerInfo
+final readonly class Implementation
 {
     /**
      * @param  array<int, array<string, mixed>>  $icons
@@ -35,5 +35,20 @@ final readonly class ServerInfo
             icons: is_array($icons) ? array_values(array_filter($icons, 'is_array')) : [],
             websiteUrl: is_string($info['websiteUrl'] ?? null) ? $info['websiteUrl'] : null,
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return array_filter([
+            'name' => $this->name,
+            'version' => $this->version,
+            'title' => $this->title,
+            'description' => $this->description,
+            'icons' => $this->icons === [] ? null : $this->icons,
+            'websiteUrl' => $this->websiteUrl,
+        ], fn (mixed $value): bool => $value !== null);
     }
 }

@@ -12,6 +12,7 @@ use Laravel\Mcp\Client\Methods\Ping;
 use Laravel\Mcp\Client\Transport\StdioTransport;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\Implementation;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -19,25 +20,25 @@ use Throwable;
 
 class Client
 {
-    protected bool $connected = false;
+    public bool $connected = false;
+
+    public ?string $protocolVersion = null;
+
+    public ?object $serverCapabilities = null;
+
+    public ?Implementation $serverInfo = null;
+
+    public ?string $instructions = null;
 
     protected int $nextRequestId = 1;
-
-    protected string $clientName = 'Laravel MCP Client';
-
-    protected string $clientVersion = '0.0.1';
-
-    protected ?string $protocolVersion = null;
-
-    protected ?object $serverCapabilities = null;
-
-    protected ?ServerInfo $serverInfo = null;
-
-    protected ?string $instructions = null;
 
     public function __construct(
         protected Transport $transport,
         protected float $timeoutSeconds = 30.0,
+        public Implementation $clientInfo = new Implementation(
+            name: 'Laravel MCP Client',
+            version: '0.0.1',
+        ),
     ) {
         //
     }
@@ -59,7 +60,7 @@ class Client
         $this->transport->connect();
 
         try {
-            $this->storeInitializeResult($this->call(new Initialize($this->clientName, $this->clientVersion)));
+            $this->storeInitializeResult($this->call(new Initialize($this->clientInfo)));
             $this->notify('notifications/initialized');
         } catch (Throwable $throwable) {
             $this->transport->disconnect();
@@ -77,41 +78,6 @@ class Client
         $this->transport->disconnect();
 
         $this->connected = false;
-    }
-
-    public function isConnected(): bool
-    {
-        return $this->connected;
-    }
-
-    public function protocolVersion(): ?string
-    {
-        return $this->protocolVersion;
-    }
-
-    public function serverCapabilities(): ?object
-    {
-        return $this->serverCapabilities;
-    }
-
-    public function serverInfo(): ?ServerInfo
-    {
-        return $this->serverInfo;
-    }
-
-    public function serverName(): ?string
-    {
-        return $this->serverInfo?->name;
-    }
-
-    public function serverVersion(): ?string
-    {
-        return $this->serverInfo?->version;
-    }
-
-    public function instructions(): ?string
-    {
-        return $this->instructions;
     }
 
     public function ping(): void
@@ -189,7 +155,7 @@ class Client
 
         $this->protocolVersion = $protocolVersion;
         $this->serverCapabilities = (object) $capabilities;
-        $this->serverInfo = ServerInfo::fromArray($serverInfo);
+        $this->serverInfo = Implementation::fromArray($serverInfo);
         $this->instructions = is_string($instructions) ? $instructions : null;
     }
 
