@@ -1,5 +1,6 @@
 <?php
 
+use Laravel\Mcp\Icon;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Resource;
 
@@ -177,4 +178,45 @@ it('can have custom meta', function (): void {
             'author' => 'John Doe',
             'version' => '1.0',
         ]);
+});
+
+it('includes icons in toArray when declared on a resource', function (): void {
+    $resource = new class extends Resource
+    {
+        public function description(): string
+        {
+            return 'Test resource';
+        }
+
+        public function handle(): Response
+        {
+            return Response::text('content');
+        }
+
+        public function icons(): array
+        {
+            return [new Icon('https://example.com/resource.png', mimeType: 'image/png')];
+        }
+    };
+
+    expect($resource->toArray()['icons'])->toBe([
+        ['src' => 'https://example.com/resource.png', 'mimeType' => 'image/png'],
+    ]);
+});
+
+it('omits icons in toArray when none are declared', function (): void {
+    $resource = new class extends Resource
+    {
+        public function description(): string
+        {
+            return 'Test resource';
+        }
+
+        public function handle(): Response
+        {
+            return Response::text('content');
+        }
+    };
+
+    expect($resource->toArray())->not->toHaveKey('icons');
 });

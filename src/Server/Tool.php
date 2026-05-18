@@ -94,7 +94,7 @@ abstract class Tool extends Primitive
         }
 
         // @phpstan-ignore return.type
-        return $this->mergeMeta($result);
+        return $this->mergeMeta($this->mergeIcons($result));
     }
 
     /**

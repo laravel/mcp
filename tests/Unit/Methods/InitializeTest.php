@@ -1,6 +1,8 @@
 <?php
 
 use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\Icon;
+use Laravel\Mcp\Implementation;
 use Laravel\Mcp\Server\Methods\Initialize;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;
@@ -17,8 +19,7 @@ it('returns a valid initialize response', function (): void {
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
         serverCapabilities: ['listChanged' => false],
-        serverName: 'Test Server',
-        serverVersion: '1.0.0',
+        implementation: new Implementation('Test Server', '1.0.0'),
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,
@@ -61,8 +62,7 @@ it('throws exception for unsupported protocol version', function (): void {
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
         serverCapabilities: [],
-        serverName: 'Test Server',
-        serverVersion: '1.0.0',
+        implementation: new Implementation('Test Server', '1.0.0'),
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,
@@ -95,6 +95,45 @@ it('throws exception for unsupported protocol version', function (): void {
     }
 });
 
+it('includes server icons in serverInfo when set', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'initialize',
+        'params' => [],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: ['listChanged' => false],
+        implementation: new Implementation(
+            name: 'Test Server',
+            version: '1.0.0',
+            icons: [
+                new Icon('https://example.com/server.png', mimeType: 'image/png', sizes: ['48x48']),
+                new Icon('https://example.com/server-dark.svg', mimeType: 'image/svg+xml', theme: 'dark'),
+            ],
+        ),
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [],
+        resources: [],
+        prompts: [],
+    );
+
+    $payload = (new Initialize)->handle($request, $context)->toArray();
+
+    expect($payload['result']['serverInfo'])->toEqual([
+        'name' => 'Test Server',
+        'version' => '1.0.0',
+        'icons' => [
+            ['src' => 'https://example.com/server.png', 'mimeType' => 'image/png', 'sizes' => ['48x48']],
+            ['src' => 'https://example.com/server-dark.svg', 'mimeType' => 'image/svg+xml', 'theme' => 'dark'],
+        ],
+    ]);
+});
+
 it('uses requested protocol version if supported', function (): void {
     $requestedVersion = '2024-11-05';
     $request = JsonRpcRequest::from([
@@ -109,8 +148,7 @@ it('uses requested protocol version if supported', function (): void {
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26', '2024-11-05'],
         serverCapabilities: [],
-        serverName: 'Test Server',
-        serverVersion: '1.0.0',
+        implementation: new Implementation('Test Server', '1.0.0'),
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,

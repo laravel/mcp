@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Laravel\Mcp\Icon;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
@@ -100,6 +101,18 @@ it('can have custom meta', function (): void {
     expect($tool->toArray()['_meta'])->toEqual(['key' => 'value']);
 });
 
+it('omits icons key when no icons are declared', function (): void {
+    expect((new TestTool)->toArray())->not->toHaveKey('icons');
+});
+
+it('includes icons in toArray when declared', function (): void {
+    $array = (new ToolWithIcons)->toArray();
+
+    expect($array['icons'])->toBe([
+        ['src' => 'https://example.com/tool.png', 'mimeType' => 'image/png'],
+    ]);
+});
+
 it('default outputSchema returns empty array', function (): void {
     $tool = new ToolWithoutOutputSchema;
     $array = $tool->toArray();
@@ -183,6 +196,14 @@ class CustomMetaTool extends TestTool
     protected ?array $meta = [
         'key' => 'value',
     ];
+}
+
+class ToolWithIcons extends TestTool
+{
+    public function icons(): array
+    {
+        return [new Icon('https://example.com/tool.png', mimeType: 'image/png')];
+    }
 }
 
 class ToolWithOutputSchema extends TestTool

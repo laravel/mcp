@@ -236,8 +236,11 @@ abstract class Server
         return new ServerContext(
             supportedProtocolVersions: $this->supportedProtocolVersion ?: ProtocolVersion::supported(),
             serverCapabilities: $this->capabilities,
-            serverName: $name !== null ? $name->value : $this->name,
-            serverVersion: $version !== null ? $version->value : $this->version,
+            implementation: new Implementation(
+                name: $name !== null ? $name->value : $this->name,
+                version: $version !== null ? $version->value : $this->version,
+                icons: $this->icons(),
+            ),
             instructions: $instructions !== null ? $instructions->value : $this->instructions,
             maxPaginationLength: $this->maxPaginationLength,
             defaultPaginationLength: $this->defaultPaginationLength,
@@ -245,6 +248,14 @@ abstract class Server
             resources: $this->resources,
             prompts: $this->prompts,
         );
+    }
+
+    /**
+     * @return list<Icon>
+     */
+    protected function icons(): array
+    {
+        return [];
     }
 
     /**

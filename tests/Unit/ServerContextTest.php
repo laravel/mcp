@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Implementation;
 use Laravel\Mcp\Server\ServerContext;
 
 it('clamps perPage to default and max values', function (): void {
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
         serverCapabilities: [],
-        serverName: 'Test',
-        serverVersion: '1.0.0',
+        implementation: new Implementation('Test', '1.0.0'),
         instructions: 'x',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,

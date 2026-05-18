@@ -1,5 +1,6 @@
 <?php
 
+use Laravel\Mcp\Icon;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Prompts\Argument;
@@ -47,6 +48,47 @@ it('can have custom meta', function (): void {
             'category' => 'greeting',
             'tags' => ['hello', 'welcome'],
         ]);
+});
+
+it('includes icons in toArray when declared on a prompt', function (): void {
+    $prompt = new class extends Prompt
+    {
+        public function description(): string
+        {
+            return 'Test prompt';
+        }
+
+        public function handle(): Response
+        {
+            return Response::text('Hello');
+        }
+
+        public function icons(): array
+        {
+            return [new Icon('https://example.com/prompt.png', mimeType: 'image/png')];
+        }
+    };
+
+    expect($prompt->toArray()['icons'])->toBe([
+        ['src' => 'https://example.com/prompt.png', 'mimeType' => 'image/png'],
+    ]);
+});
+
+it('omits icons in toArray when none are declared on a prompt', function (): void {
+    $prompt = new class extends Prompt
+    {
+        public function description(): string
+        {
+            return 'Test prompt';
+        }
+
+        public function handle(): Response
+        {
+            return Response::text('Hello');
+        }
+    };
+
+    expect($prompt->toArray())->not->toHaveKey('icons');
 });
 
 it('includes meta in array representation with other fields', function (): void {

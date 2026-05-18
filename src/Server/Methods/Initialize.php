@@ -32,10 +32,7 @@ class Initialize implements Method
         $initResult = [
             'protocolVersion' => $protocolVersion,
             'capabilities' => $context->serverCapabilities,
-            'serverInfo' => [
-                'name' => $context->serverName,
-                'version' => $context->serverVersion,
-            ],
+            'serverInfo' => $context->implementation->toArray(),
             'instructions' => $context->instructions,
         ];
 

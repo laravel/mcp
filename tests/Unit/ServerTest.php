@@ -1,5 +1,6 @@
 <?php
 
+use Laravel\Mcp\Icon;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\ServerContext;
@@ -320,4 +321,20 @@ it('handles exceptions in production mode', function (): void {
             'message' => 'Something went wrong while processing the request.',
         ],
     ]);
+});
+
+it('forwards icons() into the server context', function (): void {
+    $server = new class(new ArrayTransport) extends Server
+    {
+        protected function icons(): array
+        {
+            return [new Icon('https://example.com/server.png', mimeType: 'image/png')];
+        }
+    };
+
+    $context = $server->createContext();
+
+    expect($context->implementation->icons)->toHaveCount(1)
+        ->and($context->implementation->icons[0])->toBeInstanceOf(Icon::class)
+        ->and($context->implementation->icons[0]->src)->toBe('https://example.com/server.png');
 });
