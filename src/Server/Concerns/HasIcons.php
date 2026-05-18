@@ -14,7 +14,7 @@ trait HasIcons
     /**
      * @return list<Icon>
      */
-    protected function resolvedIcons(): array
+    public function resolvedIcons(): array
     {
         $attributeIcons = array_map(
             fn (IconAttribute $icon): Icon => $icon->toIcon(),

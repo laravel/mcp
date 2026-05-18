@@ -171,7 +171,7 @@ class Response
                 description: $description ?? $uri->description(),
                 size: $size,
                 annotations: array_merge($uri->annotations(), $annotations),
-                icons: $icons === [] ? $uri->icons() : $icons,
+                icons: $icons === [] ? $uri->resolvedIcons() : $icons,
             )),
             default => new ResourceLink(
                 uri: $uri,

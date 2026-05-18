@@ -6,6 +6,7 @@ use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Schema\Icon;
+use Laravel\Mcp\Server\Attributes\Icon as IconAttribute;
 use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Image;
@@ -394,6 +395,14 @@ it('inherits icons from a Resource when none are provided', function (): void {
     ]);
 });
 
+it('inherits Icon attributes from a Resource when none are provided', function (): void {
+    $response = Response::resourceLink(new ResponseResourceWithIconAttribute);
+
+    expect($response->content()->toArray()['icons'])->toBe([
+        ['src' => 'https://example.com/attribute-resource.png', 'mimeType' => 'image/png'],
+    ]);
+});
+
 it('lets explicit icons override the Resource icons', function (): void {
     $resource = new class extends Resource
     {
@@ -431,3 +440,14 @@ it('attaches icons to a resource link built from a URI string', function (): voi
         ['src' => 'https://example.com/data.png', 'mimeType' => 'image/png'],
     ]);
 });
+
+#[IconAttribute('https://example.com/attribute-resource.png', mimeType: 'image/png')]
+class ResponseResourceWithIconAttribute extends Resource
+{
+    protected string $uri = 'file://resources/icon-attribute';
+
+    public function handle(): string
+    {
+        return 'content';
+    }
+}
