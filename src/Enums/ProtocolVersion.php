@@ -20,4 +20,19 @@ enum ProtocolVersion: string
     {
         return array_column(self::cases(), 'value');
     }
+
+    public function atLeast(self $other): bool
+    {
+        return $this->value >= $other->value;
+    }
+
+    public function supportsInstructions(): bool
+    {
+        return $this->atLeast(self::V2025_06_18);
+    }
+
+    public function supportsImplementationMetadata(): bool
+    {
+        return $this->atLeast(self::V2025_11_25);
+    }
 }

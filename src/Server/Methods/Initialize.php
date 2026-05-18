@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Methods;
 
+use Illuminate\Support\Arr;
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\ServerContext;
@@ -29,15 +31,23 @@ class Initialize implements Method
         }
 
         $protocolVersion = $requestedVersion ?? $context->supportedProtocolVersions[0];
+        $negotiated = ProtocolVersion::from($protocolVersion);
+
+        $serverInfo = $context->implementation->toArray();
+
+        if (! $negotiated->supportsImplementationMetadata()) {
+            $serverInfo = Arr::except($serverInfo, ['icons', 'description', 'websiteUrl']);
+        }
+
         $initResult = [
             'protocolVersion' => $protocolVersion,
             'capabilities' => $context->serverCapabilities,
-            'serverInfo' => $context->implementation->toArray(),
+            'serverInfo' => $serverInfo,
             'instructions' => $context->instructions,
         ];
 
-        if (in_array($protocolVersion, ['2024-11-05', '2025-03-26'], true)) {
-            unset($initResult['instructions']);
+        if (! $negotiated->supportsInstructions()) {
+            $initResult = Arr::except($initResult, 'instructions');
         }
 
         return JsonRpcResponse::result($request->id, $initResult);
