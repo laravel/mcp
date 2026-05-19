@@ -55,7 +55,7 @@ class Implementation
             version: Arr::get($data, 'version'),
             title: Arr::get($data, 'title'),
             description: Arr::get($data, 'description'),
-            icons: Arr::map(Arr::get($data, 'icons', []), fn(array $icon): Icon => Icon::from(
+            icons: Arr::map(Arr::get($data, 'icons', []), fn (array $icon): Icon => Icon::from(
                 src: Arr::get($icon, 'src'),
                 mimeType: Arr::get($icon, 'mimeType'),
                 sizes: Arr::get($icon, 'sizes'),
