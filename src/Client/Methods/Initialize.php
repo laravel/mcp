@@ -10,9 +10,8 @@ use Laravel\Mcp\Schema\Implementation;
 
 class Initialize implements Method
 {
-    public function __construct(
-        protected Implementation $clientInfo,
-    ) {
+    public function __construct(protected Implementation $clientInfo)
+    {
         //
     }
 

@@ -24,10 +24,7 @@ class StdioTransport implements Transport
     /**
      * @param  array<int, string>  $args
      */
-    public function __construct(
-        protected string $command,
-        protected array $args = [],
-    ) {
+    public function __construct(protected string $command,protected array $args = []) {
         //
     }
 
