@@ -50,11 +50,8 @@ class StdioTransport implements Transport
                         }
                     },
                 );
-        } catch (ExceptionInterface $exceptionInterface) {
-            throw new ClientException(
-                "Failed to start process [{$this->command}]. Make sure the command exists ".
-                'and is reachable via an absolute path or the PATH of the running PHP process.'
-            );
+        } catch (ExceptionInterface) {
+            throw new ClientException("Failed to start process [{$this->command}]. Make sure the command exists.");
         }
     }
 
@@ -73,7 +70,7 @@ class StdioTransport implements Transport
 
     public function send(string $message): void
     {
-        if ($this->input === null || ! $this->process?->running()) {
+        if (! $this->input instanceof InputStream || ! $this->process?->running()) {
             throw new ClientException('Transport is not connected.');
         }
 
@@ -82,7 +79,7 @@ class StdioTransport implements Transport
 
     public function receive(?float $timeoutSeconds = null): string
     {
-        if ($this->process === null) {
+        if (! $this->process instanceof InvokedProcess) {
             throw new ClientException('Transport is not connected.');
         }
 

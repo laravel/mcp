@@ -54,7 +54,7 @@ class Implementation
                     ? new Icon(
                         src: $icon['src'],
                         mimeType: is_string($icon['mimeType'] ?? null) ? $icon['mimeType'] : null,
-                        sizes: is_array($icon['sizes'] ?? null) ? array_values(array_filter($icon['sizes'], 'is_string')) : [],
+                        sizes: is_array($icon['sizes'] ?? null) ? array_values(array_filter($icon['sizes'], is_string(...))) : [],
                     )
                     : null,
                 $icons,
