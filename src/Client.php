@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Client;
+namespace Laravel\Mcp;
 
 use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Contracts\Transport;
@@ -24,7 +24,8 @@ class Client
 
     public ?string $protocolVersion = null;
 
-    public ?object $serverCapabilities = null;
+    /** @var array<string, mixed> */
+    public array $serverCapabilities = [];
 
     public ?Implementation $serverInfo = null;
 
@@ -34,7 +35,6 @@ class Client
 
     public function __construct(
         protected Transport $transport,
-        protected float $timeoutSeconds = 30.0,
         public Implementation $clientInfo = new Implementation(
             name: 'Laravel MCP Client',
             version: '0.0.1',
@@ -46,9 +46,16 @@ class Client
     /**
      * @param  array<int, string>  $args
      */
-    public static function local(string $command, array $args = [], float $timeoutSeconds = 30.0): static
+    public static function local(string $command, array $args = []): static
     {
-        return new static(new StdioTransport($command, $args), $timeoutSeconds);
+        return new static(new StdioTransport($command, $args));
+    }
+
+    public function withTimeout(float $seconds): static
+    {
+        $this->transport->setTimeoutSeconds($seconds);
+
+        return $this;
     }
 
     public function connect(): static
@@ -99,16 +106,9 @@ class Client
         );
 
         $this->transport->send($request->toJson());
-        $deadline = microtime(true) + $this->timeoutSeconds;
 
         do {
-            $remaining = $deadline - microtime(true);
-
-            if ($remaining <= 0) {
-                throw new ClientException('Timed out while waiting for server response.');
-            }
-
-            $raw = $this->transport->receive($remaining);
+            $raw = $this->transport->receive();
             $response = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
 
             if (! is_array($response)) {
@@ -136,11 +136,14 @@ class Client
         return is_array($result) ? $result : [];
     }
 
-    protected function storeInitializeResult(mixed $result): void
+    /**
+     * @param  array<string, mixed>  $result
+     */
+    protected function storeInitializeResult(array $result): void
     {
-        $protocolVersion = is_array($result) ? ($result['protocolVersion'] ?? null) : null;
-        $capabilities = is_array($result) ? ($result['capabilities'] ?? null) : null;
-        $serverInfo = is_array($result) ? ($result['serverInfo'] ?? null) : null;
+        $protocolVersion = $result['protocolVersion'] ?? null;
+        $capabilities = $result['capabilities'] ?? null;
+        $serverInfo = $result['serverInfo'] ?? null;
 
         if (! is_string($protocolVersion)
             || ! in_array($protocolVersion, ProtocolVersion::supported(), true)
@@ -154,7 +157,7 @@ class Client
         $instructions = $result['instructions'] ?? null;
 
         $this->protocolVersion = $protocolVersion;
-        $this->serverCapabilities = (object) $capabilities;
+        $this->serverCapabilities = $capabilities;
         $this->serverInfo = Implementation::fromArray($serverInfo);
         $this->instructions = is_string($instructions) ? $instructions : null;
     }

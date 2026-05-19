@@ -7,7 +7,6 @@ namespace Laravel\Mcp\Client\Methods;
 use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Schema\Implementation;
-use stdClass;
 
 class Initialize implements Method
 {
@@ -29,7 +28,7 @@ class Initialize implements Method
     {
         return [
             'protocolVersion' => ProtocolVersion::LATEST->value,
-            'capabilities' => new stdClass,
+            'capabilities' => (object) [],
             'clientInfo' => $this->clientInfo->toArray(),
         ];
     }

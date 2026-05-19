@@ -6,4 +6,7 @@ namespace Laravel\Mcp\Client\Exceptions;
 
 use Exception;
 
-class ClientException extends Exception {}
+class ClientException extends Exception
+{
+    //
+}

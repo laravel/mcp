@@ -19,6 +19,8 @@ class FakeTransport implements Transport
 
     public ?string $repeatResponse = null;
 
+    public float $timeoutSeconds = 30.0;
+
     public function connect(): void
     {
         $this->connected = true;
@@ -34,7 +36,12 @@ class FakeTransport implements Transport
         $this->sent[] = $message;
     }
 
-    public function receive(?float $timeoutSeconds = null): string
+    public function setTimeoutSeconds(float $seconds): void
+    {
+        $this->timeoutSeconds = $seconds;
+    }
+
+    public function receive(): string
     {
         if ($this->responses === []) {
             if ($this->repeatResponse !== null) {

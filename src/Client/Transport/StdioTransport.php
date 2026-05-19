@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\Transport;
 
-use Illuminate\Process\InvokedProcess;
-use Illuminate\Support\Facades\Process;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Exceptions\ClientException;
 use Symfony\Component\Process\Exception\ExceptionInterface;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
 use Symfony\Component\Process\InputStream;
-use Symfony\Component\Process\Process as SymfonyProcess;
+use Symfony\Component\Process\Process;
 
 class StdioTransport implements Transport
 {
-    protected ?InvokedProcess $process = null;
+    protected ?Process $process = null;
 
     protected ?InputStream $input = null;
 
     protected string $buffer = '';
+
+    protected float $timeoutSeconds = 30.0;
 
     /**
      * @param  array<int, string>  $args
@@ -32,24 +33,17 @@ class StdioTransport implements Transport
 
     public function connect(): void
     {
-        if ($this->process?->running()) {
+        if ($this->process?->isRunning()) {
             return;
         }
 
         $this->input = new InputStream;
+        $this->process = new Process([$this->command, ...$this->args]);
+        $this->process->setInput($this->input);
+        $this->process->setTimeout(null);
 
         try {
-            $this->process = Process::input($this->input)
-                ->timeout(0)
-                ->idleTimeout(0)
-                ->start(
-                    array_merge([$this->command], $this->args),
-                    function (string $type, string $chunk): void {
-                        if ($type === SymfonyProcess::OUT) {
-                            $this->buffer .= $chunk;
-                        }
-                    },
-                );
+            $this->process->start();
         } catch (ExceptionInterface) {
             throw new ClientException("Failed to start process [{$this->command}]. Make sure the command exists.");
         }
@@ -60,7 +54,7 @@ class StdioTransport implements Transport
         $this->input?->close();
         $this->input = null;
 
-        if ($this->process?->running()) {
+        if ($this->process?->isRunning()) {
             $this->process->stop(0.1);
         }
 
@@ -68,46 +62,79 @@ class StdioTransport implements Transport
         $this->buffer = '';
     }
 
+    public function setTimeoutSeconds(float $seconds): void
+    {
+        $this->timeoutSeconds = $seconds;
+    }
+
     public function send(string $message): void
     {
-        if (! $this->input instanceof InputStream || ! $this->process?->running()) {
+        if (! $this->input instanceof InputStream || ! $this->process?->isRunning()) {
             throw new ClientException('Transport is not connected.');
         }
 
         $this->input->write($message.PHP_EOL);
     }
 
-    public function receive(?float $timeoutSeconds = null): string
+    public function receive(): string
     {
-        if (! $this->process instanceof InvokedProcess) {
+        if (! $this->process instanceof Process) {
             throw new ClientException('Transport is not connected.');
         }
 
-        $deadline = $timeoutSeconds === null ? null : microtime(true) + $timeoutSeconds;
+        return $this->popLine() ?? $this->readNextLine($this->process);
+    }
 
-        while (true) {
-            $newlinePos = strpos($this->buffer, "\n");
+    protected function readNextLine(Process $process): string
+    {
+        $process->setIdleTimeout($this->timeoutSeconds);
 
-            if ($newlinePos !== false) {
-                $line = substr($this->buffer, 0, $newlinePos + 1);
-                $this->buffer = substr($this->buffer, $newlinePos + 1);
-
-                return $line;
-            }
-
-            if (! $this->process->running()) {
-                $stderr = trim($this->process->errorOutput());
-                $stderrPart = $stderr === '' ? '' : " stderr: {$stderr}";
-
-                throw new ClientException("Subprocess [{$this->command}] closed its output before sending a complete response.{$stderrPart}");
-            }
-
-            if ($deadline !== null && microtime(true) >= $deadline) {
-                throw new ClientException('Timed out while waiting for server response.');
-            }
-
-            usleep(20_000);
+        try {
+            $found = $process->waitUntil($this->bufferUntilNewline(...));
+        } catch (ProcessTimedOutException) {
+            $this->failWith('Timed out while waiting for server response.');
         }
+
+        if (! $found) {
+            $stderr = trim($process->getErrorOutput());
+            $suffix = $stderr === '' ? '' : " stderr: {$stderr}";
+
+            $this->failWith("Subprocess [{$this->command}] closed its output before sending a complete response.{$suffix}");
+        }
+
+        return $this->popLine() ?? $this->failWith('Subprocess output stream did not yield a complete line.');
+    }
+
+    protected function bufferUntilNewline(string $type, string $chunk): bool
+    {
+        if ($type !== Process::OUT) {
+            return false;
+        }
+
+        $this->buffer .= $chunk;
+
+        return str_contains($this->buffer, "\n");
+    }
+
+    protected function popLine(): ?string
+    {
+        $newlinePos = strpos($this->buffer, "\n");
+
+        if ($newlinePos === false) {
+            return null;
+        }
+
+        $line = substr($this->buffer, 0, $newlinePos + 1);
+        $this->buffer = substr($this->buffer, $newlinePos + 1);
+
+        return $line;
+    }
+
+    protected function failWith(string $message): never
+    {
+        $this->disconnect();
+
+        throw new ClientException($message);
     }
 
     public function __destruct()

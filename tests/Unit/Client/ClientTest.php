@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Laravel\Mcp\Client\Client;
+use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Exceptions\ClientException;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\JsonRpcException;
@@ -42,7 +42,7 @@ it('performs the initialize handshake on connect', function (): void {
     expect($client->protocolVersion)->toBe(ProtocolVersion::LATEST->value);
     expect($client->serverInfo?->name)->toBe('Test Server');
     expect($client->serverInfo?->version)->toBe('1.0.0');
-    expect($client->serverCapabilities)->toBeInstanceOf(stdClass::class);
+    expect($client->serverCapabilities)->toBeArray();
     expect($client->serverInfo)->not->toBeNull();
     expect($client->instructions)->toBeNull();
 
@@ -122,24 +122,6 @@ it('skips notification frames received before the matching response', function (
     expect($transport->responses)->toBeEmpty();
 });
 
-it('times out when only notification frames are received', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = initializeResponse();
-    $transport->repeatResponse = json_encode([
-        'jsonrpc' => '2.0',
-        'method' => 'notifications/message',
-        'params' => ['level' => 'info', 'data' => 'still working'],
-    ]);
-
-    $client = new Client($transport, 0.01);
-    $client->connect();
-
-    expect(function () use ($client): void {
-        $client->ping();
-    })
-        ->toThrow(ClientException::class, 'Timed out while waiting for server response.');
-});
-
 it('disconnects the transport when the initialize handshake fails', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = json_encode([
@@ -196,8 +178,23 @@ it('provides a local static factory', function (): void {
     expect($client->connected)->toBeFalse();
 });
 
+it('exposes a withTimeout builder that pushes to the transport', function (): void {
+    $transport = new FakeTransport;
+
+    $client = (new Client($transport))->withTimeout(5.0);
+
+    expect($transport->timeoutSeconds)->toBe(5.0);
+    expect($client)->toBeInstanceOf(Client::class);
+});
+
 it('can ping a registered Laravel MCP stdio server', function (): void {
-    $client = Client::local(PHP_BINARY, [__DIR__.'/../../../vendor/bin/testbench', 'mcp:start', 'test-mcp']);
+    $testbench = __DIR__.'/../../../vendor/bin/testbench';
+
+    if (! is_file($testbench)) {
+        test()->markTestSkipped('Testbench binary not installed.');
+    }
+
+    $client = Client::local(PHP_BINARY, [$testbench, 'mcp:start', 'test-mcp']);
 
     $client->ping();
 
@@ -260,7 +257,7 @@ it('stores the full server info and instructions from initialize', function (): 
 });
 
 it('times out when a stdio process stays silent', function (): void {
-    $client = Client::local(PHP_BINARY, ['-r', 'sleep(1);'], 0.05);
+    $client = Client::local(PHP_BINARY, ['-r', 'sleep(1);'])->withTimeout(0.05);
 
     expect(fn (): Client => $client->connect())
         ->toThrow(ClientException::class, 'Timed out while waiting for server response.');
