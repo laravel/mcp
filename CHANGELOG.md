@@ -1,6 +1,17 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.7.0...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.7.1...main)
+
+## [v0.7.1](https://github.com/laravel/mcp/compare/v0.7.0...v0.7.1) - 2026-05-19
+
+* Return 201 from OAuth client registration per RFC 7591 by [@danniehansen](https://github.com/danniehansen) in https://github.com/laravel/mcp/pull/207
+* Fix TypeError when JSON-RPC request id is not a string or int by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/208
+* Add ResourceLink content type (MCP spec 2025-06-18) by [@rupeshstha](https://github.com/rupeshstha) in https://github.com/laravel/mcp/pull/200
+* Extract JSON-RPC primitives to shared namespace for client reuse by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/211
+* Pin GitHub Actions to commit SHAs and add Dependabot config by [@joetannenbaum](https://github.com/joetannenbaum) in https://github.com/laravel/mcp/pull/213
+* Bump shivammathur/setup-php from 2.37.0 to 2.37.1 in the github-actions group by [@dependabot](https://github.com/dependabot)[bot] in https://github.com/laravel/mcp/pull/214
+* Extract protocol versions to shared enum for client reuse by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/215
+* Add Icon and Implementation (MCP spec 2025-11-25) by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/219
 
 ## [v0.7.0](https://github.com/laravel/mcp/compare/v0.6.7...v0.7.0) - 2026-04-21
 
@@ -215,6 +226,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -225,6 +237,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
