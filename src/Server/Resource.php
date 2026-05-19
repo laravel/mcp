@@ -84,7 +84,7 @@ abstract class Resource extends Primitive
         }
 
         // @phpstan-ignore return.type
-        return $this->mergeMeta($data);
+        return $this->mergeMeta($this->mergeIcons($data));
     }
 
     /**

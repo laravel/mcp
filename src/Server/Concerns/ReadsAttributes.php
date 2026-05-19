@@ -9,7 +9,7 @@ use ReflectionClass;
 trait ReadsAttributes
 {
     /**
-     * @var array<string, object|null>
+     * @var array<string, object|list<object>|null>
      */
     protected static array $attributeCache = [];
 
@@ -38,5 +38,31 @@ trait ReadsAttributes
         } while ($reflection = $reflection->getParentClass());
 
         return static::$attributeCache[$cacheKey] = null;
+    }
+
+    /**
+     * @template T of object
+     *
+     * @param  class-string<T>  $attributeClass
+     * @return list<T>
+     */
+    protected function resolveAttributes(string $attributeClass): array
+    {
+        $cacheKey = static::class.'@'.$attributeClass.'[]';
+
+        if (array_key_exists($cacheKey, static::$attributeCache)) {
+            return static::$attributeCache[$cacheKey]; // @phpstan-ignore return.type
+        }
+
+        $instances = [];
+        $reflection = new ReflectionClass($this);
+
+        do {
+            foreach ($reflection->getAttributes($attributeClass) as $attribute) {
+                $instances[] = $attribute->newInstance();
+            }
+        } while ($reflection = $reflection->getParentClass());
+
+        return static::$attributeCache[$cacheKey] = $instances; // @phpstan-ignore return.type
     }
 }

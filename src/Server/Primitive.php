@@ -7,19 +7,20 @@ namespace Laravel\Mcp\Server;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server\Attributes\Description;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Title;
+use Laravel\Mcp\Server\Concerns\HasIcons;
 use Laravel\Mcp\Server\Concerns\HasMeta;
-use Laravel\Mcp\Server\Concerns\ReadsAttributes;
 
 /**
  * @implements Arrayable<string, mixed>
  */
 abstract class Primitive implements Arrayable
 {
+    use HasIcons;
     use HasMeta;
-    use ReadsAttributes;
 
     protected string $name = '';
 
@@ -60,6 +61,31 @@ abstract class Primitive implements Arrayable
     public function meta(): ?array
     {
         return $this->meta;
+    }
+
+    /**
+     * @return list<Icon>
+     */
+    public function icons(): array
+    {
+        return [];
+    }
+
+    /**
+     * @template T of array<string, mixed>
+     *
+     * @param  T  $baseArray
+     * @return T&array{icons?: list<array<string, mixed>>}
+     */
+    protected function mergeIcons(array $baseArray): array
+    {
+        $icons = $this->resolvedIcons();
+
+        if ($icons === []) {
+            return $baseArray;
+        }
+
+        return [...$baseArray, 'icons' => array_map(fn (Icon $icon): array => $icon->toArray(), $icons)];
     }
 
     public function eligibleForRegistration(): bool

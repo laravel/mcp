@@ -6,6 +6,7 @@ use Illuminate\Container\Container;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Resource;
@@ -417,8 +418,7 @@ it('returns a resource result with result-level meta when using ResponseFactory'
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
         serverCapabilities: [],
-        serverName: 'Test Server',
-        serverVersion: '1.0.0',
+        implementation: new Implementation('Test Server', '1.0.0'),
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,

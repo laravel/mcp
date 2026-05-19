@@ -33,7 +33,7 @@ abstract class Prompt extends Primitive
     public function toArray(): array
     {
         // @phpstan-ignore return.type
-        return $this->mergeMeta([
+        return $this->mergeMeta($this->mergeIcons([
             'name' => $this->name(),
             'title' => $this->title(),
             'description' => $this->description(),
@@ -41,6 +41,6 @@ abstract class Prompt extends Primitive
                 fn (Argument $argument): array => $argument->toArray(),
                 $this->arguments(),
             ),
-        ]);
+        ]));
     }
 }

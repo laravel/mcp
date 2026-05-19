@@ -1,5 +1,6 @@
 <?php
 
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;
@@ -21,8 +22,7 @@ it('returns a valid get prompt response', function (): void {
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
         serverCapabilities: [],
-        serverName: 'Test Server',
-        serverVersion: '1.0.0',
+        implementation: new Implementation('Test Server', '1.0.0'),
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,
@@ -66,8 +66,7 @@ it('resolves the handle method from the IOC container', function (): void {
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
         serverCapabilities: [],
-        serverName: 'Test Server',
-        serverVersion: '1.0.0',
+        implementation: new Implementation('Test Server', '1.0.0'),
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,

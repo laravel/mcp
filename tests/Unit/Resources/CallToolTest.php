@@ -1,5 +1,6 @@
 <?php
 
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;
@@ -22,8 +23,7 @@ it('returns a valid call tool response', function (): void {
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
         serverCapabilities: [],
-        serverName: 'Test Server',
-        serverVersion: '1.0.0',
+        implementation: new Implementation('Test Server', '1.0.0'),
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,
@@ -67,8 +67,7 @@ it('returns a valid call tool response that contains two messages', function ():
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
         serverCapabilities: [],
-        serverName: 'Test Server',
-        serverVersion: '1.0.0',
+        implementation: new Implementation('Test Server', '1.0.0'),
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,
@@ -116,8 +115,7 @@ it('returns a valid call tool response with validation error', function (): void
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
         serverCapabilities: [],
-        serverName: 'Test Server',
-        serverVersion: '1.0.0',
+        implementation: new Implementation('Test Server', '1.0.0'),
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,
@@ -158,8 +156,7 @@ it('may resolve dependencies out of the container', function (): void {
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
         serverCapabilities: [],
-        serverName: 'Test Server',
-        serverVersion: '1.0.0',
+        implementation: new Implementation('Test Server', '1.0.0'),
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
@@ -54,8 +55,7 @@ it('returns empty list when the single tool is not eligible for registration', f
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
         serverCapabilities: [],
-        serverName: 'Test Server',
-        serverVersion: '1.0.0',
+        implementation: new Implementation('Test Server', '1.0.0'),
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 5,
@@ -101,8 +101,7 @@ it('returns empty list when the single prompt is not eligible for registration v
     $context = new ServerContext(
         supportedProtocolVersions: ['2025-03-26'],
         serverCapabilities: [],
-        serverName: 'Test Server',
-        serverVersion: '1.0.0',
+        implementation: new Implementation('Test Server', '1.0.0'),
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 5,

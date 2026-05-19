@@ -132,7 +132,7 @@ it('resolves server name from attribute', function (): void {
 
     $context = $server->createContext();
 
-    expect($context->serverName)->toBe('Attribute Server');
+    expect($context->implementation->name)->toBe('Attribute Server');
 });
 
 it('resolves server version from attribute', function (): void {
@@ -141,7 +141,7 @@ it('resolves server version from attribute', function (): void {
 
     $context = $server->createContext();
 
-    expect($context->serverVersion)->toBe('2.0.0');
+    expect($context->implementation->version)->toBe('2.0.0');
 });
 
 it('resolves server instructions from attribute', function (): void {
@@ -159,7 +159,7 @@ it('prefers attribute over property for server name', function (): void {
 
     $context = $server->createContext();
 
-    expect($context->serverName)->toBe('Attribute Server Name');
+    expect($context->implementation->name)->toBe('Attribute Server Name');
 });
 
 it('falls back to property when no attribute for server name', function (): void {
@@ -168,7 +168,7 @@ it('falls back to property when no attribute for server name', function (): void
 
     $context = $server->createContext();
 
-    expect($context->serverName)->toBe('Property Server');
+    expect($context->implementation->name)->toBe('Property Server');
 });
 
 it('includes attributes in toArray output for tools', function (): void {
@@ -224,7 +224,7 @@ it('inherits attribute from parent server class', function (): void {
 
     $context = $server->createContext();
 
-    expect($context->serverName)->toBe('Parent Server');
+    expect($context->implementation->name)->toBe('Parent Server');
 });
 
 it('child server attribute overrides parent server attribute', function (): void {
@@ -233,7 +233,7 @@ it('child server attribute overrides parent server attribute', function (): void
 
     $context = $server->createContext();
 
-    expect($context->serverName)->toBe('Child Server');
+    expect($context->implementation->name)->toBe('Child Server');
 });
 
 #[Name('parent-tool-name')]

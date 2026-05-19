@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 
 class ServerContext
@@ -20,8 +21,7 @@ class ServerContext
     public function __construct(
         public array $supportedProtocolVersions,
         public array $serverCapabilities,
-        public string $serverName,
-        public string $serverVersion,
+        public Implementation $implementation,
         public string $instructions,
         public int $maxPaginationLength,
         public int $defaultPaginationLength,

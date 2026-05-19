@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Content;
 
 use InvalidArgumentException;
+use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server\Concerns\HasMeta;
 use Laravel\Mcp\Server\Contracts\Content;
 use Laravel\Mcp\Server\Prompt;
@@ -17,6 +18,7 @@ class ResourceLink implements Content
 
     /**
      * @param  array<string, mixed>  $annotations
+     * @param  list<Icon>  $icons
      */
     public function __construct(
         protected string $uri,
@@ -26,6 +28,7 @@ class ResourceLink implements Content
         protected ?string $description = null,
         protected ?int $size = null,
         protected array $annotations = [],
+        protected array $icons = [],
     ) {}
 
     /**
@@ -76,6 +79,10 @@ class ResourceLink implements Content
 
         if ($this->annotations !== []) {
             $data['annotations'] = $this->annotations;
+        }
+
+        if ($this->icons !== []) {
+            $data['icons'] = array_map(fn (Icon $icon): array => $icon->toArray(), $this->icons);
         }
 
         return $this->mergeMeta($data);

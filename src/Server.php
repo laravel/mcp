@@ -9,11 +9,13 @@ use Illuminate\Support\Str;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Events\SessionInitialized;
 use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\Schema\Icon;
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Version;
-use Laravel\Mcp\Server\Concerns\ReadsAttributes;
+use Laravel\Mcp\Server\Concerns\HasIcons;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Methods\CallTool;
@@ -43,7 +45,7 @@ use Throwable;
  */
 abstract class Server
 {
-    use ReadsAttributes;
+    use HasIcons;
 
     public const CAPABILITY_TOOLS = 'tools';
 
@@ -236,8 +238,11 @@ abstract class Server
         return new ServerContext(
             supportedProtocolVersions: $this->supportedProtocolVersion ?: ProtocolVersion::supported(),
             serverCapabilities: $this->capabilities,
-            serverName: $name !== null ? $name->value : $this->name,
-            serverVersion: $version !== null ? $version->value : $this->version,
+            implementation: new Implementation(
+                name: $name !== null ? $name->value : $this->name,
+                version: $version !== null ? $version->value : $this->version,
+                icons: $this->resolvedIcons(),
+            ),
             instructions: $instructions !== null ? $instructions->value : $this->instructions,
             maxPaginationLength: $this->maxPaginationLength,
             defaultPaginationLength: $this->defaultPaginationLength,
@@ -245,6 +250,14 @@ abstract class Server
             resources: $this->resources,
             prompts: $this->prompts,
         );
+    }
+
+    /**
+     * @return list<Icon>
+     */
+    protected function icons(): array
+    {
+        return [];
     }
 
     /**
