@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use JsonException;
 use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Exceptions\ClientException;
 use Laravel\Mcp\Client\Methods\Initialize;
 use Laravel\Mcp\Client\Methods\Ping;
 use Laravel\Mcp\Client\Transport\StdioTransport;
-use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Schema\Implementation;
+use Laravel\Mcp\Schema\InitializeResult;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -20,27 +21,32 @@ use Throwable;
 
 class Client
 {
-    public bool $connected = false;
+    protected bool $connected = false;
 
-    public ?string $protocolVersion = null;
-
-    /** @var array<string, mixed> */
-    public array $serverCapabilities = [];
-
-    public ?Implementation $serverInfo = null;
-
-    public ?string $instructions = null;
+    protected ?InitializeResult $initializeResult = null;
 
     protected int $nextRequestId = 1;
 
+    public Implementation $clientInfo;
+
     public function __construct(
         protected Transport $transport,
-        public Implementation $clientInfo = new Implementation(
-            name: 'Laravel MCP Client',
-            version: '0.0.1',
-        ),
+        ?Implementation $clientInfo = null,
     ) {
-        //
+        $this->clientInfo = $clientInfo ?? new Implementation(
+            name: config('app.name', 'Laravel MCP Client'),
+            version: '0.0.1',
+        );
+    }
+
+    public function connected(): bool
+    {
+        return $this->connected;
+    }
+
+    public function initializeResult(): ?InitializeResult
+    {
+        return $this->initializeResult;
     }
 
     /**
@@ -67,7 +73,9 @@ class Client
         $this->transport->connect();
 
         try {
-            $this->storeInitializeResult($this->call(new Initialize($this->clientInfo)));
+            $this->initializeResult = InitializeResult::from(
+                $this->call(new Initialize($this->clientInfo))
+            );
             $this->notify('notifications/initialized');
         } catch (Throwable $throwable) {
             $this->transport->disconnect();
@@ -94,6 +102,13 @@ class Client
         $this->call(new Ping);
     }
 
+    public function __destruct()
+    {
+        if ($this->connected) {
+            $this->disconnect();
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -109,16 +124,36 @@ class Client
 
         do {
             $raw = $this->transport->receive();
-            $response = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
 
-            if (! is_array($response)) {
+            try {
+                $response = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
+            } catch (JsonException $jsonException) {
+                throw new ClientException(
+                    'Malformed JSON-RPC response from server: '.$jsonException->getMessage(),
+                    0,
+                    $jsonException,
+                );
+            }
+
+            if (! is_array($response) || ($response['jsonrpc'] ?? null) !== '2.0') {
                 throw new ClientException('Invalid JSON-RPC response from server.');
             }
 
             $this->handleServerRequest($response);
         } while (($response['id'] ?? null) !== $request->id);
 
-        if (isset($response['error']) && is_array($response['error'])) {
+        $hasResult = array_key_exists('result', $response);
+        $hasError = array_key_exists('error', $response);
+
+        if ($hasResult === $hasError) {
+            throw new ClientException('Invalid JSON-RPC response: must contain exactly one of "result" or "error".');
+        }
+
+        if ($hasError) {
+            if (! is_array($response['error'])) {
+                throw new ClientException('Invalid JSON-RPC error payload.');
+            }
+
             $message = $response['error']['message'] ?? 'Unknown JSON-RPC error.';
             $code = $response['error']['code'] ?? 0;
             $data = $response['error']['data'] ?? null;
@@ -131,35 +166,7 @@ class Client
             );
         }
 
-        $result = $response['result'] ?? [];
-
-        return is_array($result) ? $result : [];
-    }
-
-    /**
-     * @param  array<string, mixed>  $result
-     */
-    protected function storeInitializeResult(array $result): void
-    {
-        $protocolVersion = $result['protocolVersion'] ?? null;
-        $capabilities = $result['capabilities'] ?? null;
-        $serverInfo = $result['serverInfo'] ?? null;
-
-        if (! is_string($protocolVersion)
-            || ! in_array($protocolVersion, ProtocolVersion::supported(), true)
-            || ! is_array($capabilities)
-            || ! is_array($serverInfo)
-            || ! is_string($serverInfo['name'] ?? null)
-            || ! is_string($serverInfo['version'] ?? null)) {
-            throw new ClientException('Invalid initialize response from server.');
-        }
-
-        $instructions = $result['instructions'] ?? null;
-
-        $this->protocolVersion = $protocolVersion;
-        $this->serverCapabilities = $capabilities;
-        $this->serverInfo = Implementation::fromArray($serverInfo);
-        $this->instructions = is_string($instructions) ? $instructions : null;
+        return is_array($response['result']) ? $response['result'] : [];
     }
 
     protected function notify(string $method): void
@@ -182,16 +189,15 @@ class Client
         }
 
         if ($method === 'ping') {
-            $response = JsonRpcResponse::result($id, []);
+            $this->transport->send(JsonRpcResponse::result($id, [])->toJson());
 
-            $this->transport->send($response->toJson());
+            return;
         }
-    }
 
-    public function __destruct()
-    {
-        if ($this->connected) {
-            $this->disconnect();
-        }
+        $this->transport->send(JsonRpcResponse::error(
+            $id,
+            -32601,
+            "Method [{$method}] not supported by this client.",
+        )->toJson());
     }
 }

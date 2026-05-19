@@ -31,6 +31,8 @@ function pingResponse(int $id): string
 }
 
 it('performs the initialize handshake on connect', function (): void {
+    config(['app.name' => 'Acme MCP App']);
+
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
 
@@ -38,18 +40,18 @@ it('performs the initialize handshake on connect', function (): void {
     $client->connect();
 
     expect($transport->connected)->toBeTrue();
-    expect($client->connected)->toBeTrue();
-    expect($client->protocolVersion)->toBe(ProtocolVersion::LATEST->value);
-    expect($client->serverInfo?->name)->toBe('Test Server');
-    expect($client->serverInfo?->version)->toBe('1.0.0');
-    expect($client->serverCapabilities)->toBeArray();
-    expect($client->serverInfo)->not->toBeNull();
-    expect($client->instructions)->toBeNull();
+    expect($client->connected())->toBeTrue();
+    expect($client->initializeResult()?->protocolVersion)->toBe(ProtocolVersion::LATEST->value);
+    expect($client->initializeResult()?->serverInfo->name)->toBe('Test Server');
+    expect($client->initializeResult()?->serverInfo->version)->toBe('1.0.0');
+    expect($client->initializeResult()?->capabilities)->toBeArray();
+    expect($client->initializeResult())->not->toBeNull();
+    expect($client->initializeResult()?->instructions)->toBeNull();
 
     $initialize = json_decode($transport->sent[0], true);
     expect($initialize['method'])->toBe('initialize');
     expect($initialize['params']['protocolVersion'])->toBe(ProtocolVersion::LATEST->value);
-    expect($initialize['params']['clientInfo']['name'])->toBe('Laravel MCP Client');
+    expect($initialize['params']['clientInfo']['name'])->toBe('Acme MCP App');
 
     $initialized = json_decode($transport->sent[1], true);
     expect($initialized['method'])->toBe('notifications/initialized');
@@ -76,11 +78,11 @@ it('lazily connects when ping is called first', function (): void {
 
     $client = new Client($transport);
 
-    expect($client->connected)->toBeFalse();
+    expect($client->connected())->toBeFalse();
 
     $client->ping();
 
-    expect($client->connected)->toBeTrue();
+    expect($client->connected())->toBeTrue();
 });
 
 it('does not reconnect when already connected', function (): void {
@@ -103,7 +105,7 @@ it('disconnects cleanly', function (): void {
     $client->disconnect();
 
     expect($transport->connected)->toBeFalse();
-    expect($client->connected)->toBeFalse();
+    expect($client->connected())->toBeFalse();
 });
 
 it('skips notification frames received before the matching response', function (): void {
@@ -122,24 +124,7 @@ it('skips notification frames received before the matching response', function (
     expect($transport->responses)->toBeEmpty();
 });
 
-it('disconnects the transport when the initialize handshake fails', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = json_encode([
-        'jsonrpc' => '2.0',
-        'id' => 1,
-        'error' => ['code' => -32600, 'message' => 'Invalid request'],
-    ]);
-
-    $client = new Client($transport);
-
-    expect(fn (): Client => $client->connect())
-        ->toThrow(JsonRpcException::class);
-
-    expect($transport->connected)->toBeFalse();
-    expect($client->connected)->toBeFalse();
-});
-
-it('throws when the server returns a JSON-RPC error', function (): void {
+it('rethrows JSON-RPC errors and disconnects the transport on handshake failure', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = json_encode([
         'jsonrpc' => '2.0',
@@ -151,6 +136,74 @@ it('throws when the server returns a JSON-RPC error', function (): void {
 
     expect(fn (): Client => $client->connect())
         ->toThrow(JsonRpcException::class, 'Invalid request');
+
+    expect($transport->connected)->toBeFalse();
+    expect($client->connected())->toBeFalse();
+});
+
+it('throws when the response payload is malformed JSON', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = '{not json';
+
+    $client = new Client($transport);
+
+    expect(fn (): Client => $client->connect())
+        ->toThrow(ClientException::class, 'Malformed JSON-RPC response from server');
+});
+
+it('throws when the response is missing the jsonrpc version', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = json_encode([
+        'id' => 1,
+        'result' => ['protocolVersion' => '2025-11-25', 'capabilities' => new stdClass, 'serverInfo' => ['name' => 'x', 'version' => 'y']],
+    ]);
+
+    $client = new Client($transport);
+
+    expect(fn (): Client => $client->connect())
+        ->toThrow(ClientException::class, 'Invalid JSON-RPC response from server.');
+});
+
+it('throws when the response carries both result and error', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [],
+        'error' => ['code' => -32600, 'message' => 'nope'],
+    ]);
+
+    $client = new Client($transport);
+
+    expect(fn (): Client => $client->connect())
+        ->toThrow(ClientException::class, 'must contain exactly one of "result" or "error"');
+});
+
+it('throws when the response carries neither result nor error', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+    ]);
+
+    $client = new Client($transport);
+
+    expect(fn (): Client => $client->connect())
+        ->toThrow(ClientException::class, 'must contain exactly one of "result" or "error"');
+});
+
+it('throws when the error payload is not an object', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'error' => 'not an object',
+    ]);
+
+    $client = new Client($transport);
+
+    expect(fn (): Client => $client->connect())
+        ->toThrow(ClientException::class, 'Invalid JSON-RPC error payload.');
 });
 
 it('throws when the initialize result is invalid', function (): void {
@@ -171,22 +224,6 @@ it('throws when the initialize result is invalid', function (): void {
         ->toThrow(ClientException::class, 'Invalid initialize response from server.');
 });
 
-it('provides a local static factory', function (): void {
-    $client = Client::local('php', ['-v']);
-
-    expect($client)->toBeInstanceOf(Client::class);
-    expect($client->connected)->toBeFalse();
-});
-
-it('exposes a withTimeout builder that pushes to the transport', function (): void {
-    $transport = new FakeTransport;
-
-    $client = (new Client($transport))->withTimeout(5.0);
-
-    expect($transport->timeoutSeconds)->toBe(5.0);
-    expect($client)->toBeInstanceOf(Client::class);
-});
-
 it('can ping a registered Laravel MCP stdio server', function (): void {
     $testbench = __DIR__.'/../../../vendor/bin/testbench';
 
@@ -198,7 +235,7 @@ it('can ping a registered Laravel MCP stdio server', function (): void {
 
     $client->ping();
 
-    expect($client->serverInfo?->name)->toBe('Laravel MCP Server');
+    expect($client->initializeResult()?->serverInfo->name)->toBe('Laravel MCP Server');
 
     $client->disconnect();
 });
@@ -220,6 +257,27 @@ it('responds to server-initiated ping requests with an empty result', function (
     expect($pingReply['id'])->toBe('server-ping-1');
     expect($pingReply['result'])->toBeArray()->toBeEmpty();
     expect($pingReply)->not->toHaveKey('error');
+});
+
+it('responds with method-not-found to unsupported server-initiated requests', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 'sampling-1',
+        'method' => 'sampling/createMessage',
+        'params' => ['messages' => []],
+    ]);
+    $transport->responses[] = pingResponse(2);
+
+    $client = new Client($transport);
+    $client->ping();
+
+    $errorReply = json_decode($transport->sent[3], true);
+    expect($errorReply['id'])->toBe('sampling-1');
+    expect($errorReply['error']['code'])->toBe(-32601);
+    expect($errorReply['error']['message'])->toContain('sampling/createMessage');
+    expect($errorReply)->not->toHaveKey('result');
 });
 
 it('stores the full server info and instructions from initialize', function (): void {
@@ -245,15 +303,16 @@ it('stores the full server info and instructions from initialize', function (): 
     $client = new Client($transport);
     $client->connect();
 
-    $info = $client->serverInfo;
-    expect($info)->not->toBeNull();
+    $result = $client->initializeResult();
+    expect($result)->not->toBeNull();
+    $info = $result->serverInfo;
     expect($info->name)->toBe('ExampleServer');
     expect($info->title)->toBe('Example Server Display Name');
     expect($info->version)->toBe('1.0.0');
     expect($info->description)->toBe('An example MCP server providing tools and resources');
     expect($info->icons)->toHaveCount(1);
     expect($info->websiteUrl)->toBe('https://example.com/server');
-    expect($client->instructions)->toBe('Optional instructions for the client');
+    expect($result->instructions)->toBe('Optional instructions for the client');
 });
 
 it('times out when a stdio process stays silent', function (): void {

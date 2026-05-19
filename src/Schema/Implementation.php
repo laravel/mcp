@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Schema;
 
 use Illuminate\Support\Arr;
+use Laravel\Mcp\Enums\IconTheme;
 
 class Implementation
 {
     /**
-     * @param  list<Icon>  $icons
+     * @param  array<Icon>  $icons
      */
     public function __construct(
         public string $name,
@@ -38,28 +39,29 @@ class Implementation
     }
 
     /**
-     * @param  array{name: string, version: string, title?: mixed, description?: mixed, icons?: mixed, websiteUrl?: mixed}  $info
+     * @param  array{
+     *     name: string,
+     *     version: string,
+     *     title?: string,
+     *     description?: string,
+     *     icons?: array<int, array{src: string, mimeType?: string, sizes?: array<string>, theme?: string}>,
+     *     websiteUrl?: string,
+     * }  $data
      */
-    public static function fromArray(array $info): self
+    public static function from(array $data): self
     {
-        $icons = $info['icons'] ?? [];
-
         return new self(
-            name: $info['name'],
-            version: $info['version'],
-            title: is_string($info['title'] ?? null) ? $info['title'] : null,
-            description: is_string($info['description'] ?? null) ? $info['description'] : null,
-            icons: is_array($icons) ? array_values(array_filter(array_map(
-                fn (mixed $icon): ?Icon => is_array($icon) && is_string($icon['src'] ?? null)
-                    ? new Icon(
-                        src: $icon['src'],
-                        mimeType: is_string($icon['mimeType'] ?? null) ? $icon['mimeType'] : null,
-                        sizes: is_array($icon['sizes'] ?? null) ? array_values(array_filter($icon['sizes'], is_string(...))) : [],
-                    )
-                    : null,
-                $icons,
-            ))) : [],
-            websiteUrl: is_string($info['websiteUrl'] ?? null) ? $info['websiteUrl'] : null,
+            name: Arr::get($data, 'name'),
+            version: Arr::get($data, 'version'),
+            title: Arr::get($data, 'title'),
+            description: Arr::get($data, 'description'),
+            icons: Arr::map(Arr::get($data, 'icons', []), fn(array $icon): Icon => Icon::from(
+                src: Arr::get($icon, 'src'),
+                mimeType: Arr::get($icon, 'mimeType'),
+                sizes: Arr::get($icon, 'sizes'),
+                theme: IconTheme::from(Arr::get($icon, 'theme'))
+            )),
+            websiteUrl: Arr::get($data, 'websiteUrl'),
         );
     }
 }
