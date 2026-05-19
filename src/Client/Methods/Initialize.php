@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Client\Methods;
 
 use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Enums\ProtocolVersion;
-use Laravel\Mcp\Implementation;
+use Laravel\Mcp\Schema\Implementation;
 use stdClass;
 
 class Initialize implements Method

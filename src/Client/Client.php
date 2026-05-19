@@ -12,7 +12,7 @@ use Laravel\Mcp\Client\Methods\Ping;
 use Laravel\Mcp\Client\Transport\StdioTransport;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\Implementation;
+use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
