@@ -71,7 +71,7 @@ class StdioTransport implements Transport
             throw new ClientException('Transport is not connected.');
         }
 
-        $this->input->write($message.PHP_EOL);
+        $this->input->write($message."\n");
     }
 
     public function receive(): string
