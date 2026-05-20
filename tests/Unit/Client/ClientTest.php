@@ -108,6 +108,44 @@ it('disconnects cleanly', function (): void {
     expect($client->connected())->toBeFalse();
 });
 
+it('clears connected state when a request fails after the handshake', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = '{not json';
+
+    $client = new Client($transport);
+    $client->connect();
+
+    expect($client->connected())->toBeTrue();
+
+    expect(function () use ($client): void {
+        $client->ping();
+    })->toThrow(ClientException::class, 'Malformed JSON-RPC response from server');
+
+    expect($client->connected())->toBeFalse();
+    expect($transport->connected)->toBeFalse();
+});
+
+it('keeps the connection open after a JSON-RPC error response', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'error' => ['code' => -32601, 'message' => 'Method not found'],
+    ]);
+
+    $client = new Client($transport);
+    $client->connect();
+
+    expect(function () use ($client): void {
+        $client->ping();
+    })->toThrow(JsonRpcException::class, 'Method not found');
+
+    expect($client->connected())->toBeTrue();
+    expect($transport->connected)->toBeTrue();
+});
+
 it('skips notification frames received before the matching response', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();

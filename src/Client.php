@@ -76,9 +76,10 @@ class Client
             $this->initializeResult = InitializeResult::from(
                 $this->call(new Initialize($this->clientInfo))
             );
+
             $this->notify('notifications/initialized');
         } catch (Throwable $throwable) {
-            $this->transport->disconnect();
+            $this->disconnect();
 
             throw $throwable;
         }
@@ -90,9 +91,9 @@ class Client
 
     public function disconnect(): void
     {
-        $this->transport->disconnect();
-
         $this->connected = false;
+
+        $this->transport->disconnect();
     }
 
     public function ping(): void
@@ -120,40 +121,48 @@ class Client
             params: $method->params(),
         );
 
-        $this->transport->send($request->toJson());
+        try {
+            $this->transport->send($request->toJson());
 
-        do {
-            $raw = $this->transport->receive();
+            do {
+                $raw = $this->transport->receive();
 
-            try {
-                $response = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
-            } catch (JsonException $jsonException) {
-                throw new ClientException(
-                    'Malformed JSON-RPC response from server: '.$jsonException->getMessage(),
-                    0,
-                    $jsonException,
-                );
+                try {
+                    $response = json_decode($raw, true, flags: JSON_THROW_ON_ERROR);
+                } catch (JsonException $jsonException) {
+                    throw new ClientException(
+                        'Malformed JSON-RPC response from server: '.$jsonException->getMessage(),
+                        0,
+                        $jsonException,
+                    );
+                }
+
+                if (! is_array($response) || ($response['jsonrpc'] ?? null) !== '2.0') {
+                    throw new ClientException('Invalid JSON-RPC response from server.');
+                }
+
+                $this->handleServerRequest($response);
+            } while (($response['id'] ?? null) !== $request->id);
+
+            $hasResult = array_key_exists('result', $response);
+            $hasError = array_key_exists('error', $response);
+
+            if ($hasResult === $hasError) {
+                throw new ClientException('Invalid JSON-RPC response: must contain exactly one of "result" or "error".');
             }
 
-            if (! is_array($response) || ($response['jsonrpc'] ?? null) !== '2.0') {
-                throw new ClientException('Invalid JSON-RPC response from server.');
+            if ($hasError && ! is_array($response['error'])) {
+                throw new ClientException('Invalid JSON-RPC error payload.');
+            }
+        } catch (Throwable $throwable) {
+            if ($this->connected) {
+                $this->disconnect();
             }
 
-            $this->handleServerRequest($response);
-        } while (($response['id'] ?? null) !== $request->id);
-
-        $hasResult = array_key_exists('result', $response);
-        $hasError = array_key_exists('error', $response);
-
-        if ($hasResult === $hasError) {
-            throw new ClientException('Invalid JSON-RPC response: must contain exactly one of "result" or "error".');
+            throw $throwable;
         }
 
         if ($hasError) {
-            if (! is_array($response['error'])) {
-                throw new ClientException('Invalid JSON-RPC error payload.');
-            }
-
             $message = $response['error']['message'] ?? 'Unknown JSON-RPC error.';
             $code = $response['error']['code'] ?? 0;
             $data = $response['error']['data'] ?? null;
