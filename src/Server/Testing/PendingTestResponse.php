@@ -167,7 +167,7 @@ class PendingTestResponse
             'arguments' => $arguments,
         ];
 
-        if ($primitive instanceof HasUriTemplate) {
+        if ($method === 'resources/read' && $primitive instanceof HasUriTemplate) {
             $params['uri'] = $this->expandUriTemplate($primitive->uriTemplate(), $arguments);
         }
 
@@ -185,9 +185,7 @@ class PendingTestResponse
     {
         $expanded = (string) $template;
 
-        preg_match_all('/\{(\w+)}/', $expanded, $matches);
-
-        foreach (array_unique($matches[1]) as $name) {
+        foreach ($template->variableNames() as $name) {
             if (! array_key_exists($name, $variables)) {
                 throw new InvalidArgumentException("Missing value for URI template variable [{$name}].");
             }
