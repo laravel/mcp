@@ -58,8 +58,8 @@ class Implementation
             icons: Arr::map(Arr::get($data, 'icons', []), fn (array $icon): Icon => Icon::from(
                 src: Arr::get($icon, 'src'),
                 mimeType: Arr::get($icon, 'mimeType'),
-                sizes: Arr::get($icon, 'sizes'),
-                theme: IconTheme::from(Arr::get($icon, 'theme'))
+                sizes: Arr::get($icon, 'sizes', []),
+                theme: IconTheme::tryFrom(Arr::get($icon, 'theme', '')),
             )),
             websiteUrl: Arr::get($data, 'websiteUrl'),
         );

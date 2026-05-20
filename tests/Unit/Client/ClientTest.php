@@ -311,8 +311,42 @@ it('stores the full server info and instructions from initialize', function (): 
     expect($info->version)->toBe('1.0.0');
     expect($info->description)->toBe('An example MCP server providing tools and resources');
     expect($info->icons)->toHaveCount(1);
+    expect($info->icons[0]->src)->toBe('https://example.com/server-icon.svg');
+    expect($info->icons[0]->mimeType)->toBe('image/svg+xml');
+    expect($info->icons[0]->sizes)->toBe([]);
+    expect($info->icons[0]->theme)->toBeNull();
     expect($info->websiteUrl)->toBe('https://example.com/server');
     expect($result->instructions)->toBe('Optional instructions for the client');
+});
+
+it('parses icons with sizes and theme when the server includes them', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'protocolVersion' => ProtocolVersion::LATEST->value,
+            'capabilities' => new stdClass,
+            'serverInfo' => [
+                'name' => 'ExampleServer',
+                'version' => '1.0.0',
+                'icons' => [[
+                    'src' => 'https://example.com/icon.svg',
+                    'mimeType' => 'image/svg+xml',
+                    'sizes' => ['48x48', '96x96'],
+                    'theme' => 'dark',
+                ]],
+            ],
+        ],
+    ]);
+
+    $client = new Client($transport);
+    $client->connect();
+
+    $icon = $client->initializeResult()?->serverInfo->icons[0] ?? null;
+    expect($icon)->not->toBeNull();
+    expect($icon->sizes)->toBe(['48x48', '96x96']);
+    expect($icon->theme?->value)->toBe('dark');
 });
 
 it('times out when a stdio process stays silent', function (): void {
