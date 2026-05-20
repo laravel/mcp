@@ -9,6 +9,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use InvalidArgumentException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -159,14 +160,16 @@ class PendingTestResponse
         $primitive = $this->resolvePrimitive($primitive);
         $server = $this->initializeServer();
 
-        $request = new JsonRpcRequest(
-            uniqid(),
-            $method,
-            [
-                ...$primitive->toMethodCall(),
-                'arguments' => $arguments,
-            ],
-        );
+        $params = [
+            ...$primitive->toMethodCall(),
+            'arguments' => $arguments,
+        ];
+
+        if ($primitive instanceof Resource && $primitive instanceof HasUriTemplate) {
+            $params['uri'] = $primitive->uriTemplate()->expand($arguments);
+        }
+
+        $request = new JsonRpcRequest(uniqid(), $method, $params);
 
         $response = $this->executeRequest($server, $request);
 

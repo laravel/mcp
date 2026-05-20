@@ -37,6 +37,24 @@ class UriTemplate implements Stringable
     }
 
     /**
+     * @param  array<string, scalar|Stringable>  $variables
+     */
+    public function expand(array $variables): string
+    {
+        $expanded = $this->template;
+
+        foreach ($this->variableNames as $name) {
+            if (! array_key_exists($name, $variables)) {
+                continue;
+            }
+
+            $expanded = str_replace('{'.$name.'}', (string) $variables[$name], $expanded);
+        }
+
+        return $expanded;
+    }
+
+    /**
      * @return array<string, string>|null
      */
     public function match(string $uri): ?array
