@@ -15,8 +15,10 @@ use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\FakeTransporter;
+use Laravel\Mcp\Support\UriTemplate;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
+use Stringable;
 
 class PendingTestResponse
 {
@@ -165,8 +167,8 @@ class PendingTestResponse
             'arguments' => $arguments,
         ];
 
-        if ($primitive instanceof Resource && $primitive instanceof HasUriTemplate) {
-            $params['uri'] = $primitive->uriTemplate()->expand($arguments);
+        if ($primitive instanceof HasUriTemplate) {
+            $params['uri'] = $this->expandUriTemplate($primitive->uriTemplate(), $arguments);
         }
 
         $request = new JsonRpcRequest(uniqid(), $method, $params);
@@ -174,5 +176,37 @@ class PendingTestResponse
         $response = $this->executeRequest($server, $request);
 
         return new TestResponse($primitive, $response);
+    }
+
+    /**
+     * @param  array<string, mixed>  $variables
+     */
+    protected function expandUriTemplate(UriTemplate $template, array $variables): string
+    {
+        $expanded = (string) $template;
+
+        preg_match_all('/\{(\w+)}/', $expanded, $matches);
+
+        foreach (array_unique($matches[1]) as $name) {
+            if (! array_key_exists($name, $variables)) {
+                throw new InvalidArgumentException("Missing value for URI template variable [{$name}].");
+            }
+
+            $value = $variables[$name];
+
+            if (! is_scalar($value) && ! $value instanceof Stringable) {
+                throw new InvalidArgumentException("URI template variable [{$name}] must be a scalar or Stringable value.");
+            }
+
+            $value = (string) $value;
+
+            if (str_contains($value, '/')) {
+                throw new InvalidArgumentException("URI template variable [{$name}] value must not contain '/'.");
+            }
+
+            $expanded = str_replace('{'.$name.'}', $value, $expanded);
+        }
+
+        return $expanded;
     }
 }

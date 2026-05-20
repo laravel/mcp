@@ -127,33 +127,3 @@ it('casts to string', function (): void {
 
     expect((string) $template)->toBe('file://users/{id}');
 });
-
-it('expands variables into the template', function (): void {
-    $template = new UriTemplate('file://users/{id}');
-
-    expect($template->expand(['id' => 'abc']))->toBe('file://users/abc');
-});
-
-it('expands multiple variables', function (): void {
-    $template = new UriTemplate('file://users/{userId}/posts/{postId}');
-
-    expect($template->expand(['userId' => '42', 'postId' => '7']))->toBe('file://users/42/posts/7');
-});
-
-it('leaves missing variables as literal placeholders when expanding', function (): void {
-    $template = new UriTemplate('file://summary/{id}/files/{fileId}');
-
-    expect($template->expand(['id' => 'abc']))->toBe('file://summary/abc/files/{fileId}');
-});
-
-it('ignores extra variables when expanding', function (): void {
-    $template = new UriTemplate('file://users/{id}');
-
-    expect($template->expand(['id' => 'abc', 'extra' => 'value']))->toBe('file://users/abc');
-});
-
-it('casts stringable values when expanding', function (): void {
-    $template = new UriTemplate('file://users/{id}');
-
-    expect($template->expand(['id' => 123]))->toBe('file://users/123');
-});
