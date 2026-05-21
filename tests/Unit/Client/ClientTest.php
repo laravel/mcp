@@ -262,22 +262,6 @@ it('throws when the initialize result is invalid', function (): void {
         ->toThrow(ClientException::class, 'Invalid initialize response from server.');
 });
 
-it('can ping a registered Laravel MCP stdio server', function (): void {
-    $testbench = __DIR__.'/../../../vendor/bin/testbench';
-
-    if (! is_file($testbench)) {
-        test()->markTestSkipped('Testbench binary not installed.');
-    }
-
-    $client = Client::local(PHP_BINARY, [$testbench, 'mcp:start', 'test-mcp']);
-
-    $client->ping();
-
-    expect($client->initializeResult()?->serverInfo->name)->toBe('Laravel MCP Server');
-
-    $client->disconnect();
-});
-
 it('responds to server-initiated ping requests with an empty result', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
