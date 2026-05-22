@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\Primitives;
 
+use Illuminate\Support\Arr;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Schema\ToolResult;
+use Laravel\Mcp\Exceptions\ClientException;
 
 class Tool
 {
@@ -33,22 +35,21 @@ class Tool
      */
     public static function from(Client $client, array $payload): self
     {
-        $title = $payload['title'] ?? null;
-        $description = $payload['description'] ?? null;
-        $inputSchema = $payload['inputSchema'] ?? [];
-        $outputSchema = $payload['outputSchema'] ?? null;
-        $annotations = $payload['annotations'] ?? [];
-        $meta = $payload['_meta'] ?? null;
+        $name = Arr::get($payload, 'name');
+
+        if (blank($name)) {
+            throw new ClientException('Invalid tool payload from server.');
+        }
 
         return new self(
             client: $client,
-            name: (string) ($payload['name'] ?? ''),
-            title: is_string($title) ? $title : null,
-            description: is_string($description) ? $description : null,
-            inputSchema: is_array($inputSchema) ? $inputSchema : [],
-            outputSchema: is_array($outputSchema) ? $outputSchema : null,
-            annotations: is_array($annotations) ? $annotations : [],
-            meta: is_array($meta) ? $meta : null,
+            name: $name,
+            title: Arr::get($payload, 'title'),
+            description: Arr::get($payload, 'description'),
+            inputSchema: Arr::get($payload, 'inputSchema', []),
+            outputSchema: Arr::get($payload, 'outputSchema', []),
+            annotations: Arr::get($payload, 'annotations', []),
+            meta: Arr::get($payload, '_meta')
         );
     }
 

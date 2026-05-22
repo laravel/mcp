@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\Schema;
 
+use Illuminate\Support\Arr;
 use Stringable;
 
 class ToolResult implements Stringable
@@ -27,10 +28,10 @@ class ToolResult implements Stringable
      */
     public static function from(array $result): self
     {
-        $content = $result['content'] ?? [];
-        $isError = $result['isError'] ?? false;
-        $structuredContent = $result['structuredContent'] ?? null;
-        $meta = $result['_meta'] ?? null;
+        $content = Arr::get($result, 'content', []);
+        $isError = Arr::get($result, 'isError', false);
+        $structuredContent = Arr::get($result, 'structuredContent');
+        $meta = Arr::get($result, '_meta');
 
         return new self(
             content: is_array($content) ? array_values(array_filter($content, is_array(...))) : [],
@@ -45,8 +46,10 @@ class ToolResult implements Stringable
         $parts = [];
 
         foreach ($this->content as $item) {
-            if (($item['type'] ?? null) === 'text' && is_string($item['text'] ?? null)) {
-                $parts[] = $item['text'];
+            $text = Arr::get($item, 'text');
+
+            if (Arr::get($item, 'type') === 'text' && is_string($text)) {
+                $parts[] = $text;
             }
         }
 

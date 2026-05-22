@@ -6,6 +6,7 @@ use Illuminate\Support\Collection;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Schema\ToolResult;
+use Laravel\Mcp\Exceptions\ClientException;
 use Tests\Fixtures\Client\FakeTransport;
 
 it('returns a collection of tools keyed by name', function (): void {
@@ -81,6 +82,103 @@ it('stops paginating once limit is reached without fetching the next page', func
     expect($tools->keys()->all())->toBe(['a', 'b'])
         ->and($transport->sent)->toHaveCount(3)
         ->and($transport->responses)->toBeEmpty();
+});
+
+it('returns no tools without connecting when limit is zero', function (): void {
+    $transport = new FakeTransport;
+    $client = new Client($transport);
+
+    $tools = $client->tools(0);
+
+    expect($tools)
+        ->toBeInstanceOf(Collection::class)
+        ->toHaveCount(0)
+        ->and($client->connected())->toBeFalse()
+        ->and($transport->sent)->toBeEmpty();
+});
+
+it('throws when the tool limit is negative', function (): void {
+    $transport = new FakeTransport;
+
+    expect(fn (): Collection => (new Client($transport))->tools(-1))
+        ->toThrow(ClientException::class, 'Tool list limit must be greater than or equal to zero.');
+
+    expect($transport->sent)->toBeEmpty();
+});
+
+it('throws when tools/list does not return a tools array', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => [
+            'tools' => 'not-an-array',
+        ],
+    ]);
+
+    expect(fn (): Collection => (new Client($transport))->tools())
+        ->toThrow(ClientException::class, 'Invalid tools/list response from server.');
+});
+
+it('throws when a tool payload is not an object', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => [
+            'tools' => ['invalid'],
+        ],
+    ]);
+
+    expect(fn (): Collection => (new Client($transport))->tools())
+        ->toThrow(ClientException::class, 'Invalid tool payload from server.');
+});
+
+it('throws when a tool name is missing or empty', function (array $payload): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => [
+            'tools' => [$payload],
+        ],
+    ]);
+
+    expect(fn (): Collection => (new Client($transport))->tools())
+        ->toThrow(ClientException::class, 'Invalid tool payload from server.');
+})->with([
+    'missing name' => [[]],
+    'empty name' => [['name' => '']],
+    'blank name' => [['name' => '   ']],
+]);
+
+it('throws when a server repeats a tools/list cursor', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => [
+            'tools' => [['name' => 'first']],
+            'nextCursor' => 'cursor-page-2',
+        ],
+    ]);
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 3,
+        'result' => [
+            'tools' => [['name' => 'second']],
+            'nextCursor' => 'cursor-page-2',
+        ],
+    ]);
+
+    expect(fn (): Collection => (new Client($transport))->tools())
+        ->toThrow(ClientException::class, 'Repeated tools/list cursor [cursor-page-2] received from server.');
+
+    expect($transport->sent)->toHaveCount(4);
 });
 
 it('calls a tool fluently via $tool->call() and returns a ToolResult', function (): void {

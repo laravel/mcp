@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client;
 
+use Illuminate\Support\Arr;
 use JsonException;
 use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Contracts\Transport;
@@ -106,21 +107,22 @@ class Protocol
                     );
                 }
 
-                if (! is_array($response) || ($response['jsonrpc'] ?? null) !== '2.0') {
+                if (! is_array($response) || Arr::get($response, 'jsonrpc') !== '2.0') {
                     throw new ClientException('Invalid JSON-RPC response from server.');
                 }
 
                 $this->handleServerRequest($response);
-            } while (($response['id'] ?? null) !== $request->id);
+            } while (Arr::get($response, 'id') !== $request->id);
 
-            $hasResult = array_key_exists('result', $response);
-            $hasError = array_key_exists('error', $response);
+            $hasResult = Arr::has($response, 'result');
+            $hasError = Arr::has($response, 'error');
+            $error = Arr::get($response, 'error');
 
             if ($hasResult === $hasError) {
                 throw new ClientException('Invalid JSON-RPC response: must contain exactly one of "result" or "error".');
             }
 
-            if ($hasError && ! is_array($response['error'])) {
+            if ($hasError && ! is_array($error)) {
                 throw new ClientException('Invalid JSON-RPC error payload.');
             }
         } catch (Throwable $throwable) {
@@ -132,19 +134,21 @@ class Protocol
         }
 
         if ($hasError) {
-            $message = $response['error']['message'] ?? 'Unknown JSON-RPC error.';
-            $code = $response['error']['code'] ?? 0;
-            $data = $response['error']['data'] ?? null;
+            $message = Arr::get($error, 'message', 'Unknown JSON-RPC error.');
+            $code = Arr::get($error, 'code', 0);
+            $data = Arr::get($error, 'data');
 
             throw new JsonRpcException(
                 is_string($message) ? $message : 'Unknown JSON-RPC error.',
                 is_int($code) ? $code : 0,
-                $response['id'] ?? null,
+                Arr::get($response, 'id'),
                 is_array($data) ? $data : null,
             );
         }
 
-        return is_array($response['result']) ? $response['result'] : [];
+        $result = Arr::get($response, 'result');
+
+        return is_array($result) ? $result : [];
     }
 
     public function notify(string $method): void
@@ -159,8 +163,8 @@ class Protocol
      */
     protected function handleServerRequest(array $frame): void
     {
-        $id = $frame['id'] ?? null;
-        $method = $frame['method'] ?? null;
+        $id = Arr::get($frame, 'id');
+        $method = Arr::get($frame, 'method');
 
         if (! is_string($method) || (! is_int($id) && ! is_string($id))) {
             return;
