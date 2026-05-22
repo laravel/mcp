@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client\Methods;
 
 use Laravel\Mcp\Client\Contracts\Method;
+use Laravel\Mcp\Client\Protocol;
+use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Schema\Implementation;
 
@@ -30,5 +32,10 @@ class Initialize implements Method
             'capabilities' => (object) [],
             'clientInfo' => $this->clientInfo->toArray(),
         ];
+    }
+
+    public function handle(Protocol $protocol): InitializeResult
+    {
+        return InitializeResult::from($protocol->dispatch($this));
     }
 }

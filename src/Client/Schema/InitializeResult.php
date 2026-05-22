@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Schema;
+namespace Laravel\Mcp\Client\Schema;
 
-use Laravel\Mcp\Client\Exceptions\ClientException;
 use Laravel\Mcp\Enums\ProtocolVersion;
+use Laravel\Mcp\Exceptions\ClientException;
+use Laravel\Mcp\Schema\Implementation;
 
 class InitializeResult
 {

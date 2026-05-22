@@ -3,32 +3,10 @@
 declare(strict_types=1);
 
 use Laravel\Mcp\Client;
-use Laravel\Mcp\Client\Exceptions\ClientException;
 use Laravel\Mcp\Enums\ProtocolVersion;
+use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Tests\Fixtures\Client\FakeTransport;
-
-function initializeResponse(): string
-{
-    return json_encode([
-        'jsonrpc' => '2.0',
-        'id' => 1,
-        'result' => [
-            'protocolVersion' => '2025-11-25',
-            'capabilities' => new stdClass,
-            'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
-        ],
-    ]);
-}
-
-function pingResponse(int $id): string
-{
-    return json_encode([
-        'jsonrpc' => '2.0',
-        'id' => $id,
-        'result' => new stdClass,
-    ]);
-}
 
 it('performs the initialize handshake on connect', function (): void {
     config(['app.name' => 'Acme MCP App']);

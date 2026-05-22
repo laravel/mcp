@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client\Methods;
 
 use Laravel\Mcp\Client\Contracts\Method;
+use Laravel\Mcp\Client\Protocol;
 
 class Ping implements Method
 {
@@ -19,5 +20,10 @@ class Ping implements Method
     public function params(): array
     {
         return [];
+    }
+
+    public function handle(Protocol $protocol): void
+    {
+        $protocol->dispatch($this);
     }
 }
