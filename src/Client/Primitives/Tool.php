@@ -36,20 +36,32 @@ class Tool
     public static function from(Client $client, array $payload): self
     {
         $name = Arr::get($payload, 'name');
+        $title = Arr::get($payload, 'title');
+        $description = Arr::get($payload, 'description');
+        $inputSchema = Arr::get($payload, 'inputSchema', []);
+        $outputSchema = Arr::get($payload, 'outputSchema');
+        $annotations = Arr::get($payload, 'annotations', []);
+        $meta = Arr::get($payload, '_meta');
 
-        if (blank($name)) {
+        if (! is_string($name) || blank($name)
+            || ! is_array($inputSchema)
+            || ! is_array($annotations)
+            || (! is_null($title) && ! is_string($title))
+            || (! is_null($description) && ! is_string($description))
+            || (! is_null($outputSchema) && ! is_array($outputSchema))
+            || (! is_null($meta) && ! is_array($meta))) {
             throw new ClientException('Invalid tool payload from server.');
         }
 
         return new self(
             client: $client,
             name: $name,
-            title: Arr::get($payload, 'title'),
-            description: Arr::get($payload, 'description'),
-            inputSchema: Arr::get($payload, 'inputSchema', []),
-            outputSchema: Arr::get($payload, 'outputSchema', []),
-            annotations: Arr::get($payload, 'annotations', []),
-            meta: Arr::get($payload, '_meta')
+            title: $title,
+            description: $description,
+            inputSchema: $inputSchema,
+            outputSchema: $outputSchema,
+            annotations: $annotations,
+            meta: $meta,
         );
     }
 

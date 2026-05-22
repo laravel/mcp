@@ -49,7 +49,7 @@ class InitializeResult
             protocolVersion: $protocolVersion,
             capabilities: $capabilities,
             serverInfo: Implementation::from($serverInfo),
-            instructions: $instructions,
+            instructions: is_string($instructions) ? $instructions : null,
         );
     }
 }

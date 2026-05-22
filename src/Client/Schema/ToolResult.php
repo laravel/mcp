@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client\Schema;
 
 use Illuminate\Support\Arr;
+use Laravel\Mcp\Exceptions\ClientException;
 use Stringable;
 
 class ToolResult implements Stringable
@@ -33,9 +34,13 @@ class ToolResult implements Stringable
         $structuredContent = Arr::get($result, 'structuredContent');
         $meta = Arr::get($result, '_meta');
 
+        if (! is_array($content) || ! is_bool($isError)) {
+            throw new ClientException('Invalid tools/call result from server.');
+        }
+
         return new self(
-            content: is_array($content) ? array_values(array_filter($content, is_array(...))) : [],
-            isError: is_bool($isError) && $isError,
+            content: array_values(array_filter($content, is_array(...))),
+            isError: $isError,
             structuredContent: is_array($structuredContent) ? $structuredContent : null,
             meta: is_array($meta) ? $meta : null,
         );

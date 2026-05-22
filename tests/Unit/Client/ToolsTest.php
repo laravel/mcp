@@ -29,11 +29,11 @@ it('returns a collection of tools keyed by name', function (): void {
         ->toBeInstanceOf(Collection::class)
         ->toHaveCount(2)
         ->and($tools->keys()->all())->toBe(['add', 'subtract'])
-        ->and($tools['add'])->toBeInstanceOf(Tool::class)
-        ->and($tools['add']->name)->toBe('add')
-        ->and($tools['add']->description)->toBe('Adds two numbers');
-
-    expect(json_decode($transport->sent[2], true))
+        ->and($tools['add'])
+        ->toBeInstanceOf(Tool::class)
+        ->name->toBe('add')
+        ->description->toBe('Adds two numbers')
+        ->and(json_decode($transport->sent[2], true))
         ->toHaveKey('method', 'tools/list')
         ->not->toHaveKey('params');
 });
@@ -59,10 +59,9 @@ it('auto-paginates tools/list until nextCursor is absent', function (): void {
 
     $tools = (new Client($transport))->tools();
 
-    expect($tools->keys()->all())->toBe(['first', 'second', 'third']);
-
-    expect(json_decode($transport->sent[2], true))->not->toHaveKey('params');
-    expect(json_decode($transport->sent[3], true))->toHaveKey('params.cursor', 'cursor-page-2');
+    expect($tools->keys()->all())->toBe(['first', 'second', 'third'])
+        ->and(json_decode($transport->sent[2], true))->not->toHaveKey('params')
+        ->and(json_decode($transport->sent[3], true))->toHaveKey('params.cursor', 'cursor-page-2');
 });
 
 it('stops paginating once limit is reached without fetching the next page', function (): void {
@@ -101,9 +100,8 @@ it('throws when the tool limit is negative', function (): void {
     $transport = new FakeTransport;
 
     expect(fn (): Collection => (new Client($transport))->tools(-1))
-        ->toThrow(ClientException::class, 'Tool list limit must be greater than or equal to zero.');
-
-    expect($transport->sent)->toBeEmpty();
+        ->toThrow(ClientException::class, 'Tool list limit must be greater than or equal to zero.')
+        ->and($transport->sent)->toBeEmpty();
 });
 
 it('throws when tools/list does not return a tools array', function (): void {
@@ -155,6 +153,29 @@ it('throws when a tool name is missing or empty', function (array $payload): voi
     'blank name' => [['name' => '   ']],
 ]);
 
+it('throws when a tool payload has a field of the wrong type', function (array $payload): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => [
+            'tools' => [array_merge(['name' => 'add'], $payload)],
+        ],
+    ]);
+
+    expect(fn (): Collection => (new Client($transport))->tools())
+        ->toThrow(ClientException::class, 'Invalid tool payload from server.');
+})->with([
+    'non-string name' => [['name' => 123]],
+    'non-string title' => [['title' => 1]],
+    'non-string description' => [['description' => []]],
+    'non-array inputSchema' => [['inputSchema' => 'object']],
+    'non-array outputSchema' => [['outputSchema' => 'object']],
+    'non-array annotations' => [['annotations' => 'none']],
+    'non-array _meta' => [['_meta' => 'meta']],
+]);
+
 it('throws when a server repeats a tools/list cursor', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
@@ -176,9 +197,8 @@ it('throws when a server repeats a tools/list cursor', function (): void {
     ]);
 
     expect(fn (): Collection => (new Client($transport))->tools())
-        ->toThrow(ClientException::class, 'Repeated tools/list cursor [cursor-page-2] received from server.');
-
-    expect($transport->sent)->toHaveCount(4);
+        ->toThrow(ClientException::class, 'Repeated tools/list cursor [cursor-page-2] received from server.')
+        ->and($transport->sent)->toHaveCount(4);
 });
 
 it('calls a tool fluently via $tool->call() and returns a ToolResult', function (): void {
@@ -204,9 +224,8 @@ it('calls a tool fluently via $tool->call() and returns a ToolResult', function 
 
     expect($result)
         ->toBeInstanceOf(ToolResult::class)
-        ->and($result->text())->toBe('Hello, John!');
-
-    expect(json_decode($transport->sent[3], true))
+        ->and($result->text())->toBe('Hello, John!')
+        ->and(json_decode($transport->sent[3], true))
         ->toHaveKey('method', 'tools/call')
         ->toHaveKey('params.name', 'say-hi')
         ->toHaveKey('params.arguments', ['name' => 'John']);
@@ -235,9 +254,8 @@ it('sends tools/call by name and concatenates text content', function (): void {
         ->isError->toBeFalse()
         ->content->toHaveCount(3)
         ->and($result->text())->toBe('Hello, John!')
-        ->and((string) $result)->toBe('Hello, John!');
-
-    expect(json_decode($transport->sent[2], true))
+        ->and((string) $result)->toBe('Hello, John!')
+        ->and(json_decode($transport->sent[2], true))
         ->toHaveKey('method', 'tools/call')
         ->toHaveKey('params.name', 'say-hi')
         ->toHaveKey('params.arguments', ['name' => 'John']);
@@ -296,3 +314,19 @@ it('surfaces tool-level errors as ToolResult::isError true', function (): void {
         ->isError->toBeTrue()
         ->and($result->text())->toBe('Validation failed.');
 });
+
+it('throws when a tools/call result has a field of the wrong type', function (array $result): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => $result,
+    ]);
+
+    expect(fn (): ToolResult => (new Client($transport))->callTool('say-hi'))
+        ->toThrow(ClientException::class, 'Invalid tools/call result from server.');
+})->with([
+    'non-array content' => [['content' => 'not-an-array']],
+    'non-bool isError' => [['content' => [], 'isError' => 'true']],
+]);
