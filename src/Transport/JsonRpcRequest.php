@@ -72,4 +72,22 @@ class JsonRpcRequest
     {
         return new Request($this->params['arguments'] ?? [], $this->sessionId, $this->meta());
     }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'jsonrpc' => '2.0',
+            'id' => $this->id,
+            'method' => $this->method,
+            ...$this->params === [] ? [] : ['params' => $this->params],
+        ];
+    }
+
+    public function toJson(int $options = 0): string
+    {
+        return json_encode($this->toArray(), $options | JSON_UNESCAPED_UNICODE) ?: '';
+    }
 }

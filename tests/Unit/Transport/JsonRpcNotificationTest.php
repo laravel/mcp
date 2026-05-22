@@ -57,3 +57,28 @@ it('throws exception for non string method in notification', function (): void {
         'method' => 123,
     ]);
 });
+
+it('serializes to an array with params when present', function (): void {
+    $notification = new JsonRpcNotification('notifications/progress', ['progress' => 50]);
+
+    expect($notification->toArray())->toEqual([
+        'jsonrpc' => '2.0',
+        'method' => 'notifications/progress',
+        'params' => ['progress' => 50],
+    ]);
+});
+
+it('omits empty params when serializing', function (): void {
+    $notification = new JsonRpcNotification('notifications/initialized', []);
+
+    expect($notification->toArray())->toEqual([
+        'jsonrpc' => '2.0',
+        'method' => 'notifications/initialized',
+    ]);
+});
+
+it('serializes to json without an id', function (): void {
+    $notification = new JsonRpcNotification('notifications/initialized', []);
+
+    expect($notification->toJson())->toEqual('{"jsonrpc":"2.0","method":"notifications\/initialized"}');
+});

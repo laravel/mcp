@@ -38,4 +38,21 @@ class JsonRpcNotification
             params: $jsonRequest['params'] ?? []
         );
     }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toArray(): array
+    {
+        return [
+            'jsonrpc' => '2.0',
+            'method' => $this->method,
+            ...$this->params === [] ? [] : ['params' => $this->params],
+        ];
+    }
+
+    public function toJson(int $options = 0): string
+    {
+        return json_encode($this->toArray(), $options | JSON_UNESCAPED_UNICODE) ?: '';
+    }
 }
