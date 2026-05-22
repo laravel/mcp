@@ -58,6 +58,14 @@ class UriTemplate implements Stringable
         return $result;
     }
 
+    /**
+     * @return list<string>
+     */
+    public function variableNames(): array
+    {
+        return array_values(array_unique($this->variableNames));
+    }
+
     public function __toString(): string
     {
         return $this->template;

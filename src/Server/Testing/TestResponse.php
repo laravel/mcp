@@ -315,9 +315,11 @@ class TestResponse
         dd($this->response->toArray());
     }
 
-    public function dump(): void
+    public function dump(): static
     {
         dump($this->response->toArray());
+
+        return $this;
     }
 
     public function ddErrors(): void

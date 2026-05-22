@@ -32,6 +32,12 @@ it('extracts multiple variables', function (): void {
     expect($template->match('file://users/fred/posts/123'))->toBe(['username' => 'fred', 'postId' => '123']);
 });
 
+it('exposes variable names', function (): void {
+    $template = new UriTemplate('file://users/{userId}/files/{fileId}/copies/{fileId}');
+
+    expect($template->variableNames())->toBe(['userId', 'fileId']);
+});
+
 it('returns null for non-matching URIs', function (): void {
     $template = new UriTemplate('file://users/{username}');
 
