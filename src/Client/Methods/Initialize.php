@@ -10,6 +10,9 @@ use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Schema\Implementation;
 
+/**
+ * @implements Method<InitializeResult>
+ */
 class Initialize implements Method
 {
     public function __construct(protected Implementation $clientInfo)

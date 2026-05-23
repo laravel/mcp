@@ -77,6 +77,7 @@ class Protocol
     }
 
     /**
+     * @param  Method<mixed>  $method
      * @return array<string, mixed>
      */
     public function dispatch(Method $method): array

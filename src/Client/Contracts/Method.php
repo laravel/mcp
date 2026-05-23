@@ -6,6 +6,9 @@ namespace Laravel\Mcp\Client\Contracts;
 
 use Laravel\Mcp\Client\Protocol;
 
+/**
+ * @template TResult
+ */
 interface Method
 {
     public function method(): string;
@@ -16,7 +19,7 @@ interface Method
     public function params(): array;
 
     /**
-     * @return mixed
+     * @return TResult
      */
     public function handle(Protocol $protocol);
 }

@@ -8,6 +8,9 @@ use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Protocol;
 use Laravel\Mcp\Client\Schema\ToolResult;
 
+/**
+ * @implements Method<ToolResult>
+ */
 class CallTool implements Method
 {
     /**

@@ -12,6 +12,9 @@ use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Protocol;
 use Laravel\Mcp\Exceptions\ClientException;
 
+/**
+ * @implements Method<Collection<string, Tool>>
+ */
 class ListTools implements Method
 {
     public function __construct(
