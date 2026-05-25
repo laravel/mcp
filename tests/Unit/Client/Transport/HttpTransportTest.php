@@ -9,6 +9,7 @@ use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
+use Laravel\Mcp\Exceptions\SessionExpiredException;
 use Laravel\Mcp\WebClient;
 
 it('posts a frame and queues a json response', function (): void {
@@ -111,7 +112,7 @@ it('throws a ClientException and resets the session on a 404 response', function
 
     expect(function () use ($transport): void {
         $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'ping', 'params' => []]));
-    })->toThrow(ClientException::class, 'Session expired');
+    })->toThrow(SessionExpiredException::class, 'Session expired');
 });
 
 it('throws a ClientException on an unexpected HTTP status', function (): void {
@@ -236,4 +237,38 @@ it('drives a full handshake and tools list over HTTP via Client::web', function 
 
 it('builds a WebClient from Client::web', function (): void {
     expect(Client::web('https://mcp.test/mcp'))->toBeInstanceOf(WebClient::class);
+});
+
+it('re-initializes and retries once after a 404 session expiry', function (): void {
+    Http::fakeSequence()
+        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => [
+            'protocolVersion' => ProtocolVersion::LATEST->value,
+            'capabilities' => new stdClass,
+            'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
+        ]]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-1'])
+        ->push('', 202)
+        ->push('', 404)
+        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 3, 'result' => [
+            'protocolVersion' => ProtocolVersion::LATEST->value,
+            'capabilities' => new stdClass,
+            'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
+        ]]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-2'])
+        ->push('', 202)
+        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 4, 'result' => [
+            'tools' => [['name' => 'add', 'description' => 'Adds two numbers']],
+        ]]), 200, ['Content-Type' => 'application/json'])
+        ->whenEmpty(Http::response('', 202));
+
+    $tools = Client::web('https://mcp.test/mcp')->tools();
+
+    expect($tools->keys()->all())->toBe(['add']);
+
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Session-Id', 'session-2'));
+});
+
+it('does not retry a 404 received during the initialize handshake', function (): void {
+    Http::fake(['*' => Http::response('', 404)]);
+
+    expect(fn (): WebClient => Client::web('https://mcp.test/mcp')->connect())
+        ->toThrow(SessionExpiredException::class, 'Session expired');
 });

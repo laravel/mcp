@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
+use Laravel\Mcp\Exceptions\SessionExpiredException;
 use Throwable;
 
 class HttpTransport implements Transport
@@ -40,9 +41,7 @@ class HttpTransport implements Transport
     {
         $this->terminateSession();
 
-        $this->sessionId = null;
-        $this->initialized = false;
-        $this->queue = [];
+        $this->reset();
     }
 
     public function setTimeoutSeconds(float $seconds): void
@@ -71,7 +70,9 @@ class HttpTransport implements Transport
         $status = $response->status();
 
         if ($status === 404) {
-            $this->failWith("Session expired. The server responded with HTTP 404 for endpoint [{$this->url}].");
+            $this->reset();
+
+            throw new SessionExpiredException("Session expired. The server responded with HTTP 404 for endpoint [{$this->url}].");
         }
 
         if ($status < 200 || $status >= 300) {
@@ -193,11 +194,16 @@ class HttpTransport implements Transport
         }
     }
 
-    protected function failWith(string $message): never
+    protected function reset(): void
     {
         $this->sessionId = null;
         $this->initialized = false;
         $this->queue = [];
+    }
+
+    protected function failWith(string $message): never
+    {
+        $this->reset();
 
         throw new ClientException($message);
     }

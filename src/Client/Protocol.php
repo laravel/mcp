@@ -12,6 +12,7 @@ use Laravel\Mcp\Client\Methods\Initialize;
 use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\Exceptions\SessionExpiredException;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
@@ -86,6 +87,25 @@ class Protocol
             $this->connect();
         }
 
+        try {
+            return $this->attempt($method);
+        } catch (SessionExpiredException $sessionExpiredException) {
+            if ($this->connecting) {
+                throw $sessionExpiredException;
+            }
+
+            $this->connect();
+
+            return $this->attempt($method);
+        }
+    }
+
+    /**
+     * @param  Method<mixed>  $method
+     * @return array<string, mixed>
+     */
+    protected function attempt(Method $method): array
+    {
         $request = new JsonRpcRequest(
             id: $this->nextRequestId++,
             method: $method->method(),
