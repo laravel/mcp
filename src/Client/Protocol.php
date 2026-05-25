@@ -89,11 +89,7 @@ class Protocol
 
         try {
             return $this->attempt($method);
-        } catch (SessionExpiredException $sessionExpiredException) {
-            if ($this->connecting) {
-                throw $sessionExpiredException;
-            }
-
+        } catch (SessionExpiredException) {
             $this->connect();
 
             return $this->attempt($method);

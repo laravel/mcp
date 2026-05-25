@@ -31,8 +31,10 @@ it('posts a frame and queues a json response', function (): void {
 });
 
 it('parses an SSE stream into individual frames in order', function (): void {
-    $stream = 'data: '.json_encode(['jsonrpc' => '2.0', 'method' => 'stream/progress', 'params' => ['progress' => 50]])."\n\n"
-        .'data: '.json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => ['done' => true]])."\n\n";
+    $stream = sseStream([
+        ['jsonrpc' => '2.0', 'method' => 'stream/progress', 'params' => ['progress' => 50]],
+        ['jsonrpc' => '2.0', 'id' => 1, 'result' => ['done' => true]],
+    ]);
 
     Http::fake(['*' => Http::response($stream, 200, ['Content-Type' => 'text/event-stream'])]);
 
@@ -41,6 +43,32 @@ it('parses an SSE stream into individual frames in order', function (): void {
 
     expect(json_decode($transport->receive(), true))->toMatchArray(['method' => 'stream/progress'])
         ->and(json_decode($transport->receive(), true))->toMatchArray(['id' => 1, 'result' => ['done' => true]]);
+});
+
+it('fails fast when the server initiates a request over the SSE stream', function (): void {
+    Http::fake(['*' => Http::response(sseStream([
+        ['jsonrpc' => '2.0', 'id' => 99, 'method' => 'ping'],
+    ]), 200, ['Content-Type' => 'text/event-stream'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+
+    expect(function () use ($transport): void {
+        $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/call', 'params' => []]));
+    })->toThrow(ClientException::class, 'does not support');
+});
+
+it('skips SSE comments and empty data lines', function (): void {
+    $stream = ": ping\n\ndata:\n\n".sseStream([
+        ['jsonrpc' => '2.0', 'id' => 1, 'result' => ['ok' => true]],
+    ]);
+
+    Http::fake(['*' => Http::response($stream, 200, ['Content-Type' => 'text/event-stream'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/call', 'params' => []]));
+
+    expect(json_decode($transport->receive(), true))->toMatchArray(['id' => 1, 'result' => ['ok' => true]]);
+    expect(fn (): string => $transport->receive())->toThrow(ClientException::class, 'No message available');
 });
 
 it('queues nothing for a 202 accepted notification', function (): void {
@@ -113,6 +141,16 @@ it('throws a ClientException and resets the session on a 404 response', function
     expect(function () use ($transport): void {
         $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'ping', 'params' => []]));
     })->toThrow(SessionExpiredException::class, 'Session expired');
+});
+
+it('treats a 404 without a session id as a normal error rather than session expiry', function (): void {
+    Http::fake(['*' => Http::response('', 404)]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+
+    expect(function () use ($transport): void {
+        $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping', 'params' => []]));
+    })->toThrow(ClientException::class, 'Unexpected HTTP status [404]');
 });
 
 it('throws a ClientException on an unexpected HTTP status', function (): void {
@@ -266,9 +304,9 @@ it('re-initializes and retries once after a 404 session expiry', function (): vo
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Session-Id', 'session-2'));
 });
 
-it('does not retry a 404 received during the initialize handshake', function (): void {
+it('surfaces a 404 during the initialize handshake as a normal error', function (): void {
     Http::fake(['*' => Http::response('', 404)]);
 
     expect(fn (): WebClient => Client::web('https://mcp.test/mcp')->connect())
-        ->toThrow(SessionExpiredException::class, 'Session expired');
+        ->toThrow(ClientException::class, 'Unexpected HTTP status [404]');
 });

@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client\Transport;
 
 use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\Response;
+use Illuminate\Http\Client\Response as ClientResponse;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\SessionExpiredException;
+use Psr\Http\Message\StreamInterface;
 use Throwable;
 
 class HttpTransport implements Transport
@@ -33,8 +35,7 @@ class HttpTransport implements Transport
 
     public function connect(): void
     {
-        $this->initialized = false;
-        $this->queue = [];
+        $this->reset();
     }
 
     public function disconnect(): void
@@ -56,10 +57,13 @@ class HttpTransport implements Transport
 
     public function send(string $message): void
     {
+        $hadSession = $this->sessionId !== null;
+
         try {
             $response = Http::withHeaders($this->headers())
                 ->withBody($message, 'application/json')
                 ->timeout($this->timeoutSeconds)
+                ->withOptions(['stream' => true])
                 ->post($this->url);
         } catch (ConnectionException $connectionException) {
             $this->failWith("HTTP request to [{$this->url}] failed: {$connectionException->getMessage()}");
@@ -67,29 +71,31 @@ class HttpTransport implements Transport
 
         $this->captureSessionId($response);
 
-        $status = $response->status();
-
-        if ($status === 404) {
+        if ($response->notFound() && $hadSession) {
             $this->reset();
 
             throw new SessionExpiredException("Session expired. The server responded with HTTP 404 for endpoint [{$this->url}].");
         }
 
-        if ($status < 200 || $status >= 300) {
-            $this->failWith("Unexpected HTTP status [{$status}] from endpoint [{$this->url}].");
+        if (! $response->successful()) {
+            $this->failWith("Unexpected HTTP status [{$response->status()}] from endpoint [{$this->url}].");
         }
 
         $this->initialized = true;
 
-        $body = $response->body();
+        if (str_contains($response->header('Content-Type'), 'text/event-stream')) {
+            $this->readSseStream($response);
 
-        if ($status === 202 || trim($body) === '') {
             return;
         }
 
-        foreach ($this->parseMessages($response->header('Content-Type'), $body) as $frame) {
-            $this->queue[] = $frame;
+        $body = trim($response->body());
+
+        if ($response->accepted() || $body === '') {
+            return;
         }
+
+        $this->queue[] = $body;
     }
 
     public function receive(): string
@@ -101,6 +107,11 @@ class HttpTransport implements Transport
         }
 
         return $message;
+    }
+
+    public function __destruct()
+    {
+        $this->disconnect();
     }
 
     /**
@@ -127,7 +138,7 @@ class HttpTransport implements Transport
         return $headers;
     }
 
-    protected function captureSessionId(Response $response): void
+    protected function captureSessionId(ClientResponse $response): void
     {
         $sessionId = $response->header('MCP-Session-Id');
 
@@ -136,47 +147,53 @@ class HttpTransport implements Transport
         }
     }
 
-    /**
-     * @return array<int, string>
-     */
-    protected function parseMessages(string $contentType, string $body): array
+    protected function readSseStream(ClientResponse $response): void
     {
-        if (str_contains($contentType, 'text/event-stream')) {
-            return $this->parseSse($body);
-        }
+        $stream = $response->toPsrResponse()->getBody();
 
-        return [trim($body)];
+        while (! $stream->eof()) {
+            $line = trim($this->readLine($stream));
+
+            if (Str::startsWith($line, 'data:')) {
+                $this->queueSseEvent(trim(Str::after($line, 'data:')));
+            }
+        }
     }
 
-    /**
-     * @return array<int, string>
-     */
-    protected function parseSse(string $body): array
+    protected function readLine(StreamInterface $stream): string
     {
-        $messages = [];
+        $line = '';
 
-        foreach (explode("\n\n", str_replace("\r\n", "\n", $body)) as $event) {
-            $data = $this->extractEventData($event);
+        while (! $stream->eof()) {
+            $byte = $stream->read(1);
 
-            if ($data !== '') {
-                $messages[] = $data;
+            if ($byte === '') {
+                break;
+            }
+
+            $line .= $byte;
+
+            if ($byte === "\n") {
+                break;
             }
         }
 
-        return $messages;
+        return $line;
     }
 
-    protected function extractEventData(string $event): string
+    protected function queueSseEvent(string $data): void
     {
-        $data = [];
-
-        foreach (explode("\n", $event) as $line) {
-            if (str_starts_with($line, 'data:')) {
-                $data[] = ltrim(substr($line, 5), ' ');
-            }
+        if ($data === '') {
+            return;
         }
 
-        return implode("\n", $data);
+        $decoded = json_decode($data, true);
+
+        if (is_array($decoded) && isset($decoded['method'], $decoded['id'])) {
+            $this->failWith('The server initiated a request over the SSE stream, which this HTTP client does not support.');
+        }
+
+        $this->queue[] = $data;
     }
 
     protected function terminateSession(): void
@@ -206,10 +223,5 @@ class HttpTransport implements Transport
         $this->reset();
 
         throw new ClientException($message);
-    }
-
-    public function __destruct()
-    {
-        $this->disconnect();
     }
 }
