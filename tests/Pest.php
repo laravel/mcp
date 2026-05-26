@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Filesystem\Filesystem;
-use Illuminate\Support\Facades\Cache;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
@@ -14,8 +13,6 @@ uses(TestCase::class)
         if ($filesystem->isDirectory($directory)) {
             $filesystem->deleteDirectory($directory);
         }
-
-        Cache::flush();
 
         config()->set('app.debug', true);
     })->in('Unit', 'Feature');
