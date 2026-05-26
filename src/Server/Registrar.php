@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Client;
+use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController;
@@ -63,6 +66,19 @@ class Registrar
         $this->localServers[$handle] = fn (): mixed => static::startServer($serverClass, fn (): StdioTransport => new StdioTransport(
             Str::uuid()->toString(),
         ));
+    }
+
+    /**
+     * @param  Closure(): Client  $factory
+     */
+    public function registerClientFor(string $name, Closure $factory, int|false $cache = ClientManager::DEFAULT_CACHE_TTL): void
+    {
+        $this->clientManager()->registerClientFor($name, $factory, $cache);
+    }
+
+    public function client(string $name): Client
+    {
+        return $this->clientManager()->client($name);
     }
 
     public function getLocalServer(string $handle): ?callable
@@ -170,6 +186,11 @@ class Registrar
         }
 
         return $current;
+    }
+
+    protected function clientManager(): ClientManager
+    {
+        return Container::getInstance()->make(ClientManager::class);
     }
 
     /**

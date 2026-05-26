@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
 use Laravel\Mcp\Console\Commands\MakeAppResourceCommand;
 use Laravel\Mcp\Console\Commands\MakePromptCommand;
@@ -21,6 +22,8 @@ class McpServiceProvider extends ServiceProvider
     {
         $this->app->singleton(Registrar::class, fn (): Registrar => new Registrar);
 
+        $this->app->singleton(ClientManager::class, fn (): ClientManager => new ClientManager);
+
         $this->app->singleton('mcp.sdk', fn (): string => (string) file_get_contents(__DIR__.'/../../resources/js/mcp-sdk.min.js'));
 
         $this->mergeConfigFrom(__DIR__.'/../../config/mcp.php', 'mcp');
@@ -31,6 +34,7 @@ class McpServiceProvider extends ServiceProvider
         $this->registerMcpScope();
         $this->registerRoutes();
         $this->registerContainerCallbacks();
+        $this->registerClientDisconnect();
         $this->registerViews();
 
         if ($this->app->runningInConsole()) {
@@ -89,6 +93,15 @@ class McpServiceProvider extends ServiceProvider
                 $request->setArguments($currentRequest->all());
                 $request->setSessionId($currentRequest->sessionId());
                 $request->setMeta($currentRequest->meta());
+            }
+        });
+    }
+
+    protected function registerClientDisconnect(): void
+    {
+        $this->app->terminating(function (): void {
+            if ($this->app->resolved(ClientManager::class)) {
+                $this->app->make(ClientManager::class)->disconnectAll();
             }
         });
     }

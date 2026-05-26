@@ -73,6 +73,17 @@ function pingResponse(int $id): string
     ]);
 }
 
+function toolsResponse(int $id): string
+{
+    return json_encode([
+        'jsonrpc' => '2.0',
+        'id' => $id,
+        'result' => [
+            'tools' => [['name' => 'add', 'description' => 'Adds two numbers']],
+        ],
+    ]);
+}
+
 function expectedInitializeResponse(): array
 {
     $server = new ExampleServer(new ArrayTransport);

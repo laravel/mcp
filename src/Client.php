@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Collection;
+use Laravel\Mcp\Client\Cache\PrimitiveCache;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Methods\Ping;
 use Laravel\Mcp\Client\Methods\Tools\CallTool;
@@ -22,6 +25,12 @@ class Client
     public Implementation $clientInfo;
 
     protected Protocol $protocol;
+
+    protected ?string $registeredName = null;
+
+    protected int|false $listCacheTtl = false;
+
+    protected ?PrimitiveCache $resolvedCache = null;
 
     public function __construct(
         protected Transport $transport,
@@ -51,6 +60,14 @@ class Client
     public function withTimeout(float $seconds): static
     {
         $this->transport->setTimeoutSeconds($seconds);
+
+        return $this;
+    }
+
+    public function asRegisteredClient(string $name, int|false $cache): static
+    {
+        $this->registeredName = $name;
+        $this->listCacheTtl = $cache;
 
         return $this;
     }
@@ -87,7 +104,7 @@ class Client
      */
     public function tools(?int $limit = null): Collection
     {
-        return (new ListTools(client: $this, limit: $limit))->handle($this->protocol);
+        return (new ListTools($this, $this->primitiveCache(), limit: $limit))->handle($this->protocol);
     }
 
     /**
@@ -96,6 +113,30 @@ class Client
     public function callTool(string $name, array $arguments = []): ToolResult
     {
         return (new CallTool($name, $arguments))->handle($this->protocol);
+    }
+
+    public function clearCache(): void
+    {
+        $this->primitiveCache()?->flush();
+    }
+
+    protected function primitiveCache(): ?PrimitiveCache
+    {
+        if ($this->registeredName === null || $this->listCacheTtl === false || $this->listCacheTtl <= 0) {
+            return null;
+        }
+
+        $container = Container::getInstance();
+
+        if (! $container->bound(Repository::class)) {
+            return null;
+        }
+
+        return $this->resolvedCache ??= new PrimitiveCache(
+            cache: $container->make(Repository::class),
+            name: $this->registeredName,
+            ttl: $this->listCacheTtl,
+        );
     }
 
     public function __destruct()
