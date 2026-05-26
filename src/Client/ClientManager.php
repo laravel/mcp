@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client;
 
 use Closure;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Exceptions\ClientException;
 use Throwable;
@@ -21,14 +22,24 @@ class ClientManager
 
     /**
      * @param  Closure(): Client  $factory
+     * @param  ?Closure(): (string|int|Authenticatable|null)  $scope
      */
-    public function registerClientFor(string $name, Closure $factory, int|false $cache = self::DEFAULT_CACHE_TTL): void
-    {
-        ($this->resolved[$name] ?? null)?->disconnect();
+    public function registerClientFor(
+        string $name,
+        Closure $factory,
+        int|false $cache = self::DEFAULT_CACHE_TTL,
+        ?Closure $scope = null,
+    ): void {
+        if (isset($this->resolved[$name])) {
+            try {
+                $this->resolved[$name]->disconnect();
+            } catch (Throwable) {
+            }
 
-        unset($this->resolved[$name]);
+            unset($this->resolved[$name]);
+        }
 
-        $this->factories[$name] = fn (): Client => $factory()->asRegisteredClient($name, $cache);
+        $this->factories[$name] = fn (): Client => $factory()->asRegisteredClient($name, $cache, $scope);
     }
 
     public function client(string $name): Client

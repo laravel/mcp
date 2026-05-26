@@ -45,30 +45,42 @@ class ListTools implements Method
      */
     public function handle(Protocol $protocol): Collection
     {
-        $payloads = $this->cache instanceof PrimitiveCache && $this->limit === null
-            ? $this->cache->remember('tools', function () use ($protocol): array {
-                $payloads = $this->fetch($protocol);
-                $this->validate($payloads);
+        try {
+            return $this->hydrate($this->loadPayloads($protocol));
+        } catch (ClientException $clientException) {
+            if (! $this->cache instanceof PrimitiveCache) {
+                throw $clientException;
+            }
 
-                return $payloads;
-            })
-            : $this->fetch($protocol);
+            $this->cache->flush();
 
+            return $this->hydrate($this->loadPayloads($protocol));
+        }
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    protected function loadPayloads(Protocol $protocol): array
+    {
+        if ($this->cache instanceof PrimitiveCache && $this->limit === null) {
+            return $this->cache->remember('tools', fn (): array => $this->fetch($protocol));
+        }
+
+        return $this->fetch($protocol);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $payloads
+     * @return Collection<string, Tool>
+     */
+    protected function hydrate(array $payloads): Collection
+    {
         return collect($payloads)->mapWithKeys(function (array $payload): array {
             $tool = Tool::from($this->client, $payload);
 
             return [$tool->name => $tool];
         });
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $payloads
-     */
-    protected function validate(array $payloads): void
-    {
-        foreach ($payloads as $payload) {
-            Tool::from($this->client, $payload);
-        }
     }
 
     /**

@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Closure;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
@@ -70,10 +71,15 @@ class Registrar
 
     /**
      * @param  Closure(): Client  $factory
+     * @param  ?Closure(): (string|int|Authenticatable|null)  $scope
      */
-    public function registerClientFor(string $name, Closure $factory, int|false $cache = ClientManager::DEFAULT_CACHE_TTL): void
-    {
-        $this->clientManager()->registerClientFor($name, $factory, $cache);
+    public function registerClientFor(
+        string $name,
+        Closure $factory,
+        int|false $cache = ClientManager::DEFAULT_CACHE_TTL,
+        ?Closure $scope = null,
+    ): void {
+        $this->clientManager()->registerClientFor($name, $factory, $cache, $scope);
     }
 
     public function client(string $name): Client

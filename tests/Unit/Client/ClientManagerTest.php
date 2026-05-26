@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Cache\Repository;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Exceptions\ClientException;
@@ -249,4 +251,134 @@ it('does not cache inline clients', function (): void {
     $client->tools();
 
     expect($transport->responses)->toBeEmpty();
+});
+
+it('scopes the tools list cache per resolved scope value', function (): void {
+    $alpha = new FakeTransport;
+    $alpha->responses[] = initializeResponse();
+    $alpha->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => ['tools' => [['name' => 'alpha-tool']]],
+    ]);
+    $alpha->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 3,
+        'result' => ['tools' => [['name' => 'beta-tool']]],
+    ]);
+
+    $scope = 1;
+
+    Mcp::registerClientFor(
+        'notion',
+        fn (): Client => new Client($alpha),
+        scope: function () use (&$scope): int {
+            return $scope;
+        },
+    );
+
+    expect(Mcp::client('notion')->tools()->keys()->all())->toBe(['alpha-tool']);
+
+    $scope = 2;
+
+    expect(Mcp::client('notion')->tools()->keys()->all())->toBe(['beta-tool']);
+    expect($alpha->responses)->toBeEmpty();
+});
+
+it('still installs a fresh factory when an old client fails to disconnect', function (): void {
+    $broken = new ThrowingTransport;
+    $broken->responses[] = initializeResponse();
+
+    Mcp::registerClientFor('everything', fn (): Client => new Client($broken));
+    $first = Mcp::client('everything');
+    $first->connect();
+
+    $fresh = new FakeTransport;
+    $fresh->responses[] = initializeResponse();
+    Mcp::registerClientFor('everything', fn (): Client => new Client($fresh));
+
+    $second = Mcp::client('everything');
+    $second->connect();
+
+    expect($second)->not->toBe($first);
+    expect($fresh->connected)->toBeTrue();
+});
+
+it('refetches when the cached payload no longer validates', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = toolsResponse(2);
+
+    Mcp::registerClientFor('everything', fn (): Client => new Client($transport));
+
+    app(Repository::class)
+        ->put('mcp-list:everything:tools', [['not-a-valid' => 'tool-payload']], 3600);
+
+    expect(Mcp::client('everything')->tools()->keys()->all())->toBe(['add']);
+    expect($transport->responses)->toBeEmpty();
+});
+
+it('uses the auth identifier when a scope closure returns an Authenticatable', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = toolsResponse(2);
+
+    $user = new class implements Authenticatable
+    {
+        public function getAuthIdentifier(): int
+        {
+            return 42;
+        }
+
+        public function getAuthIdentifierName(): string
+        {
+            return 'id';
+        }
+
+        public function getAuthPassword(): string
+        {
+            return '';
+        }
+
+        public function getAuthPasswordName(): string
+        {
+            return 'password';
+        }
+
+        public function getRememberToken(): string
+        {
+            return '';
+        }
+
+        public function setRememberToken($value): void {}
+
+        public function getRememberTokenName(): string
+        {
+            return 'remember_token';
+        }
+    };
+
+    Mcp::registerClientFor(
+        'notion',
+        fn (): Client => new Client($transport),
+        scope: fn (): Authenticatable => $user,
+    );
+
+    Mcp::client('notion')->tools();
+
+    expect(app(Repository::class)->get('mcp-list:notion:tools:scope:42'))->toBeArray();
+});
+
+it('throws when the scope closure returns an unsupported type', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+
+    Mcp::registerClientFor(
+        'notion',
+        fn (): Client => new Client($transport),
+        scope: fn (): array => ['oops'],
+    );
+
+    expect(fn () => Mcp::client('notion')->tools())
+        ->toThrow(ClientException::class, 'MCP cache scope closure must return');
 });

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Closure;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Client\Cache\PrimitiveCache;
@@ -29,6 +31,9 @@ class Client
     protected ?string $registeredName = null;
 
     protected int|false $listCacheTtl = false;
+
+    /** @var ?Closure(): (string|int|Authenticatable|null) */
+    protected ?Closure $cacheScope = null;
 
     protected ?PrimitiveCache $resolvedCache = null;
 
@@ -64,10 +69,14 @@ class Client
         return $this;
     }
 
-    public function asRegisteredClient(string $name, int|false $cache): static
+    /**
+     * @param  ?Closure(): (string|int|Authenticatable|null)  $scope
+     */
+    public function asRegisteredClient(string $name, int|false $cache, ?Closure $scope = null): static
     {
         $this->registeredName = $name;
         $this->listCacheTtl = $cache;
+        $this->cacheScope = $scope;
 
         return $this;
     }
@@ -136,6 +145,7 @@ class Client
             cache: $container->make(Repository::class),
             name: $this->registeredName,
             ttl: $this->listCacheTtl,
+            scope: $this->cacheScope,
         );
     }
 
