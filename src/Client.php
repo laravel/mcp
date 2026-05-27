@@ -9,6 +9,7 @@ use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Collection;
+use Laravel\Mcp\Client\Auth\TokenSet;
 use Laravel\Mcp\Client\Cache\PrimitiveCache;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Methods\Ping;
@@ -128,6 +129,13 @@ class Client
     {
         $this->primitiveCache()?->flush();
     }
+
+    public function tokens(): ?TokenSet
+    {
+        return null;
+    }
+
+    public function forgetTokens(): void {}
 
     protected function primitiveCache(): ?PrimitiveCache
     {

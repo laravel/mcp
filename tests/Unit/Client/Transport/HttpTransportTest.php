@@ -6,6 +6,7 @@ use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client;
+use Laravel\Mcp\Client\Auth\WwwAuthenticateChallenge;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
@@ -309,4 +310,148 @@ it('surfaces a 404 during the initialize handshake as a normal error', function 
 
     expect(fn (): WebClient => Client::web('https://mcp.test/mcp')->connect())
         ->toThrow(ClientException::class, 'Unexpected HTTP status [404]');
+});
+
+it('invokes the token provider on every send', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $bearers = ['first', 'second'];
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withTokenProvider(function () use (&$bearers): string {
+        $bearer = array_shift($bearers);
+
+        return $bearer ?? 'last';
+    });
+
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping']));
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'ping']));
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer first'));
+    Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer second'));
+});
+
+it('replays a request once after a 401 with WWW-Authenticate', function (): void {
+    Http::fakeSequence()
+        ->push('', 401, ['WWW-Authenticate' => 'Bearer realm="MCP"'])
+        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json']);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withTokenProvider(fn (): string => 'stale');
+    $transport->withChallengeHandler(fn (WwwAuthenticateChallenge $challenge): string => 'refreshed');
+
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping']));
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer stale'));
+});
+
+it('replays a request once after a 403 insufficient_scope challenge', function (): void {
+    Http::fakeSequence()
+        ->push('', 403, ['WWW-Authenticate' => 'Bearer error="insufficient_scope", scope="mcp:write"'])
+        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json']);
+
+    $captured = null;
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withChallengeHandler(function (WwwAuthenticateChallenge $challenge) use (&$captured): string {
+        $captured = $challenge;
+
+        return 'upgraded';
+    });
+
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping']));
+
+    expect($captured?->scope)->toBe('mcp:write');
+});
+
+it('does not replay when the 403 lacks insufficient_scope', function (): void {
+    Http::fake(['*' => Http::response('', 403, ['WWW-Authenticate' => 'Bearer realm="MCP"'])]);
+
+    $called = 0;
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withChallengeHandler(function () use (&$called): string {
+        $called++;
+
+        return 'never';
+    });
+
+    expect(fn () => $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping'])))
+        ->toThrow(ClientException::class, 'Unexpected HTTP status [403]');
+    expect($called)->toBe(0);
+});
+
+it('treats a repeated 401 after a challenge replay as terminal', function (): void {
+    Http::fake(['*' => Http::response('', 401, ['WWW-Authenticate' => 'Bearer realm="MCP"'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withChallengeHandler(fn (WwwAuthenticateChallenge $challenge): string => 'next');
+
+    expect(fn () => $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping'])))
+        ->toThrow(ClientException::class, 'Unexpected HTTP status [401]');
+    Http::assertSentCount(2);
+});
+
+it('skips the challenge handler when the WWW-Authenticate header is absent', function (): void {
+    Http::fake(['*' => Http::response('', 401)]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $called = 0;
+    $transport->withChallengeHandler(function () use (&$called): string {
+        $called++;
+
+        return 'no';
+    });
+
+    expect(fn () => $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping'])))
+        ->toThrow(ClientException::class, 'Unexpected HTTP status [401]');
+    expect($called)->toBe(0);
+});
+
+it('uses the cached bearer resolver on the terminating DELETE, never the token provider', function (): void {
+    Http::fake(['*' => Http::response(
+        json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]),
+        200,
+        ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-term'],
+    )]);
+
+    $providerCalls = 0;
+    $cachedCalls = 0;
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withTokenProvider(function () use (&$providerCalls): string {
+        $providerCalls++;
+
+        return 'provider';
+    });
+    $transport->withCachedBearerResolver(function () use (&$cachedCalls): string {
+        $cachedCalls++;
+
+        return 'cached';
+    });
+
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize']));
+    $transport->receive();
+
+    $beforeDisconnectProvider = $providerCalls;
+    $transport->disconnect();
+
+    expect($providerCalls)->toBe($beforeDisconnectProvider)
+        ->and($cachedCalls)->toBeGreaterThanOrEqual(1);
+    Http::assertSent(fn ($request): bool => $request->method() === 'DELETE' && $request->hasHeader('Authorization', 'Bearer cached'));
+});
+
+it('omits the Authorization header on the terminating DELETE when no cached bearer is available', function (): void {
+    Http::fake(['*' => Http::response(
+        json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]),
+        200,
+        ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-nobearer'],
+    )]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withTokenProvider(fn (): string => 'never-on-delete');
+    $transport->withCachedBearerResolver(fn (): ?string => null);
+
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize']));
+    $transport->receive();
+    $transport->disconnect();
+
+    Http::assertSent(fn ($request): bool => $request->method() === 'DELETE' && ! $request->hasHeader('Authorization'));
 });
