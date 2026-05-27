@@ -169,22 +169,42 @@ class WebClient extends Client
         } catch (AuthorizationRequiredException $authorizationRequiredException) {
             $callback = $this->oauthConfig['onAuthRequired'] ?? null;
 
-            if (! $callback instanceof Closure) {
+            if ($callback instanceof Closure) {
+                $response = $callback($authorizationRequiredException);
+
+                if ($response instanceof Responsable) {
+                    $response = $response->toResponse(request());
+                }
+
+                if ($response instanceof SymfonyResponse) {
+                    throw new HttpResponseException($response);
+                }
+
                 throw $authorizationRequiredException;
             }
 
-            $response = $callback($authorizationRequiredException);
-
-            if ($response instanceof Responsable) {
-                $response = $response->toResponse(request());
-            }
-
-            if ($response instanceof SymfonyResponse) {
-                throw new HttpResponseException($response);
+            if ($this->canAutoRedirectToConnect()) {
+                throw new HttpResponseException(redirect()->route('mcp.oauth.connect', [
+                    'server' => $this->registeredName,
+                    'intended' => request()->fullUrl(),
+                ]));
             }
 
             throw $authorizationRequiredException;
         }
+    }
+
+    private function canAutoRedirectToConnect(): bool
+    {
+        if ($this->registeredName === null) {
+            return false;
+        }
+
+        if (! Container::getInstance()->bound('request')) {
+            return false;
+        }
+
+        return Router::has('mcp.oauth.connect');
     }
 
     private function oauthHandler(): OAuthHandler

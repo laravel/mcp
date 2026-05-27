@@ -40,6 +40,8 @@ class OAuthHandler
 
     protected bool $dynamic = false;
 
+    protected ?string $lastIntendedUrl = null;
+
     /**
      * @param  ?Closure(): string  $redirectUriResolver
      */
@@ -219,6 +221,8 @@ class OAuthHandler
             throw new OAuthException("OAuth state [{$state}] is invalid or expired.");
         }
 
+        $this->lastIntendedUrl = $payload['intended_url'] ?? null;
+
         $token = $this->runGrant(self::GRANT_AUTHORIZATION_CODE, [
             'code' => $code,
             'code_verifier' => $payload['pkce_verifier'],
@@ -229,6 +233,11 @@ class OAuthHandler
         $this->tokens->put($this->storageKey(), $token);
 
         return $token;
+    }
+
+    public function lastIntendedUrl(): ?string
+    {
+        return $this->lastIntendedUrl;
     }
 
     public function authorizationRequired(): AuthorizationRequiredException

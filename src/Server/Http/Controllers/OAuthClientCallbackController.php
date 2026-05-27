@@ -58,13 +58,11 @@ class OAuthClientCallbackController extends Controller
             return redirect()->to($this->errorUrl());
         }
 
-        return redirect()->to($this->successUrl());
+        return redirect()->to($this->successUrl($handler->lastIntendedUrl()));
     }
 
-    protected function successUrl(): string
+    protected function successUrl(?string $intended): string
     {
-        $intended = session()->pull('mcp.oauth.intended');
-
         if (is_string($intended) && $intended !== '') {
             return $intended;
         }

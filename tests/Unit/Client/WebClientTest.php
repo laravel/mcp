@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Auth\TokenSet;
 use Laravel\Mcp\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Exceptions\UserIdentityRequiredException;
+use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\WebClient;
 
 it('throws when withToken() is called after oauth()', function (): void {
@@ -149,6 +151,37 @@ it('invokes the onAuthRequired callback and wraps a Response in HttpResponseExce
     } catch (HttpResponseException $httpResponseException) {
         expect($httpResponseException->getResponse()->getStatusCode())->toBe(302)
             ->and($httpResponseException->getResponse()->headers->get('Location'))->toStartWith('https://auth.example.com/authorize?');
+    }
+});
+
+it('auto-redirects to the connect route when oauthClientRoutes() is registered and no callback is configured', function (): void {
+    Mcp::oauthClientRoutes();
+    Route::getRoutes()->refreshNameLookups();
+
+    Http::fake([
+        'https://mcp.example.com/.well-known/oauth-protected-resource*' => Http::response(json_encode([
+            'resource' => 'https://mcp.example.com/mcp',
+            'authorization_servers' => ['https://auth.example.com'],
+        ]), 200, ['Content-Type' => 'application/json']),
+        'https://auth.example.com/.well-known/oauth-authorization-server*' => Http::response(json_encode([
+            'issuer' => 'https://auth.example.com',
+            'token_endpoint' => 'https://auth.example.com/token',
+            'authorization_endpoint' => 'https://auth.example.com/authorize',
+            'code_challenge_methods_supported' => ['S256'],
+        ]), 200, ['Content-Type' => 'application/json']),
+    ]);
+
+    Mcp::registerClient('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->oauth('cid-1')
+    );
+
+    config(['cache.default' => 'array']);
+
+    try {
+        Mcp::client('notion')->tools();
+        $this->fail('Expected HttpResponseException with a redirect to mcp.oauth.connect');
+    } catch (HttpResponseException $httpResponseException) {
+        $location = $httpResponseException->getResponse()->headers->get('Location');
+        expect($location)->toContain('/mcp/notion/connect');
     }
 });
 
