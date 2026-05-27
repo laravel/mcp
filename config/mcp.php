@@ -53,6 +53,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Client Defaults
+    |--------------------------------------------------------------------------
+    |
+    | The default configuration applied to any MCP client registered through the
+    | `Mcp::registerClient()` helper when no explicit value has been given.
+    | Set `cache_ttl` value to `0` to disable list caching globally.
+    |
+    */
+
+    'client' => [
+        'cache_ttl' => 3600,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | OAuth Client Redirect URLs
     |--------------------------------------------------------------------------
     |
@@ -66,10 +81,6 @@ return [
     'oauth' => [
         'success_url' => '/',
         'error_url' => '/',
-    ],
-
-    'clients' => [
-
     ],
 
 ];

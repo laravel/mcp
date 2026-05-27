@@ -10,7 +10,7 @@ use Laravel\Mcp\Server\Registrar;
 /**
  * @method static \Illuminate\Routing\Route web(string $route, string $serverClass)
  * @method static void local(string $handle, string $serverClass)
- * @method static void registerClientFor(string $name, \Closure $factory, int|false $cache = 3600, ?\Closure $scope = null)
+ * @method static void registerClient(string $name, \Closure $factory, ?int $cache = null, ?\Closure $scope = null)
  * @method static \Laravel\Mcp\Client client(string $name)
  * @method static callable|null getLocalServer(string $handle)
  * @method static \Illuminate\Routing\Route|null getWebServer(string $route)

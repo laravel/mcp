@@ -38,7 +38,7 @@ function fakeAuthorizationCodeDiscovery(): void
 it('connects to a registered MCP client by redirecting to the authorization server', function (): void {
     fakeAuthorizationCodeDiscovery();
 
-    Mcp::registerClientFor('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->oauth('cid-1')
+    Mcp::registerClient('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->oauth('cid-1')
     );
 
     $response = $this->get('/mcp/notion/connect');
@@ -53,7 +53,7 @@ it('returns 404 when connecting to an unregistered MCP client', function (): voi
 });
 
 it('returns 404 when connecting to a client_credentials MCP client', function (): void {
-    Mcp::registerClientFor('m2m', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->oauth('cid', 'secret')
+    Mcp::registerClient('m2m', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->oauth('cid', 'secret')
     );
 
     $this->get('/mcp/m2m/connect')->assertNotFound();
@@ -75,7 +75,7 @@ it('completes the callback by exchanging the code for a token', function (): voi
 
     $guzzle = new GuzzleClient(['handler' => $stack]);
 
-    Mcp::registerClientFor('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')
+    Mcp::registerClient('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')
         ->oauth('cid-1')
         ->withOauthHttpClient($guzzle)
     );
@@ -95,7 +95,7 @@ it('completes the callback by exchanging the code for a token', function (): voi
 });
 
 it('redirects with an error when the callback receives error parameters', function (): void {
-    Mcp::registerClientFor('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->oauth('cid-1')
+    Mcp::registerClient('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->oauth('cid-1')
     );
 
     $response = $this->get('/mcp/notion/callback?error=access_denied&error_description=user+rejected');
@@ -106,7 +106,7 @@ it('redirects with an error when the callback receives error parameters', functi
 });
 
 it('redirects with an error when the callback is missing code or state', function (): void {
-    Mcp::registerClientFor('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->oauth('cid-1')
+    Mcp::registerClient('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->oauth('cid-1')
     );
 
     $response = $this->get('/mcp/notion/callback');

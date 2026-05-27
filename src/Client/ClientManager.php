@@ -6,37 +6,39 @@ namespace Laravel\Mcp\Client;
 
 use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Traits\Macroable;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Exceptions\ClientException;
-use Throwable;
 
 class ClientManager
 {
-    public const DEFAULT_CACHE_TTL = 3600;
+    use Macroable;
 
     /** @var array<string, Closure(): Client> */
     protected array $factories = [];
 
     /** @var array<string, Client> */
-    protected array $resolved = [];
+    protected array $clients = [];
 
     /**
      * @param  Closure(): Client  $factory
      * @param  ?Closure(): (string|int|Authenticatable|null)  $scope
      */
-    public function registerClientFor(
+    public function registerClient(
         string $name,
         Closure $factory,
-        int|false $cache = self::DEFAULT_CACHE_TTL,
+        ?int $cache = null,
         ?Closure $scope = null,
     ): void {
-        if (isset($this->resolved[$name])) {
+        $cache ??= (int) config('mcp.client.cache_ttl', 3600);
+
+        if (isset($this->clients[$name])) {
             try {
-                $this->resolved[$name]->disconnect();
-            } catch (Throwable) {
+                $this->clients[$name]->disconnect();
+            } catch (ClientException) {
             }
 
-            unset($this->resolved[$name]);
+            unset($this->clients[$name]);
         }
 
         $this->factories[$name] = fn (): Client => $factory()->asRegisteredClient($name, $cache, $scope);
@@ -48,18 +50,18 @@ class ClientManager
             throw new ClientException("MCP client [{$name}] has not been registered.");
         }
 
-        return $this->resolved[$name] ??= ($this->factories[$name])();
+        return $this->clients[$name] ??= ($this->factories[$name])();
     }
 
     public function disconnectAll(): void
     {
-        foreach ($this->resolved as $client) {
+        foreach ($this->clients as $client) {
             try {
                 $client->disconnect();
-            } catch (Throwable) {
+            } catch (ClientException) {
             }
         }
 
-        $this->resolved = [];
+        $this->clients = [];
     }
 }
