@@ -38,13 +38,15 @@ class OAuthHandler
 
     protected bool $challengeRetried = false;
 
+    protected bool $dynamic = false;
+
     /**
      * @param  ?Closure(): string  $redirectUriResolver
      */
     public function __construct(
         protected ?string $registeredName,
         protected string $mcpUrl,
-        protected string $clientId,
+        protected ?string $clientId,
         protected ?string $clientSecret,
         protected ?string $configuredScope,
         protected TokenStore $tokens,
@@ -53,11 +55,15 @@ class OAuthHandler
         protected ?OAuthClientStateStore $stateStore = null,
         protected ?Closure $redirectUriResolver = null,
         protected ?string $userKey = null,
-    ) {}
+        protected ?ClientRegistrationStore $registrationStore = null,
+        protected ?DynamicClientRegistration $dynamicRegistration = null,
+    ) {
+        $this->dynamic = $clientId === null;
+    }
 
     public function isAuthorizationCode(): bool
     {
-        return $this->clientSecret === null;
+        return $this->dynamic || $this->clientSecret === null;
     }
 
     public function bearerToken(): string
@@ -157,6 +163,8 @@ class OAuthHandler
         if (! $authServer->supportsPkceS256()) {
             throw new PkceUnsupportedException($authServer->issuer);
         }
+
+        $this->ensureRegistered();
 
         $pkce = Pkce::generate();
         $state = bin2hex(random_bytes(16));
@@ -318,6 +326,7 @@ class OAuthHandler
         }
 
         $authServer = $this->ensureDiscovered();
+        $this->ensureRegistered();
 
         $options = [
             'clientId' => $this->clientId,
@@ -347,6 +356,55 @@ class OAuthHandler
         return $this->authServer = $this->discovery->discoverAuthServer(
             $this->protectedResource->primaryAuthorizationServer(),
         );
+    }
+
+    protected function ensureRegistered(): void
+    {
+        if (! $this->dynamic) {
+            return;
+        }
+
+        if ($this->clientId !== null && $this->clientId !== '') {
+            return;
+        }
+
+        $registry = $this->registrationStore;
+        $registryKey = $this->registrationKey();
+
+        if ($registry instanceof ClientRegistrationStore) {
+            $cached = $registry->get($registryKey);
+
+            if ($cached instanceof ClientRegistration && ! $cached->isSecretExpired()) {
+                $this->clientId = $cached->clientId;
+                $this->clientSecret = $cached->clientSecret;
+
+                return;
+            }
+        }
+
+        $authServer = $this->ensureDiscovered();
+
+        if (! $authServer->supportsDynamicRegistration()) {
+            throw new OAuthException("Authorization server [{$authServer->issuer}] does not advertise a registration_endpoint; cannot dynamically register MCP client [{$this->serverLabel()}].");
+        }
+
+        $dcr = $this->dynamicRegistration ?? new DynamicClientRegistration;
+
+        $registration = $dcr->register((string) $authServer->registrationEndpoint, [
+            'redirect_uris' => [$this->resolveRedirectUri()],
+            'scope' => $this->resolveScope(),
+            'public_client' => true,
+        ]);
+
+        $this->clientId = $registration->clientId;
+        $this->clientSecret = $registration->clientSecret;
+
+        $registry?->put($registryKey, $registration);
+    }
+
+    protected function registrationKey(): string
+    {
+        return 'mcp-client:'.($this->registeredName ?? 'inline');
     }
 
     protected function canonicalResource(): string

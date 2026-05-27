@@ -11,6 +11,8 @@ use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client\Auth\AuthServerDiscovery;
+use Laravel\Mcp\Client\Auth\ClientRegistration;
+use Laravel\Mcp\Client\Auth\InMemoryClientRegistrationStore;
 use Laravel\Mcp\Client\Auth\InMemoryTokenStore;
 use Laravel\Mcp\Client\Auth\OAuthClientStateStore;
 use Laravel\Mcp\Client\Auth\OAuthHandler;
@@ -661,4 +663,127 @@ it('canonicalizes the resource parameter (lowercase scheme/host, no trailing sla
 
     parse_str((string) $history[0]['request']->getBody(), $body);
     expect($body['resource'])->toBe('https://mcp.example.com/mcp');
+});
+
+it('dynamically registers when oauth() is called without a client_id', function (): void {
+    Http::fake([
+        'https://mcp.example.com/.well-known/oauth-protected-resource*' => Http::response(json_encode([
+            'resource' => 'https://mcp.example.com/mcp',
+            'authorization_servers' => ['https://auth.example.com'],
+        ]), 200, ['Content-Type' => 'application/json']),
+        'https://auth.example.com/.well-known/oauth-authorization-server*' => Http::response(json_encode([
+            'issuer' => 'https://auth.example.com',
+            'token_endpoint' => 'https://auth.example.com/token',
+            'authorization_endpoint' => 'https://auth.example.com/authorize',
+            'code_challenge_methods_supported' => ['S256'],
+            'registration_endpoint' => 'https://auth.example.com/register',
+        ]), 200, ['Content-Type' => 'application/json']),
+        'https://auth.example.com/register' => Http::response(json_encode([
+            'client_id' => 'cid-dyn',
+        ]), 201, ['Content-Type' => 'application/json']),
+    ]);
+
+    $registry = new InMemoryClientRegistrationStore;
+
+    $handler = new OAuthHandler(
+        registeredName: 'nightwatch',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: null,
+        clientSecret: null,
+        configuredScope: null,
+        tokens: new InMemoryTokenStore,
+        discovery: new AuthServerDiscovery,
+        stateStore: makeStateStore(),
+        redirectUriResolver: fn (): string => 'https://app.example.com/mcp/nightwatch/callback',
+        registrationStore: $registry,
+    );
+
+    $redirect = $handler->startAuthorization();
+
+    parse_str((string) parse_url($redirect->url, PHP_URL_QUERY), $query);
+    expect($query['client_id'])->toBe('cid-dyn');
+
+    expect($registry->get('mcp-client:nightwatch'))->not->toBeNull()
+        ->and($registry->get('mcp-client:nightwatch')->clientId)->toBe('cid-dyn');
+
+    Http::assertSent(function ($request): bool {
+        if ((string) $request->url() !== 'https://auth.example.com/register') {
+            return false;
+        }
+
+        $body = json_decode((string) $request->body(), true);
+
+        return $body['token_endpoint_auth_method'] === 'none'
+            && $body['redirect_uris'] === ['https://app.example.com/mcp/nightwatch/callback'];
+    });
+});
+
+it('reuses a cached registration without re-registering', function (): void {
+    Http::fake([
+        'https://mcp.example.com/.well-known/oauth-protected-resource*' => Http::response(json_encode([
+            'resource' => 'https://mcp.example.com/mcp',
+            'authorization_servers' => ['https://auth.example.com'],
+        ]), 200, ['Content-Type' => 'application/json']),
+        'https://auth.example.com/.well-known/oauth-authorization-server*' => Http::response(json_encode([
+            'issuer' => 'https://auth.example.com',
+            'token_endpoint' => 'https://auth.example.com/token',
+            'authorization_endpoint' => 'https://auth.example.com/authorize',
+            'code_challenge_methods_supported' => ['S256'],
+            'registration_endpoint' => 'https://auth.example.com/register',
+        ]), 200, ['Content-Type' => 'application/json']),
+    ]);
+
+    $registry = new InMemoryClientRegistrationStore;
+    $registry->put('mcp-client:nightwatch', new ClientRegistration('cid-cached'));
+
+    $handler = new OAuthHandler(
+        registeredName: 'nightwatch',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: null,
+        clientSecret: null,
+        configuredScope: null,
+        tokens: new InMemoryTokenStore,
+        discovery: new AuthServerDiscovery,
+        stateStore: makeStateStore(),
+        redirectUriResolver: fn (): string => 'https://app.example.com/mcp/nightwatch/callback',
+        registrationStore: $registry,
+    );
+
+    $redirect = $handler->startAuthorization();
+    parse_str((string) parse_url($redirect->url, PHP_URL_QUERY), $query);
+
+    expect($query['client_id'])->toBe('cid-cached');
+
+    Http::assertNotSent(fn ($request): bool => (string) $request->url() === 'https://auth.example.com/register');
+});
+
+it('throws OAuthException when DCR is requested but the AS does not advertise registration_endpoint', function (): void {
+    Http::fake([
+        'https://mcp.example.com/.well-known/oauth-protected-resource*' => Http::response(json_encode([
+            'resource' => 'https://mcp.example.com/mcp',
+            'authorization_servers' => ['https://auth.example.com'],
+        ]), 200, ['Content-Type' => 'application/json']),
+        'https://auth.example.com/.well-known/oauth-authorization-server*' => Http::response(json_encode([
+            'issuer' => 'https://auth.example.com',
+            'token_endpoint' => 'https://auth.example.com/token',
+            'authorization_endpoint' => 'https://auth.example.com/authorize',
+            'code_challenge_methods_supported' => ['S256'],
+        ]), 200, ['Content-Type' => 'application/json']),
+    ]);
+
+    $handler = new OAuthHandler(
+        registeredName: 'nightwatch',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: null,
+        clientSecret: null,
+        configuredScope: null,
+        tokens: new InMemoryTokenStore,
+        discovery: new AuthServerDiscovery,
+        stateStore: makeStateStore(),
+        redirectUriResolver: fn (): string => 'https://app.example.com/cb',
+        registrationStore: new InMemoryClientRegistrationStore,
+    );
+
+    expect(fn (): mixed => $handler->startAuthorization())
+        ->toThrow(OAuthException::class, 'does not advertise a registration_endpoint');
 });

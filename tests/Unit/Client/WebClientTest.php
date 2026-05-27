@@ -152,6 +152,20 @@ it('invokes the onAuthRequired callback and wraps a Response in HttpResponseExce
     }
 });
 
+it('allows oauth() without a client_id (dynamic client registration)', function (): void {
+    $client = Client::web('https://mcp.example.com/mcp')->oauth();
+
+    expect($client)->toBeInstanceOf(WebClient::class)
+        ->and($client->needsAuthorization())->toBeTrue();
+});
+
+it('throws when oauth() is called with a secret but no client_id', function (): void {
+    $client = Client::web('https://mcp.example.com/mcp');
+
+    expect(fn (): WebClient => $client->oauth(null, 'secret'))
+        ->toThrow(InvalidArgumentException::class, 'Dynamic client registration cannot be combined with a client secret');
+});
+
 it('rethrows AuthorizationRequiredException when onAuthRequired returns nothing', function (): void {
     Http::fake([
         'https://mcp.example.com/.well-known/oauth-protected-resource*' => Http::response(json_encode([

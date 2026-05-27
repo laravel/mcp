@@ -201,6 +201,7 @@ class AuthServerDiscovery
             authorizationEndpoint: isset($data['authorization_endpoint']) ? (string) $data['authorization_endpoint'] : null,
             grantTypesSupported: $this->toStringList($data['grant_types_supported'] ?? []),
             codeChallengeMethodsSupported: $this->toStringList($data['code_challenge_methods_supported'] ?? []),
+            registrationEndpoint: isset($data['registration_endpoint']) && $data['registration_endpoint'] !== '' ? (string) $data['registration_endpoint'] : null,
         );
     }
 

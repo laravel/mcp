@@ -16,10 +16,16 @@ class AuthServerMetadata
         public ?string $authorizationEndpoint = null,
         public array $grantTypesSupported = [],
         public array $codeChallengeMethodsSupported = [],
+        public ?string $registrationEndpoint = null,
     ) {}
 
     public function supportsPkceS256(): bool
     {
         return in_array('S256', $this->codeChallengeMethodsSupported, true);
+    }
+
+    public function supportsDynamicRegistration(): bool
+    {
+        return $this->registrationEndpoint !== null && $this->registrationEndpoint !== '';
     }
 }

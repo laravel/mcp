@@ -15,7 +15,10 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Route as Router;
 use InvalidArgumentException;
 use Laravel\Mcp\Client\Auth\AuthServerDiscovery;
+use Laravel\Mcp\Client\Auth\CacheClientRegistrationStore;
 use Laravel\Mcp\Client\Auth\CacheTokenStore;
+use Laravel\Mcp\Client\Auth\ClientRegistrationStore;
+use Laravel\Mcp\Client\Auth\InMemoryClientRegistrationStore;
 use Laravel\Mcp\Client\Auth\InMemoryTokenStore;
 use Laravel\Mcp\Client\Auth\OAuthClientStateStore;
 use Laravel\Mcp\Client\Auth\OAuthHandler;
@@ -33,7 +36,7 @@ class WebClient extends Client
 {
     protected ?OAuthHandler $oauthHandler = null;
 
-    /** @var ?array{clientId: string, clientSecret: ?string, scope: ?string, onAuthRequired: ?Closure} */
+    /** @var ?array{clientId: ?string, clientSecret: ?string, scope: ?string, onAuthRequired: ?Closure} */
     protected ?array $oauthConfig = null;
 
     protected bool $staticTokenSet = false;
@@ -62,7 +65,7 @@ class WebClient extends Client
     }
 
     public function oauth(
-        string $clientId,
+        ?string $clientId = null,
         ?string $clientSecret = null,
         ?string $scope = null,
         ?Closure $onAuthRequired = null,
@@ -73,6 +76,10 @@ class WebClient extends Client
 
         if ($this->oauthConfig !== null) {
             throw new InvalidArgumentException('OAuth has already been configured for this client.');
+        }
+
+        if ($clientId === null && $clientSecret !== null) {
+            throw new InvalidArgumentException('Dynamic client registration cannot be combined with a client secret.');
         }
 
         $this->oauthConfig = [
@@ -210,6 +217,7 @@ class WebClient extends Client
                     : (string) url('/mcp/'.$this->registeredName.'/callback')
                 : null,
             userKey: $userKey,
+            registrationStore: $this->resolveRegistrationStore(),
         );
     }
 
@@ -271,5 +279,35 @@ class WebClient extends Client
         }
 
         return new OAuthClientStateStore($container->make(Repository::class));
+    }
+
+    protected function resolveRegistrationStore(): ClientRegistrationStore
+    {
+        if ($this->registeredName === null) {
+            return new InMemoryClientRegistrationStore;
+        }
+
+        $container = Container::getInstance();
+
+        if (! $container->bound(Repository::class)) {
+            return new InMemoryClientRegistrationStore;
+        }
+
+        try {
+            $crypt = $container->bound(StringEncrypter::class)
+                ? $container->make(StringEncrypter::class)
+                : ($container->bound('encrypter') ? $container->make('encrypter') : null);
+        } catch (Throwable) {
+            return new InMemoryClientRegistrationStore;
+        }
+
+        if (! $crypt instanceof StringEncrypter) {
+            return new InMemoryClientRegistrationStore;
+        }
+
+        return new CacheClientRegistrationStore(
+            cache: $container->make(Repository::class),
+            crypt: $crypt,
+        );
     }
 }
