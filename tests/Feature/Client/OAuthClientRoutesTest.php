@@ -14,7 +14,10 @@ use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\WebClient;
 
 beforeEach(function (): void {
-    config(['cache.default' => 'array']);
+    config([
+        'cache.default' => 'array',
+        'app.key' => 'base64:'.base64_encode(random_bytes(32)),
+    ]);
     Mcp::oauthClientRoutes();
     Route::getRoutes()->refreshNameLookups();
 });
