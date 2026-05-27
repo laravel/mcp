@@ -17,7 +17,7 @@ class ClientManager
     protected array $factories = [];
 
     /** @var array<string, Client> */
-    protected array $resolved = [];
+    protected array $clients = [];
 
     /**
      * @param  Closure(): Client  $factory
@@ -29,13 +29,13 @@ class ClientManager
         int|false $cache = self::DEFAULT_CACHE_TTL,
         ?Closure $scope = null,
     ): void {
-        if (isset($this->resolved[$name])) {
+        if (isset($this->clients[$name])) {
             try {
-                $this->resolved[$name]->disconnect();
+                $this->clients[$name]->disconnect();
             } catch (ClientException) {
             }
 
-            unset($this->resolved[$name]);
+            unset($this->clients[$name]);
         }
 
         $this->factories[$name] = fn (): Client => $factory()->asRegisteredClient($name, $cache, $scope);
@@ -47,18 +47,18 @@ class ClientManager
             throw new ClientException("MCP client [{$name}] has not been registered.");
         }
 
-        return $this->resolved[$name] ??= ($this->factories[$name])();
+        return $this->clients[$name] ??= ($this->factories[$name])();
     }
 
     public function disconnectAll(): void
     {
-        foreach ($this->resolved as $client) {
+        foreach ($this->clients as $client) {
             try {
                 $client->disconnect();
             } catch (ClientException) {
             }
         }
 
-        $this->resolved = [];
+        $this->clients = [];
     }
 }
