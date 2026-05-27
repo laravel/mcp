@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Schema;
+namespace Laravel\Mcp\Client\Schema;
 
-use Laravel\Mcp\Client\Exceptions\ClientException;
+use Illuminate\Support\Arr;
 use Laravel\Mcp\Enums\ProtocolVersion;
+use Laravel\Mcp\Exceptions\ClientException;
+use Laravel\Mcp\Schema\Implementation;
 
 class InitializeResult
 {
@@ -26,20 +28,22 @@ class InitializeResult
      */
     public static function from(array $payload): self
     {
-        $protocolVersion = $payload['protocolVersion'] ?? null;
-        $capabilities = $payload['capabilities'] ?? null;
-        $serverInfo = $payload['serverInfo'] ?? null;
+        $protocolVersion = Arr::get($payload, 'protocolVersion');
+        $capabilities = Arr::get($payload, 'capabilities');
+        /** @var array{name: string, version: string, title?: string, description?: string, icons?: array<int, array{src: string, mimeType?: string, sizes?: array<string>, theme?: string}>, websiteUrl?: string} $serverInfo */
+        $serverInfo = Arr::get($payload, 'serverInfo');
+        $serverName = Arr::get($serverInfo, 'name');
+        $serverVersion = Arr::get($serverInfo, 'version');
+        $instructions = Arr::get($payload, 'instructions');
 
         if (! is_string($protocolVersion)
             || ! in_array($protocolVersion, ProtocolVersion::supported(), true)
             || ! is_array($capabilities)
             || ! is_array($serverInfo)
-            || ! is_string($serverInfo['name'] ?? null)
-            || ! is_string($serverInfo['version'] ?? null)) {
+            || ! is_string($serverName)
+            || ! is_string($serverVersion)) {
             throw new ClientException('Invalid initialize response from server.');
         }
-
-        $instructions = $payload['instructions'] ?? null;
 
         return new self(
             protocolVersion: $protocolVersion,
