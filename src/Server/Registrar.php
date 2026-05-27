@@ -15,6 +15,8 @@ use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Transport;
+use Laravel\Mcp\Server\Http\Controllers\OAuthClientCallbackController;
+use Laravel\Mcp\Server\Http\Controllers\OAuthClientConnectController;
 use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController;
 use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
 use Laravel\Mcp\Server\Middleware\ReorderJsonAccept;
@@ -133,6 +135,20 @@ class Registrar
             ->name('mcp.oauth.authorization-server.nested');
 
         Router::post($oauthPrefix.'/register', OAuthRegisterController::class);
+    }
+
+    /**
+     * @param  array<int, string>  $middleware
+     */
+    public function oauthClientRoutes(string $prefix = 'mcp', array $middleware = ['web']): void
+    {
+        Router::group(['middleware' => $middleware, 'prefix' => $prefix], static function (): void {
+            Router::get('{server}/connect', OAuthClientConnectController::class)
+                ->name('mcp.oauth.connect');
+
+            Router::get('{server}/callback', OAuthClientCallbackController::class)
+                ->name('mcp.oauth.callback');
+        });
     }
 
     /**

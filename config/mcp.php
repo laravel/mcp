@@ -51,4 +51,25 @@ return [
 
     'authorization_server' => null,
 
+    /*
+    |--------------------------------------------------------------------------
+    | OAuth Client Redirect URLs
+    |--------------------------------------------------------------------------
+    |
+    | These URLs are used by the MCP client OAuth callback flow. After a user
+    | successfully connects (or fails to connect) an external MCP server, the
+    | package will redirect them to one of these URLs. The success URL is also
+    | overridden by any value stored in `session('mcp.oauth.intended')`.
+    |
+    */
+
+    'oauth' => [
+        'success_url' => '/',
+        'error_url' => '/',
+    ],
+
+    'clients' => [
+
+    ],
+
 ];

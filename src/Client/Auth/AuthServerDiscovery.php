@@ -96,17 +96,18 @@ class AuthServerDiscovery
         ['origin' => $origin, 'path' => $path] = $this->parseOriginAndPath($issuer);
         $issuerNoSlash = rtrim($issuer, '/');
 
-        $candidates = [];
-
-        if ($path !== '') {
-            $candidates[] = $origin.'/.well-known/oauth-authorization-server'.$path;
-            $candidates[] = $origin.'/.well-known/openid-configuration'.$path;
+        if ($path === '') {
+            return [
+                $issuerNoSlash.'/.well-known/oauth-authorization-server',
+                $issuerNoSlash.'/.well-known/openid-configuration',
+            ];
         }
 
-        $candidates[] = $issuerNoSlash.'/.well-known/oauth-authorization-server';
-        $candidates[] = $issuerNoSlash.'/.well-known/openid-configuration';
-
-        return array_values(array_unique($candidates));
+        return [
+            $origin.'/.well-known/oauth-authorization-server'.$path,
+            $origin.'/.well-known/openid-configuration'.$path,
+            $issuerNoSlash.'/.well-known/openid-configuration',
+        ];
     }
 
     /**
@@ -134,11 +135,13 @@ class AuthServerDiscovery
             throw new DiscoveryException("Invalid discovery URL [{$url}].");
         }
 
-        if ($parts['scheme'] === 'https') {
+        $scheme = strtolower($parts['scheme']);
+
+        if ($scheme === 'https') {
             return;
         }
 
-        if ($parts['scheme'] === 'http' && $this->isLoopbackHost($parts['host'])) {
+        if ($scheme === 'http' && $this->isLoopbackHost($parts['host'])) {
             return;
         }
 

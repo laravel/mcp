@@ -17,4 +17,9 @@ class AuthServerMetadata
         public array $grantTypesSupported = [],
         public array $codeChallengeMethodsSupported = [],
     ) {}
+
+    public function supportsPkceS256(): bool
+    {
+        return in_array('S256', $this->codeChallengeMethodsSupported, true);
+    }
 }

@@ -7,28 +7,48 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response as PsrResponse;
+use Illuminate\Cache\ArrayStore;
+use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client\Auth\AuthServerDiscovery;
 use Laravel\Mcp\Client\Auth\InMemoryTokenStore;
+use Laravel\Mcp\Client\Auth\OAuthClientStateStore;
 use Laravel\Mcp\Client\Auth\OAuthHandler;
 use Laravel\Mcp\Client\Auth\TokenSet;
 use Laravel\Mcp\Client\Auth\WwwAuthenticateChallenge;
+use Laravel\Mcp\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Exceptions\OAuthException;
+use Laravel\Mcp\Exceptions\PkceUnsupportedException;
 
-function fakeDiscovery(): void
+function fakeDiscovery(bool $withPkce = false, bool $withAuthorizationEndpoint = false): void
 {
+    $asPayload = [
+        'issuer' => 'https://auth.example.com',
+        'token_endpoint' => 'https://auth.example.com/token',
+        'grant_types_supported' => ['client_credentials', 'authorization_code', 'refresh_token'],
+    ];
+
+    if ($withPkce) {
+        $asPayload['code_challenge_methods_supported'] = ['S256'];
+    }
+
+    if ($withAuthorizationEndpoint) {
+        $asPayload['authorization_endpoint'] = 'https://auth.example.com/authorize';
+    }
+
     Http::fake([
         'https://mcp.example.com/.well-known/oauth-protected-resource*' => Http::response(json_encode([
             'resource' => 'https://mcp.example.com/mcp',
             'authorization_servers' => ['https://auth.example.com'],
             'scopes_supported' => ['mcp:read'],
         ]), 200, ['Content-Type' => 'application/json']),
-        'https://auth.example.com/.well-known/oauth-authorization-server*' => Http::response(json_encode([
-            'issuer' => 'https://auth.example.com',
-            'token_endpoint' => 'https://auth.example.com/token',
-            'grant_types_supported' => ['client_credentials', 'refresh_token'],
-        ]), 200, ['Content-Type' => 'application/json']),
+        'https://auth.example.com/.well-known/oauth-authorization-server*' => Http::response(json_encode($asPayload), 200, ['Content-Type' => 'application/json']),
     ]);
+}
+
+function makeStateStore(): OAuthClientStateStore
+{
+    return new OAuthClientStateStore(new CacheRepository(new ArrayStore(serializesValues: true)));
 }
 
 /**
@@ -365,4 +385,280 @@ it('uses the inline storage key when no registered name is set', function (): vo
     $handler->bearerToken();
 
     expect($store->get('mcp-auth:inline'))->not->toBeNull();
+});
+
+it('uses a user-scoped storage key when a user key is set', function (): void {
+    fakeDiscovery();
+
+    $guzzle = makeGuzzleClient([tokenResponse('per-user')]);
+    $store = new InMemoryTokenStore;
+
+    $handler = new OAuthHandler(
+        registeredName: 'notion',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: 'id',
+        clientSecret: 'secret',
+        configuredScope: 'mcp:read',
+        tokens: $store,
+        discovery: new AuthServerDiscovery,
+        httpClient: $guzzle,
+        userKey: '42',
+    );
+
+    $handler->bearerToken();
+
+    expect($store->get('mcp-auth:notion:user:42'))->not->toBeNull()
+        ->and($store->get('mcp-auth:notion'))->toBeNull();
+});
+
+it('reports needsAuthorization() true for an authorization_code client without a cached token', function (): void {
+    $handler = new OAuthHandler(
+        registeredName: 'notion',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: 'id',
+        clientSecret: null,
+        configuredScope: null,
+        tokens: new InMemoryTokenStore,
+        discovery: new AuthServerDiscovery,
+    );
+
+    expect($handler->needsAuthorization())->toBeTrue()
+        ->and($handler->isAuthorizationCode())->toBeTrue();
+});
+
+it('reports needsAuthorization() false once a token is cached even if expired', function (): void {
+    $store = new InMemoryTokenStore;
+    $store->put('mcp-auth:notion', new TokenSet('stale', 'refresh-1', time() - 60, null));
+
+    $handler = new OAuthHandler(
+        registeredName: 'notion',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: 'id',
+        clientSecret: null,
+        configuredScope: null,
+        tokens: $store,
+        discovery: new AuthServerDiscovery,
+    );
+
+    expect($handler->needsAuthorization())->toBeFalse();
+});
+
+it('reports needsAuthorization() false for client_credentials clients', function (): void {
+    $handler = new OAuthHandler(
+        registeredName: 'notion',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: 'id',
+        clientSecret: 'secret',
+        configuredScope: null,
+        tokens: new InMemoryTokenStore,
+        discovery: new AuthServerDiscovery,
+    );
+
+    expect($handler->needsAuthorization())->toBeFalse();
+});
+
+it('builds an authorization URL with PKCE, state, and the resource parameter', function (): void {
+    fakeDiscovery(withPkce: true, withAuthorizationEndpoint: true);
+
+    $stateStore = makeStateStore();
+
+    $handler = new OAuthHandler(
+        registeredName: 'notion',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: 'cid-123',
+        clientSecret: null,
+        configuredScope: 'mcp:read mcp:write',
+        tokens: new InMemoryTokenStore,
+        discovery: new AuthServerDiscovery,
+        stateStore: $stateStore,
+        redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
+    );
+
+    $redirect = $handler->startAuthorization(intendedUrl: '/dashboard');
+
+    expect($redirect->url)->toStartWith('https://auth.example.com/authorize?');
+    parse_str((string) parse_url($redirect->url, PHP_URL_QUERY), $query);
+    expect($query)->toHaveKey('response_type', 'code')
+        ->and($query)->toHaveKey('client_id', 'cid-123')
+        ->and($query)->toHaveKey('code_challenge_method', 'S256')
+        ->and($query)->toHaveKey('resource', 'https://mcp.example.com/mcp')
+        ->and($query)->toHaveKey('scope', 'mcp:read mcp:write')
+        ->and($query['state'])->toBe($redirect->state);
+
+    $payload = $stateStore->pull($redirect->state);
+    expect($payload)->not->toBeNull()
+        ->and($payload['intended_url'])->toBe('/dashboard')
+        ->and($payload['pkce_verifier'])->toBeString();
+});
+
+it('refuses to start authorization_code when the AS does not advertise S256 PKCE', function (): void {
+    fakeDiscovery(withPkce: false, withAuthorizationEndpoint: true);
+
+    $handler = new OAuthHandler(
+        registeredName: 'notion',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: 'cid-123',
+        clientSecret: null,
+        configuredScope: null,
+        tokens: new InMemoryTokenStore,
+        discovery: new AuthServerDiscovery,
+        stateStore: makeStateStore(),
+        redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
+    );
+
+    expect(fn (): mixed => $handler->startAuthorization())
+        ->toThrow(PkceUnsupportedException::class);
+});
+
+it('completes the authorization_code flow by exchanging the code for a token', function (): void {
+    fakeDiscovery(withPkce: true, withAuthorizationEndpoint: true);
+
+    $history = [];
+    $guzzle = makeGuzzleClient([tokenResponse('user-access', 'user-refresh')], $history);
+
+    $stateStore = makeStateStore();
+
+    $handler = new OAuthHandler(
+        registeredName: 'notion',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: 'cid-123',
+        clientSecret: null,
+        configuredScope: 'mcp:read',
+        tokens: new InMemoryTokenStore,
+        discovery: new AuthServerDiscovery,
+        httpClient: $guzzle,
+        stateStore: $stateStore,
+        redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
+    );
+
+    $redirect = $handler->startAuthorization();
+    $token = $handler->completeAuthorization('auth-code-789', $redirect->state);
+
+    expect($token->accessToken)->toBe('user-access')
+        ->and($token->refreshToken)->toBe('user-refresh');
+
+    parse_str((string) $history[0]['request']->getBody(), $body);
+    expect($body)->toHaveKey('grant_type', 'authorization_code')
+        ->and($body)->toHaveKey('code', 'auth-code-789')
+        ->and($body)->toHaveKey('code_verifier')
+        ->and($body)->toHaveKey('resource', 'https://mcp.example.com/mcp')
+        ->and($body)->toHaveKey('redirect_uri', 'https://app.example.com/mcp/notion/callback');
+});
+
+it('rejects an unknown or expired state when completing authorization', function (): void {
+    fakeDiscovery(withPkce: true, withAuthorizationEndpoint: true);
+
+    $handler = new OAuthHandler(
+        registeredName: 'notion',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: 'cid-123',
+        clientSecret: null,
+        configuredScope: null,
+        tokens: new InMemoryTokenStore,
+        discovery: new AuthServerDiscovery,
+        stateStore: makeStateStore(),
+        redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
+    );
+
+    expect(fn (): mixed => $handler->completeAuthorization('code', 'never-issued'))
+        ->toThrow(OAuthException::class, 'invalid or expired');
+});
+
+it('throws AuthorizationRequiredException with a populated URL when no token is cached', function (): void {
+    fakeDiscovery(withPkce: true, withAuthorizationEndpoint: true);
+
+    $handler = new OAuthHandler(
+        registeredName: 'notion',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: 'cid-123',
+        clientSecret: null,
+        configuredScope: null,
+        tokens: new InMemoryTokenStore,
+        discovery: new AuthServerDiscovery,
+        stateStore: makeStateStore(),
+        redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
+    );
+
+    try {
+        $handler->bearerToken();
+        $this->fail('Expected AuthorizationRequiredException');
+    } catch (AuthorizationRequiredException $authorizationRequiredException) {
+        expect($authorizationRequiredException->serverName)->toBe('notion')
+            ->and($authorizationRequiredException->authorizationUrl)->toStartWith('https://auth.example.com/authorize?')
+            ->and($authorizationRequiredException->state)->toBeString();
+    }
+});
+
+it('uses a refresh_token grant on an expired authorization_code token', function (): void {
+    fakeDiscovery(withPkce: true, withAuthorizationEndpoint: true);
+
+    $history = [];
+    $guzzle = makeGuzzleClient([tokenResponse('rotated', 'rotated-refresh')], $history);
+
+    $store = new InMemoryTokenStore;
+    $store->put('mcp-auth:notion', new TokenSet('stale', 'previous-refresh', time() - 60, 'mcp:read'));
+
+    $handler = new OAuthHandler(
+        registeredName: 'notion',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: 'cid-123',
+        clientSecret: null,
+        configuredScope: 'mcp:read',
+        tokens: $store,
+        discovery: new AuthServerDiscovery,
+        httpClient: $guzzle,
+        stateStore: makeStateStore(),
+        redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
+    );
+
+    expect($handler->bearerToken())->toBe('rotated');
+
+    parse_str((string) $history[0]['request']->getBody(), $body);
+    expect($body['grant_type'])->toBe('refresh_token')
+        ->and($body['refresh_token'])->toBe('previous-refresh');
+});
+
+it('throws AuthorizationRequiredException when an expired auth_code token has no refresh token', function (): void {
+    fakeDiscovery(withPkce: true, withAuthorizationEndpoint: true);
+
+    $store = new InMemoryTokenStore;
+    $store->put('mcp-auth:notion', new TokenSet('stale', null, time() - 60, null));
+
+    $handler = new OAuthHandler(
+        registeredName: 'notion',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: 'cid-123',
+        clientSecret: null,
+        configuredScope: null,
+        tokens: $store,
+        discovery: new AuthServerDiscovery,
+        stateStore: makeStateStore(),
+        redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
+    );
+
+    expect(fn (): string => $handler->bearerToken())
+        ->toThrow(AuthorizationRequiredException::class);
+});
+
+it('canonicalizes the resource parameter (lowercase scheme/host, no trailing slash)', function (): void {
+    fakeDiscovery();
+
+    $history = [];
+    $guzzle = makeGuzzleClient([tokenResponse('canon')], $history);
+
+    $handler = new OAuthHandler(
+        registeredName: 'notion',
+        mcpUrl: 'HTTPS://MCP.EXAMPLE.COM/mcp/',
+        clientId: 'id',
+        clientSecret: 'secret',
+        configuredScope: null,
+        tokens: new InMemoryTokenStore,
+        discovery: new AuthServerDiscovery,
+        httpClient: $guzzle,
+    );
+
+    $handler->bearerToken();
+
+    parse_str((string) $history[0]['request']->getBody(), $body);
+    expect($body['resource'])->toBe('https://mcp.example.com/mcp');
 });

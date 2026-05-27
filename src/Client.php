@@ -137,6 +137,11 @@ class Client
 
     public function forgetTokens(): void {}
 
+    public function needsAuthorization(): bool
+    {
+        return false;
+    }
+
     protected function primitiveCache(): ?PrimitiveCache
     {
         if ($this->registeredName === null || $this->listCacheTtl === false || $this->listCacheTtl <= 0) {
