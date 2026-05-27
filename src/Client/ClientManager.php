@@ -27,7 +27,7 @@ class ClientManager
     public function registerClient(
         string $name,
         Closure $factory,
-        int|false|null $cache = null,
+        ?int $cache = null,
         ?Closure $scope = null,
     ): void {
         $cache ??= (int) config('mcp.client.cache_ttl', 3600);

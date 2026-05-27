@@ -30,7 +30,7 @@ class Client
 
     protected ?string $registeredName = null;
 
-    protected int|false $listCacheTtl = false;
+    protected int $listCacheTtl = 0;
 
     /** @var ?Closure(): (string|int|Authenticatable|null) */
     protected ?Closure $cacheScope = null;
@@ -72,7 +72,7 @@ class Client
     /**
      * @param  ?Closure(): (string|int|Authenticatable|null)  $scope
      */
-    public function asRegisteredClient(string $name, int|false $cache, ?Closure $scope = null): static
+    public function asRegisteredClient(string $name, int $cache, ?Closure $scope = null): static
     {
         $this->registeredName = $name;
         $this->listCacheTtl = $cache;
@@ -131,7 +131,7 @@ class Client
 
     protected function primitiveCache(): ?PrimitiveCache
     {
-        if ($this->registeredName === null || $this->listCacheTtl === false || $this->listCacheTtl <= 0) {
+        if ($this->registeredName === null || $this->listCacheTtl <= 0) {
             return null;
         }
 

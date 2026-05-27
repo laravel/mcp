@@ -56,9 +56,9 @@ return [
     | Client Defaults
     |--------------------------------------------------------------------------
     |
-    | Default configuration applied to MCP clients registered via
-    | `Mcp::registerClient()` when the call does not pass an explicit value.
-    | Set `cache_ttl` to `false` or `0` to disable list caching globally.
+    | The default configuration applied to any MCP client registered through the
+    | `Mcp::registerClient()` helper when no explicit value has been given.
+    | Set `cache_ttl` value to `0` to disable list caching globally.
     |
     */
 
