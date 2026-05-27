@@ -9,7 +9,6 @@ use GuzzleHttp\ClientInterface;
 use Laravel\Mcp\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Exceptions\OAuthException;
 use Laravel\Mcp\Exceptions\PkceUnsupportedException;
-use League\OAuth2\Client\Provider\Exception\IdentityProviderException;
 use League\OAuth2\Client\Provider\GenericProvider;
 use League\OAuth2\Client\Token\AccessTokenInterface;
 use Throwable;
@@ -22,9 +21,7 @@ class OAuthHandler
 
     protected const GRANT_REFRESH_TOKEN = 'refresh_token';
 
-    protected const STORAGE_KEY_PREFIX = 'mcp-auth:';
-
-    protected const STORAGE_KEY_INLINE = self::STORAGE_KEY_PREFIX.'inline';
+    protected const PKCE_METHOD = 'S256';
 
     protected ?GenericProvider $provider = null;
 
@@ -36,9 +33,9 @@ class OAuthHandler
 
     protected ?string $canonicalResource = null;
 
-    protected bool $challengeRetried = false;
+    protected ?string $resolvedRedirectUri = null;
 
-    protected bool $dynamic = false;
+    protected bool $challengeRetried = false;
 
     protected ?string $lastIntendedUrl = null;
 
@@ -46,7 +43,7 @@ class OAuthHandler
      * @param  ?Closure(): string  $redirectUriResolver
      */
     public function __construct(
-        protected ?string $registeredName,
+        protected ?string $serverName,
         protected string $mcpUrl,
         protected ?string $clientId,
         protected ?string $clientSecret,
@@ -59,33 +56,40 @@ class OAuthHandler
         protected ?string $userKey = null,
         protected ?ClientRegistrationStore $registrationStore = null,
         protected ?DynamicClientRegistration $dynamicRegistration = null,
-    ) {
-        $this->dynamic = $clientId === null;
+    ) {}
+
+    public function isDynamic(): bool
+    {
+        return $this->clientId === null;
     }
 
-    public function isAuthorizationCode(): bool
+    public function requiresUserConsent(): bool
     {
-        return $this->dynamic || $this->clientSecret === null;
+        if ($this->isDynamic()) {
+            return true;
+        }
+
+        return $this->clientSecret === null;
     }
 
     public function bearerToken(): string
     {
-        $cached = $this->tokens->get($this->storageKey());
+        $key = $this->tokenKey();
+        $cached = $this->tokens->get($key);
 
         if ($cached instanceof TokenSet && ! $cached->isExpired()) {
             return $cached->accessToken;
         }
 
-        return $this->tokens->lock($this->storageKey(), function (): string {
-            $fresh = $this->tokens->get($this->storageKey());
+        return $this->tokens->lock($key, function () use ($key): string {
+            $fresh = $this->tokens->get($key);
 
             if ($fresh instanceof TokenSet && ! $fresh->isExpired()) {
                 return $fresh->accessToken;
             }
 
             $token = $this->acquireToken($fresh);
-
-            $this->tokens->put($this->storageKey(), $token);
+            $this->tokens->put($key, $token);
 
             return $token->accessToken;
         });
@@ -103,13 +107,15 @@ class OAuthHandler
             $this->authoritativeScope = $challenge->scope;
         }
 
-        return $this->tokens->lock($this->storageKey(), function (): string {
-            if ($this->isAuthorizationCode()) {
-                $cached = $this->tokens->get($this->storageKey());
+        $key = $this->tokenKey();
+
+        return $this->tokens->lock($key, function () use ($key): string {
+            if ($this->requiresUserConsent()) {
+                $cached = $this->tokens->get($key);
 
                 if ($cached instanceof TokenSet && $cached->refreshToken !== null) {
                     $token = $this->refreshGrant($cached->refreshToken);
-                    $this->tokens->put($this->storageKey(), $token);
+                    $this->tokens->put($key, $token);
 
                     return $token->accessToken;
                 }
@@ -118,7 +124,7 @@ class OAuthHandler
             }
 
             $token = $this->clientCredentialsGrant();
-            $this->tokens->put($this->storageKey(), $token);
+            $this->tokens->put($key, $token);
 
             return $token->accessToken;
         });
@@ -126,7 +132,7 @@ class OAuthHandler
 
     public function bearerTokenIfCached(): ?string
     {
-        $cached = $this->tokens->get($this->storageKey());
+        $cached = $this->tokens->get($this->tokenKey());
 
         if (! $cached instanceof TokenSet || $cached->isExpired()) {
             return null;
@@ -137,27 +143,27 @@ class OAuthHandler
 
     public function needsAuthorization(): bool
     {
-        if (! $this->isAuthorizationCode()) {
+        if (! $this->requiresUserConsent()) {
             return false;
         }
 
-        return ! $this->tokens->get($this->storageKey()) instanceof TokenSet;
+        return ! $this->tokens->get($this->tokenKey()) instanceof TokenSet;
     }
 
     public function forget(): void
     {
-        $this->tokens->forget($this->storageKey());
+        $this->tokens->forget($this->tokenKey());
     }
 
     public function cachedTokens(): ?TokenSet
     {
-        return $this->tokens->get($this->storageKey());
+        return $this->tokens->get($this->tokenKey());
     }
 
     public function startAuthorization(?string $intendedUrl = null): AuthorizationRedirect
     {
-        if (! $this->isAuthorizationCode()) {
-            throw new OAuthException('startAuthorization() is only valid for authorization_code OAuth clients.');
+        if (! $this->requiresUserConsent()) {
+            throw new OAuthException('startAuthorization() is only valid for OAuth clients that require user consent.');
         }
 
         $authServer = $this->ensureDiscovered();
@@ -166,71 +172,69 @@ class OAuthHandler
             throw new PkceUnsupportedException($authServer->issuer);
         }
 
+        if ($authServer->authorizationEndpoint === null || $authServer->authorizationEndpoint === '') {
+            throw new OAuthException("Authorization server [{$authServer->issuer}] is missing the authorization_endpoint.");
+        }
+
         $this->ensureRegistered();
 
-        $pkce = Pkce::generate();
+        $provider = $this->provider();
         $state = bin2hex(random_bytes(16));
         $scope = $this->resolveScope();
 
-        $params = [
-            'response_type' => 'code',
-            'client_id' => $this->clientId,
-            'redirect_uri' => $this->resolveRedirectUri(),
+        $options = [
             'state' => $state,
-            'code_challenge' => $pkce->challenge,
-            'code_challenge_method' => $pkce->method,
             'resource' => $this->canonicalResource(),
         ];
 
         if ($scope !== null) {
-            $params['scope'] = $scope;
+            $options['scope'] = $scope;
         }
 
-        $authorizationEndpoint = $authServer->authorizationEndpoint;
+        $url = $provider->getAuthorizationUrl($options);
+        $verifier = $provider->getPkceCode();
 
-        if ($authorizationEndpoint === null || $authorizationEndpoint === '') {
-            throw new OAuthException("Authorization server [{$authServer->issuer}] is missing the authorization_endpoint.");
+        if (! is_string($verifier) || $verifier === '') {
+            throw new OAuthException('league/oauth2-client did not produce a PKCE verifier.');
         }
 
-        $url = $authorizationEndpoint.(str_contains($authorizationEndpoint, '?') ? '&' : '?').http_build_query($params);
-
-        $this->stateStore?->put($state, [
-            'server' => $this->serverLabel(),
-            'user_key' => $this->userKey,
-            'pkce_verifier' => $pkce->verifier,
-            'intended_url' => $intendedUrl,
-            'scope' => $scope,
-        ]);
+        $this->stateStore?->put($state, new OAuthSession(
+            serverName: $this->serverLabel(),
+            pkceVerifier: $verifier,
+            userKey: $this->userKey,
+            intendedUrl: $intendedUrl,
+            scope: $scope,
+        ));
 
         return new AuthorizationRedirect($url, $state);
     }
 
     public function completeAuthorization(string $code, string $state): TokenSet
     {
-        if (! $this->isAuthorizationCode()) {
-            throw new OAuthException('completeAuthorization() is only valid for authorization_code OAuth clients.');
+        if (! $this->requiresUserConsent()) {
+            throw new OAuthException('completeAuthorization() is only valid for OAuth clients that require user consent.');
         }
 
         if (! $this->stateStore instanceof OAuthClientStateStore) {
             throw new OAuthException('Cannot complete authorization without a configured state store.');
         }
 
-        $payload = $this->stateStore->pull($state);
+        $session = $this->stateStore->pull($state);
 
-        if ($payload === null) {
+        if (! $session instanceof OAuthSession) {
             throw new OAuthException("OAuth state [{$state}] is invalid or expired.");
         }
 
-        $this->lastIntendedUrl = $payload['intended_url'] ?? null;
+        $this->lastIntendedUrl = $session->intendedUrl;
 
         $token = $this->runGrant(self::GRANT_AUTHORIZATION_CODE, [
             'code' => $code,
-            'code_verifier' => $payload['pkce_verifier'],
+            'code_verifier' => $session->pkceVerifier,
             'redirect_uri' => $this->resolveRedirectUri(),
             'resource' => $this->canonicalResource(),
         ]);
 
-        $this->tokens->put($this->storageKey(), $token);
+        $this->tokens->put($this->tokenKey(), $token);
 
         return $token;
     }
@@ -242,7 +246,7 @@ class OAuthHandler
 
     public function authorizationRequired(): AuthorizationRequiredException
     {
-        if (! $this->isAuthorizationCode()) {
+        if (! $this->requiresUserConsent()) {
             return new AuthorizationRequiredException($this->serverLabel());
         }
 
@@ -262,12 +266,11 @@ class OAuthHandler
 
     protected function acquireToken(?TokenSet $current): TokenSet
     {
-        if ($this->isAuthorizationCode()) {
+        if ($this->requiresUserConsent()) {
             if ($current instanceof TokenSet && $current->refreshToken !== null) {
                 try {
                     return $this->refreshGrant($current->refreshToken);
                 } catch (OAuthException) {
-                    //
                 }
             }
 
@@ -284,7 +287,6 @@ class OAuthHandler
     protected function clientCredentialsGrant(): TokenSet
     {
         $scope = $this->resolveScope();
-
         $options = ['resource' => $this->canonicalResource()];
 
         if ($scope !== null) {
@@ -302,7 +304,7 @@ class OAuthHandler
                 'resource' => $this->canonicalResource(),
             ]);
         } catch (OAuthException $oAuthException) {
-            if ($this->isAuthorizationCode()) {
+            if ($this->requiresUserConsent()) {
                 throw $oAuthException;
             }
 
@@ -315,12 +317,8 @@ class OAuthHandler
      */
     protected function runGrant(string $grant, array $options): TokenSet
     {
-        $provider = $this->provider();
-
         try {
-            $accessToken = $provider->getAccessToken($grant, $options);
-        } catch (IdentityProviderException $identityProviderException) {
-            throw new OAuthException("MCP client [{$this->serverLabel()}] failed the {$grant} grant: {$identityProviderException->getMessage()}.", $identityProviderException->getCode(), previous: $identityProviderException);
+            $accessToken = $this->provider()->getAccessToken($grant, $options);
         } catch (Throwable $throwable) {
             throw new OAuthException("MCP client [{$this->serverLabel()}] failed the {$grant} grant: {$throwable->getMessage()}.", $throwable->getCode(), previous: $throwable);
         }
@@ -344,6 +342,11 @@ class OAuthHandler
             'urlAccessToken' => $authServer->tokenEndpoint,
             'urlResourceOwnerDetails' => '',
         ];
+
+        if ($this->requiresUserConsent()) {
+            $options['redirectUri'] = $this->resolveRedirectUri();
+            $options['pkceMethod'] = self::PKCE_METHOD;
+        }
 
         $collaborators = [];
 
@@ -369,19 +372,14 @@ class OAuthHandler
 
     protected function ensureRegistered(): void
     {
-        if (! $this->dynamic) {
+        if (! $this->isDynamic() || ($this->clientId !== null && $this->clientId !== '')) {
             return;
         }
 
-        if ($this->clientId !== null && $this->clientId !== '') {
-            return;
-        }
-
-        $registry = $this->registrationStore;
         $registryKey = $this->registrationKey();
 
-        if ($registry instanceof ClientRegistrationStore) {
-            $cached = $registry->get($registryKey);
+        if ($this->registrationStore instanceof ClientRegistrationStore) {
+            $cached = $this->registrationStore->get($registryKey);
 
             if ($cached instanceof ClientRegistration && ! $cached->isSecretExpired()) {
                 $this->clientId = $cached->clientId;
@@ -397,23 +395,18 @@ class OAuthHandler
             throw new OAuthException("Authorization server [{$authServer->issuer}] does not advertise a registration_endpoint; cannot dynamically register MCP client [{$this->serverLabel()}].");
         }
 
-        $dcr = $this->dynamicRegistration ?? new DynamicClientRegistration;
-
-        $registration = $dcr->register((string) $authServer->registrationEndpoint, [
-            'redirect_uris' => [$this->resolveRedirectUri()],
-            'scope' => $this->resolveScope(),
-            'public_client' => true,
-        ]);
+        $registration = ($this->dynamicRegistration ?? new DynamicClientRegistration)->register(
+            (string) $authServer->registrationEndpoint,
+            [
+                'redirect_uris' => [$this->resolveRedirectUri()],
+                'scope' => $this->resolveScope(),
+                'public_client' => true,
+            ]
+        );
 
         $this->clientId = $registration->clientId;
         $this->clientSecret = $registration->clientSecret;
-
-        $registry?->put($registryKey, $registration);
-    }
-
-    protected function registrationKey(): string
-    {
-        return 'mcp-client:'.($this->registeredName ?? 'inline');
+        $this->registrationStore?->put($registryKey, $registration);
     }
 
     protected function canonicalResource(): string
@@ -466,50 +459,47 @@ class OAuthHandler
 
     protected function resolveRedirectUri(): string
     {
+        if ($this->resolvedRedirectUri !== null) {
+            return $this->resolvedRedirectUri;
+        }
+
         if (! $this->redirectUriResolver instanceof Closure) {
             throw new OAuthException('No redirect URI resolver is configured for this authorization_code client.');
         }
 
-        return ($this->redirectUriResolver)();
+        return $this->resolvedRedirectUri = ($this->redirectUriResolver)();
     }
 
     protected function protectedResourceMetadataUrl(): ?string
     {
-        if (! $this->protectedResource instanceof ProtectedResourceMetadata) {
-            return null;
-        }
-
-        return $this->protectedResource->resource;
+        return $this->protectedResource?->resource;
     }
 
     protected function toTokenSet(AccessTokenInterface $accessToken): TokenSet
     {
         $values = $accessToken->getValues();
-
-        $scope = isset($values['scope']) && $values['scope'] !== ''
-            ? (string) $values['scope']
-            : null;
+        $rawRefresh = $accessToken->getRefreshToken();
 
         return new TokenSet(
             accessToken: (string) $accessToken->getToken(),
-            refreshToken: $accessToken->getRefreshToken() !== null && $accessToken->getRefreshToken() !== ''
-                ? (string) $accessToken->getRefreshToken()
-                : null,
+            refreshToken: $rawRefresh !== null && $rawRefresh !== '' ? (string) $rawRefresh : null,
             expiresAt: (int) ($accessToken->getExpires() ?? 0),
-            scope: $scope,
+            scope: isset($values['scope']) && $values['scope'] !== '' ? (string) $values['scope'] : null,
         );
     }
 
-    private function storageKey(): string
+    private function tokenKey(): string
     {
-        $name = $this->registeredName ?? 'inline';
-        $userSegment = $this->userKey !== null ? ":user:{$this->userKey}" : '';
+        return OAuthCacheKeys::tokens($this->serverName ?? 'inline', $this->userKey);
+    }
 
-        return self::STORAGE_KEY_PREFIX.$name.$userSegment;
+    private function registrationKey(): string
+    {
+        return OAuthCacheKeys::registration($this->serverName ?? 'inline');
     }
 
     private function serverLabel(): string
     {
-        return $this->registeredName ?? $this->mcpUrl;
+        return $this->serverName ?? $this->mcpUrl;
     }
 }

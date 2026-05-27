@@ -10,33 +10,31 @@ use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Contracts\Encryption\StringEncrypter;
-use Illuminate\Contracts\Support\Responsable;
-use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route as Router;
 use InvalidArgumentException;
+use Laravel\Mcp\Client\Auth\AuthorizationRedirect;
 use Laravel\Mcp\Client\Auth\AuthServerDiscovery;
 use Laravel\Mcp\Client\Auth\CacheClientRegistrationStore;
 use Laravel\Mcp\Client\Auth\CacheTokenStore;
 use Laravel\Mcp\Client\Auth\ClientRegistrationStore;
 use Laravel\Mcp\Client\Auth\InMemoryClientRegistrationStore;
 use Laravel\Mcp\Client\Auth\InMemoryTokenStore;
+use Laravel\Mcp\Client\Auth\OAuthAuthorizationStrategy;
 use Laravel\Mcp\Client\Auth\OAuthClientStateStore;
 use Laravel\Mcp\Client\Auth\OAuthHandler;
 use Laravel\Mcp\Client\Auth\TokenSet;
 use Laravel\Mcp\Client\Auth\TokenStore;
-use Laravel\Mcp\Client\Auth\WwwAuthenticateChallenge;
 use Laravel\Mcp\Client\Transport\HttpTransport;
-use Laravel\Mcp\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Exceptions\UserIdentityRequiredException;
 use Laravel\Mcp\Schema\Implementation;
-use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 use Throwable;
 
 class WebClient extends Client
 {
     protected ?OAuthHandler $oauthHandler = null;
 
-    /** @var ?array{clientId: ?string, clientSecret: ?string, scope: ?string, onAuthRequired: ?Closure} */
+    /** @var ?array{clientId: ?string, clientSecret: ?string, scope: ?string} */
     protected ?array $oauthConfig = null;
 
     protected bool $staticTokenSet = false;
@@ -68,7 +66,6 @@ class WebClient extends Client
         ?string $clientId = null,
         ?string $clientSecret = null,
         ?string $scope = null,
-        ?Closure $onAuthRequired = null,
     ): static {
         if ($this->staticTokenSet) {
             throw new InvalidArgumentException('Cannot call oauth() after withToken() — choose one auth strategy per client.');
@@ -86,10 +83,9 @@ class WebClient extends Client
             'clientId' => $clientId,
             'clientSecret' => $clientSecret,
             'scope' => $scope,
-            'onAuthRequired' => $onAuthRequired,
         ];
 
-        $this->wireOauthTransport();
+        $this->wireAuthorizationStrategy();
 
         return $this;
     }
@@ -97,7 +93,7 @@ class WebClient extends Client
     public function forUser(string|int|Authenticatable|Closure|null $user): static
     {
         if ($this->oauthConfig === null || $this->oauthConfig['clientSecret'] !== null) {
-            throw new InvalidArgumentException('forUser() is only valid for authorization_code OAuth clients (oauth() with no client secret).');
+            throw new InvalidArgumentException('forUser() is only valid for OAuth clients that require user consent (oauth() with no client secret).');
         }
 
         if ($user === null) {
@@ -110,101 +106,100 @@ class WebClient extends Client
         $clone->listCacheTtl = $this->listCacheTtl;
         $clone->cacheScope = $this->cacheScope;
         $clone->userKey = $user;
-        $clone->wireOauthTransport();
+        $clone->wireAuthorizationStrategy();
 
         return $clone;
     }
 
     public function tokens(): ?TokenSet
     {
-        if ($this->oauthConfig === null) {
-            return null;
-        }
-
-        return $this->oauthHandler()->cachedTokens();
+        return $this->oauthConfig === null ? null : $this->oauthHandler()->cachedTokens();
     }
 
     public function forgetTokens(): void
     {
-        if ($this->oauthConfig === null) {
-            return;
+        if ($this->oauthConfig !== null) {
+            $this->oauthHandler()->forget();
         }
-
-        $this->oauthHandler()->forget();
     }
 
     public function needsAuthorization(): bool
     {
-        if ($this->oauthConfig === null) {
-            return false;
+        return $this->oauthConfig !== null && $this->oauthHandler()->needsAuthorization();
+    }
+
+    public function requiresUserConsent(): bool
+    {
+        return $this->oauthConfig !== null && $this->oauthHandler()->requiresUserConsent();
+    }
+
+    public function startAuthorization(?string $intendedUrl = null): AuthorizationRedirect
+    {
+        return $this->oauthHandler()->startAuthorization($intendedUrl);
+    }
+
+    public function completeAuthorization(string $code, string $state): TokenSet
+    {
+        return $this->oauthHandler()->completeAuthorization($code, $state);
+    }
+
+    public function lastIntendedUrl(): ?string
+    {
+        return $this->oauthConfig === null ? null : $this->oauthHandler()->lastIntendedUrl();
+    }
+
+    public function authorizationConnectUrl(?string $intended = null): string
+    {
+        $this->assertRegisteredForRoutes();
+
+        $params = ['server' => $this->registeredName];
+
+        if ($intended !== null && $intended !== '') {
+            $params['intended'] = $intended;
         }
 
-        return $this->oauthHandler()->needsAuthorization();
+        if (Router::has('mcp.oauth.connect')) {
+            return route('mcp.oauth.connect', $params);
+        }
+
+        $queryParams = $intended === null ? [] : ['intended' => $intended];
+
+        return (string) url('/mcp/'.$this->registeredName.'/connect', $queryParams);
     }
 
-    public function oauthHandlerForRoutes(): OAuthHandler
+    public function redirectToAuthorization(?string $intended = null): RedirectResponse
     {
-        return $this->oauthHandler();
+        if ($intended === null && Container::getInstance()->bound('request')) {
+            $intended = request()->fullUrl();
+        }
+
+        return redirect()->to($this->authorizationConnectUrl($intended));
     }
 
+    private function assertRegisteredForRoutes(): void
+    {
+        if ($this->registeredName === null) {
+            throw new InvalidArgumentException('authorizationConnectUrl() / redirectToAuthorization() require a registered client (Mcp::registerClient).');
+        }
+    }
+
+    /**
+     * @internal Used by tests to inject a stubbed Guzzle client into the league provider.
+     */
     public function withOauthHttpClient(?ClientInterface $client): static
     {
         $this->oauthHttpClient = $client;
         $this->oauthHandler = null;
+        $this->wireAuthorizationStrategy();
 
         return $this;
     }
 
-    private function wireOauthTransport(): void
+    private function wireAuthorizationStrategy(): void
     {
-        $this->httpTransport->withTokenProvider(fn (): string => $this->resolveBearerToken());
-        $this->httpTransport->withChallengeHandler(fn (WwwAuthenticateChallenge $challenge): string => $this->oauthHandler()->bearerTokenAfterChallenge($challenge));
-        $this->httpTransport->withCachedBearerResolver(fn (): ?string => $this->oauthHandler()->bearerTokenIfCached());
-    }
-
-    private function resolveBearerToken(): string
-    {
-        try {
-            return $this->oauthHandler()->bearerToken();
-        } catch (AuthorizationRequiredException $authorizationRequiredException) {
-            $callback = $this->oauthConfig['onAuthRequired'] ?? null;
-
-            if ($callback instanceof Closure) {
-                $response = $callback($authorizationRequiredException);
-
-                if ($response instanceof Responsable) {
-                    $response = $response->toResponse(request());
-                }
-
-                if ($response instanceof SymfonyResponse) {
-                    throw new HttpResponseException($response);
-                }
-
-                throw $authorizationRequiredException;
-            }
-
-            if ($this->canAutoRedirectToConnect()) {
-                throw new HttpResponseException(redirect()->route('mcp.oauth.connect', [
-                    'server' => $this->registeredName,
-                    'intended' => request()->fullUrl(),
-                ]));
-            }
-
-            throw $authorizationRequiredException;
-        }
-    }
-
-    private function canAutoRedirectToConnect(): bool
-    {
-        if ($this->registeredName === null) {
-            return false;
-        }
-
-        if (! Container::getInstance()->bound('request')) {
-            return false;
-        }
-
-        return Router::has('mcp.oauth.connect');
+        $this->httpTransport->withAuthorizationStrategy(new OAuthAuthorizationStrategy(
+            handlerResolver: fn (): OAuthHandler => $this->oauthHandler(),
+        ));
     }
 
     private function oauthHandler(): OAuthHandler
@@ -219,10 +214,8 @@ class WebClient extends Client
             throw new InvalidArgumentException('OAuth has not been configured for this client.');
         }
 
-        $userKey = $this->resolveUserKey();
-
         return $this->oauthHandler = new OAuthHandler(
-            registeredName: $this->registeredName,
+            serverName: $this->registeredName,
             mcpUrl: $this->httpTransport->url(),
             clientId: $config['clientId'],
             clientSecret: $config['clientSecret'],
@@ -231,12 +224,8 @@ class WebClient extends Client
             discovery: new AuthServerDiscovery,
             httpClient: $this->oauthHttpClient,
             stateStore: $this->resolveStateStore(),
-            redirectUriResolver: $this->registeredName !== null
-                ? fn (): string => Router::has('mcp.oauth.callback')
-                    ? route('mcp.oauth.callback', ['server' => $this->registeredName])
-                    : (string) url('/mcp/'.$this->registeredName.'/callback')
-                : null,
-            userKey: $userKey,
+            redirectUriResolver: $this->resolveRedirectUriResolver(),
+            userKey: $this->resolveUserKey(),
             registrationStore: $this->resolveRegistrationStore(),
         );
     }
@@ -260,32 +249,27 @@ class WebClient extends Client
         return (string) $value;
     }
 
-    protected function resolveTokenStore(): TokenStore
+    private function resolveRedirectUriResolver(): ?Closure
     {
         if ($this->registeredName === null) {
-            return new InMemoryTokenStore;
+            return null;
         }
 
-        $container = Container::getInstance();
+        return fn (): string => Router::has('mcp.oauth.callback')
+            ? route('mcp.oauth.callback', ['server' => $this->registeredName])
+            : (string) url('/mcp/'.$this->registeredName.'/callback');
+    }
 
-        if (! $container->bound(Repository::class)) {
-            return new InMemoryTokenStore;
-        }
+    protected function resolveTokenStore(): TokenStore
+    {
+        $crypt = $this->encrypterOrNull();
 
-        try {
-            $crypt = $container->bound(StringEncrypter::class)
-                ? $container->make(StringEncrypter::class)
-                : ($container->bound('encrypter') ? $container->make('encrypter') : null);
-        } catch (Throwable) {
-            return new InMemoryTokenStore;
-        }
-
-        if (! $crypt instanceof StringEncrypter) {
+        if ($this->registeredName === null || ! $crypt instanceof StringEncrypter) {
             return new InMemoryTokenStore;
         }
 
         return new CacheTokenStore(
-            cache: $container->make(Repository::class),
+            cache: Container::getInstance()->make(Repository::class),
             crypt: $crypt,
         );
     }
@@ -303,31 +287,38 @@ class WebClient extends Client
 
     protected function resolveRegistrationStore(): ClientRegistrationStore
     {
-        if ($this->registeredName === null) {
-            return new InMemoryClientRegistrationStore;
-        }
+        $crypt = $this->encrypterOrNull();
 
-        $container = Container::getInstance();
-
-        if (! $container->bound(Repository::class)) {
-            return new InMemoryClientRegistrationStore;
-        }
-
-        try {
-            $crypt = $container->bound(StringEncrypter::class)
-                ? $container->make(StringEncrypter::class)
-                : ($container->bound('encrypter') ? $container->make('encrypter') : null);
-        } catch (Throwable) {
-            return new InMemoryClientRegistrationStore;
-        }
-
-        if (! $crypt instanceof StringEncrypter) {
+        if ($this->registeredName === null || ! $crypt instanceof StringEncrypter) {
             return new InMemoryClientRegistrationStore;
         }
 
         return new CacheClientRegistrationStore(
-            cache: $container->make(Repository::class),
+            cache: Container::getInstance()->make(Repository::class),
             crypt: $crypt,
         );
+    }
+
+    private function encrypterOrNull(): ?StringEncrypter
+    {
+        $container = Container::getInstance();
+
+        if (! $container->bound(Repository::class)) {
+            return null;
+        }
+
+        try {
+            if ($container->bound(StringEncrypter::class)) {
+                $crypt = $container->make(StringEncrypter::class);
+            } elseif ($container->bound('encrypter')) {
+                $crypt = $container->make('encrypter');
+            } else {
+                return null;
+            }
+        } catch (Throwable) {
+            return null;
+        }
+
+        return $crypt instanceof StringEncrypter ? $crypt : null;
     }
 }

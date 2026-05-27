@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Client;
@@ -85,14 +84,14 @@ it('throws when forUser() is called on a client_credentials client', function ()
     $client = Client::web('https://mcp.example.com/mcp')->oauth('id', 'secret');
 
     expect(fn (): WebClient => $client->forUser('42'))
-        ->toThrow(InvalidArgumentException::class, 'authorization_code OAuth clients');
+        ->toThrow(InvalidArgumentException::class, 'OAuth clients that require user consent');
 });
 
 it('throws when forUser() is called without OAuth configured', function (): void {
     $client = Client::web('https://mcp.example.com/mcp');
 
     expect(fn (): WebClient => $client->forUser('42'))
-        ->toThrow(InvalidArgumentException::class, 'authorization_code OAuth clients');
+        ->toThrow(InvalidArgumentException::class, 'OAuth clients that require user consent');
 });
 
 it('throws when forUser(null) is passed explicitly', function (): void {
@@ -127,7 +126,7 @@ it('throws UserIdentityRequiredException when a forUser closure resolves to null
         ->toThrow(UserIdentityRequiredException::class);
 });
 
-it('invokes the onAuthRequired callback and wraps a Response in HttpResponseException', function (): void {
+it('throws AuthorizationRequiredException when bearer is requested without a token', function (): void {
     Http::fake([
         'https://mcp.example.com/.well-known/oauth-protected-resource*' => Http::response(json_encode([
             'resource' => 'https://mcp.example.com/mcp',
@@ -140,49 +139,40 @@ it('invokes the onAuthRequired callback and wraps a Response in HttpResponseExce
             'code_challenge_methods_supported' => ['S256'],
         ]), 200, ['Content-Type' => 'application/json']),
     ]);
+
+    config(['cache.default' => 'array']);
 
     $client = Client::web('https://mcp.example.com/mcp')
-        ->oauth('id', null, null, fn (AuthorizationRequiredException $e) => redirect()->away($e->authorizationUrl()))
+        ->oauth('id')
         ->asRegisteredClient('notion', 3600);
 
-    try {
-        $client->tools();
-        $this->fail('Expected HttpResponseException');
-    } catch (HttpResponseException $httpResponseException) {
-        expect($httpResponseException->getResponse()->getStatusCode())->toBe(302)
-            ->and($httpResponseException->getResponse()->headers->get('Location'))->toStartWith('https://auth.example.com/authorize?');
-    }
+    expect(fn (): mixed => $client->tools())
+        ->toThrow(AuthorizationRequiredException::class);
 });
 
-it('auto-redirects to the connect route when oauthClientRoutes() is registered and no callback is configured', function (): void {
+it('redirectToAuthorization() returns a redirect to the package connect route', function (): void {
     Mcp::oauthClientRoutes();
     Route::getRoutes()->refreshNameLookups();
-
-    Http::fake([
-        'https://mcp.example.com/.well-known/oauth-protected-resource*' => Http::response(json_encode([
-            'resource' => 'https://mcp.example.com/mcp',
-            'authorization_servers' => ['https://auth.example.com'],
-        ]), 200, ['Content-Type' => 'application/json']),
-        'https://auth.example.com/.well-known/oauth-authorization-server*' => Http::response(json_encode([
-            'issuer' => 'https://auth.example.com',
-            'token_endpoint' => 'https://auth.example.com/token',
-            'authorization_endpoint' => 'https://auth.example.com/authorize',
-            'code_challenge_methods_supported' => ['S256'],
-        ]), 200, ['Content-Type' => 'application/json']),
-    ]);
 
     Mcp::registerClient('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->oauth('cid-1')
     );
 
-    config(['cache.default' => 'array']);
+    $client = Mcp::client('notion');
 
-    try {
-        Mcp::client('notion')->tools();
-        $this->fail('Expected HttpResponseException with a redirect to mcp.oauth.connect');
-    } catch (HttpResponseException $httpResponseException) {
-        $location = $httpResponseException->getResponse()->headers->get('Location');
-        expect($location)->toContain('/mcp/notion/connect');
-    }
+    expect($client->needsAuthorization())->toBeTrue();
+
+    $response = $client->redirectToAuthorization('/dashboard');
+
+    expect($response->getStatusCode())->toBe(302)
+        ->and($response->headers->get('Location'))->toContain('/mcp/notion/connect')
+        ->and($response->headers->get('Location'))->toContain('intended=');
+});
+
+it('authorizationConnectUrl() throws when the client is not registered', function (): void {
+    $client = Client::web('https://mcp.example.com/mcp')->oauth('cid-1');
+
+    expect(fn (): string => $client->authorizationConnectUrl())
+        ->toThrow(InvalidArgumentException::class, 'require a registered client');
 });
 
 it('allows oauth() without a client_id (dynamic client registration)', function (): void {
@@ -197,30 +187,4 @@ it('throws when oauth() is called with a secret but no client_id', function (): 
 
     expect(fn (): WebClient => $client->oauth(null, 'secret'))
         ->toThrow(InvalidArgumentException::class, 'Dynamic client registration cannot be combined with a client secret');
-});
-
-it('rethrows AuthorizationRequiredException when onAuthRequired returns nothing', function (): void {
-    Http::fake([
-        'https://mcp.example.com/.well-known/oauth-protected-resource*' => Http::response(json_encode([
-            'resource' => 'https://mcp.example.com/mcp',
-            'authorization_servers' => ['https://auth.example.com'],
-        ]), 200, ['Content-Type' => 'application/json']),
-        'https://auth.example.com/.well-known/oauth-authorization-server*' => Http::response(json_encode([
-            'issuer' => 'https://auth.example.com',
-            'token_endpoint' => 'https://auth.example.com/token',
-            'authorization_endpoint' => 'https://auth.example.com/authorize',
-            'code_challenge_methods_supported' => ['S256'],
-        ]), 200, ['Content-Type' => 'application/json']),
-    ]);
-
-    $called = false;
-    $client = Client::web('https://mcp.example.com/mcp')
-        ->oauth('id', null, null, function () use (&$called): void {
-            $called = true;
-        })
-        ->asRegisteredClient('notion', 3600);
-
-    expect(fn (): mixed => $client->tools())
-        ->toThrow(AuthorizationRequiredException::class);
-    expect($called)->toBeTrue();
 });

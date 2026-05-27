@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\Auth;
 
-use Illuminate\Http\Client\ConnectionException;
+use Closure;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Exceptions\DiscoveryException;
@@ -14,35 +14,31 @@ class AuthServerDiscovery
 {
     public function discoverProtectedResource(string $mcpUrl, ?WwwAuthenticateChallenge $challenge = null): ProtectedResourceMetadata
     {
-        $candidates = $this->protectedResourceCandidates($mcpUrl, $challenge);
-
-        foreach ($candidates as $candidate) {
-            $this->assertHttps($candidate);
-
-            $response = $this->safelyGet($candidate);
-
-            if (! $response instanceof Response) {
-                continue;
-            }
-
-            if ($response->status() === 404) {
-                continue;
-            }
-
-            if (! $response->successful()) {
-                throw new DiscoveryException("Discovery of [{$candidate}] failed with HTTP status [{$response->status()}].");
-            }
-
-            return $this->parseProtectedResource($candidate, $response);
-        }
-
-        throw new DiscoveryException("Unable to discover protected resource metadata for [{$mcpUrl}].");
+        return $this->discover(
+            $this->protectedResourceCandidates($mcpUrl, $challenge),
+            fn (string $url, Response $response): ProtectedResourceMetadata => $this->parseProtectedResource($url, $response),
+            "Unable to discover protected resource metadata for [{$mcpUrl}].",
+        );
     }
 
     public function discoverAuthServer(string $issuer): AuthServerMetadata
     {
-        $candidates = $this->authServerCandidates($issuer);
+        return $this->discover(
+            $this->authServerCandidates($issuer),
+            fn (string $url, Response $response): AuthServerMetadata => $this->parseAuthServer($url, $response),
+            "Unable to discover authorization server metadata for [{$issuer}].",
+        );
+    }
 
+    /**
+     * @template T
+     *
+     * @param  array<int, string>  $candidates
+     * @param  Closure(string, Response): T  $parser
+     * @return T
+     */
+    protected function discover(array $candidates, Closure $parser, string $exhaustedMessage): mixed
+    {
         foreach ($candidates as $candidate) {
             $this->assertHttps($candidate);
 
@@ -60,10 +56,10 @@ class AuthServerDiscovery
                 throw new DiscoveryException("Discovery of [{$candidate}] failed with HTTP status [{$response->status()}].");
             }
 
-            return $this->parseAuthServer($candidate, $response);
+            return $parser($candidate, $response);
         }
 
-        throw new DiscoveryException("Unable to discover authorization server metadata for [{$issuer}].");
+        throw new DiscoveryException($exhaustedMessage);
     }
 
     /**
@@ -159,8 +155,6 @@ class AuthServerDiscovery
     {
         try {
             return Http::acceptJson()->get($url);
-        } catch (ConnectionException $connectionException) {
-            throw new DiscoveryException("Discovery request to [{$url}] failed: {$connectionException->getMessage()}.", $connectionException->getCode(), $connectionException);
         } catch (Throwable $throwable) {
             throw new DiscoveryException("Discovery request to [{$url}] failed: {$throwable->getMessage()}.", $throwable->getCode(), $throwable);
         }

@@ -12,6 +12,7 @@ use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\SessionExpiredException;
 use Laravel\Mcp\WebClient;
+use Tests\Fixtures\Client\Auth\StubAuthorizationStrategy;
 
 it('posts a frame and queues a json response', function (): void {
     Http::fake([
@@ -312,16 +313,18 @@ it('surfaces a 404 during the initialize handshake as a normal error', function 
         ->toThrow(ClientException::class, 'Unexpected HTTP status [404]');
 });
 
-it('invokes the token provider on every send', function (): void {
+it('invokes the strategy bearer() on every send', function (): void {
     Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
 
     $bearers = ['first', 'second'];
     $transport = new HttpTransport('https://mcp.test/mcp');
-    $transport->withTokenProvider(function () use (&$bearers): string {
-        $bearer = array_shift($bearers);
+    $transport->withAuthorizationStrategy(new StubAuthorizationStrategy(
+        bearer: function () use (&$bearers): string {
+            $bearer = array_shift($bearers);
 
-        return $bearer ?? 'last';
-    });
+            return $bearer ?? 'last';
+        },
+    ));
 
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping']));
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'ping']));
@@ -336,8 +339,10 @@ it('replays a request once after a 401 with WWW-Authenticate', function (): void
         ->push(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json']);
 
     $transport = new HttpTransport('https://mcp.test/mcp');
-    $transport->withTokenProvider(fn (): string => 'stale');
-    $transport->withChallengeHandler(fn (WwwAuthenticateChallenge $challenge): string => 'refreshed');
+    $transport->withAuthorizationStrategy(new StubAuthorizationStrategy(
+        bearer: fn (): string => 'stale',
+        bearerAfterChallenge: fn (WwwAuthenticateChallenge $challenge): string => 'refreshed',
+    ));
 
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping']));
 
@@ -351,11 +356,13 @@ it('replays a request once after a 403 insufficient_scope challenge', function (
 
     $captured = null;
     $transport = new HttpTransport('https://mcp.test/mcp');
-    $transport->withChallengeHandler(function (WwwAuthenticateChallenge $challenge) use (&$captured): string {
-        $captured = $challenge;
+    $transport->withAuthorizationStrategy(new StubAuthorizationStrategy(
+        bearerAfterChallenge: function (WwwAuthenticateChallenge $challenge) use (&$captured): string {
+            $captured = $challenge;
 
-        return 'upgraded';
-    });
+            return 'upgraded';
+        },
+    ));
 
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping']));
 
@@ -367,11 +374,13 @@ it('does not replay when the 403 lacks insufficient_scope', function (): void {
 
     $called = 0;
     $transport = new HttpTransport('https://mcp.test/mcp');
-    $transport->withChallengeHandler(function () use (&$called): string {
-        $called++;
+    $transport->withAuthorizationStrategy(new StubAuthorizationStrategy(
+        bearerAfterChallenge: function () use (&$called): string {
+            $called++;
 
-        return 'never';
-    });
+            return 'never';
+        },
+    ));
 
     expect(fn () => $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping'])))
         ->toThrow(ClientException::class, 'Unexpected HTTP status [403]');
@@ -382,7 +391,9 @@ it('treats a repeated 401 after a challenge replay as terminal', function (): vo
     Http::fake(['*' => Http::response('', 401, ['WWW-Authenticate' => 'Bearer realm="MCP"'])]);
 
     $transport = new HttpTransport('https://mcp.test/mcp');
-    $transport->withChallengeHandler(fn (WwwAuthenticateChallenge $challenge): string => 'next');
+    $transport->withAuthorizationStrategy(new StubAuthorizationStrategy(
+        bearerAfterChallenge: fn (WwwAuthenticateChallenge $challenge): string => 'next',
+    ));
 
     expect(fn () => $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping'])))
         ->toThrow(ClientException::class, 'Unexpected HTTP status [401]');
@@ -394,18 +405,20 @@ it('skips the challenge handler when the WWW-Authenticate header is absent', fun
 
     $transport = new HttpTransport('https://mcp.test/mcp');
     $called = 0;
-    $transport->withChallengeHandler(function () use (&$called): string {
-        $called++;
+    $transport->withAuthorizationStrategy(new StubAuthorizationStrategy(
+        bearerAfterChallenge: function () use (&$called): string {
+            $called++;
 
-        return 'no';
-    });
+            return 'no';
+        },
+    ));
 
     expect(fn () => $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping'])))
         ->toThrow(ClientException::class, 'Unexpected HTTP status [401]');
     expect($called)->toBe(0);
 });
 
-it('uses the cached bearer resolver on the terminating DELETE, never the token provider', function (): void {
+it('uses cachedBearer() on the terminating DELETE, never bearer()', function (): void {
     Http::fake(['*' => Http::response(
         json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]),
         200,
@@ -416,16 +429,18 @@ it('uses the cached bearer resolver on the terminating DELETE, never the token p
     $cachedCalls = 0;
 
     $transport = new HttpTransport('https://mcp.test/mcp');
-    $transport->withTokenProvider(function () use (&$providerCalls): string {
-        $providerCalls++;
+    $transport->withAuthorizationStrategy(new StubAuthorizationStrategy(
+        bearer: function () use (&$providerCalls): string {
+            $providerCalls++;
 
-        return 'provider';
-    });
-    $transport->withCachedBearerResolver(function () use (&$cachedCalls): string {
-        $cachedCalls++;
+            return 'provider';
+        },
+        cachedBearer: function () use (&$cachedCalls): string {
+            $cachedCalls++;
 
-        return 'cached';
-    });
+            return 'cached';
+        },
+    ));
 
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize']));
     $transport->receive();
@@ -446,8 +461,10 @@ it('omits the Authorization header on the terminating DELETE when no cached bear
     )]);
 
     $transport = new HttpTransport('https://mcp.test/mcp');
-    $transport->withTokenProvider(fn (): string => 'never-on-delete');
-    $transport->withCachedBearerResolver(fn (): ?string => null);
+    $transport->withAuthorizationStrategy(new StubAuthorizationStrategy(
+        bearer: fn (): string => 'never-on-delete',
+        cachedBearer: fn (): ?string => null,
+    ));
 
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize']));
     $transport->receive();

@@ -89,7 +89,7 @@ it('runs discovery and writes a token to the store on the cold path', function (
     $store = new InMemoryTokenStore;
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'secret',
@@ -119,7 +119,7 @@ it('returns the cached token without re-running discovery or the grant', functio
     $store->put('mcp-auth:notion', new TokenSet('cached-one', null, time() + 600, 'mcp:read'));
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'secret',
@@ -143,7 +143,7 @@ it('uses the refresh_token grant when the cached token has a refresh token', fun
     $store->put('mcp-auth:notion', new TokenSet('stale', 'refresh-1', time() - 60, null));
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'secret',
@@ -173,7 +173,7 @@ it('falls back to client_credentials when refresh fails', function (): void {
     $store->put('mcp-auth:notion', new TokenSet('stale', 'refresh-1', time() - 60, null));
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'secret',
@@ -198,7 +198,7 @@ it('re-grants with client_credentials when no refresh token is available', funct
     $store->put('mcp-auth:notion', new TokenSet('stale', null, time() - 60, null));
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'secret',
@@ -221,7 +221,7 @@ it('replays the grant with the scope from a WWW-Authenticate challenge', functio
     $store = new InMemoryTokenStore;
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'secret',
@@ -245,7 +245,7 @@ it('caps a challenge replay at a single retry per handler instance', function ()
     $store = new InMemoryTokenStore;
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'secret',
@@ -279,7 +279,7 @@ it('omits the scope parameter when no scope is configured or advertised', functi
     $guzzle = makeGuzzleClient([tokenResponse('no-scope')], $history);
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'secret',
@@ -296,7 +296,7 @@ it('omits the scope parameter when no scope is configured or advertised', functi
 
 it('returns null from bearerTokenIfCached when no token is stored', function (): void {
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'secret',
@@ -314,7 +314,7 @@ it('returns the cached token from bearerTokenIfCached without touching the netwo
     $store->put('mcp-auth:notion', new TokenSet('warm', null, time() + 600, null));
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'secret',
@@ -331,7 +331,7 @@ it('forgets the cached token entry', function (): void {
     $store->put('mcp-auth:notion', new TokenSet('warm', null, time() + 600, null));
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'secret',
@@ -353,7 +353,7 @@ it('wraps an identity provider failure in an OAuthException', function (): void 
     ]);
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'wrong',
@@ -374,7 +374,7 @@ it('uses the inline storage key when no registered name is set', function (): vo
     $store = new InMemoryTokenStore;
 
     $handler = new OAuthHandler(
-        registeredName: null,
+        serverName: null,
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'secret',
@@ -396,7 +396,7 @@ it('uses a user-scoped storage key when a user key is set', function (): void {
     $store = new InMemoryTokenStore;
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'secret',
@@ -415,7 +415,7 @@ it('uses a user-scoped storage key when a user key is set', function (): void {
 
 it('reports needsAuthorization() true for an authorization_code client without a cached token', function (): void {
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: null,
@@ -425,7 +425,7 @@ it('reports needsAuthorization() true for an authorization_code client without a
     );
 
     expect($handler->needsAuthorization())->toBeTrue()
-        ->and($handler->isAuthorizationCode())->toBeTrue();
+        ->and($handler->requiresUserConsent())->toBeTrue();
 });
 
 it('reports needsAuthorization() false once a token is cached even if expired', function (): void {
@@ -433,7 +433,7 @@ it('reports needsAuthorization() false once a token is cached even if expired', 
     $store->put('mcp-auth:notion', new TokenSet('stale', 'refresh-1', time() - 60, null));
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: null,
@@ -447,7 +447,7 @@ it('reports needsAuthorization() false once a token is cached even if expired', 
 
 it('reports needsAuthorization() false for client_credentials clients', function (): void {
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'id',
         clientSecret: 'secret',
@@ -465,7 +465,7 @@ it('builds an authorization URL with PKCE, state, and the resource parameter', f
     $stateStore = makeStateStore();
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'cid-123',
         clientSecret: null,
@@ -489,15 +489,15 @@ it('builds an authorization URL with PKCE, state, and the resource parameter', f
 
     $payload = $stateStore->pull($redirect->state);
     expect($payload)->not->toBeNull()
-        ->and($payload['intended_url'])->toBe('/dashboard')
-        ->and($payload['pkce_verifier'])->toBeString();
+        ->and($payload->intendedUrl)->toBe('/dashboard')
+        ->and($payload->pkceVerifier)->toBeString();
 });
 
 it('refuses to start authorization_code when the AS does not advertise S256 PKCE', function (): void {
     fakeDiscovery(withPkce: false, withAuthorizationEndpoint: true);
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'cid-123',
         clientSecret: null,
@@ -521,7 +521,7 @@ it('completes the authorization_code flow by exchanging the code for a token', f
     $stateStore = makeStateStore();
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'cid-123',
         clientSecret: null,
@@ -551,7 +551,7 @@ it('rejects an unknown or expired state when completing authorization', function
     fakeDiscovery(withPkce: true, withAuthorizationEndpoint: true);
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'cid-123',
         clientSecret: null,
@@ -570,7 +570,7 @@ it('throws AuthorizationRequiredException with a populated URL when no token is 
     fakeDiscovery(withPkce: true, withAuthorizationEndpoint: true);
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'cid-123',
         clientSecret: null,
@@ -601,7 +601,7 @@ it('uses a refresh_token grant on an expired authorization_code token', function
     $store->put('mcp-auth:notion', new TokenSet('stale', 'previous-refresh', time() - 60, 'mcp:read'));
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'cid-123',
         clientSecret: null,
@@ -627,7 +627,7 @@ it('throws AuthorizationRequiredException when an expired auth_code token has no
     $store->put('mcp-auth:notion', new TokenSet('stale', null, time() - 60, null));
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'cid-123',
         clientSecret: null,
@@ -649,7 +649,7 @@ it('canonicalizes the resource parameter (lowercase scheme/host, no trailing sla
     $guzzle = makeGuzzleClient([tokenResponse('canon')], $history);
 
     $handler = new OAuthHandler(
-        registeredName: 'notion',
+        serverName: 'notion',
         mcpUrl: 'HTTPS://MCP.EXAMPLE.COM/mcp/',
         clientId: 'id',
         clientSecret: 'secret',
@@ -686,7 +686,7 @@ it('dynamically registers when oauth() is called without a client_id', function 
     $registry = new InMemoryClientRegistrationStore;
 
     $handler = new OAuthHandler(
-        registeredName: 'nightwatch',
+        serverName: 'nightwatch',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: null,
         clientSecret: null,
@@ -737,7 +737,7 @@ it('reuses a cached registration without re-registering', function (): void {
     $registry->put('mcp-client:nightwatch', new ClientRegistration('cid-cached'));
 
     $handler = new OAuthHandler(
-        registeredName: 'nightwatch',
+        serverName: 'nightwatch',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: null,
         clientSecret: null,
@@ -772,7 +772,7 @@ it('throws OAuthException when DCR is requested but the AS does not advertise re
     ]);
 
     $handler = new OAuthHandler(
-        registeredName: 'nightwatch',
+        serverName: 'nightwatch',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: null,
         clientSecret: null,

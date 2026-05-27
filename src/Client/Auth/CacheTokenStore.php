@@ -10,9 +10,8 @@ use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Contracts\Encryption\StringEncrypter;
 use Laravel\Mcp\Exceptions\OAuthException;
-use Throwable;
 
-class CacheTokenStore implements TokenStore
+class CacheTokenStore extends EncryptedCacheStore implements TokenStore
 {
     protected const DEFAULT_TTL_SECONDS = 3600;
 
@@ -21,54 +20,24 @@ class CacheTokenStore implements TokenStore
     protected const CLOCK_SKEW_SECONDS = 30;
 
     public function __construct(
-        protected Repository $cache,
-        protected StringEncrypter $crypt,
+        Repository $cache,
+        StringEncrypter $crypt,
         protected int $lockHoldSeconds = 10,
         protected int $lockWaitSeconds = 5,
-    ) {}
+    ) {
+        parent::__construct($cache, $crypt);
+    }
 
     public function get(string $key): ?TokenSet
     {
-        try {
-            $payload = $this->cache->get($key);
-        } catch (Throwable) {
-            return null;
-        }
+        $data = $this->readDecrypted($key);
 
-        if (! is_string($payload) || $payload === '') {
-            return null;
-        }
-
-        try {
-            $decrypted = $this->crypt->decryptString($payload);
-            $data = json_decode($decrypted, true, flags: JSON_THROW_ON_ERROR);
-        } catch (Throwable) {
-            return null;
-        }
-
-        if (! is_array($data)) {
-            return null;
-        }
-
-        return TokenSet::fromArray($data);
+        return $data === null ? null : TokenSet::fromArray($data);
     }
 
     public function put(string $key, TokenSet $set): void
     {
-        $payload = $this->crypt->encryptString(json_encode($set->toArray(), JSON_THROW_ON_ERROR));
-
-        try {
-            $this->cache->put($key, $payload, $this->ttlFor($set));
-        } catch (Throwable) {
-        }
-    }
-
-    public function forget(string $key): void
-    {
-        try {
-            $this->cache->forget($key);
-        } catch (Throwable) {
-        }
+        $this->writeEncrypted($key, $set->toArray(), $this->ttlFor($set));
     }
 
     public function lock(string $key, Closure $work): mixed
@@ -79,7 +48,7 @@ class CacheTokenStore implements TokenStore
             return $work();
         }
 
-        $lock = $store->lock("mcp-auth-refresh:{$key}", $this->lockHoldSeconds);
+        $lock = $store->lock(OAuthCacheKeys::refreshLock($key), $this->lockHoldSeconds);
 
         try {
             return $lock->block($this->lockWaitSeconds, $work);

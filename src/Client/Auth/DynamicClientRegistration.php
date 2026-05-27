@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\Auth;
 
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Exceptions\OAuthException;
 use Throwable;
@@ -33,8 +32,6 @@ class DynamicClientRegistration
             $response = Http::acceptJson()
                 ->asJson()
                 ->post($registrationEndpoint, $payload);
-        } catch (ConnectionException $connectionException) {
-            throw new OAuthException("Dynamic client registration to [{$registrationEndpoint}] failed: {$connectionException->getMessage()}.", $connectionException->getCode(), $connectionException);
         } catch (Throwable $throwable) {
             throw new OAuthException("Dynamic client registration to [{$registrationEndpoint}] failed: {$throwable->getMessage()}.", $throwable->getCode(), $throwable);
         }

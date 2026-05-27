@@ -9,40 +9,31 @@ use Throwable;
 
 class OAuthClientStateStore
 {
-    protected const KEY_PREFIX = 'mcp-oauth-state:';
-
     public function __construct(
         protected Repository $cache,
         protected int $ttlSeconds = 600,
     ) {}
 
-    /**
-     * @param  array{server: string, user_key: ?string, pkce_verifier: string, intended_url: ?string, scope: ?string}  $payload
-     */
-    public function put(string $state, array $payload): void
+    public function put(string $state, OAuthSession $session): void
     {
         try {
-            $this->cache->put(self::KEY_PREFIX.$state, $payload, $this->ttlSeconds);
+            $this->cache->put(OAuthCacheKeys::state($state), $session->toArray(), $this->ttlSeconds);
         } catch (Throwable) {
         }
     }
 
-    /**
-     * @return ?array{server: string, user_key: ?string, pkce_verifier: string, intended_url: ?string, scope: ?string}
-     */
-    public function pull(string $state): ?array
+    public function pull(string $state): ?OAuthSession
     {
         try {
-            $payload = $this->cache->pull(self::KEY_PREFIX.$state);
+            $payload = $this->cache->pull(OAuthCacheKeys::state($state));
         } catch (Throwable) {
             return null;
         }
 
-        if (! is_array($payload) || ! isset($payload['pkce_verifier'], $payload['server'])) {
+        if (! is_array($payload)) {
             return null;
         }
 
-        /** @var array{server: string, user_key: ?string, pkce_verifier: string, intended_url: ?string, scope: ?string} $payload */
-        return $payload;
+        return OAuthSession::fromArray($payload);
     }
 }

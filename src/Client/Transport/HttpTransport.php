@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\Transport;
 
-use Closure;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response as ClientResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Client\Auth\AuthorizationStrategy;
 use Laravel\Mcp\Client\Auth\WwwAuthenticateChallenge;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Enums\ProtocolVersion;
@@ -21,14 +21,7 @@ class HttpTransport implements Transport
 {
     protected ?string $token = null;
 
-    /** @var ?Closure(): ?string */
-    protected ?Closure $tokenProvider = null;
-
-    /** @var ?Closure(WwwAuthenticateChallenge): ?string */
-    protected ?Closure $challengeHandler = null;
-
-    /** @var ?Closure(): ?string */
-    protected ?Closure $cachedBearerResolver = null;
+    protected ?AuthorizationStrategy $authorizationStrategy = null;
 
     protected ?string $sessionId = null;
 
@@ -71,28 +64,9 @@ class HttpTransport implements Transport
         $this->token = $token;
     }
 
-    /**
-     * @param  ?Closure(): ?string  $provider
-     */
-    public function withTokenProvider(?Closure $provider): void
+    public function withAuthorizationStrategy(?AuthorizationStrategy $strategy): void
     {
-        $this->tokenProvider = $provider;
-    }
-
-    /**
-     * @param  ?Closure(WwwAuthenticateChallenge): ?string  $handler
-     */
-    public function withChallengeHandler(?Closure $handler): void
-    {
-        $this->challengeHandler = $handler;
-    }
-
-    /**
-     * @param  ?Closure(): ?string  $resolver
-     */
-    public function withCachedBearerResolver(?Closure $resolver): void
-    {
-        $this->cachedBearerResolver = $resolver;
+        $this->authorizationStrategy = $strategy;
     }
 
     public function send(string $message): void
@@ -152,7 +126,7 @@ class HttpTransport implements Transport
 
     protected function shouldRetryAfterChallenge(ClientResponse $response): bool
     {
-        if (! $this->challengeHandler instanceof Closure) {
+        if (! $this->authorizationStrategy instanceof AuthorizationStrategy) {
             return false;
         }
 
@@ -172,9 +146,9 @@ class HttpTransport implements Transport
             return false;
         }
 
-        $token = ($this->challengeHandler)($challenge);
+        $token = $this->authorizationStrategy->bearerAfterChallenge($challenge);
 
-        if (! is_string($token) || $token === '') {
+        if ($token === null || $token === '') {
             return false;
         }
 
@@ -241,28 +215,16 @@ class HttpTransport implements Transport
 
     protected function resolveBearer(): ?string
     {
-        if ($this->tokenProvider instanceof Closure) {
-            $bearer = ($this->tokenProvider)();
+        $bearer = $this->authorizationStrategy?->bearer();
 
-            if (is_string($bearer) && $bearer !== '') {
-                return $bearer;
-            }
-        }
-
-        return $this->token;
+        return $bearer !== null && $bearer !== '' ? $bearer : $this->token;
     }
 
     protected function resolveCachedBearer(): ?string
     {
-        if ($this->cachedBearerResolver instanceof Closure) {
-            $bearer = ($this->cachedBearerResolver)();
+        $bearer = $this->authorizationStrategy?->cachedBearer();
 
-            if (is_string($bearer) && $bearer !== '') {
-                return $bearer;
-            }
-        }
-
-        return $this->token;
+        return $bearer !== null && $bearer !== '' ? $bearer : $this->token;
     }
 
     protected function captureSessionId(ClientResponse $response): void
