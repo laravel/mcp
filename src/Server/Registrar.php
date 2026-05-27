@@ -73,13 +73,13 @@ class Registrar
      * @param  Closure(): Client  $factory
      * @param  ?Closure(): (string|int|Authenticatable|null)  $scope
      */
-    public function registerClientFor(
+    public function registerClient(
         string $name,
         Closure $factory,
         int|false $cache = ClientManager::DEFAULT_CACHE_TTL,
         ?Closure $scope = null,
     ): void {
-        $this->clientManager()->registerClientFor($name, $factory, $cache, $scope);
+        $this->clientManager()->registerClient($name, $factory, $cache, $scope);
     }
 
     public function client(string $name): Client

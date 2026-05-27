@@ -8,7 +8,6 @@ use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Cache\Repository;
 use Laravel\Mcp\Exceptions\ClientException;
-use Throwable;
 
 class PrimitiveCache
 {
@@ -30,11 +29,7 @@ class PrimitiveCache
     {
         $key = $this->key($kind);
 
-        try {
-            $cached = $this->cache->get($key);
-        } catch (Throwable) {
-            $cached = null;
-        }
+        $cached = $this->cache->get($key);
 
         if (is_array($cached)) {
             /** @var array<int, array<string, mixed>> $cached */
@@ -43,20 +38,14 @@ class PrimitiveCache
 
         $payloads = $fetch();
 
-        try {
-            $this->cache->put($key, $payloads, $this->ttl);
-        } catch (Throwable) {
-        }
+        $this->cache->put($key, $payloads, $this->ttl);
 
         return $payloads;
     }
 
     public function flush(): void
     {
-        try {
-            $this->cache->forget($this->key('tools'));
-        } catch (Throwable) {
-        }
+        $this->cache->forget($this->key('tools'));
     }
 
     protected function key(string $kind): string

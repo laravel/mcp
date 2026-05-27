@@ -8,7 +8,6 @@ use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Exceptions\ClientException;
-use Throwable;
 
 class ClientManager
 {
@@ -24,7 +23,7 @@ class ClientManager
      * @param  Closure(): Client  $factory
      * @param  ?Closure(): (string|int|Authenticatable|null)  $scope
      */
-    public function registerClientFor(
+    public function registerClient(
         string $name,
         Closure $factory,
         int|false $cache = self::DEFAULT_CACHE_TTL,
@@ -33,7 +32,7 @@ class ClientManager
         if (isset($this->resolved[$name])) {
             try {
                 $this->resolved[$name]->disconnect();
-            } catch (Throwable) {
+            } catch (ClientException) {
             }
 
             unset($this->resolved[$name]);
@@ -56,7 +55,7 @@ class ClientManager
         foreach ($this->resolved as $client) {
             try {
                 $client->disconnect();
-            } catch (Throwable) {
+            } catch (ClientException) {
             }
         }
 
