@@ -6,12 +6,13 @@ namespace Laravel\Mcp\Client;
 
 use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Traits\Macroable;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Exceptions\ClientException;
 
 class ClientManager
 {
-    public const DEFAULT_CACHE_TTL = 3600;
+    use Macroable;
 
     /** @var array<string, Closure(): Client> */
     protected array $factories = [];
@@ -26,9 +27,11 @@ class ClientManager
     public function registerClient(
         string $name,
         Closure $factory,
-        int|false $cache = self::DEFAULT_CACHE_TTL,
+        int|false|null $cache = null,
         ?Closure $scope = null,
     ): void {
+        $cache ??= (int) config('mcp.client.cache_ttl', 3600);
+
         if (isset($this->clients[$name])) {
             try {
                 $this->clients[$name]->disconnect();

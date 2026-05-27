@@ -11,6 +11,7 @@ use Illuminate\Http\Response;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
 use Illuminate\Support\Str;
+use Illuminate\Support\Traits\Macroable;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Server;
@@ -24,6 +25,8 @@ use Laravel\Passport\Passport;
 
 class Registrar
 {
+    use Macroable;
+
     /** @var array<string, callable> */
     protected array $localServers = [];
 
@@ -76,7 +79,7 @@ class Registrar
     public function registerClient(
         string $name,
         Closure $factory,
-        int|false $cache = ClientManager::DEFAULT_CACHE_TTL,
+        int|false|null $cache = null,
         ?Closure $scope = null,
     ): void {
         $this->clientManager()->registerClient($name, $factory, $cache, $scope);
