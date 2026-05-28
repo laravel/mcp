@@ -12,23 +12,23 @@ use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\WebClient;
 
 it('throws when withToken() is called after oauth()', function (): void {
-    $client = Client::web('https://mcp.example.com/mcp')->oauth('id', 'secret');
+    $client = Client::web('https://mcp.example.com/mcp')->withOauth('id', 'secret');
 
     expect(fn (): WebClient => $client->withToken('bearer'))
-        ->toThrow(InvalidArgumentException::class, 'Cannot call withToken() after oauth()');
+        ->toThrow(InvalidArgumentException::class, 'Cannot call withToken() after withOauth()');
 });
 
 it('throws when oauth() is called after withToken()', function (): void {
     $client = Client::web('https://mcp.example.com/mcp')->withToken('bearer');
 
-    expect(fn (): WebClient => $client->oauth('id', 'secret'))
-        ->toThrow(InvalidArgumentException::class, 'Cannot call oauth() after withToken()');
+    expect(fn (): WebClient => $client->withOauth('id', 'secret'))
+        ->toThrow(InvalidArgumentException::class, 'Cannot call withOauth() after withToken()');
 });
 
 it('throws when oauth() is called twice on the same client', function (): void {
-    $client = Client::web('https://mcp.example.com/mcp')->oauth('id', 'secret');
+    $client = Client::web('https://mcp.example.com/mcp')->withOauth('id', 'secret');
 
-    expect(fn (): WebClient => $client->oauth('id', 'secret'))
+    expect(fn (): WebClient => $client->withOauth('id', 'secret'))
         ->toThrow(InvalidArgumentException::class, 'OAuth has already been configured');
 });
 
@@ -47,7 +47,7 @@ it('returns null tokens() and no-ops forgetTokens() on a stdio client', function
 });
 
 it('returns null tokens() and no-ops forgetTokens() after oauth() when no token has been granted', function (): void {
-    $client = Client::web('https://mcp.example.com/mcp')->oauth('id', 'secret');
+    $client = Client::web('https://mcp.example.com/mcp')->withOauth('id', 'secret');
 
     expect($client->tokens())->toBeNull();
     $client->forgetTokens();
@@ -69,19 +69,19 @@ it('reports needsAuthorization() as false on a base Client (no oauth)', function
 });
 
 it('reports needsAuthorization() as false for a client_credentials WebClient', function (): void {
-    $client = Client::web('https://mcp.example.com/mcp')->oauth('id', 'secret');
+    $client = Client::web('https://mcp.example.com/mcp')->withOauth('id', 'secret');
 
     expect($client->needsAuthorization())->toBeFalse();
 });
 
 it('reports needsAuthorization() as true for an authorization_code WebClient with no token', function (): void {
-    $client = Client::web('https://mcp.example.com/mcp')->oauth('id');
+    $client = Client::web('https://mcp.example.com/mcp')->withOauth('id');
 
     expect($client->needsAuthorization())->toBeTrue();
 });
 
 it('throws when forUser() is called on a client_credentials client', function (): void {
-    $client = Client::web('https://mcp.example.com/mcp')->oauth('id', 'secret');
+    $client = Client::web('https://mcp.example.com/mcp')->withOauth('id', 'secret');
 
     expect(fn (): WebClient => $client->forUser('42'))
         ->toThrow(InvalidArgumentException::class, 'OAuth clients that require user consent');
@@ -95,14 +95,14 @@ it('throws when forUser() is called without OAuth configured', function (): void
 });
 
 it('throws when forUser(null) is passed explicitly', function (): void {
-    $client = Client::web('https://mcp.example.com/mcp')->oauth('id');
+    $client = Client::web('https://mcp.example.com/mcp')->withOauth('id');
 
     expect(fn (): WebClient => $client->forUser(null))
         ->toThrow(InvalidArgumentException::class, 'null is not allowed');
 });
 
 it('returns a fresh WebClient from forUser() that is not the original instance', function (): void {
-    $client = Client::web('https://mcp.example.com/mcp')->oauth('id');
+    $client = Client::web('https://mcp.example.com/mcp')->withOauth('id');
 
     $scoped = $client->forUser('42');
 
@@ -119,7 +119,7 @@ it('throws UserIdentityRequiredException when a forUser closure resolves to null
     ]);
 
     $client = Client::web('https://mcp.example.com/mcp')
-        ->oauth('id')
+        ->withOauth('id')
         ->forUser(fn (): ?string => null);
 
     expect(fn (): bool => $client->needsAuthorization())
@@ -143,7 +143,7 @@ it('throws AuthorizationRequiredException when bearer is requested without a tok
     config(['cache.default' => 'array']);
 
     $client = Client::web('https://mcp.example.com/mcp')
-        ->oauth('id')
+        ->withOauth('id')
         ->asRegisteredClient('notion', 3600);
 
     expect(fn (): mixed => $client->tools())
@@ -154,7 +154,7 @@ it('redirectToAuthorization() returns a redirect to the package connect route', 
     Mcp::oauthClientRoutes();
     Route::getRoutes()->refreshNameLookups();
 
-    Mcp::registerClient('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->oauth('cid-1')
+    Mcp::registerClient('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->withOauth('cid-1')
     );
 
     $client = Mcp::client('notion');
@@ -169,22 +169,22 @@ it('redirectToAuthorization() returns a redirect to the package connect route', 
 });
 
 it('authorizationConnectUrl() throws when the client is not registered', function (): void {
-    $client = Client::web('https://mcp.example.com/mcp')->oauth('cid-1');
+    $client = Client::web('https://mcp.example.com/mcp')->withOauth('cid-1');
 
     expect(fn (): string => $client->authorizationConnectUrl())
         ->toThrow(InvalidArgumentException::class, 'require a registered client');
 });
 
-it('allows oauth() without a client_id (dynamic client registration)', function (): void {
-    $client = Client::web('https://mcp.example.com/mcp')->oauth();
+it('allows withOauth() without a client_id (dynamic client registration)', function (): void {
+    $client = Client::web('https://mcp.example.com/mcp')->withOauth();
 
     expect($client)->toBeInstanceOf(WebClient::class)
         ->and($client->needsAuthorization())->toBeTrue();
 });
 
-it('throws when oauth() is called with a secret but no client_id', function (): void {
+it('throws when withOauth() is called with a secret but no client_id', function (): void {
     $client = Client::web('https://mcp.example.com/mcp');
 
-    expect(fn (): WebClient => $client->oauth(null, 'secret'))
+    expect(fn (): WebClient => $client->withOauth(null, 'secret'))
         ->toThrow(InvalidArgumentException::class, 'Dynamic client registration cannot be combined with a client secret');
 });

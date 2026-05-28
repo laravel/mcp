@@ -6,25 +6,22 @@ namespace Laravel\Mcp;
 
 use Closure;
 use GuzzleHttp\ClientInterface;
+use Illuminate\Cache\ArrayStore;
+use Illuminate\Cache\Repository as CacheRepository;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Contracts\Encryption\StringEncrypter;
+use Illuminate\Encryption\Encrypter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route as Router;
 use InvalidArgumentException;
 use Laravel\Mcp\Client\Auth\AuthorizationRedirect;
 use Laravel\Mcp\Client\Auth\AuthServerDiscovery;
-use Laravel\Mcp\Client\Auth\CacheClientRegistrationStore;
-use Laravel\Mcp\Client\Auth\CacheTokenStore;
-use Laravel\Mcp\Client\Auth\ClientRegistrationStore;
-use Laravel\Mcp\Client\Auth\InMemoryClientRegistrationStore;
-use Laravel\Mcp\Client\Auth\InMemoryTokenStore;
+use Laravel\Mcp\Client\Auth\EncryptedCacheStore;
 use Laravel\Mcp\Client\Auth\OAuthAuthorizationStrategy;
-use Laravel\Mcp\Client\Auth\OAuthClientStateStore;
 use Laravel\Mcp\Client\Auth\OAuthHandler;
 use Laravel\Mcp\Client\Auth\TokenSet;
-use Laravel\Mcp\Client\Auth\TokenStore;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Exceptions\UserIdentityRequiredException;
 use Laravel\Mcp\Schema\Implementation;
@@ -53,7 +50,7 @@ class WebClient extends Client
     public function withToken(string $token): static
     {
         if ($this->oauthConfig !== null) {
-            throw new InvalidArgumentException('Cannot call withToken() after oauth() — choose one auth strategy per client.');
+            throw new InvalidArgumentException('Cannot call withToken() after withOauth() — choose one auth strategy per client.');
         }
 
         $this->httpTransport->withToken($token);
@@ -62,13 +59,13 @@ class WebClient extends Client
         return $this;
     }
 
-    public function oauth(
+    public function withOauth(
         ?string $clientId = null,
         ?string $clientSecret = null,
         ?string $scope = null,
     ): static {
         if ($this->staticTokenSet) {
-            throw new InvalidArgumentException('Cannot call oauth() after withToken() — choose one auth strategy per client.');
+            throw new InvalidArgumentException('Cannot call withOauth() after withToken() — choose one auth strategy per client.');
         }
 
         if ($this->oauthConfig !== null) {
@@ -93,7 +90,7 @@ class WebClient extends Client
     public function forUser(string|int|Authenticatable|Closure|null $user): static
     {
         if ($this->oauthConfig === null || $this->oauthConfig['clientSecret'] !== null) {
-            throw new InvalidArgumentException('forUser() is only valid for OAuth clients that require user consent (oauth() with no client secret).');
+            throw new InvalidArgumentException('forUser() is only valid for OAuth clients that require user consent (withOauth() with no client secret).');
         }
 
         if ($user === null) {
@@ -221,13 +218,11 @@ class WebClient extends Client
             clientId: $config['clientId'],
             clientSecret: $config['clientSecret'],
             configuredScope: $config['scope'],
-            tokens: $this->resolveTokenStore(),
+            store: $this->resolveStore(),
             discovery: new AuthServerDiscovery,
             httpClient: $this->oauthHttpClient,
-            stateStore: $this->resolveStateStore(),
             redirectUriResolver: $this->resolveRedirectUriResolver(),
             userKey: $this->resolveUserKey(),
-            registrationStore: $this->resolveRegistrationStore(),
         );
     }
 
@@ -261,43 +256,24 @@ class WebClient extends Client
             : (string) url('/mcp/'.$this->registeredName.'/callback');
     }
 
-    protected function resolveTokenStore(): TokenStore
+    protected function resolveStore(): EncryptedCacheStore
     {
         $crypt = $this->encrypterOrNull();
 
-        if ($this->registeredName === null || ! $crypt instanceof StringEncrypter) {
-            return new InMemoryTokenStore;
+        if (! $crypt instanceof StringEncrypter) {
+            return new EncryptedCacheStore(
+                cache: new CacheRepository(new ArrayStore(serializesValues: true)),
+                crypt: new Encrypter(random_bytes(32), 'AES-256-CBC'),
+            );
         }
 
-        return new CacheTokenStore(
-            cache: Container::getInstance()->make(Repository::class),
-            crypt: $crypt,
-        );
-    }
-
-    protected function resolveStateStore(): ?OAuthClientStateStore
-    {
         $container = Container::getInstance();
 
-        if (! $container->bound(Repository::class)) {
-            return null;
-        }
+        $cache = $container->bound(Repository::class)
+            ? $container->make(Repository::class)
+            : new CacheRepository(new ArrayStore(serializesValues: true));
 
-        return new OAuthClientStateStore($container->make(Repository::class));
-    }
-
-    protected function resolveRegistrationStore(): ClientRegistrationStore
-    {
-        $crypt = $this->encrypterOrNull();
-
-        if ($this->registeredName === null || ! $crypt instanceof StringEncrypter) {
-            return new InMemoryClientRegistrationStore;
-        }
-
-        return new CacheClientRegistrationStore(
-            cache: Container::getInstance()->make(Repository::class),
-            crypt: $crypt,
-        );
+        return new EncryptedCacheStore(cache: $cache, crypt: $crypt);
     }
 
     private function encrypterOrNull(): ?StringEncrypter

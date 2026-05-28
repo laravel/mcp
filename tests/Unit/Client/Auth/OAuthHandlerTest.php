@@ -9,12 +9,11 @@ use GuzzleHttp\Middleware;
 use GuzzleHttp\Psr7\Response as PsrResponse;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository as CacheRepository;
+use Illuminate\Encryption\Encrypter as ConcreteEncrypter;
 use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client\Auth\AuthServerDiscovery;
 use Laravel\Mcp\Client\Auth\ClientRegistration;
-use Laravel\Mcp\Client\Auth\InMemoryClientRegistrationStore;
-use Laravel\Mcp\Client\Auth\InMemoryTokenStore;
-use Laravel\Mcp\Client\Auth\OAuthClientStateStore;
+use Laravel\Mcp\Client\Auth\EncryptedCacheStore;
 use Laravel\Mcp\Client\Auth\OAuthHandler;
 use Laravel\Mcp\Client\Auth\TokenSet;
 use Laravel\Mcp\Client\Auth\WwwAuthenticateChallenge;
@@ -48,9 +47,24 @@ function fakeDiscovery(bool $withPkce = false, bool $withAuthorizationEndpoint =
     ]);
 }
 
-function makeStateStore(): OAuthClientStateStore
+function makeHandlerStore(): EncryptedCacheStore
 {
-    return new OAuthClientStateStore(new CacheRepository(new ArrayStore(serializesValues: true)));
+    return new EncryptedCacheStore(
+        cache: new CacheRepository(new ArrayStore(serializesValues: true)),
+        crypt: new ConcreteEncrypter(random_bytes(32), 'AES-256-CBC'),
+    );
+}
+
+function seedToken(EncryptedCacheStore $store, string $key, TokenSet $token): void
+{
+    $store->put($key, $token->toArray());
+}
+
+function readToken(EncryptedCacheStore $store, string $key): ?TokenSet
+{
+    $data = $store->get($key);
+
+    return $data === null ? null : TokenSet::fromArray($data);
 }
 
 /**
@@ -86,7 +100,7 @@ it('runs discovery and writes a token to the store on the cold path', function (
 
     $history = [];
     $guzzle = makeGuzzleClient([tokenResponse('access-one')], $history);
-    $store = new InMemoryTokenStore;
+    $store = makeHandlerStore();
 
     $handler = new OAuthHandler(
         serverName: 'notion',
@@ -94,14 +108,14 @@ it('runs discovery and writes a token to the store on the cold path', function (
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: null,
-        tokens: $store,
+        store: $store,
         discovery: new AuthServerDiscovery,
         httpClient: $guzzle,
     );
 
     expect($handler->bearerToken())->toBe('access-one')
-        ->and($store->get('mcp-auth:notion'))->not->toBeNull()
-        ->and($store->get('mcp-auth:notion')->accessToken)->toBe('access-one');
+        ->and(readToken($store, 'mcp-auth:notion'))->not->toBeNull()
+        ->and(readToken($store, 'mcp-auth:notion')?->accessToken)->toBe('access-one');
 
     expect($history)->toHaveCount(1);
     parse_str((string) $history[0]['request']->getBody(), $body);
@@ -115,8 +129,8 @@ it('returns the cached token without re-running discovery or the grant', functio
 
     $history = [];
     $guzzle = makeGuzzleClient([], $history);
-    $store = new InMemoryTokenStore;
-    $store->put('mcp-auth:notion', new TokenSet('cached-one', null, time() + 600, 'mcp:read'));
+    $store = makeHandlerStore();
+    seedToken($store, 'mcp-auth:notion', new TokenSet('cached-one', null, time() + 600, 'mcp:read'));
 
     $handler = new OAuthHandler(
         serverName: 'notion',
@@ -124,7 +138,7 @@ it('returns the cached token without re-running discovery or the grant', functio
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: null,
-        tokens: $store,
+        store: $store,
         discovery: new AuthServerDiscovery,
         httpClient: $guzzle,
     );
@@ -139,8 +153,8 @@ it('uses the refresh_token grant when the cached token has a refresh token', fun
 
     $history = [];
     $guzzle = makeGuzzleClient([tokenResponse('refreshed', 'refresh-2', 3600)], $history);
-    $store = new InMemoryTokenStore;
-    $store->put('mcp-auth:notion', new TokenSet('stale', 'refresh-1', time() - 60, null));
+    $store = makeHandlerStore();
+    seedToken($store, 'mcp-auth:notion', new TokenSet('stale', 'refresh-1', time() - 60, null));
 
     $handler = new OAuthHandler(
         serverName: 'notion',
@@ -148,13 +162,13 @@ it('uses the refresh_token grant when the cached token has a refresh token', fun
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: null,
-        tokens: $store,
+        store: $store,
         discovery: new AuthServerDiscovery,
         httpClient: $guzzle,
     );
 
     expect($handler->bearerToken())->toBe('refreshed')
-        ->and($store->get('mcp-auth:notion')->refreshToken)->toBe('refresh-2');
+        ->and(readToken($store, 'mcp-auth:notion')?->refreshToken)->toBe('refresh-2');
 
     parse_str((string) $history[0]['request']->getBody(), $body);
     expect($body)->toHaveKey('grant_type', 'refresh_token')
@@ -169,8 +183,8 @@ it('falls back to client_credentials when refresh fails', function (): void {
         new PsrResponse(400, ['Content-Type' => 'application/json'], json_encode(['error' => 'invalid_grant'])),
         tokenResponse('new-access'),
     ], $history);
-    $store = new InMemoryTokenStore;
-    $store->put('mcp-auth:notion', new TokenSet('stale', 'refresh-1', time() - 60, null));
+    $store = makeHandlerStore();
+    seedToken($store, 'mcp-auth:notion', new TokenSet('stale', 'refresh-1', time() - 60, null));
 
     $handler = new OAuthHandler(
         serverName: 'notion',
@@ -178,7 +192,7 @@ it('falls back to client_credentials when refresh fails', function (): void {
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: null,
-        tokens: $store,
+        store: $store,
         discovery: new AuthServerDiscovery,
         httpClient: $guzzle,
     );
@@ -194,8 +208,8 @@ it('re-grants with client_credentials when no refresh token is available', funct
 
     $history = [];
     $guzzle = makeGuzzleClient([tokenResponse('fresh-access')], $history);
-    $store = new InMemoryTokenStore;
-    $store->put('mcp-auth:notion', new TokenSet('stale', null, time() - 60, null));
+    $store = makeHandlerStore();
+    seedToken($store, 'mcp-auth:notion', new TokenSet('stale', null, time() - 60, null));
 
     $handler = new OAuthHandler(
         serverName: 'notion',
@@ -203,7 +217,7 @@ it('re-grants with client_credentials when no refresh token is available', funct
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: null,
-        tokens: $store,
+        store: $store,
         discovery: new AuthServerDiscovery,
         httpClient: $guzzle,
     );
@@ -218,7 +232,6 @@ it('replays the grant with the scope from a WWW-Authenticate challenge', functio
 
     $history = [];
     $guzzle = makeGuzzleClient([tokenResponse('upgraded')], $history);
-    $store = new InMemoryTokenStore;
 
     $handler = new OAuthHandler(
         serverName: 'notion',
@@ -226,7 +239,7 @@ it('replays the grant with the scope from a WWW-Authenticate challenge', functio
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: 'mcp:read',
-        tokens: $store,
+        store: makeHandlerStore(),
         discovery: new AuthServerDiscovery,
         httpClient: $guzzle,
     );
@@ -242,7 +255,6 @@ it('caps a challenge replay at a single retry per handler instance', function ()
     fakeDiscovery();
 
     $guzzle = makeGuzzleClient([tokenResponse('once')]);
-    $store = new InMemoryTokenStore;
 
     $handler = new OAuthHandler(
         serverName: 'notion',
@@ -250,7 +262,7 @@ it('caps a challenge replay at a single retry per handler instance', function ()
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: null,
-        tokens: $store,
+        store: makeHandlerStore(),
         discovery: new AuthServerDiscovery,
         httpClient: $guzzle,
     );
@@ -284,7 +296,7 @@ it('omits the scope parameter when no scope is configured or advertised', functi
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: null,
-        tokens: new InMemoryTokenStore,
+        store: makeHandlerStore(),
         discovery: new AuthServerDiscovery,
         httpClient: $guzzle,
     );
@@ -301,7 +313,7 @@ it('returns null from bearerTokenIfCached when no token is stored', function ():
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: null,
-        tokens: new InMemoryTokenStore,
+        store: makeHandlerStore(),
         discovery: new AuthServerDiscovery,
     );
 
@@ -310,8 +322,8 @@ it('returns null from bearerTokenIfCached when no token is stored', function ():
 });
 
 it('returns the cached token from bearerTokenIfCached without touching the network', function (): void {
-    $store = new InMemoryTokenStore;
-    $store->put('mcp-auth:notion', new TokenSet('warm', null, time() + 600, null));
+    $store = makeHandlerStore();
+    seedToken($store, 'mcp-auth:notion', new TokenSet('warm', null, time() + 600, null));
 
     $handler = new OAuthHandler(
         serverName: 'notion',
@@ -319,7 +331,7 @@ it('returns the cached token from bearerTokenIfCached without touching the netwo
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: null,
-        tokens: $store,
+        store: $store,
         discovery: new AuthServerDiscovery,
     );
 
@@ -327,8 +339,8 @@ it('returns the cached token from bearerTokenIfCached without touching the netwo
 });
 
 it('forgets the cached token entry', function (): void {
-    $store = new InMemoryTokenStore;
-    $store->put('mcp-auth:notion', new TokenSet('warm', null, time() + 600, null));
+    $store = makeHandlerStore();
+    seedToken($store, 'mcp-auth:notion', new TokenSet('warm', null, time() + 600, null));
 
     $handler = new OAuthHandler(
         serverName: 'notion',
@@ -336,13 +348,13 @@ it('forgets the cached token entry', function (): void {
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: null,
-        tokens: $store,
+        store: $store,
         discovery: new AuthServerDiscovery,
     );
 
     $handler->forget();
 
-    expect($store->get('mcp-auth:notion'))->toBeNull();
+    expect(readToken($store, 'mcp-auth:notion'))->toBeNull();
 });
 
 it('wraps an identity provider failure in an OAuthException', function (): void {
@@ -358,7 +370,7 @@ it('wraps an identity provider failure in an OAuthException', function (): void 
         clientId: 'id',
         clientSecret: 'wrong',
         configuredScope: null,
-        tokens: new InMemoryTokenStore,
+        store: makeHandlerStore(),
         discovery: new AuthServerDiscovery,
         httpClient: $guzzle,
     );
@@ -371,7 +383,7 @@ it('uses the inline storage key when no registered name is set', function (): vo
     fakeDiscovery();
 
     $guzzle = makeGuzzleClient([tokenResponse('inline-access')]);
-    $store = new InMemoryTokenStore;
+    $store = makeHandlerStore();
 
     $handler = new OAuthHandler(
         serverName: null,
@@ -379,21 +391,21 @@ it('uses the inline storage key when no registered name is set', function (): vo
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: 'mcp:read',
-        tokens: $store,
+        store: $store,
         discovery: new AuthServerDiscovery,
         httpClient: $guzzle,
     );
 
     $handler->bearerToken();
 
-    expect($store->get('mcp-auth:inline'))->not->toBeNull();
+    expect(readToken($store, 'mcp-auth:inline'))->not->toBeNull();
 });
 
 it('uses a user-scoped storage key when a user key is set', function (): void {
     fakeDiscovery();
 
     $guzzle = makeGuzzleClient([tokenResponse('per-user')]);
-    $store = new InMemoryTokenStore;
+    $store = makeHandlerStore();
 
     $handler = new OAuthHandler(
         serverName: 'notion',
@@ -401,7 +413,7 @@ it('uses a user-scoped storage key when a user key is set', function (): void {
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: 'mcp:read',
-        tokens: $store,
+        store: $store,
         discovery: new AuthServerDiscovery,
         httpClient: $guzzle,
         userKey: '42',
@@ -409,8 +421,8 @@ it('uses a user-scoped storage key when a user key is set', function (): void {
 
     $handler->bearerToken();
 
-    expect($store->get('mcp-auth:notion:user:42'))->not->toBeNull()
-        ->and($store->get('mcp-auth:notion'))->toBeNull();
+    expect(readToken($store, 'mcp-auth:notion:user:42'))->not->toBeNull()
+        ->and(readToken($store, 'mcp-auth:notion'))->toBeNull();
 });
 
 it('reports needsAuthorization() true for an authorization_code client without a cached token', function (): void {
@@ -420,7 +432,7 @@ it('reports needsAuthorization() true for an authorization_code client without a
         clientId: 'id',
         clientSecret: null,
         configuredScope: null,
-        tokens: new InMemoryTokenStore,
+        store: makeHandlerStore(),
         discovery: new AuthServerDiscovery,
     );
 
@@ -429,8 +441,8 @@ it('reports needsAuthorization() true for an authorization_code client without a
 });
 
 it('reports needsAuthorization() false once a token is cached even if expired', function (): void {
-    $store = new InMemoryTokenStore;
-    $store->put('mcp-auth:notion', new TokenSet('stale', 'refresh-1', time() - 60, null));
+    $store = makeHandlerStore();
+    seedToken($store, 'mcp-auth:notion', new TokenSet('stale', 'refresh-1', time() - 60, null));
 
     $handler = new OAuthHandler(
         serverName: 'notion',
@@ -438,7 +450,7 @@ it('reports needsAuthorization() false once a token is cached even if expired', 
         clientId: 'id',
         clientSecret: null,
         configuredScope: null,
-        tokens: $store,
+        store: $store,
         discovery: new AuthServerDiscovery,
     );
 
@@ -452,7 +464,7 @@ it('reports needsAuthorization() false for client_credentials clients', function
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: null,
-        tokens: new InMemoryTokenStore,
+        store: makeHandlerStore(),
         discovery: new AuthServerDiscovery,
     );
 
@@ -462,7 +474,7 @@ it('reports needsAuthorization() false for client_credentials clients', function
 it('builds an authorization URL with PKCE, state, and the resource parameter', function (): void {
     fakeDiscovery(withPkce: true, withAuthorizationEndpoint: true);
 
-    $stateStore = makeStateStore();
+    $store = makeHandlerStore();
 
     $handler = new OAuthHandler(
         serverName: 'notion',
@@ -470,9 +482,8 @@ it('builds an authorization URL with PKCE, state, and the resource parameter', f
         clientId: 'cid-123',
         clientSecret: null,
         configuredScope: 'mcp:read mcp:write',
-        tokens: new InMemoryTokenStore,
+        store: $store,
         discovery: new AuthServerDiscovery,
-        stateStore: $stateStore,
         redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
     );
 
@@ -487,10 +498,10 @@ it('builds an authorization URL with PKCE, state, and the resource parameter', f
         ->and($query)->toHaveKey('scope', 'mcp:read mcp:write')
         ->and($query['state'])->toBe($redirect->state);
 
-    $payload = $stateStore->pull($redirect->state);
+    $payload = $store->pull('mcp-oauth-state:'.$redirect->state);
     expect($payload)->not->toBeNull()
-        ->and($payload->intendedUrl)->toBe('/dashboard')
-        ->and($payload->pkceVerifier)->toBeString();
+        ->and($payload['intended_url'])->toBe('/dashboard')
+        ->and($payload['pkce_verifier'])->toBeString();
 });
 
 it('refuses to start authorization_code when the AS does not advertise S256 PKCE', function (): void {
@@ -502,9 +513,8 @@ it('refuses to start authorization_code when the AS does not advertise S256 PKCE
         clientId: 'cid-123',
         clientSecret: null,
         configuredScope: null,
-        tokens: new InMemoryTokenStore,
+        store: makeHandlerStore(),
         discovery: new AuthServerDiscovery,
-        stateStore: makeStateStore(),
         redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
     );
 
@@ -518,18 +528,15 @@ it('completes the authorization_code flow by exchanging the code for a token', f
     $history = [];
     $guzzle = makeGuzzleClient([tokenResponse('user-access', 'user-refresh')], $history);
 
-    $stateStore = makeStateStore();
-
     $handler = new OAuthHandler(
         serverName: 'notion',
         mcpUrl: 'https://mcp.example.com/mcp',
         clientId: 'cid-123',
         clientSecret: null,
         configuredScope: 'mcp:read',
-        tokens: new InMemoryTokenStore,
+        store: makeHandlerStore(),
         discovery: new AuthServerDiscovery,
         httpClient: $guzzle,
-        stateStore: $stateStore,
         redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
     );
 
@@ -550,7 +557,7 @@ it('completes the authorization_code flow by exchanging the code for a token', f
 it('rejects a callback whose state was issued for a different user', function (): void {
     fakeDiscovery(withPkce: true, withAuthorizationEndpoint: true);
 
-    $stateStore = makeStateStore();
+    $store = makeHandlerStore();
 
     $starter = new OAuthHandler(
         serverName: 'notion',
@@ -558,9 +565,8 @@ it('rejects a callback whose state was issued for a different user', function ()
         clientId: 'cid-123',
         clientSecret: null,
         configuredScope: null,
-        tokens: new InMemoryTokenStore,
+        store: $store,
         discovery: new AuthServerDiscovery,
-        stateStore: $stateStore,
         redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
         userKey: '1',
     );
@@ -573,9 +579,8 @@ it('rejects a callback whose state was issued for a different user', function ()
         clientId: 'cid-123',
         clientSecret: null,
         configuredScope: null,
-        tokens: new InMemoryTokenStore,
+        store: $store,
         discovery: new AuthServerDiscovery,
-        stateStore: $stateStore,
         redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
         userKey: '2',
     );
@@ -593,9 +598,8 @@ it('rejects an unknown or expired state when completing authorization', function
         clientId: 'cid-123',
         clientSecret: null,
         configuredScope: null,
-        tokens: new InMemoryTokenStore,
+        store: makeHandlerStore(),
         discovery: new AuthServerDiscovery,
-        stateStore: makeStateStore(),
         redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
     );
 
@@ -612,9 +616,8 @@ it('throws AuthorizationRequiredException with a populated URL when no token is 
         clientId: 'cid-123',
         clientSecret: null,
         configuredScope: null,
-        tokens: new InMemoryTokenStore,
+        store: makeHandlerStore(),
         discovery: new AuthServerDiscovery,
-        stateStore: makeStateStore(),
         redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
     );
 
@@ -634,8 +637,8 @@ it('uses a refresh_token grant on an expired authorization_code token', function
     $history = [];
     $guzzle = makeGuzzleClient([tokenResponse('rotated', 'rotated-refresh')], $history);
 
-    $store = new InMemoryTokenStore;
-    $store->put('mcp-auth:notion', new TokenSet('stale', 'previous-refresh', time() - 60, 'mcp:read'));
+    $store = makeHandlerStore();
+    seedToken($store, 'mcp-auth:notion', new TokenSet('stale', 'previous-refresh', time() - 60, 'mcp:read'));
 
     $handler = new OAuthHandler(
         serverName: 'notion',
@@ -643,10 +646,9 @@ it('uses a refresh_token grant on an expired authorization_code token', function
         clientId: 'cid-123',
         clientSecret: null,
         configuredScope: 'mcp:read',
-        tokens: $store,
+        store: $store,
         discovery: new AuthServerDiscovery,
         httpClient: $guzzle,
-        stateStore: makeStateStore(),
         redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
     );
 
@@ -660,8 +662,8 @@ it('uses a refresh_token grant on an expired authorization_code token', function
 it('throws AuthorizationRequiredException when an expired auth_code token has no refresh token', function (): void {
     fakeDiscovery(withPkce: true, withAuthorizationEndpoint: true);
 
-    $store = new InMemoryTokenStore;
-    $store->put('mcp-auth:notion', new TokenSet('stale', null, time() - 60, null));
+    $store = makeHandlerStore();
+    seedToken($store, 'mcp-auth:notion', new TokenSet('stale', null, time() - 60, null));
 
     $handler = new OAuthHandler(
         serverName: 'notion',
@@ -669,9 +671,8 @@ it('throws AuthorizationRequiredException when an expired auth_code token has no
         clientId: 'cid-123',
         clientSecret: null,
         configuredScope: null,
-        tokens: $store,
+        store: $store,
         discovery: new AuthServerDiscovery,
-        stateStore: makeStateStore(),
         redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
     );
 
@@ -691,7 +692,7 @@ it('canonicalizes the resource parameter (lowercase scheme/host, no trailing sla
         clientId: 'id',
         clientSecret: 'secret',
         configuredScope: null,
-        tokens: new InMemoryTokenStore,
+        store: makeHandlerStore(),
         discovery: new AuthServerDiscovery,
         httpClient: $guzzle,
     );
@@ -702,7 +703,7 @@ it('canonicalizes the resource parameter (lowercase scheme/host, no trailing sla
     expect($body['resource'])->toBe('https://mcp.example.com/mcp');
 });
 
-it('dynamically registers when oauth() is called without a client_id', function (): void {
+it('dynamically registers when withOauth() is called without a client_id', function (): void {
     Http::fake([
         'https://mcp.example.com/.well-known/oauth-protected-resource*' => Http::response(json_encode([
             'resource' => 'https://mcp.example.com/mcp',
@@ -720,7 +721,7 @@ it('dynamically registers when oauth() is called without a client_id', function 
         ]), 201, ['Content-Type' => 'application/json']),
     ]);
 
-    $registry = new InMemoryClientRegistrationStore;
+    $store = makeHandlerStore();
 
     $handler = new OAuthHandler(
         serverName: 'nightwatch',
@@ -728,11 +729,9 @@ it('dynamically registers when oauth() is called without a client_id', function 
         clientId: null,
         clientSecret: null,
         configuredScope: null,
-        tokens: new InMemoryTokenStore,
+        store: $store,
         discovery: new AuthServerDiscovery,
-        stateStore: makeStateStore(),
         redirectUriResolver: fn (): string => 'https://app.example.com/mcp/nightwatch/callback',
-        registrationStore: $registry,
     );
 
     $redirect = $handler->startAuthorization();
@@ -740,8 +739,9 @@ it('dynamically registers when oauth() is called without a client_id', function 
     parse_str((string) parse_url($redirect->url, PHP_URL_QUERY), $query);
     expect($query['client_id'])->toBe('cid-dyn');
 
-    expect($registry->get('mcp-client:nightwatch'))->not->toBeNull()
-        ->and($registry->get('mcp-client:nightwatch')->clientId)->toBe('cid-dyn');
+    $registration = $store->get('mcp-client:nightwatch');
+    expect($registration)->not->toBeNull()
+        ->and(ClientRegistration::fromArray($registration)->clientId)->toBe('cid-dyn');
 
     Http::assertSent(function ($request): bool {
         if ((string) $request->url() !== 'https://auth.example.com/register') {
@@ -770,8 +770,8 @@ it('reuses a cached registration without re-registering', function (): void {
         ]), 200, ['Content-Type' => 'application/json']),
     ]);
 
-    $registry = new InMemoryClientRegistrationStore;
-    $registry->put('mcp-client:nightwatch', new ClientRegistration('cid-cached'));
+    $store = makeHandlerStore();
+    $store->put('mcp-client:nightwatch', (new ClientRegistration('cid-cached'))->toArray());
 
     $handler = new OAuthHandler(
         serverName: 'nightwatch',
@@ -779,11 +779,9 @@ it('reuses a cached registration without re-registering', function (): void {
         clientId: null,
         clientSecret: null,
         configuredScope: null,
-        tokens: new InMemoryTokenStore,
+        store: $store,
         discovery: new AuthServerDiscovery,
-        stateStore: makeStateStore(),
         redirectUriResolver: fn (): string => 'https://app.example.com/mcp/nightwatch/callback',
-        registrationStore: $registry,
     );
 
     $redirect = $handler->startAuthorization();
@@ -814,11 +812,9 @@ it('throws OAuthException when DCR is requested but the AS does not advertise re
         clientId: null,
         clientSecret: null,
         configuredScope: null,
-        tokens: new InMemoryTokenStore,
+        store: makeHandlerStore(),
         discovery: new AuthServerDiscovery,
-        stateStore: makeStateStore(),
         redirectUriResolver: fn (): string => 'https://app.example.com/cb',
-        registrationStore: new InMemoryClientRegistrationStore,
     );
 
     expect(fn (): mixed => $handler->startAuthorization())

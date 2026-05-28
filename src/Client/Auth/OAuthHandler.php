@@ -23,6 +23,16 @@ class OAuthHandler
 
     protected const PKCE_METHOD = 'S256';
 
+    protected const REFRESH_TOKEN_TTL_SECONDS = 2592000;
+
+    protected const DEFAULT_TTL_SECONDS = 3600;
+
+    protected const MINIMUM_TTL_SECONDS = 60;
+
+    protected const CLOCK_SKEW_SECONDS = 30;
+
+    protected const STATE_TTL_SECONDS = 600;
+
     protected ?GenericProvider $provider = null;
 
     protected ?ProtectedResourceMetadata $protectedResource = null;
@@ -48,13 +58,11 @@ class OAuthHandler
         protected ?string $clientId,
         protected ?string $clientSecret,
         protected ?string $configuredScope,
-        protected TokenStore $tokens,
+        protected EncryptedCacheStore $store,
         protected AuthServerDiscovery $discovery,
         protected ?ClientInterface $httpClient = null,
-        protected ?OAuthClientStateStore $stateStore = null,
         protected ?Closure $redirectUriResolver = null,
         protected ?string $userKey = null,
-        protected ?ClientRegistrationStore $registrationStore = null,
         protected ?DynamicClientRegistration $dynamicRegistration = null,
     ) {}
 
@@ -77,21 +85,21 @@ class OAuthHandler
         $this->challengeRetried = false;
 
         $key = $this->tokenKey();
-        $cached = $this->tokens->get($key);
+        $cached = $this->readToken($key);
 
         if ($cached instanceof TokenSet && ! $cached->isExpired()) {
             return $cached->accessToken;
         }
 
-        return $this->tokens->lock($key, function () use ($key): string {
-            $fresh = $this->tokens->get($key);
+        return $this->store->lock($this->refreshLockKey(), function () use ($key): string {
+            $fresh = $this->readToken($key);
 
             if ($fresh instanceof TokenSet && ! $fresh->isExpired()) {
                 return $fresh->accessToken;
             }
 
             $token = $this->acquireToken($fresh);
-            $this->tokens->put($key, $token);
+            $this->writeToken($key, $token);
 
             return $token->accessToken;
         });
@@ -111,13 +119,13 @@ class OAuthHandler
 
         $key = $this->tokenKey();
 
-        return $this->tokens->lock($key, function () use ($key): string {
+        return $this->store->lock($this->refreshLockKey(), function () use ($key): string {
             if ($this->requiresUserConsent()) {
-                $cached = $this->tokens->get($key);
+                $cached = $this->readToken($key);
 
                 if ($cached instanceof TokenSet && $cached->refreshToken !== null) {
                     $token = $this->refreshGrant($cached->refreshToken);
-                    $this->tokens->put($key, $token);
+                    $this->writeToken($key, $token);
 
                     return $token->accessToken;
                 }
@@ -126,7 +134,7 @@ class OAuthHandler
             }
 
             $token = $this->clientCredentialsGrant();
-            $this->tokens->put($key, $token);
+            $this->writeToken($key, $token);
 
             return $token->accessToken;
         });
@@ -134,7 +142,7 @@ class OAuthHandler
 
     public function bearerTokenIfCached(): ?string
     {
-        $cached = $this->tokens->get($this->tokenKey());
+        $cached = $this->readToken($this->tokenKey());
 
         if (! $cached instanceof TokenSet || $cached->isExpired()) {
             return null;
@@ -149,17 +157,17 @@ class OAuthHandler
             return false;
         }
 
-        return ! $this->tokens->get($this->tokenKey()) instanceof TokenSet;
+        return ! $this->readToken($this->tokenKey()) instanceof TokenSet;
     }
 
     public function forget(): void
     {
-        $this->tokens->forget($this->tokenKey());
+        $this->store->forget($this->tokenKey());
     }
 
     public function cachedTokens(): ?TokenSet
     {
-        return $this->tokens->get($this->tokenKey());
+        return $this->readToken($this->tokenKey());
     }
 
     public function startAuthorization(?string $intendedUrl = null): AuthorizationRedirect
@@ -200,13 +208,13 @@ class OAuthHandler
             throw new OAuthException('league/oauth2-client did not produce a PKCE verifier.');
         }
 
-        $this->stateStore?->put($state, new OAuthSession(
-            serverName: $this->serverLabel(),
-            pkceVerifier: $verifier,
-            userKey: $this->userKey,
-            intendedUrl: $intendedUrl,
-            scope: $scope,
-        ));
+        $this->store->put($this->stateKey($state), [
+            'server' => $this->serverLabel(),
+            'pkce_verifier' => $verifier,
+            'user_key' => $this->userKey,
+            'intended_url' => $intendedUrl,
+            'scope' => $scope,
+        ], self::STATE_TTL_SECONDS);
 
         return new AuthorizationRedirect($url, $state);
     }
@@ -217,30 +225,28 @@ class OAuthHandler
             throw new OAuthException('completeAuthorization() is only valid for OAuth clients that require user consent.');
         }
 
-        if (! $this->stateStore instanceof OAuthClientStateStore) {
-            throw new OAuthException('Cannot complete authorization without a configured state store.');
-        }
+        $session = $this->store->pull($this->stateKey($state));
 
-        $session = $this->stateStore->pull($state);
-
-        if (! $session instanceof OAuthSession) {
+        if (! is_array($session) || ! isset($session['pkce_verifier']) || $session['pkce_verifier'] === '') {
             throw new OAuthException("OAuth state [{$state}] is invalid or expired.");
         }
 
-        if ($session->userKey !== $this->userKey) {
+        $sessionUserKey = isset($session['user_key']) ? (string) $session['user_key'] : null;
+
+        if ($sessionUserKey !== $this->userKey) {
             throw new OAuthException("OAuth state [{$state}] does not belong to the current user.");
         }
 
-        $this->lastIntendedUrl = $session->intendedUrl;
+        $this->lastIntendedUrl = isset($session['intended_url']) ? (string) $session['intended_url'] : null;
 
         $token = $this->runGrant(self::GRANT_AUTHORIZATION_CODE, [
             'code' => $code,
-            'code_verifier' => $session->pkceVerifier,
+            'code_verifier' => (string) $session['pkce_verifier'],
             'redirect_uri' => $this->resolveRedirectUri(),
             'resource' => $this->canonicalResource(),
         ]);
 
-        $this->tokens->put($this->tokenKey(), $token);
+        $this->writeToken($this->tokenKey(), $token);
 
         return $token;
     }
@@ -383,11 +389,12 @@ class OAuthHandler
         }
 
         $registryKey = $this->registrationKey();
+        $cachedData = $this->store->get($registryKey);
 
-        if ($this->registrationStore instanceof ClientRegistrationStore) {
-            $cached = $this->registrationStore->get($registryKey);
+        if (is_array($cachedData)) {
+            $cached = ClientRegistration::fromArray($cachedData);
 
-            if ($cached instanceof ClientRegistration && ! $cached->isSecretExpired()) {
+            if ($cached->clientId !== '' && ! $cached->isSecretExpired()) {
                 $this->clientId = $cached->clientId;
                 $this->clientSecret = $cached->clientSecret;
 
@@ -412,7 +419,7 @@ class OAuthHandler
 
         $this->clientId = $registration->clientId;
         $this->clientSecret = $registration->clientSecret;
-        $this->registrationStore?->put($registryKey, $registration);
+        $this->store->put($registryKey, $registration->toArray());
     }
 
     protected function canonicalResource(): string
@@ -490,14 +497,51 @@ class OAuthHandler
         );
     }
 
+    protected function readToken(string $key): ?TokenSet
+    {
+        $data = $this->store->get($key);
+
+        return is_array($data) ? TokenSet::fromArray($data) : null;
+    }
+
+    protected function writeToken(string $key, TokenSet $token): void
+    {
+        $this->store->put($key, $token->toArray(), $this->tokenTtl($token));
+    }
+
+    protected function tokenTtl(TokenSet $set): int
+    {
+        if ($set->refreshToken !== null) {
+            return self::REFRESH_TOKEN_TTL_SECONDS;
+        }
+
+        if ($set->expiresAt === 0) {
+            return self::DEFAULT_TTL_SECONDS;
+        }
+
+        return max(self::MINIMUM_TTL_SECONDS, $set->expiresAt - time() - self::CLOCK_SKEW_SECONDS);
+    }
+
     private function tokenKey(): string
     {
-        return OAuthCacheKeys::tokens($this->serverName ?? 'inline', $this->userKey);
+        $base = 'mcp-auth:'.($this->serverName ?? 'inline');
+
+        return $this->userKey === null ? $base : $base.':user:'.$this->userKey;
     }
 
     private function registrationKey(): string
     {
-        return OAuthCacheKeys::registration($this->serverName ?? 'inline');
+        return 'mcp-client:'.($this->serverName ?? 'inline');
+    }
+
+    private function stateKey(string $state): string
+    {
+        return 'mcp-oauth-state:'.$state;
+    }
+
+    private function refreshLockKey(): string
+    {
+        return 'mcp-auth-refresh:'.$this->tokenKey();
     }
 
     private function serverLabel(): string

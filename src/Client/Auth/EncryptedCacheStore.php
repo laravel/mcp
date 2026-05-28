@@ -4,29 +4,27 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\Auth;
 
+use Closure;
+use Illuminate\Contracts\Cache\LockProvider;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Contracts\Encryption\StringEncrypter;
+use Laravel\Mcp\Exceptions\OAuthException;
 use Throwable;
 
-abstract class EncryptedCacheStore
+class EncryptedCacheStore
 {
     public function __construct(
         protected Repository $cache,
         protected StringEncrypter $crypt,
+        protected int $lockHoldSeconds = 10,
+        protected int $lockWaitSeconds = 5,
     ) {}
-
-    public function forget(string $key): void
-    {
-        try {
-            $this->cache->forget($key);
-        } catch (Throwable) {
-        }
-    }
 
     /**
      * @return ?array<string, mixed>
      */
-    protected function readDecrypted(string $key): ?array
+    public function get(string $key): ?array
     {
         try {
             $payload = $this->cache->get($key);
@@ -44,9 +42,21 @@ abstract class EncryptedCacheStore
     }
 
     /**
+     * @return ?array<string, mixed>
+     */
+    public function pull(string $key): ?array
+    {
+        $data = $this->get($key);
+
+        $this->forget($key);
+
+        return $data;
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      */
-    protected function writeEncrypted(string $key, array $data, ?int $ttlSeconds = null): void
+    public function put(string $key, array $data, ?int $ttlSeconds = null): void
     {
         try {
             $payload = $this->crypt->encryptString(json_encode($data, JSON_THROW_ON_ERROR));
@@ -59,6 +69,37 @@ abstract class EncryptedCacheStore
 
             $this->cache->put($key, $payload, $ttlSeconds);
         } catch (Throwable) {
+        }
+    }
+
+    public function forget(string $key): void
+    {
+        try {
+            $this->cache->forget($key);
+        } catch (Throwable) {
+        }
+    }
+
+    /**
+     * @template T
+     *
+     * @param  Closure(): T  $work
+     * @return T
+     */
+    public function lock(string $key, Closure $work): mixed
+    {
+        $store = $this->cache->getStore();
+
+        if (! $store instanceof LockProvider) {
+            return $work();
+        }
+
+        $lock = $store->lock($key, $this->lockHoldSeconds);
+
+        try {
+            return $lock->block($this->lockWaitSeconds, $work);
+        } catch (LockTimeoutException $lockTimeoutException) {
+            throw new OAuthException("Timed out waiting for MCP token refresh lock [{$key}].", $lockTimeoutException->getCode(), previous: $lockTimeoutException);
         }
     }
 }
