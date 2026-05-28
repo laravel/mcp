@@ -111,7 +111,7 @@ class Client
         return (new CallTool($name, $arguments))->handle($this->protocol);
     }
 
-    public function clearCache(): void
+    public function flushCache(): void
     {
         $this->listCache?->flush();
     }

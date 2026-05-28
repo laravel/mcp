@@ -211,7 +211,7 @@ it('rehydrates cached tools against the live client', function (): void {
     expect($result->text())->toBe('three');
 });
 
-it('clears the cached tools list on demand', function (): void {
+it('flushes the cached tools list on demand', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
     $transport->responses[] = toolsResponse(2);
@@ -220,7 +220,7 @@ it('clears the cached tools list on demand', function (): void {
     Mcp::registerClient('everything', fn (): Client => new Client($transport));
 
     Mcp::client('everything')->tools();
-    Mcp::client('everything')->clearCache();
+    Mcp::client('everything')->flushCache();
     Mcp::client('everything')->tools();
 
     expect($transport->responses)->toBeEmpty();
