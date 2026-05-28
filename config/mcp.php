@@ -57,30 +57,17 @@ return [
     |--------------------------------------------------------------------------
     |
     | The default configuration applied to any MCP client registered through the
-    | `Mcp::registerClient()` helper when no explicit value has been given.
-    | Set `cache_ttl` value to `0` to disable list caching globally.
+    | `Mcp::registerClient()` helper. Set `cache_ttl` to `0` to disable list
+    | caching globally. `oauth` URLs are used by the connect/callback flow.
     |
     */
 
     'client' => [
         'cache_ttl' => 3600,
-    ],
-
-    /*
-    |--------------------------------------------------------------------------
-    | OAuth Client Redirect URLs
-    |--------------------------------------------------------------------------
-    |
-    | These URLs are used by the MCP client OAuth callback flow. After a user
-    | successfully connects (or fails to connect) an external MCP server, the
-    | package will redirect them to one of these URLs. The success URL is also
-    | overridden by any value stored in `session('mcp.oauth.intended')`.
-    |
-    */
-
-    'oauth' => [
-        'success_url' => '/',
-        'error_url' => '/',
+        'oauth' => [
+            'success_url' => '/',
+            'error_url' => '/',
+        ],
     ],
 
 ];

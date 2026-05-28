@@ -106,11 +106,11 @@ class OAuthClientController extends Controller
             return $intended;
         }
 
-        return (string) (config('mcp.oauth.success_url') ?? '/');
+        return (string) (config('mcp.client.oauth.success_url') ?? '/');
     }
 
     protected function errorUrl(): string
     {
-        return (string) (config('mcp.oauth.error_url') ?? '/');
+        return (string) (config('mcp.client.oauth.error_url') ?? '/');
     }
 }
