@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Closure;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Client\Auth\TokenSet;
 use Laravel\Mcp\Client\Cache\PrimitiveCache;
@@ -26,6 +28,13 @@ class Client
     protected Protocol $protocol;
 
     protected ?PrimitiveCache $listCache = null;
+
+    protected ?string $registeredName = null;
+
+    protected ?int $listCacheTtl = null;
+
+    /** @var ?Closure(): (string|int|Authenticatable|null) */
+    protected ?Closure $cacheScope = null;
 
     public function __construct(
         protected Transport $transport,
@@ -65,6 +74,20 @@ class Client
     public function withListCache(?PrimitiveCache $cache): static
     {
         $this->listCache = $cache;
+
+        return $this;
+    }
+
+    /**
+     * @internal Used by ClientManager to bind a registered client to its name.
+     *
+     * @param  ?Closure(): (string|int|Authenticatable|null)  $scope
+     */
+    public function asRegisteredClient(string $name, ?int $ttl = null, ?Closure $scope = null): static
+    {
+        $this->registeredName = $name;
+        $this->listCacheTtl = $ttl;
+        $this->cacheScope = $scope;
 
         return $this;
     }
@@ -131,7 +154,7 @@ class Client
 
     protected function primitiveCache(): ?PrimitiveCache
     {
-        $this->listCache?->flush();
+        return $this->listCache;
     }
 
     public function __destruct()

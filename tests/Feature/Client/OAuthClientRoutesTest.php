@@ -97,6 +97,62 @@ it('completes the callback by exchanging the code for a token', function (): voi
         ->and($body['code'])->toBe('auth-code-123');
 });
 
+it('ignores an off-host intended URL after a successful callback', function (): void {
+    fakeAuthorizationCodeDiscovery();
+
+    $mock = new MockHandler([
+        new PsrResponse(200, ['Content-Type' => 'application/json'], json_encode([
+            'access_token' => 'live-access',
+            'token_type' => 'Bearer',
+            'expires_in' => 3600,
+        ])),
+    ]);
+    $guzzle = new GuzzleClient(['handler' => HandlerStack::create($mock)]);
+
+    Mcp::registerClient('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')
+        ->oauth('cid-1')
+        ->withOauthHttpClient($guzzle)
+    );
+
+    $connectResponse = $this->get('/mcp/notion/connect?intended=https://evil.com/phish');
+    parse_str((string) parse_url((string) $connectResponse->headers->get('Location'), PHP_URL_QUERY), $query);
+    $state = (string) ($query['state'] ?? '');
+
+    $callbackResponse = $this->get('/mcp/notion/callback?code=auth-code-123&state='.$state);
+
+    $callbackResponse->assertStatus(302);
+
+    expect($callbackResponse->headers->get('Location'))->not->toContain('evil.com');
+});
+
+it('honors a relative intended URL after a successful callback', function (): void {
+    fakeAuthorizationCodeDiscovery();
+
+    $mock = new MockHandler([
+        new PsrResponse(200, ['Content-Type' => 'application/json'], json_encode([
+            'access_token' => 'live-access',
+            'token_type' => 'Bearer',
+            'expires_in' => 3600,
+        ])),
+    ]);
+    $guzzle = new GuzzleClient(['handler' => HandlerStack::create($mock)]);
+
+    Mcp::registerClient('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')
+        ->oauth('cid-1')
+        ->withOauthHttpClient($guzzle)
+    );
+
+    $connectResponse = $this->get('/mcp/notion/connect?intended=/dashboard');
+    parse_str((string) parse_url((string) $connectResponse->headers->get('Location'), PHP_URL_QUERY), $query);
+    $state = (string) ($query['state'] ?? '');
+
+    $callbackResponse = $this->get('/mcp/notion/callback?code=auth-code-123&state='.$state);
+
+    $callbackResponse->assertStatus(302);
+
+    expect($callbackResponse->headers->get('Location'))->toEndWith('/dashboard');
+});
+
 it('redirects with an error when the callback receives error parameters', function (): void {
     Mcp::registerClient('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->oauth('cid-1')
     );

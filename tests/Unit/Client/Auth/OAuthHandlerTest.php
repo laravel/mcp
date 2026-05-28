@@ -547,6 +547,43 @@ it('completes the authorization_code flow by exchanging the code for a token', f
         ->and($body)->toHaveKey('redirect_uri', 'https://app.example.com/mcp/notion/callback');
 });
 
+it('rejects a callback whose state was issued for a different user', function (): void {
+    fakeDiscovery(withPkce: true, withAuthorizationEndpoint: true);
+
+    $stateStore = makeStateStore();
+
+    $starter = new OAuthHandler(
+        serverName: 'notion',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: 'cid-123',
+        clientSecret: null,
+        configuredScope: null,
+        tokens: new InMemoryTokenStore,
+        discovery: new AuthServerDiscovery,
+        stateStore: $stateStore,
+        redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
+        userKey: '1',
+    );
+
+    $redirect = $starter->startAuthorization();
+
+    $completer = new OAuthHandler(
+        serverName: 'notion',
+        mcpUrl: 'https://mcp.example.com/mcp',
+        clientId: 'cid-123',
+        clientSecret: null,
+        configuredScope: null,
+        tokens: new InMemoryTokenStore,
+        discovery: new AuthServerDiscovery,
+        stateStore: $stateStore,
+        redirectUriResolver: fn (): string => 'https://app.example.com/mcp/notion/callback',
+        userKey: '2',
+    );
+
+    expect(fn (): mixed => $completer->completeAuthorization('code', $redirect->state))
+        ->toThrow(OAuthException::class, 'does not belong to the current user');
+});
+
 it('rejects an unknown or expired state when completing authorization', function (): void {
     fakeDiscovery(withPkce: true, withAuthorizationEndpoint: true);
 

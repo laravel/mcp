@@ -77,6 +77,36 @@ it('applies the 30 second skew and 60 second floor to TTLs', function (): void {
     expect($ttlShort)->toBe(1);
 });
 
+it('persists tokens that carry a refresh token beyond the access token lifetime', function (): void {
+    $captured = null;
+    $repo = Mockery::mock(RepositoryContract::class);
+    $repo->shouldReceive('put')->once()->andReturnUsing(function ($key, $value, $ttl) use (&$captured): bool {
+        $captured = $ttl;
+
+        return true;
+    });
+
+    $store = makeStore($repo);
+    $store->put('mcp-auth:notion', new TokenSet('access', 'refresh', time() + 60, null));
+
+    expect($captured)->toBeGreaterThan(86400);
+});
+
+it('bounds tokens without a refresh token to the access token lifetime', function (): void {
+    $captured = null;
+    $repo = Mockery::mock(RepositoryContract::class);
+    $repo->shouldReceive('put')->once()->andReturnUsing(function ($key, $value, $ttl) use (&$captured): bool {
+        $captured = $ttl;
+
+        return true;
+    });
+
+    $store = makeStore($repo);
+    $store->put('mcp-auth:notion', new TokenSet('access', null, time() + 600, null));
+
+    expect($captured)->toBeLessThanOrEqual(600);
+});
+
 it('runs the locked closure inline for stores that do not support locking', function (): void {
     $store = makeStore();
     $ran = false;

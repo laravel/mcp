@@ -102,11 +102,26 @@ class OAuthClientController extends Controller
 
     protected function successUrl(?string $intended): string
     {
-        if ($intended !== null && $intended !== '') {
+        if ($intended !== null && $intended !== '' && $this->isSafeRedirectTarget($intended)) {
             return $intended;
         }
 
         return (string) (config('mcp.client.oauth.success_url') ?? '/');
+    }
+
+    protected function isSafeRedirectTarget(string $url): bool
+    {
+        if (str_starts_with($url, '//') || str_starts_with($url, '/\\')) {
+            return false;
+        }
+
+        if (str_starts_with($url, '/')) {
+            return true;
+        }
+
+        $host = parse_url($url, PHP_URL_HOST);
+
+        return is_string($host) && $host === request()->getHost();
     }
 
     protected function errorUrl(): string

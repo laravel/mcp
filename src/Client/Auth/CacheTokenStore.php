@@ -19,11 +19,14 @@ class CacheTokenStore extends EncryptedCacheStore implements TokenStore
 
     protected const CLOCK_SKEW_SECONDS = 30;
 
+    protected const REFRESH_TOKEN_TTL_SECONDS = 2592000;
+
     public function __construct(
         Repository $cache,
         StringEncrypter $crypt,
         protected int $lockHoldSeconds = 10,
         protected int $lockWaitSeconds = 5,
+        protected int $refreshTtlSeconds = self::REFRESH_TOKEN_TTL_SECONDS,
     ) {
         parent::__construct($cache, $crypt);
     }
@@ -59,6 +62,10 @@ class CacheTokenStore extends EncryptedCacheStore implements TokenStore
 
     protected function ttlFor(TokenSet $set): int
     {
+        if ($set->refreshToken !== null) {
+            return $this->refreshTtlSeconds;
+        }
+
         if ($set->expiresAt === 0) {
             return self::DEFAULT_TTL_SECONDS;
         }

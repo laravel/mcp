@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client\Auth;
 
 use Illuminate\Contracts\Cache\Repository;
+use Laravel\Mcp\Exceptions\OAuthException;
 use Throwable;
 
 class OAuthClientStateStore
@@ -18,7 +19,8 @@ class OAuthClientStateStore
     {
         try {
             $this->cache->put(OAuthCacheKeys::state($state), $session->toArray(), $this->ttlSeconds);
-        } catch (Throwable) {
+        } catch (Throwable $throwable) {
+            throw new OAuthException("Failed to persist OAuth state [{$state}]: {$throwable->getMessage()}.", $throwable->getCode(), previous: $throwable);
         }
     }
 

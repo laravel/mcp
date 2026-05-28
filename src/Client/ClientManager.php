@@ -48,9 +48,9 @@ class ClientManager
             unset($this->clients[$name]);
         }
 
-        $this->factories[$name] = fn (): Client => $factory()->withListCache(
-            $this->buildListCache($name, $cacheTtl, $scope),
-        );
+        $this->factories[$name] = fn (): Client => $factory()
+            ->asRegisteredClient($name, $cacheTtl, $scope)
+            ->withListCache($this->buildListCache($name, $cacheTtl, $scope));
     }
 
     public function client(string $name): Client

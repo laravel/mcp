@@ -74,6 +74,8 @@ class OAuthHandler
 
     public function bearerToken(): string
     {
+        $this->challengeRetried = false;
+
         $key = $this->tokenKey();
         $cached = $this->tokens->get($key);
 
@@ -223,6 +225,10 @@ class OAuthHandler
 
         if (! $session instanceof OAuthSession) {
             throw new OAuthException("OAuth state [{$state}] is invalid or expired.");
+        }
+
+        if ($session->userKey !== $this->userKey) {
+            throw new OAuthException("OAuth state [{$state}] does not belong to the current user.");
         }
 
         $this->lastIntendedUrl = $session->intendedUrl;
@@ -429,10 +435,6 @@ class OAuthHandler
 
         if (isset($parts['path']) && $parts['path'] !== '/' && $parts['path'] !== '') {
             $url .= rtrim($parts['path'], '/');
-        }
-
-        if (isset($parts['query']) && $parts['query'] !== '') {
-            $url .= '?'.$parts['query'];
         }
 
         return $this->canonicalResource = $url;

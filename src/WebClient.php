@@ -106,6 +106,7 @@ class WebClient extends Client
         $clone->listCacheTtl = $this->listCacheTtl;
         $clone->cacheScope = $this->cacheScope;
         $clone->userKey = $user;
+        $clone->oauthHttpClient = $this->oauthHttpClient;
         $clone->wireAuthorizationStrategy();
 
         return $clone;
