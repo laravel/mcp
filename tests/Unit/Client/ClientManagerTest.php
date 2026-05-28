@@ -171,7 +171,7 @@ it('caches with an explicit ttl', function (): void {
     $transport->responses[] = initializeResponse();
     $transport->responses[] = toolsResponse(2);
 
-    Mcp::registerClient('everything', fn (): Client => new Client($transport), cache: 1800);
+    Mcp::registerClient('everything', fn (): Client => new Client($transport), cacheTtl: 1800);
 
     Mcp::client('everything')->tools();
     Mcp::client('everything')->tools();
@@ -185,7 +185,7 @@ it('treats a zero ttl as no cache', function (): void {
     $transport->responses[] = toolsResponse(2);
     $transport->responses[] = toolsResponse(3);
 
-    Mcp::registerClient('dev', fn (): Client => new Client($transport), cache: 0);
+    Mcp::registerClient('dev', fn (): Client => new Client($transport), cacheTtl: 0);
 
     Mcp::client('dev')->tools();
     Mcp::client('dev')->tools();
@@ -211,7 +211,7 @@ it('rehydrates cached tools against the live client', function (): void {
     expect($result->text())->toBe('three');
 });
 
-it('clears the cached tools list on demand', function (): void {
+it('flushes the cached tools list on demand', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
     $transport->responses[] = toolsResponse(2);
@@ -220,7 +220,7 @@ it('clears the cached tools list on demand', function (): void {
     Mcp::registerClient('everything', fn (): Client => new Client($transport));
 
     Mcp::client('everything')->tools();
-    Mcp::client('everything')->clearCache();
+    Mcp::client('everything')->flushCache();
     Mcp::client('everything')->tools();
 
     expect($transport->responses)->toBeEmpty();
@@ -301,6 +301,37 @@ it('refetches when the cached payload no longer validates', function (): void {
         ->put('mcp-list:everything:tools', [['not-a-valid' => 'tool-payload']], 3600);
 
     expect(Mcp::client('everything')->tools()->keys()->all())->toBe(['add']);
+    expect($transport->responses)->toBeEmpty();
+});
+
+it('refetches when the cached payload contains a non-array entry', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = toolsResponse(2);
+
+    Mcp::registerClient('everything', fn (): Client => new Client($transport));
+
+    app(Repository::class)
+        ->put('mcp-list:everything:tools', ['not-an-array'], 3600);
+
+    expect(Mcp::client('everything')->tools()->keys()->all())->toBe(['add']);
+    expect($transport->responses)->toBeEmpty();
+});
+
+it('does not retry on a live fetch failure', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => ['tools' => 'not-an-array'],
+    ]);
+
+    Mcp::registerClient('everything', fn (): Client => new Client($transport));
+
+    expect(fn () => Mcp::client('everything')->tools())
+        ->toThrow(ClientException::class, 'Invalid tools/list response from server.');
+
     expect($transport->responses)->toBeEmpty();
 });
 

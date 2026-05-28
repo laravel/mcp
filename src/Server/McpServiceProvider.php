@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Cache\Repository;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Client\ClientManager;
@@ -22,7 +25,9 @@ class McpServiceProvider extends ServiceProvider
     {
         $this->app->singleton(Registrar::class, fn (): Registrar => new Registrar);
 
-        $this->app->singleton(ClientManager::class, fn (): ClientManager => new ClientManager);
+        $this->app->singleton(ClientManager::class, fn (Application $app): ClientManager => new ClientManager(
+            $app->bound(Repository::class) ? $app->make(Repository::class) : null,
+        ));
 
         $this->app->singleton('mcp.sdk', fn (): string => (string) file_get_contents(__DIR__.'/../../resources/js/mcp-sdk.min.js'));
 
@@ -99,9 +104,11 @@ class McpServiceProvider extends ServiceProvider
 
     protected function registerClientDisconnect(): void
     {
-        $this->app->terminating(function (): void {
-            if ($this->app->resolved(ClientManager::class)) {
-                $this->app->make(ClientManager::class)->disconnectAll();
+        $this->app->terminating(static function (): void {
+            $container = Container::getInstance();
+
+            if ($container->resolved(ClientManager::class)) {
+                $container->make(ClientManager::class)->disconnectAll();
             }
         });
     }

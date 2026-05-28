@@ -45,38 +45,39 @@ class ListTools implements Method
      */
     public function handle(Protocol $protocol): Collection
     {
-        try {
-            return $this->hydrate($this->loadPayloads($protocol));
-        } catch (ClientException $clientException) {
-            if (! $this->cache instanceof PrimitiveCache) {
-                throw $clientException;
+        if (! $this->cache instanceof PrimitiveCache || $this->limit !== null) {
+            return $this->hydrate($this->fetch($protocol));
+        }
+
+        $cached = $this->cache->get('tools');
+
+        if (is_array($cached)) {
+            try {
+                return $this->hydrate($cached);
+            } catch (ClientException) {
+                $this->cache->flush();
             }
-
-            $this->cache->flush();
-
-            return $this->hydrate($this->loadPayloads($protocol));
         }
+
+        $payloads = $this->fetch($protocol);
+        $tools = $this->hydrate($payloads);
+
+        $this->cache->put('tools', $payloads);
+
+        return $tools;
     }
 
     /**
-     * @return array<int, array<string, mixed>>
-     */
-    protected function loadPayloads(Protocol $protocol): array
-    {
-        if ($this->cache instanceof PrimitiveCache && $this->limit === null) {
-            return $this->cache->remember('tools', fn (): array => $this->fetch($protocol));
-        }
-
-        return $this->fetch($protocol);
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $payloads
+     * @param  array<int, mixed>  $payloads
      * @return Collection<string, Tool>
      */
     protected function hydrate(array $payloads): Collection
     {
-        return collect($payloads)->mapWithKeys(function (array $payload): array {
+        return collect($payloads)->mapWithKeys(function (mixed $payload): array {
+            if (! is_array($payload)) {
+                throw new ClientException('Invalid tool payload.');
+            }
+
             $tool = Tool::from($this->client, $payload);
 
             return [$tool->name => $tool];
