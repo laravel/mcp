@@ -1,6 +1,20 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.7.1...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.7.2...main)
+
+## [v0.7.2](https://github.com/laravel/mcp/compare/v0.7.1...v0.7.2) - 2026-05-22
+
+### What's Changed
+
+* return $this from ->dump() by [@Gummibeer](https://github.com/Gummibeer) in https://github.com/laravel/mcp/pull/223
+* Resolve URI template variables when testing resources by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/225
+* Add MCP client foundation with stdio transport and ping by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/216
+
+### New Contributors
+
+* [@Gummibeer](https://github.com/Gummibeer) made their first contribution in https://github.com/laravel/mcp/pull/223
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.7.1...v0.7.2
 
 ## [v0.7.1](https://github.com/laravel/mcp/compare/v0.7.0...v0.7.1) - 2026-05-19
 
@@ -227,6 +241,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -237,6 +252,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
