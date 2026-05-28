@@ -79,10 +79,10 @@ class Registrar
     public function registerClient(
         string $name,
         Closure $factory,
-        ?int $cache = null,
+        ?int $cacheTtl = null,
         ?Closure $scope = null,
     ): void {
-        $this->clientManager()->registerClient($name, $factory, $cache, $scope);
+        $this->clientManager()->registerClient($name, $factory, $cacheTtl, $scope);
     }
 
     public function client(string $name): Client

@@ -6,8 +6,10 @@ namespace Laravel\Mcp\Client;
 
 use Closure;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Traits\Macroable;
 use Laravel\Mcp\Client;
+use Laravel\Mcp\Client\Cache\PrimitiveCache;
 use Laravel\Mcp\Exceptions\ClientException;
 
 class ClientManager
@@ -20,6 +22,11 @@ class ClientManager
     /** @var array<string, Client> */
     protected array $clients = [];
 
+    public function __construct(protected ?Repository $cacheRepository = null)
+    {
+        //
+    }
+
     /**
      * @param  Closure(): Client  $factory
      * @param  ?Closure(): (string|int|Authenticatable|null)  $scope
@@ -27,10 +34,10 @@ class ClientManager
     public function registerClient(
         string $name,
         Closure $factory,
-        ?int $cache = null,
+        ?int $cacheTtl = null,
         ?Closure $scope = null,
     ): void {
-        $cache ??= (int) config('mcp.client.cache_ttl', 3600);
+        $cacheTtl ??= (int) config('mcp.client.cache_ttl', 3600);
 
         if (isset($this->clients[$name])) {
             try {
@@ -41,7 +48,9 @@ class ClientManager
             unset($this->clients[$name]);
         }
 
-        $this->factories[$name] = fn (): Client => $factory()->asRegisteredClient($name, $cache, $scope);
+        $this->factories[$name] = fn (): Client => $factory()->withListCache(
+            $this->buildListCache($name, $cacheTtl, $scope),
+        );
     }
 
     public function client(string $name): Client
@@ -63,5 +72,22 @@ class ClientManager
         }
 
         $this->clients = [];
+    }
+
+    /**
+     * @param  ?Closure(): (string|int|Authenticatable|null)  $scope
+     */
+    protected function buildListCache(string $name, int $cacheTtl, ?Closure $scope): ?PrimitiveCache
+    {
+        if ($cacheTtl <= 0 || ! $this->cacheRepository instanceof Repository) {
+            return null;
+        }
+
+        return new PrimitiveCache(
+            cache: $this->cacheRepository,
+            name: $name,
+            ttl: $cacheTtl,
+            scope: $scope,
+        );
     }
 }

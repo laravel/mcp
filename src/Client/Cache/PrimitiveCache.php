@@ -22,25 +22,21 @@ class PrimitiveCache
     ) {}
 
     /**
-     * @param  Closure(): array<int, array<string, mixed>>  $fetch
-     * @return array<int, array<string, mixed>>
+     * @return array<int, mixed>|null
      */
-    public function remember(string $kind, Closure $fetch): array
+    public function get(string $kind): ?array
     {
-        $key = $this->key($kind);
+        $value = $this->cache->get($this->key($kind));
 
-        $cached = $this->cache->get($key);
+        return is_array($value) ? $value : null;
+    }
 
-        if (is_array($cached)) {
-            /** @var array<int, array<string, mixed>> $cached */
-            return $cached;
-        }
-
-        $payloads = $fetch();
-
-        $this->cache->put($key, $payloads, $this->ttl);
-
-        return $payloads;
+    /**
+     * @param  array<int, array<string, mixed>>  $payloads
+     */
+    public function put(string $kind, array $payloads): void
+    {
+        $this->cache->put($this->key($kind), $payloads, $this->ttl);
     }
 
     public function flush(): void
