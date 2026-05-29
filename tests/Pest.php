@@ -15,6 +15,7 @@ uses(TestCase::class)
         }
 
         config()->set('app.debug', true);
+        config()->set('cache.default', 'array');
     })->in('Unit', 'Feature');
 
 /*

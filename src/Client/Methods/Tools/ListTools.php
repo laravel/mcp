@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Client\Methods\Tools;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Client;
+use Laravel\Mcp\Client\Cache\PrimitiveCache;
 use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Protocol;
@@ -19,6 +20,7 @@ class ListTools implements Method
 {
     public function __construct(
         protected Client $client,
+        protected ?PrimitiveCache $cache = null,
         protected ?string $cursor = null,
         protected ?int $limit = null,
     ) {
@@ -43,16 +45,59 @@ class ListTools implements Method
      */
     public function handle(Protocol $protocol): Collection
     {
+        if (! $this->cache instanceof PrimitiveCache || $this->limit !== null) {
+            return $this->hydrate($this->fetch($protocol));
+        }
+
+        $cached = $this->cache->get('tools');
+
+        if (is_array($cached)) {
+            try {
+                return $this->hydrate($cached);
+            } catch (ClientException) {
+                $this->cache->flush('tools');
+            }
+        }
+
+        $payloads = $this->fetch($protocol);
+        $tools = $this->hydrate($payloads);
+
+        $this->cache->put('tools', $payloads);
+
+        return $tools;
+    }
+
+    /**
+     * @param  array<int, mixed>  $payloads
+     * @return Collection<string, Tool>
+     */
+    protected function hydrate(array $payloads): Collection
+    {
+        return collect($payloads)->mapWithKeys(function (mixed $payload): array {
+            if (! is_array($payload)) {
+                throw new ClientException('Invalid tool payload.');
+            }
+
+            $tool = Tool::from($this->client, $payload);
+
+            return [$tool->name => $tool];
+        });
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    protected function fetch(Protocol $protocol): array
+    {
         if ($this->limit === 0) {
-            return collect();
+            return [];
         }
 
         if ($this->limit !== null && $this->limit < 0) {
             throw new ClientException('Tool list limit must be greater than or equal to zero.');
         }
 
-        /** @var Collection<string, Tool> $tools */
-        $tools = collect();
+        $payloads = [];
         $cursor = $this->cursor;
         $seenCursors = [];
 
@@ -65,30 +110,29 @@ class ListTools implements Method
                 $seenCursors[$cursor] = true;
             }
 
-            $result = $protocol->dispatch(new self($this->client, $cursor, $this->limit));
-            $payloads = Arr::get($result, 'tools');
+            $result = $protocol->dispatch(new self($this->client, null, $cursor, $this->limit));
+            $page = Arr::get($result, 'tools');
 
-            if (! is_array($payloads)) {
+            if (! is_array($page)) {
                 throw new ClientException('Invalid tools/list response from server.');
             }
 
-            foreach ($payloads as $payload) {
+            foreach ($page as $payload) {
                 if (! is_array($payload)) {
                     throw new ClientException('Invalid tool payload from server.');
                 }
 
-                if ($this->limit !== null && $tools->count() >= $this->limit) {
-                    return $tools;
+                if ($this->limit !== null && count($payloads) >= $this->limit) {
+                    return $payloads;
                 }
 
-                $tool = Tool::from($this->client, $payload);
-                $tools[$tool->name] = $tool;
+                $payloads[] = $payload;
             }
 
             $next = Arr::get($result, 'nextCursor');
 
             if ($next === null || $next === '') {
-                return $tools;
+                return $payloads;
             }
 
             if (! is_string($next)) {

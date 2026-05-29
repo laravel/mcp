@@ -51,4 +51,19 @@ return [
 
     'authorization_server' => null,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Client Defaults
+    |--------------------------------------------------------------------------
+    |
+    | The default configuration applied to any MCP client registered through
+    | the `Mcp::registerClient()` method if no explicit values are passed
+    | to the method. Setting `cache_ttl` to zero disables list caching.
+    |
+    */
+
+    'client' => [
+        'cache_ttl' => 3600,
+    ],
+
 ];
