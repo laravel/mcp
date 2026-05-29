@@ -39,9 +39,16 @@ class PrimitiveCache
         $this->cache->put($this->key($kind), $payloads, $this->ttl);
     }
 
-    public function flush(): void
+    public function flush(string $kind): void
     {
-        $this->cache->forget($this->key('tools'));
+        $this->cache->forget($this->key($kind));
+    }
+
+    public function flushAll(): void
+    {
+        foreach (['tools', 'resources', 'prompts'] as $kind) {
+            $this->cache->forget($this->key($kind));
+        }
     }
 
     protected function key(string $kind): string

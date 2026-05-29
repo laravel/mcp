@@ -55,7 +55,7 @@ class ListTools implements Method
             try {
                 return $this->hydrate($cached);
             } catch (ClientException) {
-                $this->cache->flush();
+                $this->cache->flush('tools');
             }
         }
 

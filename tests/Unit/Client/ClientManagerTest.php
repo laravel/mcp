@@ -11,6 +11,17 @@ use Laravel\Mcp\Facades\Mcp;
 use Tests\Fixtures\Client\FakeTransport;
 use Tests\Fixtures\Client\ThrowingTransport;
 
+function toolsResponse(int $id): string
+{
+    return json_encode([
+        'jsonrpc' => '2.0',
+        'id' => $id,
+        'result' => [
+            'tools' => [['name' => 'add', 'description' => 'Adds two numbers']],
+        ],
+    ]);
+}
+
 it('registers a named client and resolves it by name', function (): void {
     Mcp::registerClient('everything', fn (): Client => new Client(new FakeTransport));
 

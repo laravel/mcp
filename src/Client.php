@@ -113,7 +113,7 @@ class Client
 
     public function flushCache(): void
     {
-        $this->listCache?->flush();
+        $this->listCache?->flushAll();
     }
 
     public function __destruct()

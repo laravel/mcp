@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
-use Illuminate\Container\Container;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -104,11 +103,9 @@ class McpServiceProvider extends ServiceProvider
 
     protected function registerClientDisconnect(): void
     {
-        $this->app->terminating(static function (): void {
-            $container = Container::getInstance();
-
-            if ($container->resolved(ClientManager::class)) {
-                $container->make(ClientManager::class)->disconnectAll();
+        $this->app->terminating(function (): void {
+            if ($this->app->resolved(ClientManager::class)) {
+                $this->app->make(ClientManager::class)->disconnectAll();
             }
         });
     }
