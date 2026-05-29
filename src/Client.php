@@ -13,6 +13,7 @@ use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Protocol;
 use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Client\Schema\ToolResult;
+use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Client\Transport\StdioTransport;
 use Laravel\Mcp\Schema\Implementation;
 
@@ -40,6 +41,11 @@ class Client
     public static function local(string $command, array $args = []): static
     {
         return new static(new StdioTransport($command, $args));
+    }
+
+    public static function web(string $url): WebClient
+    {
+        return new WebClient(new HttpTransport($url));
     }
 
     public function withTimeout(float $seconds): static

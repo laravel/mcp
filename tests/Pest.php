@@ -338,6 +338,13 @@ function parseJsonRpcMessagesFromSseStream(string $content): array
     return $messages;
 }
 
+function sseStream(array $frames): string
+{
+    return collect($frames)
+        ->map(fn (array $frame): string => 'data: '.json_encode($frame)."\n\n")
+        ->implode('');
+}
+
 function parseJsonRpcMessagesFromStdout(string $output): array
 {
     $jsonMessages = array_filter(explode("\n", trim($output)));
