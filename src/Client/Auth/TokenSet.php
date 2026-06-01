@@ -26,7 +26,7 @@ class TokenSet
             refreshToken: (string) Arr::get($data, 'refresh_token'),
             expiresAt: (int) Arr::get($data, 'expires_at', 0),
             scope: (string) Arr::get($data, 'scope'),
-            refreshExpiresAt: (int) Arr::get($data, 'refresh_expires_at', 0),
+            refreshExpiresAt: (int) Arr::get($data, 'refresh_expires_at', 0)
         );
     }
 

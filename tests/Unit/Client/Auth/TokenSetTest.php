@@ -10,6 +10,35 @@ it('round-trips through fromArray and toArray', function (): void {
     expect(TokenSet::fromArray($set->toArray()))->toEqual($set);
 });
 
+it('converts relative expiry from a token response into absolute timestamps', function (): void {
+    $set = TokenSet::fromTokenResponse([
+        'access_token' => 'access',
+        'refresh_token' => 'refresh',
+        'expires_in' => 3600,
+        'refresh_expires_in' => 7200,
+        'scope' => 'mcp:read',
+    ], now: 1_700_000_000);
+
+    expect($set->accessToken)->toBe('access')
+        ->and($set->refreshToken)->toBe('refresh')
+        ->and($set->expiresAt)->toBe(1_700_003_600)
+        ->and($set->refreshExpiresAt)->toBe(1_700_007_200)
+        ->and($set->scope)->toBe('mcp:read');
+});
+
+it('normalizes a token response without expiry or optional fields', function (): void {
+    $set = TokenSet::fromTokenResponse([
+        'access_token' => 'access',
+        'refresh_token' => '',
+        'scope' => '',
+    ], now: 1_700_000_000);
+
+    expect($set->expiresAt)->toBe(0)
+        ->and($set->refreshExpiresAt)->toBeNull()
+        ->and($set->refreshToken)->toBeNull()
+        ->and($set->scope)->toBeNull();
+});
+
 it('round-trips a refresh-token expiry through fromArray and toArray', function (): void {
     $set = new TokenSet('access', 'refresh', 1_700_000_000, 'mcp:read', 1_700_000_500);
 

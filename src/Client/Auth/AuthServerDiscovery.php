@@ -202,13 +202,9 @@ class AuthServerDiscovery
 
         $this->assertHttps($tokenEndpoint);
 
-        $authorizationEndpoint = filled($data['authorization_endpoint'] ?? null) && is_string($data['authorization_endpoint'])
-            ? $data['authorization_endpoint']
-            : null;
+        $authorizationEndpoint = (string) Arr::get($data, 'authorization_endpoint');
 
-        if ($authorizationEndpoint !== null) {
-            $this->assertHttps($authorizationEndpoint);
-        }
+        $this->assertHttps($authorizationEndpoint);
 
         return new AuthServerMetadata(
             issuer: (string) Arr::get($data, 'issuer', ''),
@@ -216,7 +212,7 @@ class AuthServerDiscovery
             authorizationEndpoint: $authorizationEndpoint,
             grantTypesSupported: $this->toStringList(Arr::get($data, 'grant_types_supported', [])),
             codeChallengeMethodsSupported: $this->toStringList(Arr::get($data, 'code_challenge_methods_supported', [])),
-            registrationEndpoint: filled($data['registration_endpoint'] ?? null) ? (string) $data['registration_endpoint'] : null,
+            registrationEndpoint: (string) Arr::get($data, 'registration_endpoint')
         );
     }
 
