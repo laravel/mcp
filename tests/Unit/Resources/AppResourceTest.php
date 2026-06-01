@@ -118,9 +118,7 @@ it('serializes name title description and mimeType', function (): void {
         ->toHaveKey('uri');
 });
 
-it('includes domain from app url in _meta.ui by default', function (): void {
-    config(['app.url' => 'https://myapp.example.com']);
-
+it('uses the computed Claude domain when not set on app resource', function (): void {
     $resource = new class extends AppResource
     {
         public function handle(Request $request): Response
@@ -131,7 +129,8 @@ it('includes domain from app url in _meta.ui by default', function (): void {
 
     $array = $resource->toArray();
 
-    expect($array['_meta']['ui'])->toEqual(['domain' => 'myapp.example.com', 'prefersBorder' => true]);
+    expect($array['_meta']['ui']['domain'])
+        ->toMatch('/^[a-f0-9]{32}\\.claudemcpcontent\\.com$/');
 });
 
 it('attribute domain overrides auto-resolved domain', function (): void {

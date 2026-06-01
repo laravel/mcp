@@ -29,11 +29,7 @@ abstract class AppResource extends Resource
         $appMeta = $this->appMeta()->toArray();
 
         if (! isset($appMeta['domain'])) {
-            $domain = parse_url((string) config('app.url', ''), PHP_URL_HOST) ?: null;
-
-            if ($domain !== null) {
-                $appMeta['domain'] = $domain;
-            }
+            $appMeta['domain'] = $this->toClaudeDomain(url()->current());
         }
 
         return $appMeta;
@@ -60,5 +56,14 @@ abstract class AppResource extends Resource
         }
 
         return $data;
+    }
+
+    private function toClaudeDomain(string $serverRoute) : string
+    {
+        return str($serverRoute)
+            ->hash('sha256')
+            ->limit(32, '')
+            ->append('.claudemcpcontent.com')
+            ->value();
     }
 }
