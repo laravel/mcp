@@ -90,6 +90,17 @@ it('throws DiscoveryException when PRM returns 5xx', function (): void {
         ->toThrow(DiscoveryException::class, 'HTTP status [500]');
 });
 
+it('rejects a discovery response that redirects instead of following it', function (): void {
+    Http::fake([
+        '*' => Http::response('', 302, ['Location' => 'http://169.254.169.254/latest/meta-data']),
+    ]);
+
+    expect(fn (): ProtectedResourceMetadata => (new AuthServerDiscovery)->discoverProtectedResource('https://mcp.example.com/mcp'))
+        ->toThrow(DiscoveryException::class, 'unexpected redirect');
+
+    Http::assertSent(fn ($request): bool => ! str_contains((string) $request->url(), '169.254.169.254'));
+});
+
 it('throws DiscoveryException when PRM lacks authorization_servers', function (): void {
     Http::fake([
         '*' => Http::response(json_encode(['resource' => 'https://mcp.example.com/mcp']), 200, ['Content-Type' => 'application/json']),

@@ -49,6 +49,10 @@ class AuthServerDiscovery
                 continue;
             }
 
+            if ($response->redirect()) {
+                throw new DiscoveryException("Discovery of [{$candidate}] returned an unexpected redirect [{$response->status()}].");
+            }
+
             if (! $response->successful()) {
                 throw new DiscoveryException("Discovery of [{$candidate}] failed with HTTP status [{$response->status()}].");
             }
@@ -163,7 +167,7 @@ class AuthServerDiscovery
     protected function safelyGet(string $url): Response
     {
         try {
-            return Http::acceptJson()->get($url);
+            return Http::acceptJson()->withoutRedirecting()->get($url);
         } catch (Throwable $throwable) {
             throw new DiscoveryException("Discovery request to [{$url}] failed: {$throwable->getMessage()}.", $throwable->getCode(), $throwable);
         }
