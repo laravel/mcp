@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Request as HttpRequest;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\AppResource;
@@ -119,6 +120,15 @@ it('serializes name title description and mimeType', function (): void {
 });
 
 it('uses the computed Claude domain when not set on app resource', function (): void {
+    $currentUrl = 'https://myapp.example.com/mcp/test';
+    app()->instance('request', HttpRequest::create($currentUrl, 'GET'));
+
+    $expectedDomain = str($currentUrl)
+        ->hash('sha256')
+        ->limit(32, '')
+        ->append('.claudemcpcontent.com')
+        ->value();
+
     $resource = new class extends AppResource
     {
         public function handle(Request $request): Response
@@ -129,8 +139,7 @@ it('uses the computed Claude domain when not set on app resource', function (): 
 
     $array = $resource->toArray();
 
-    expect($array['_meta']['ui']['domain'])
-        ->toMatch('/^[a-f0-9]{32}\\.claudemcpcontent\\.com$/');
+    expect($array['_meta']['ui']['domain'])->toBe($expectedDomain);
 });
 
 it('attribute domain overrides auto-resolved domain', function (): void {
