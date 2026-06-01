@@ -43,21 +43,21 @@ class ListTools implements Method
      */
     public function handle(Protocol $protocol): Collection
     {
-        return $this->hydrate($this->fetch($protocol));
+        return self::hydrate($this->client, $this->fetch($protocol));
     }
 
     /**
      * @param  array<int, mixed>  $payloads
      * @return Collection<string, Tool>
      */
-    protected function hydrate(array $payloads): Collection
+    public static function hydrate(Client $client, array $payloads): Collection
     {
-        return collect($payloads)->mapWithKeys(function (mixed $payload): array {
+        return collect($payloads)->mapWithKeys(function (mixed $payload) use ($client): array {
             if (! is_array($payload)) {
                 throw new ClientException('Invalid tool payload.');
             }
 
-            $tool = Tool::from($this->client, $payload);
+            $tool = Tool::from($client, $payload);
 
             return [$tool->name => $tool];
         });

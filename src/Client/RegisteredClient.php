@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Client;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Cache\PrimitiveCache;
+use Laravel\Mcp\Client\Methods\Tools\ListTools;
 use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Client\Schema\ToolResult;
@@ -22,14 +23,18 @@ class RegisteredClient
     /**
      * @return Collection<string, Tool>
      */
-    public function tools(): Collection
+    public function tools(?int $limit = null): Collection
     {
+        if ($limit !== null) {
+            return $this->client->tools($limit);
+        }
+
         if ($this->cache instanceof PrimitiveCache) {
             $cached = $this->cache->get('tools');
 
             if (is_array($cached)) {
                 try {
-                    return $this->hydrateTools($cached);
+                    return ListTools::hydrate($this->client, $cached);
                 } catch (ClientException) {
                     $this->cache->flush('tools');
                 }
@@ -37,7 +42,7 @@ class RegisteredClient
         }
 
         $payloads = $this->client->fetchToolPayloads();
-        $tools = $this->hydrateTools($payloads);
+        $tools = ListTools::hydrate($this->client, $payloads);
 
         $this->cache?->put('tools', $payloads);
 
@@ -89,22 +94,5 @@ class RegisteredClient
     public function initializeResult(): ?InitializeResult
     {
         return $this->client->initializeResult();
-    }
-
-    /**
-     * @param  array<int, mixed>  $payloads
-     * @return Collection<string, Tool>
-     */
-    private function hydrateTools(array $payloads): Collection
-    {
-        return collect($payloads)->mapWithKeys(function (mixed $payload): array {
-            if (! is_array($payload)) {
-                throw new ClientException('Invalid tool payload.');
-            }
-
-            $tool = Tool::from($this->client, $payload);
-
-            return [$tool->name => $tool];
-        });
     }
 }

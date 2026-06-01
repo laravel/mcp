@@ -130,6 +130,19 @@ it('caches a named client tools list across resolutions', function (): void {
     expect($transport->sent)->toHaveCount(3);
 });
 
+it('bypasses the cache when a tools limit is given', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = toolsResponse(2);
+    $transport->responses[] = toolsResponse(3);
+
+    Mcp::registerClient('everything', fn (): Client => new Client($transport));
+
+    expect(Mcp::client('everything')->tools(1)->keys()->all())->toBe(['add']);
+    expect(Mcp::client('everything')->tools(1)->keys()->all())->toBe(['add']);
+    expect($transport->responses)->toBeEmpty();
+});
+
 it('forwards callTool / ping / connected / initializeResult / withTimeout to the inner client', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
