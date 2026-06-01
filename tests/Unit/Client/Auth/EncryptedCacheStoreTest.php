@@ -8,6 +8,7 @@ use Illuminate\Contracts\Cache\Repository as RepositoryContract;
 use Illuminate\Contracts\Encryption\StringEncrypter;
 use Illuminate\Encryption\Encrypter as ConcreteEncrypter;
 use Laravel\Mcp\Client\Auth\EncryptedCacheStore;
+use Laravel\Mcp\Client\Contracts\TokenStore;
 use Laravel\Mcp\Exceptions\OAuthException;
 
 function makeEncrypter(): ConcreteEncrypter
@@ -24,6 +25,10 @@ function makeStore(?RepositoryContract $repository = null, ?StringEncrypter $enc
         lockWaitSeconds: $lockWaitSeconds,
     );
 }
+
+it('is a TokenStore implementation', function (): void {
+    expect(makeStore())->toBeInstanceOf(TokenStore::class);
+});
 
 it('writes encrypted payloads that decrypt back into the original array', function (): void {
     $repo = new CacheRepository(new ArrayStore(serializesValues: true));

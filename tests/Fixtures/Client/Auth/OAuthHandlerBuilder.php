@@ -16,10 +16,11 @@ use Laravel\Mcp\Client\Auth\AuthServerDiscovery;
 use Laravel\Mcp\Client\Auth\EncryptedCacheStore;
 use Laravel\Mcp\Client\Auth\OAuthHandler;
 use Laravel\Mcp\Client\Auth\TokenSet;
+use Laravel\Mcp\Client\Contracts\TokenStore;
 
 final class OAuthHandlerBuilder
 {
-    public EncryptedCacheStore $store;
+    public TokenStore $store;
 
     /**
      * @var array<string, mixed>
@@ -68,7 +69,7 @@ final class OAuthHandlerBuilder
         return $this;
     }
 
-    public function usingStore(EncryptedCacheStore $store): self
+    public function usingStore(TokenStore $store): self
     {
         $this->store = $store;
 

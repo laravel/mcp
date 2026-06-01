@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Client\Auth;
 
 use Closure;
 use GuzzleHttp\ClientInterface;
+use Laravel\Mcp\Client\Contracts\TokenStore;
 use Laravel\Mcp\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Exceptions\OAuthException;
 use Laravel\Mcp\Exceptions\PkceUnsupportedException;
@@ -58,7 +59,7 @@ class OAuthHandler
         protected ?string $clientId,
         protected ?string $clientSecret,
         protected ?string $configuredScope,
-        protected EncryptedCacheStore $store,
+        protected TokenStore $store,
         protected AuthServerDiscovery $discovery,
         protected ?ClientInterface $httpClient = null,
         protected ?Closure $redirectUriResolver = null,

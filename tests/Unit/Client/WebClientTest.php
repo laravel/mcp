@@ -10,6 +10,7 @@ use Laravel\Mcp\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Exceptions\UserIdentityRequiredException;
 use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\WebClient;
+use Tests\Fixtures\Client\Auth\InMemoryTokenStore;
 
 it('throws when withToken() is called after oauth()', function (): void {
     $client = Client::web('https://mcp.example.com/mcp')->withOauth('id', 'secret');
@@ -51,6 +52,22 @@ it('returns null tokens() and no-ops forgetTokens() after oauth() when no token 
 
     expect($client->tokens())->toBeNull();
     $client->forgetTokens();
+});
+
+it('reads and writes tokens through a custom store provided via withStore()', function (): void {
+    $store = new InMemoryTokenStore;
+
+    $client = Client::web('https://mcp.example.com/mcp')
+        ->withOauth('id', 'secret')
+        ->withStore($store);
+
+    expect($client->tokens())->toBeNull()
+        ->and($store->reads)->not->toBeEmpty();
+
+    $key = $store->reads[0];
+    $store->entries[$key] = (new TokenSet('seeded-access', null, time() + 3600, null))->toArray();
+
+    expect($client->tokens()?->accessToken)->toBe('seeded-access');
 });
 
 it('builds a WebClient with the URL stored on the instance', function (): void {

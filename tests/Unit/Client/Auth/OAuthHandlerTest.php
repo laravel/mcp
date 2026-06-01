@@ -13,6 +13,7 @@ use Laravel\Mcp\Client\Auth\WwwAuthenticateChallenge;
 use Laravel\Mcp\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Exceptions\OAuthException;
 use Laravel\Mcp\Exceptions\PkceUnsupportedException;
+use Tests\Fixtures\Client\Auth\InMemoryTokenStore;
 use Tests\Fixtures\Client\Auth\OAuthHandlerBuilder;
 
 function oauth(): OAuthHandlerBuilder
@@ -91,6 +92,18 @@ it('runs discovery and writes a token to the store on the cold path', function (
             'resource' => 'https://mcp.example.com/mcp',
             'scope' => 'mcp:read',
         ]);
+});
+
+it('persists tokens through a custom TokenStore implementation', function (): void {
+    fakeDiscovery();
+
+    $store = new InMemoryTokenStore;
+
+    $oauth = oauth()->usingStore($store)->grants(tokenResponse('access-custom'));
+
+    expect($oauth->handler()->bearerToken())->toBe('access-custom')
+        ->and($store->entries)->toHaveKey('mcp-auth:notion')
+        ->and(TokenSet::fromArray($store->entries['mcp-auth:notion'])->accessToken)->toBe('access-custom');
 });
 
 it('captures a refresh-token expiry from refresh_token_expires_in', function (): void {

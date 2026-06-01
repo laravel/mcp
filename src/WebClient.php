@@ -22,6 +22,7 @@ use Laravel\Mcp\Client\Auth\EncryptedCacheStore;
 use Laravel\Mcp\Client\Auth\OAuthAuthorizationStrategy;
 use Laravel\Mcp\Client\Auth\OAuthHandler;
 use Laravel\Mcp\Client\Auth\TokenSet;
+use Laravel\Mcp\Client\Contracts\TokenStore;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Exceptions\UserIdentityRequiredException;
 use Laravel\Mcp\Schema\Implementation;
@@ -37,6 +38,8 @@ class WebClient extends Client
     protected bool $staticTokenSet = false;
 
     protected mixed $userKey = null;
+
+    protected ?TokenStore $store = null;
 
     protected ?ClientInterface $oauthHttpClient = null;
 
@@ -87,6 +90,14 @@ class WebClient extends Client
         return $this;
     }
 
+    public function withStore(TokenStore $store): static
+    {
+        $this->store = $store;
+        $this->oauthHandler = null;
+
+        return $this;
+    }
+
     public function asRegisteredClient(string $name, ?int $ttl = null, ?Closure $scope = null): static
     {
         parent::asRegisteredClient($name, $ttl, $scope);
@@ -115,6 +126,7 @@ class WebClient extends Client
         $clone->registeredName = $this->registeredName;
         $clone->userKey = $user;
         $clone->oauthHttpClient = $this->oauthHttpClient;
+        $clone->store = $this->store;
         $clone->wireAuthorizationStrategy();
 
         return $clone;
@@ -267,8 +279,12 @@ class WebClient extends Client
             : (string) url('/mcp/'.$this->registeredName.'/callback');
     }
 
-    protected function resolveStore(): EncryptedCacheStore
+    protected function resolveStore(): TokenStore
     {
+        if ($this->store instanceof TokenStore) {
+            return $this->store;
+        }
+
         $crypt = $this->encrypterOrNull();
 
         if (! $crypt instanceof StringEncrypter) {

@@ -9,10 +9,11 @@ use Illuminate\Contracts\Cache\LockProvider;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Contracts\Encryption\StringEncrypter;
+use Laravel\Mcp\Client\Contracts\TokenStore;
 use Laravel\Mcp\Exceptions\OAuthException;
 use Throwable;
 
-class EncryptedCacheStore
+class EncryptedCacheStore implements TokenStore
 {
     public function __construct(
         protected Repository $cache,
