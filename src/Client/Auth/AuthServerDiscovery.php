@@ -43,7 +43,11 @@ class AuthServerDiscovery
         foreach ($candidates as $candidate) {
             $this->assertHttps($candidate);
 
-            $response = $this->safelyGet($candidate);
+            try {
+                $response = Http::acceptJson()->withoutRedirecting()->get($candidate);
+            } catch (Throwable $throwable) {
+                throw new DiscoveryException("Discovery request to [{$candidate}] failed: {$throwable->getMessage()}.", $throwable->getCode(), $throwable);
+            }
 
             if ($response->status() === 404) {
                 continue;
@@ -150,27 +154,11 @@ class AuthServerDiscovery
             return;
         }
 
-        if ($scheme === 'http' && $this->isLoopbackHost($parts['host'])) {
+        if ($scheme === 'http' && in_array(strtolower(trim($parts['host'], '[]')), ['localhost', '127.0.0.1', '::1'], true)) {
             return;
         }
 
         throw new DiscoveryException("Discovery URL [{$url}] must use HTTPS.");
-    }
-
-    protected function isLoopbackHost(string $host): bool
-    {
-        $normalized = strtolower(trim($host, '[]'));
-
-        return in_array($normalized, ['localhost', '127.0.0.1', '::1'], true);
-    }
-
-    protected function safelyGet(string $url): Response
-    {
-        try {
-            return Http::acceptJson()->withoutRedirecting()->get($url);
-        } catch (Throwable $throwable) {
-            throw new DiscoveryException("Discovery request to [{$url}] failed: {$throwable->getMessage()}.", $throwable->getCode(), $throwable);
-        }
     }
 
     protected function parseProtectedResource(string $url, Response $response): ProtectedResourceMetadata
@@ -202,9 +190,11 @@ class AuthServerDiscovery
 
         $this->assertHttps($tokenEndpoint);
 
-        $authorizationEndpoint = (string) Arr::get($data, 'authorization_endpoint');
+        $authorizationEndpoint = filled($authorizationEndpoint = Arr::get($data, 'authorization_endpoint')) ? (string) $authorizationEndpoint : null;
 
-        $this->assertHttps($authorizationEndpoint);
+        if ($authorizationEndpoint !== null) {
+            $this->assertHttps($authorizationEndpoint);
+        }
 
         return new AuthServerMetadata(
             issuer: (string) Arr::get($data, 'issuer', ''),
@@ -212,7 +202,7 @@ class AuthServerDiscovery
             authorizationEndpoint: $authorizationEndpoint,
             grantTypesSupported: $this->toStringList(Arr::get($data, 'grant_types_supported', [])),
             codeChallengeMethodsSupported: $this->toStringList(Arr::get($data, 'code_challenge_methods_supported', [])),
-            registrationEndpoint: (string) Arr::get($data, 'registration_endpoint')
+            registrationEndpoint: filled($registrationEndpoint = Arr::get($data, 'registration_endpoint')) ? (string) $registrationEndpoint : null,
         );
     }
 

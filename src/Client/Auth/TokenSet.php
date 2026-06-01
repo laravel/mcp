@@ -23,10 +23,10 @@ class TokenSet
     {
         return new self(
             accessToken: (string) Arr::get($data, 'access_token', ''),
-            refreshToken: (string) Arr::get($data, 'refresh_token'),
+            refreshToken: filled($refreshToken = Arr::get($data, 'refresh_token')) ? (string) $refreshToken : null,
             expiresAt: (int) Arr::get($data, 'expires_at', 0),
-            scope: (string) Arr::get($data, 'scope'),
-            refreshExpiresAt: (int) Arr::get($data, 'refresh_expires_at', 0)
+            scope: filled($scope = Arr::get($data, 'scope')) ? (string) $scope : null,
+            refreshExpiresAt: filled($refreshExpiresAt = Arr::get($data, 'refresh_expires_at')) ? (int) $refreshExpiresAt : null,
         );
     }
 
