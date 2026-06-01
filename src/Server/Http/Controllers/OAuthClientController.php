@@ -57,7 +57,7 @@ class OAuthClientController extends Controller
     protected function resolveWebClient(ClientManager $clients, string $server): WebClient
     {
         try {
-            $client = $clients->client($server);
+            $client = $clients->client($server)->client();
         } catch (ClientException) {
             throw new NotFoundHttpException("MCP client [{$server}] is not registered.");
         }

@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Traits\Macroable;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\ClientManager;
+use Laravel\Mcp\Client\RegisteredClient;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Http\Controllers\OAuthClientController;
@@ -86,7 +87,7 @@ class Registrar
         $this->clientManager()->registerClient($name, $factory, $cacheTtl, $scope);
     }
 
-    public function client(string $name): Client
+    public function client(string $name): RegisteredClient
     {
         return $this->clientManager()->client($name);
     }

@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Closure;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Client\Auth\TokenSet;
-use Laravel\Mcp\Client\Cache\PrimitiveCache;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Methods\Ping;
 use Laravel\Mcp\Client\Methods\Tools\CallTool;
@@ -27,14 +25,7 @@ class Client
 
     protected Protocol $protocol;
 
-    protected ?PrimitiveCache $listCache = null;
-
     protected ?string $registeredName = null;
-
-    protected ?int $listCacheTtl = null;
-
-    /** @var ?Closure(): (string|int|Authenticatable|null) */
-    protected ?Closure $cacheScope = null;
 
     public function __construct(
         protected Transport $transport,
@@ -68,26 +59,9 @@ class Client
         return $this;
     }
 
-    /**
-     * @internal Used by ClientManager when wiring registered clients.
-     */
-    public function withListCache(?PrimitiveCache $cache): static
-    {
-        $this->listCache = $cache;
-
-        return $this;
-    }
-
-    /**
-     * @internal Used by ClientManager to bind a registered client to its name.
-     *
-     * @param  ?Closure(): (string|int|Authenticatable|null)  $scope
-     */
     public function asRegisteredClient(string $name, ?int $ttl = null, ?Closure $scope = null): static
     {
         $this->registeredName = $name;
-        $this->listCacheTtl = $ttl;
-        $this->cacheScope = $scope;
 
         return $this;
     }
@@ -124,7 +98,17 @@ class Client
      */
     public function tools(?int $limit = null): Collection
     {
-        return (new ListTools($this, $this->listCache, limit: $limit))->handle($this->protocol);
+        return (new ListTools($this, limit: $limit))->handle($this->protocol);
+    }
+
+    /**
+     * @internal Used by RegisteredClient to populate the tools list cache.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function fetchToolPayloads(): array
+    {
+        return (new ListTools($this))->fetch($this->protocol);
     }
 
     /**
@@ -135,10 +119,7 @@ class Client
         return (new CallTool($name, $arguments))->handle($this->protocol);
     }
 
-    public function flushCache(): void
-    {
-        $this->primitiveCache()?->flush();
-    }
+    public function flushCache(): void {}
 
     public function tokens(): ?TokenSet
     {
@@ -150,11 +131,6 @@ class Client
     public function needsAuthorization(): bool
     {
         return false;
-    }
-
-    protected function primitiveCache(): ?PrimitiveCache
-    {
-        return $this->listCache;
     }
 
     public function __destruct()

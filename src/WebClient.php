@@ -100,8 +100,6 @@ class WebClient extends Client
         $clone = new static(new HttpTransport($this->httpTransport->url()));
         $clone->oauthConfig = $this->oauthConfig;
         $clone->registeredName = $this->registeredName;
-        $clone->listCacheTtl = $this->listCacheTtl;
-        $clone->cacheScope = $this->cacheScope;
         $clone->userKey = $user;
         $clone->oauthHttpClient = $this->oauthHttpClient;
         $clone->wireAuthorizationStrategy();
