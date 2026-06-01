@@ -7,7 +7,6 @@ namespace Laravel\Mcp\Client\Methods\Tools;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Client;
-use Laravel\Mcp\Client\Cache\PrimitiveCache;
 use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Protocol;
@@ -20,7 +19,6 @@ class ListTools implements Method
 {
     public function __construct(
         protected Client $client,
-        protected ?PrimitiveCache $cache = null,
         protected ?string $cursor = null,
         protected ?int $limit = null,
     ) {
@@ -45,26 +43,7 @@ class ListTools implements Method
      */
     public function handle(Protocol $protocol): Collection
     {
-        if (! $this->cache instanceof PrimitiveCache || $this->limit !== null) {
-            return $this->hydrate($this->fetch($protocol));
-        }
-
-        $cached = $this->cache->get('tools');
-
-        if (is_array($cached)) {
-            try {
-                return $this->hydrate($cached);
-            } catch (ClientException) {
-                $this->cache->flush('tools');
-            }
-        }
-
-        $payloads = $this->fetch($protocol);
-        $tools = $this->hydrate($payloads);
-
-        $this->cache->put('tools', $payloads);
-
-        return $tools;
+        return $this->hydrate($this->fetch($protocol));
     }
 
     /**
@@ -87,7 +66,7 @@ class ListTools implements Method
     /**
      * @return array<int, array<string, mixed>>
      */
-    protected function fetch(Protocol $protocol): array
+    public function fetch(Protocol $protocol): array
     {
         if ($this->limit === 0) {
             return [];
@@ -110,7 +89,7 @@ class ListTools implements Method
                 $seenCursors[$cursor] = true;
             }
 
-            $result = $protocol->dispatch(new self($this->client, null, $cursor, $this->limit));
+            $result = $protocol->dispatch(new self($this->client, $cursor, $this->limit));
             $page = Arr::get($result, 'tools');
 
             if (! is_array($page)) {

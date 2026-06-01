@@ -6,6 +6,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Cache\Repository;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\ClientManager;
+use Laravel\Mcp\Client\RegisteredClient;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Facades\Mcp;
 use Tests\Fixtures\Client\FakeTransport;
@@ -25,7 +26,7 @@ function toolsResponse(int $id): string
 it('registers a named client and resolves it by name', function (): void {
     Mcp::registerClient('everything', fn (): Client => new Client(new FakeTransport));
 
-    expect(Mcp::client('everything'))->toBeInstanceOf(Client::class);
+    expect(Mcp::client('everything'))->toBeInstanceOf(RegisteredClient::class);
 });
 
 it('resolves and memoizes a registered client per request', function (): void {

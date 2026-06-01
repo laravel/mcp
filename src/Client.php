@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Illuminate\Support\Collection;
-use Laravel\Mcp\Client\Cache\PrimitiveCache;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Methods\Ping;
 use Laravel\Mcp\Client\Methods\Tools\CallTool;
@@ -23,8 +22,6 @@ class Client
     public Implementation $clientInfo;
 
     protected Protocol $protocol;
-
-    protected ?PrimitiveCache $listCache = null;
 
     public function __construct(
         protected Transport $transport,
@@ -54,16 +51,6 @@ class Client
     public function withTimeout(float $seconds): static
     {
         $this->transport->setTimeoutSeconds($seconds);
-
-        return $this;
-    }
-
-    /**
-     * @internal Used by ClientManager when wiring registered clients.
-     */
-    public function withListCache(?PrimitiveCache $cache): static
-    {
-        $this->listCache = $cache;
 
         return $this;
     }
@@ -100,7 +87,17 @@ class Client
      */
     public function tools(?int $limit = null): Collection
     {
-        return (new ListTools($this, $this->listCache, limit: $limit))->handle($this->protocol);
+        return (new ListTools($this, limit: $limit))->handle($this->protocol);
+    }
+
+    /**
+     * @internal Used by RegisteredClient to populate the tools list cache.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function fetchToolPayloads(): array
+    {
+        return (new ListTools($this))->fetch($this->protocol);
     }
 
     /**
@@ -109,11 +106,6 @@ class Client
     public function callTool(string $name, array $arguments = []): ToolResult
     {
         return (new CallTool($name, $arguments))->handle($this->protocol);
-    }
-
-    public function flushCache(): void
-    {
-        $this->listCache?->flushAll();
     }
 
     public function __destruct()

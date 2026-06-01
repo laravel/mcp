@@ -16,10 +16,10 @@ class ClientManager
 {
     use Macroable;
 
-    /** @var array<string, Closure(): Client> */
+    /** @var array<string, Closure(): RegisteredClient> */
     protected array $factories = [];
 
-    /** @var array<string, Client> */
+    /** @var array<string, RegisteredClient> */
     protected array $clients = [];
 
     public function __construct(protected ?Repository $cacheRepository = null)
@@ -48,12 +48,13 @@ class ClientManager
             unset($this->clients[$name]);
         }
 
-        $this->factories[$name] = fn (): Client => $factory()->withListCache(
+        $this->factories[$name] = fn (): RegisteredClient => new RegisteredClient(
+            $factory(),
             $this->buildListCache($name, $cacheTtl, $scope),
         );
     }
 
-    public function client(string $name): Client
+    public function client(string $name): RegisteredClient
     {
         if (! array_key_exists($name, $this->factories)) {
             throw new ClientException("MCP client [{$name}] has not been registered.");
