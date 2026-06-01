@@ -6,8 +6,11 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Cache\Repository;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\ClientManager;
+use Laravel\Mcp\Client\RegisteredClient;
+use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Facades\Mcp;
+use Laravel\Mcp\WebClient;
 use Tests\Fixtures\Client\FakeTransport;
 use Tests\Fixtures\Client\ThrowingTransport;
 
@@ -25,7 +28,7 @@ function toolsResponse(int $id): string
 it('registers a named client and resolves it by name', function (): void {
     Mcp::registerClient('everything', fn (): Client => new Client(new FakeTransport));
 
-    expect(Mcp::client('everything'))->toBeInstanceOf(Client::class);
+    expect(Mcp::client('everything'))->toBeInstanceOf(RegisteredClient::class);
 });
 
 it('resolves and memoizes a registered client per request', function (): void {
@@ -127,6 +130,29 @@ it('caches a named client tools list across resolutions', function (): void {
     expect(Mcp::client('everything')->tools()->keys()->all())->toBe(['add']);
     expect($transport->responses)->toBeEmpty();
     expect($transport->sent)->toHaveCount(3);
+});
+
+it('forwards subclass methods of the registered client and preserves fluent chaining', function (): void {
+    $web = new WebClient(new HttpTransport('https://example.test/mcp'));
+
+    Mcp::registerClient('remote', fn (): WebClient => $web);
+
+    $client = Mcp::client('remote');
+
+    expect($client->withToken('secret'))->toBe($client);
+});
+
+it('bypasses the cache when a tools limit is given', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = toolsResponse(2);
+    $transport->responses[] = toolsResponse(3);
+
+    Mcp::registerClient('everything', fn (): Client => new Client($transport));
+
+    expect(Mcp::client('everything')->tools(1)->keys()->all())->toBe(['add']);
+    expect(Mcp::client('everything')->tools(1)->keys()->all())->toBe(['add']);
+    expect($transport->responses)->toBeEmpty();
 });
 
 it('forwards callTool / ping / connected / initializeResult / withTimeout to the inner client', function (): void {
