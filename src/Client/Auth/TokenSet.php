@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\Auth;
 
+use Illuminate\Support\Arr;
+
 class TokenSet
 {
     public function __construct(
@@ -20,11 +22,11 @@ class TokenSet
     public static function fromArray(array $data): self
     {
         return new self(
-            accessToken: (string) ($data['access_token'] ?? ''),
-            refreshToken: isset($data['refresh_token']) && $data['refresh_token'] !== '' ? (string) $data['refresh_token'] : null,
-            expiresAt: (int) ($data['expires_at'] ?? 0),
-            scope: isset($data['scope']) && $data['scope'] !== '' ? (string) $data['scope'] : null,
-            refreshExpiresAt: isset($data['refresh_expires_at']) && $data['refresh_expires_at'] !== '' ? (int) $data['refresh_expires_at'] : null,
+            accessToken: (string) Arr::get($data, 'access_token', ''),
+            refreshToken: filled($data['refresh_token'] ?? null) ? (string) $data['refresh_token'] : null,
+            expiresAt: (int) Arr::get($data, 'expires_at', 0),
+            scope: filled($data['scope'] ?? null) ? (string) $data['scope'] : null,
+            refreshExpiresAt: filled($data['refresh_expires_at'] ?? null) ? (int) $data['refresh_expires_at'] : null,
         );
     }
 

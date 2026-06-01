@@ -26,6 +26,28 @@ it('uses the resource_metadata URL when the WWW-Authenticate header advertises o
         ->and($metadata->scopesSupported)->toBe(['mcp:read']);
 });
 
+it('rejects a resource_metadata URL on a different origin than the MCP server', function (): void {
+    $challenge = WwwAuthenticateChallenge::parse('Bearer resource_metadata="https://attacker.example.net/.well-known/oauth-protected-resource"');
+
+    expect(fn (): ProtectedResourceMetadata => (new AuthServerDiscovery)->discoverProtectedResource('https://mcp.example.com/mcp', $challenge))
+        ->toThrow(DiscoveryException::class, 'must share the origin');
+});
+
+it('ignores non-string authorization server entries in PRM metadata', function (): void {
+    Http::fake([
+        '*' => Http::response(json_encode([
+            'resource' => 'https://mcp.example.com/mcp',
+            'authorization_servers' => ['https://auth.example.com', ['nested'], 42],
+            'scopes_supported' => ['mcp:read', ['nested']],
+        ]), 200, ['Content-Type' => 'application/json']),
+    ]);
+
+    $metadata = (new AuthServerDiscovery)->discoverProtectedResource('https://mcp.example.com/mcp');
+
+    expect($metadata->authorizationServers)->toBe(['https://auth.example.com', '42'])
+        ->and($metadata->scopesSupported)->toBe(['mcp:read']);
+});
+
 it('falls back to the path-insertion PRM URL before the root PRM URL', function (): void {
     Http::fake([
         'https://mcp.example.com/.well-known/oauth-protected-resource/mcp' => Http::response(json_encode([
@@ -134,6 +156,19 @@ it('throws DiscoveryException when the AS token endpoint is not HTTPS', function
         '*' => Http::response(json_encode([
             'issuer' => 'https://auth.example.com',
             'token_endpoint' => 'http://auth.example.com/token',
+        ]), 200, ['Content-Type' => 'application/json']),
+    ]);
+
+    expect(fn (): AuthServerMetadata => (new AuthServerDiscovery)->discoverAuthServer('https://auth.example.com'))
+        ->toThrow(DiscoveryException::class, 'must use HTTPS');
+});
+
+it('throws DiscoveryException when the AS authorization endpoint is not HTTPS', function (): void {
+    Http::fake([
+        '*' => Http::response(json_encode([
+            'issuer' => 'https://auth.example.com',
+            'token_endpoint' => 'https://auth.example.com/token',
+            'authorization_endpoint' => 'http://auth.example.com/authorize',
         ]), 200, ['Content-Type' => 'application/json']),
     ]);
 

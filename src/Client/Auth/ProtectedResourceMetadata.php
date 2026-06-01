@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\Auth;
 
+use Laravel\Mcp\Exceptions\OAuthException;
+
 class ProtectedResourceMetadata
 {
     /**
@@ -18,6 +20,10 @@ class ProtectedResourceMetadata
 
     public function primaryAuthorizationServer(): string
     {
+        if ($this->authorizationServers === []) {
+            throw new OAuthException('Protected resource metadata lists no authorization servers.');
+        }
+
         return $this->authorizationServers[0];
     }
 }

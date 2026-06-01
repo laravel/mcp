@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Client\Auth;
 
 use Closure;
 use Illuminate\Http\Client\Response;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Exceptions\DiscoveryException;
 use Throwable;
@@ -44,10 +45,6 @@ class AuthServerDiscovery
 
             $response = $this->safelyGet($candidate);
 
-            if (! $response instanceof Response) {
-                continue;
-            }
-
             if ($response->status() === 404) {
                 continue;
             }
@@ -68,6 +65,8 @@ class AuthServerDiscovery
     protected function protectedResourceCandidates(string $mcpUrl, ?WwwAuthenticateChallenge $challenge): array
     {
         if ($challenge?->resourceMetadata !== null) {
+            $this->assertSameOrigin($mcpUrl, $challenge->resourceMetadata);
+
             return [$challenge->resourceMetadata];
         }
 
@@ -123,6 +122,16 @@ class AuthServerDiscovery
         ];
     }
 
+    protected function assertSameOrigin(string $resourceUrl, string $metadataUrl): void
+    {
+        $resourceOrigin = strtolower($this->parseOriginAndPath($resourceUrl)['origin']);
+        $metadataOrigin = strtolower($this->parseOriginAndPath($metadataUrl)['origin']);
+
+        if ($resourceOrigin !== $metadataOrigin) {
+            throw new DiscoveryException("Protected resource metadata URL [{$metadataUrl}] must share the origin of [{$resourceUrl}].");
+        }
+    }
+
     protected function assertHttps(string $url): void
     {
         $parts = parse_url($url);
@@ -151,7 +160,7 @@ class AuthServerDiscovery
         return in_array($normalized, ['localhost', '127.0.0.1', '::1'], true);
     }
 
-    protected function safelyGet(string $url): ?Response
+    protected function safelyGet(string $url): Response
     {
         try {
             return Http::acceptJson()->get($url);
@@ -164,16 +173,16 @@ class AuthServerDiscovery
     {
         $data = $this->decodeJson($url, $response);
 
-        $authorizationServers = $data['authorization_servers'] ?? null;
+        $authorizationServers = Arr::get($data, 'authorization_servers');
 
         if (! is_array($authorizationServers) || $authorizationServers === []) {
             throw new DiscoveryException("Protected resource metadata at [{$url}] is missing [authorization_servers].");
         }
 
         return new ProtectedResourceMetadata(
-            resource: (string) ($data['resource'] ?? ''),
+            resource: (string) Arr::get($data, 'resource', ''),
             authorizationServers: $this->toStringList($authorizationServers),
-            scopesSupported: $this->toStringList($data['scopes_supported'] ?? []),
+            scopesSupported: $this->toStringList(Arr::get($data, 'scopes_supported', [])),
         );
     }
 
@@ -181,7 +190,7 @@ class AuthServerDiscovery
     {
         $data = $this->decodeJson($url, $response);
 
-        $tokenEndpoint = $data['token_endpoint'] ?? null;
+        $tokenEndpoint = Arr::get($data, 'token_endpoint');
 
         if (! is_string($tokenEndpoint) || $tokenEndpoint === '') {
             throw new DiscoveryException("Authorization server metadata at [{$url}] is missing [token_endpoint].");
@@ -189,13 +198,21 @@ class AuthServerDiscovery
 
         $this->assertHttps($tokenEndpoint);
 
+        $authorizationEndpoint = filled($data['authorization_endpoint'] ?? null) && is_string($data['authorization_endpoint'])
+            ? $data['authorization_endpoint']
+            : null;
+
+        if ($authorizationEndpoint !== null) {
+            $this->assertHttps($authorizationEndpoint);
+        }
+
         return new AuthServerMetadata(
-            issuer: (string) ($data['issuer'] ?? ''),
+            issuer: (string) Arr::get($data, 'issuer', ''),
             tokenEndpoint: $tokenEndpoint,
-            authorizationEndpoint: isset($data['authorization_endpoint']) ? (string) $data['authorization_endpoint'] : null,
-            grantTypesSupported: $this->toStringList($data['grant_types_supported'] ?? []),
-            codeChallengeMethodsSupported: $this->toStringList($data['code_challenge_methods_supported'] ?? []),
-            registrationEndpoint: isset($data['registration_endpoint']) && $data['registration_endpoint'] !== '' ? (string) $data['registration_endpoint'] : null,
+            authorizationEndpoint: $authorizationEndpoint,
+            grantTypesSupported: $this->toStringList(Arr::get($data, 'grant_types_supported', [])),
+            codeChallengeMethodsSupported: $this->toStringList(Arr::get($data, 'code_challenge_methods_supported', [])),
+            registrationEndpoint: filled($data['registration_endpoint'] ?? null) ? (string) $data['registration_endpoint'] : null,
         );
     }
 
@@ -208,7 +225,11 @@ class AuthServerDiscovery
             return [];
         }
 
-        return array_values(array_map(fn ($item): string => (string) $item, $value));
+        return collect($value)
+            ->filter(fn ($item): bool => is_string($item) || is_int($item) || is_float($item))
+            ->map(fn ($item): string => (string) $item)
+            ->values()
+            ->all();
     }
 
     /**
