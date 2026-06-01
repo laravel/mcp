@@ -85,6 +85,14 @@ it('stores entries forever when no ttl is provided', function (): void {
     makeStore($repo)->put('mcp-client:notion', ['client_id' => 'cid']);
 });
 
+it('throws an OAuthException when the cache write fails', function (): void {
+    $repo = Mockery::mock(RepositoryContract::class);
+    $repo->shouldReceive('put')->andThrow(new RuntimeException('cache down'));
+
+    expect(fn (): mixed => makeStore($repo)->put('mcp-auth:notion', ['access_token' => 'a'], 60))
+        ->toThrow(OAuthException::class, 'Failed to persist MCP OAuth cache entry');
+});
+
 it('runs the locked closure and returns its value', function (): void {
     $ran = false;
 

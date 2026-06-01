@@ -153,6 +153,35 @@ it('honors a relative intended URL after a successful callback', function (): vo
     expect($callbackResponse->headers->get('Location'))->toEndWith('/dashboard');
 });
 
+it('rejects a callback whose state was never issued in the current session', function (): void {
+    Mcp::registerClient('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->withOauth('cid-1')
+    );
+
+    $response = $this->get('/mcp/notion/callback?code=auth-code-123&state=forged-state');
+
+    $response->assertStatus(302);
+
+    expect(session('mcp.oauth.error'))->toContain('did not match the current session');
+});
+
+it('rejects a callback whose state does not match the one issued at connect', function (): void {
+    fakeAuthorizationCodeDiscovery();
+
+    Mcp::registerClient('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->withOauth('cid-1')
+    );
+
+    $connectResponse = $this->get('/mcp/notion/connect');
+    parse_str((string) parse_url((string) $connectResponse->headers->get('Location'), PHP_URL_QUERY), $query);
+    $state = (string) ($query['state'] ?? '');
+    expect($state)->not->toBe('');
+
+    $response = $this->get('/mcp/notion/callback?code=auth-code-123&state='.$state.'-tampered');
+
+    $response->assertStatus(302);
+
+    expect(session('mcp.oauth.error'))->toContain('did not match the current session');
+});
+
 it('redirects with an error when the callback receives error parameters', function (): void {
     Mcp::registerClient('notion', fn (): WebClient => Client::web('https://mcp.example.com/mcp')->withOauth('cid-1')
     );

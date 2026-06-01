@@ -182,6 +182,28 @@ it('allows withOauth() without a client_id (dynamic client registration)', funct
         ->and($client->needsAuthorization())->toBeTrue();
 });
 
+it('applies the registered user scope to oauth token isolation', function (): void {
+    Mcp::registerClient(
+        'notion',
+        fn (): WebClient => Client::web('https://mcp.example.com/mcp')->withOauth('cid-1'),
+        scope: fn (): ?string => null,
+    );
+
+    $client = Mcp::client('notion');
+
+    expect(fn (): bool => $client->needsAuthorization())
+        ->toThrow(UserIdentityRequiredException::class);
+});
+
+it('refuses to build a consent-client store without a real application encrypter', function (): void {
+    $this->app->instance('encrypter', new stdClass);
+
+    $client = Client::web('https://mcp.example.com/mcp')->withOauth('cid-1');
+
+    expect(fn (): bool => $client->needsAuthorization())
+        ->toThrow(InvalidArgumentException::class, 'require a configured application encrypter');
+});
+
 it('throws when withOauth() is called with a secret but no client_id', function (): void {
     $client = Client::web('https://mcp.example.com/mcp');
 

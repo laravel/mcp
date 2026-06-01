@@ -11,6 +11,7 @@ class TokenSet
         public ?string $refreshToken,
         public int $expiresAt,
         public ?string $scope,
+        public ?int $refreshExpiresAt = null,
     ) {}
 
     /**
@@ -23,6 +24,7 @@ class TokenSet
             refreshToken: isset($data['refresh_token']) && $data['refresh_token'] !== '' ? (string) $data['refresh_token'] : null,
             expiresAt: (int) ($data['expires_at'] ?? 0),
             scope: isset($data['scope']) && $data['scope'] !== '' ? (string) $data['scope'] : null,
+            refreshExpiresAt: isset($data['refresh_expires_at']) && $data['refresh_expires_at'] !== '' ? (int) $data['refresh_expires_at'] : null,
         );
     }
 
@@ -36,6 +38,7 @@ class TokenSet
             'refresh_token' => $this->refreshToken,
             'expires_at' => $this->expiresAt,
             'scope' => $this->scope,
+            'refresh_expires_at' => $this->refreshExpiresAt,
         ];
     }
 

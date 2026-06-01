@@ -10,6 +10,12 @@ it('round-trips through fromArray and toArray', function (): void {
     expect(TokenSet::fromArray($set->toArray()))->toEqual($set);
 });
 
+it('round-trips a refresh-token expiry through fromArray and toArray', function (): void {
+    $set = new TokenSet('access', 'refresh', 1_700_000_000, 'mcp:read', 1_700_000_500);
+
+    expect(TokenSet::fromArray($set->toArray()))->toEqual($set);
+});
+
 it('normalizes empty refresh tokens and scopes to null on fromArray', function (): void {
     $set = TokenSet::fromArray([
         'access_token' => 'access',

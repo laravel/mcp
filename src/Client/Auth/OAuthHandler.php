@@ -488,12 +488,14 @@ class OAuthHandler
     {
         $values = $accessToken->getValues();
         $rawRefresh = $accessToken->getRefreshToken();
+        $refreshExpiresIn = isset($values['refresh_token_expires_in']) ? (int) $values['refresh_token_expires_in'] : 0;
 
         return new TokenSet(
             accessToken: (string) $accessToken->getToken(),
             refreshToken: $rawRefresh !== null && $rawRefresh !== '' ? (string) $rawRefresh : null,
             expiresAt: (int) ($accessToken->getExpires() ?? 0),
             scope: isset($values['scope']) && $values['scope'] !== '' ? (string) $values['scope'] : null,
+            refreshExpiresAt: $refreshExpiresIn > 0 ? time() + $refreshExpiresIn : null,
         );
     }
 
@@ -512,6 +514,10 @@ class OAuthHandler
     protected function tokenTtl(TokenSet $set): int
     {
         if ($set->refreshToken !== null) {
+            if ($set->refreshExpiresAt !== null && $set->refreshExpiresAt > 0) {
+                return max(self::MINIMUM_TTL_SECONDS, $set->refreshExpiresAt - time() - self::CLOCK_SKEW_SECONDS);
+            }
+
             return self::REFRESH_TOKEN_TTL_SECONDS;
         }
 

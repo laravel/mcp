@@ -27,6 +27,8 @@ class OAuthClientController extends Controller
             return $this->flashErrorAndRedirect($oAuthException->getMessage());
         }
 
+        $request->session()->put($this->stateSessionKey($server), $redirect->state);
+
         return redirect()->away($redirect->url);
     }
 
@@ -43,6 +45,12 @@ class OAuthClientController extends Controller
 
         if (! is_string($code) || ! is_string($state) || $code === '' || $state === '') {
             return $this->flashErrorAndRedirect('OAuth callback is missing the code or state parameter.');
+        }
+
+        $expectedState = $request->session()->pull($this->stateSessionKey($server));
+
+        if (! is_string($expectedState) || ! hash_equals($expectedState, $state)) {
+            return $this->flashErrorAndRedirect('OAuth callback state did not match the current session.');
         }
 
         try {
@@ -127,5 +135,10 @@ class OAuthClientController extends Controller
     protected function errorUrl(): string
     {
         return (string) (config('mcp.client.oauth.error_url') ?? '/');
+    }
+
+    protected function stateSessionKey(string $server): string
+    {
+        return 'mcp.oauth.state.'.$server;
     }
 }

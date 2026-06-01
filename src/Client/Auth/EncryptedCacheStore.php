@@ -68,7 +68,8 @@ class EncryptedCacheStore
             }
 
             $this->cache->put($key, $payload, $ttlSeconds);
-        } catch (Throwable) {
+        } catch (Throwable $throwable) {
+            throw new OAuthException("Failed to persist MCP OAuth cache entry [{$key}].", $throwable->getCode(), previous: $throwable);
         }
     }
 

@@ -87,6 +87,19 @@ class WebClient extends Client
         return $this;
     }
 
+    public function asRegisteredClient(string $name, ?int $ttl = null, ?Closure $scope = null): static
+    {
+        parent::asRegisteredClient($name, $ttl, $scope);
+
+        if ($scope instanceof Closure && $this->oauthConfig !== null && $this->oauthConfig['clientSecret'] === null) {
+            $this->userKey = $scope;
+            $this->oauthHandler = null;
+            $this->wireAuthorizationStrategy();
+        }
+
+        return $this;
+    }
+
     public function forUser(string|int|Authenticatable|Closure|null $user): static
     {
         if ($this->oauthConfig === null || $this->oauthConfig['clientSecret'] !== null) {
@@ -259,6 +272,10 @@ class WebClient extends Client
         $crypt = $this->encrypterOrNull();
 
         if (! $crypt instanceof StringEncrypter) {
+            if ($this->oauthConfig !== null && $this->oauthConfig['clientSecret'] === null) {
+                throw new InvalidArgumentException('OAuth user-consent clients require a configured application encrypter (APP_KEY) and cache store to persist authorization state across the redirect.');
+            }
+
             return new EncryptedCacheStore(
                 cache: new CacheRepository(new ArrayStore(serializesValues: true)),
                 crypt: new Encrypter(random_bytes(32), 'AES-256-CBC'),

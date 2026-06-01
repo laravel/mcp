@@ -93,6 +93,25 @@ it('runs discovery and writes a token to the store on the cold path', function (
         ]);
 });
 
+it('captures a refresh-token expiry from refresh_token_expires_in', function (): void {
+    fakeDiscovery();
+
+    $oauth = oauth()->grants(new PsrResponse(200, ['Content-Type' => 'application/json'], json_encode([
+        'access_token' => 'access-x',
+        'token_type' => 'Bearer',
+        'expires_in' => 60,
+        'refresh_token' => 'refresh-x',
+        'refresh_token_expires_in' => 120,
+    ])));
+
+    expect($oauth->handler()->bearerToken())->toBe('access-x');
+
+    $stored = $oauth->storedToken();
+
+    expect($stored?->refreshExpiresAt)->not->toBeNull()
+        ->and($stored->refreshExpiresAt)->toBeGreaterThan(time());
+});
+
 it('returns the cached token without re-running discovery or the grant', function (): void {
     fakeDiscovery();
 
