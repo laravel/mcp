@@ -9,10 +9,11 @@ use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Cache\PrimitiveCache;
 use Laravel\Mcp\Client\Methods\Tools\ListTools;
 use Laravel\Mcp\Client\Primitives\Tool;
-use Laravel\Mcp\Client\Schema\InitializeResult;
-use Laravel\Mcp\Client\Schema\ToolResult;
 use Laravel\Mcp\Exceptions\ClientException;
 
+/**
+ * @mixin Client
+ */
 class RegisteredClient
 {
     public function __construct(
@@ -55,44 +56,12 @@ class RegisteredClient
     }
 
     /**
-     * @param  array<string, mixed>  $arguments
+     * @param  array<int, mixed>  $parameters
      */
-    public function callTool(string $name, array $arguments = []): ToolResult
+    public function __call(string $method, array $parameters): mixed
     {
-        return $this->client->callTool($name, $arguments);
-    }
+        $result = $this->client->{$method}(...$parameters);
 
-    public function ping(): void
-    {
-        $this->client->ping();
-    }
-
-    public function connect(): static
-    {
-        $this->client->connect();
-
-        return $this;
-    }
-
-    public function disconnect(): void
-    {
-        $this->client->disconnect();
-    }
-
-    public function connected(): bool
-    {
-        return $this->client->connected();
-    }
-
-    public function withTimeout(float $seconds): static
-    {
-        $this->client->withTimeout($seconds);
-
-        return $this;
-    }
-
-    public function initializeResult(): ?InitializeResult
-    {
-        return $this->client->initializeResult();
+        return $result === $this->client ? $this : $result;
     }
 }
