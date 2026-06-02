@@ -121,25 +121,31 @@ it('serializes name title description and mimeType', function (): void {
 
 it('uses the computed Claude domain when not set on app resource', function (): void {
     $currentUrl = 'https://myapp.example.com/mcp/test';
-    app()->instance('request', HttpRequest::create($currentUrl, 'GET'));
+    $previousRequest = app('request');
 
-    $expectedDomain = str($currentUrl)
-        ->hash('sha256')
-        ->limit(32, '')
-        ->append('.claudemcpcontent.com')
-        ->value();
+    try {
+        app()->instance('request', HttpRequest::create($currentUrl, 'GET'));
 
-    $resource = new class extends AppResource
-    {
-        public function handle(Request $request): Response
+        $expectedDomain = str($currentUrl)
+            ->hash('sha256')
+            ->limit(32, '')
+            ->append('.claudemcpcontent.com')
+            ->value();
+
+        $resource = new class extends AppResource
         {
-            return Response::text('<html></html>');
-        }
-    };
+            public function handle(Request $request): Response
+            {
+                return Response::text('<html></html>');
+            }
+        };
 
-    $array = $resource->toArray();
+        $array = $resource->toArray();
 
-    expect($array['_meta']['ui']['domain'])->toBe($expectedDomain);
+        expect($array['_meta']['ui']['domain'])->toBe($expectedDomain);
+    } finally {
+        app()->instance('request', $previousRequest);
+    }
 });
 
 it('attribute domain overrides auto-resolved domain', function (): void {
