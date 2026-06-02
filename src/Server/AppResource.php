@@ -10,6 +10,8 @@ use Laravel\Mcp\Server\Ui\Enums\Library;
 
 abstract class AppResource extends Resource
 {
+    public const CLAUDE_DOMAIN_SUFFIX = '.claudemcpcontent.com';
+
     protected string $mimeType = 'text/html;profile=mcp-app';
 
     protected string $defaultUriScheme = 'ui';
@@ -63,7 +65,7 @@ abstract class AppResource extends Resource
         return str($serverRoute)
             ->hash('sha256')
             ->limit(32, '')
-            ->append('.claudemcpcontent.com')
+            ->append(self::CLAUDE_DOMAIN_SUFFIX)
             ->value();
     }
 }

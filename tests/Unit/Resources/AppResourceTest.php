@@ -129,7 +129,7 @@ it('uses the computed Claude domain when not set on app resource', function (): 
         $expectedDomain = str($currentUrl)
             ->hash('sha256')
             ->limit(32, '')
-            ->append('.claudemcpcontent.com')
+            ->append(AppResource::CLAUDE_DOMAIN_SUFFIX)
             ->value();
 
         $resource = new class extends AppResource
