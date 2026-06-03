@@ -15,7 +15,7 @@ class AuthServerDiscovery
 
         $this->requireFetchable($metadataUrl, $resourceUrl);
 
-        $resourceMetadata = $this->fetchResourceMetadata($metadataUrl);
+        $resourceMetadata = $this->fetchResourceMetadata($metadataUrl, explicit: $resourceMetadataUrl !== null);
 
         $this->requireResourceMatches($resourceMetadata, $resourceUrl);
 
@@ -48,7 +48,7 @@ class AuthServerDiscovery
     /**
      * @return array<string, mixed>
      */
-    protected function fetchResourceMetadata(string $metadataUrl): array
+    protected function fetchResourceMetadata(string $metadataUrl, bool $explicit = false): array
     {
         $response = Http::acceptJson()
             ->timeout(5)
@@ -57,12 +57,24 @@ class AuthServerDiscovery
             ->get($metadataUrl);
 
         if (! $response->successful()) {
+            if ($explicit) {
+                throw new OAuthException("Protected resource metadata request to [{$metadataUrl}] failed with status [{$response->status()}].");
+            }
+
             return [];
         }
 
         $data = $response->json();
 
-        return is_array($data) ? $data : [];
+        if (is_array($data)) {
+            return $data;
+        }
+
+        if ($explicit) {
+            throw new OAuthException("Protected resource metadata at [{$metadataUrl}] did not return a valid JSON object.");
+        }
+
+        return [];
     }
 
     /**

@@ -20,22 +20,13 @@ use Laravel\Mcp\Schema\Implementation;
 
 class Client
 {
-    public Implementation $clientInfo;
-
     protected Protocol $protocol;
 
     protected ?string $registeredName = null;
 
-    public function setRegisteredName(string $name): static
-    {
-        $this->registeredName = $name;
-
-        return $this;
-    }
-
     public function __construct(
         protected Transport $transport,
-        ?Implementation $clientInfo = null,
+        public ?Implementation $clientInfo = null,
     ) {
         $this->clientInfo = $clientInfo ?? new Implementation(
             name: config('app.name', 'Laravel MCP Client'),
@@ -43,6 +34,13 @@ class Client
         );
 
         $this->protocol = new Protocol($this->transport, $this->clientInfo);
+    }
+
+    public function setRegisteredName(string $name): static
+    {
+        $this->registeredName = $name;
+
+        return $this;
     }
 
     /**

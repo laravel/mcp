@@ -11,23 +11,22 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Illuminate\Support\Uri;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
+use Laravel\Mcp\Client\OAuth\Enums\TokenEndpointAuthMethod;
 
 class OAuthClient
 {
-    protected string $resourceUrl;
-
     protected ?DiscoveryResult $discovered = null;
 
     protected ?string $returnTo = null;
 
     public function __construct(
-        string $resourceUrl,
         protected OAuthConfig $config,
+        protected string $resourceUrl,
         protected ?string $resourceMetadataUrl = null,
         protected ?string $challengeScope = null,
         protected AuthServerDiscovery $discovery = new AuthServerDiscovery,
     ) {
-        $this->resourceUrl = $this->resourceIdentifier($resourceUrl);
+        $this->resourceUrl = (string) Uri::of($this->resourceUrl)->withoutFragment();
     }
 
     public function redirect(?string $returnTo = null): RedirectResponse
@@ -41,7 +40,7 @@ class OAuthClient
 
         $clientId = $this->config->clientId;
         $clientSecret = $this->config->clientSecret;
-        $redirectUri = $this->redirectUri();
+        $redirectUri = $this->config->redirectUri ?? throw new OAuthException('A redirect URI is required.');
 
         if ($clientId === null) {
             $registration = $this->register($metadata, $redirectUri);
@@ -126,7 +125,7 @@ class OAuthClient
         return $this->returnTo;
     }
 
-    public function refresh(string $refreshToken, ?string $clientId = null, ?string $clientSecret = null): TokenSet
+    public function refreshCredentials(string $refreshToken, ?string $clientId = null, ?string $clientSecret = null): TokenSet
     {
         $discovered = $this->discover();
 
@@ -232,7 +231,7 @@ class OAuthClient
             $request = $request->withBasicAuth((string) $clientId, (string) $clientSecret);
         }
 
-        $response = $request->post($tokenEndpoint, $this->withoutNulls([...$params, ...$credentials]));
+        $response = $request->post($tokenEndpoint, array_filter([...$params, ...$credentials], static fn (mixed $value): bool => $value !== null));
 
         if (! $response->successful()) {
             throw new OAuthException("Token request to [{$tokenEndpoint}] failed with status [{$response->status()}].");
@@ -245,15 +244,6 @@ class OAuthClient
         }
 
         return TokenSet::fromResponse($data);
-    }
-
-    /**
-     * @param  array<string, mixed>  $params
-     * @return array<string, mixed>
-     */
-    protected function withoutNulls(array $params): array
-    {
-        return array_filter($params, static fn (mixed $value): bool => $value !== null);
     }
 
     protected function throwOnServerError(): void
@@ -316,23 +306,6 @@ class OAuthClient
             : 'web';
     }
 
-    protected function resourceIdentifier(string $url): string
-    {
-        $parts = parse_url($url);
-
-        if (! is_array($parts) || ! isset($parts['scheme'], $parts['host'])) {
-            return $url;
-        }
-
-        $origin = $parts['scheme'].'://'.$parts['host'].(isset($parts['port']) ? ':'.$parts['port'] : '');
-
-        $path = $parts['path'] ?? '';
-
-        $query = isset($parts['query']) ? '?'.$parts['query'] : '';
-
-        return $origin.$path.$query;
-    }
-
     /**
      * @param  array<string, mixed>  $stored
      */
@@ -351,15 +324,6 @@ class OAuthClient
         if ($stored['iss_supported'] ?? false) {
             throw new OAuthException('The authorization response is missing the required iss parameter.');
         }
-    }
-
-    protected function redirectUri(): string
-    {
-        if ($this->config->redirectUri === null) {
-            throw new OAuthException('A redirect URI is required. Pass redirectUri to withOauth().');
-        }
-
-        return $this->config->redirectUri;
     }
 
     protected function sessionKey(): string

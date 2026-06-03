@@ -14,11 +14,10 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 class WebClient extends Client
 {
-    protected ?OAuthConfig $oAuthConfig = null;
-
     public function __construct(
         protected HttpTransport $httpTransport,
-        ?Implementation $clientInfo = null,
+        public ?Implementation $clientInfo = null,
+        protected ?OAuthConfig $oAuthConfig = null,
     ) {
         parent::__construct($httpTransport, $clientInfo);
     }
@@ -49,29 +48,23 @@ class WebClient extends Client
         return $this;
     }
 
-    public function oAuth(?string $resourceMetadataUrl = null, ?string $challengeScope = null): OAuthClient
+    public function oAuthClient(?string $resourceMetadataUrl = null, ?string $challengeScope = null): OAuthClient
     {
         if (! $this->oAuthConfig instanceof OAuthConfig) {
-            throw new OAuthException('No OAuth configuration found. Call withOAuth() before oAuth().');
+            throw new OAuthException('No OAuth configuration found. Call withOAuth() before oAuthClient().');
         }
 
-        if ($this->oAuthConfig->redirectUri === null) {
-            $this->oAuthConfig->redirectUri = $this->defaultRedirectUri();
+        $config = $this->oAuthConfig;
+
+        if ($config->redirectUri === null && $this->registeredName !== null) {
+            $config = clone $config;
+
+            try {
+                $config->redirectUri = route("mcp.oauth.{$this->registeredName}.callback");
+            } catch (RouteNotFoundException) {
+            }
         }
 
-        return new OAuthClient($this->httpTransport->url(), $this->oAuthConfig, $resourceMetadataUrl, $challengeScope);
-    }
-
-    protected function defaultRedirectUri(): ?string
-    {
-        if ($this->registeredName === null) {
-            return null;
-        }
-
-        try {
-            return route("mcp.oauth.{$this->registeredName}.callback");
-        } catch (RouteNotFoundException) {
-            return null;
-        }
+        return new OAuthClient($config, $this->httpTransport->url(), $resourceMetadataUrl, $challengeScope);
     }
 }

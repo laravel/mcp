@@ -38,7 +38,7 @@ it('builds an authorization redirect with PKCE and stashes session state', funct
             scope: 'mcp:use',
             redirectUri: 'https://app.test/callback',
         )
-        ->oAuth()
+        ->oAuthClient()
         ->redirect('/dashboard');
 
     $target = $response->getTargetUrl();
@@ -76,7 +76,7 @@ it('merges query params onto an authorization endpoint that already has a query 
 
     $target = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect()
         ->getTargetUrl();
 
@@ -98,7 +98,7 @@ it('dynamically registers a client when no client id is configured', function ()
 
     Client::web('https://mcp.test/mcp')
         ->withOAuth(redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect();
 
     $stored = Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'));
@@ -142,7 +142,7 @@ it('exchanges an authorization code for a token set', function (): void {
 
     $token = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
-        ->oAuth()
+        ->oAuthClient()
         ->exchangeCallback();
 
     expect($token)->toBeInstanceOf(TokenSet::class)
@@ -181,7 +181,7 @@ it('rejects a mismatched state parameter', function (): void {
 
     expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
-        ->oAuth()
+        ->oAuthClient()
         ->exchangeCallback())
         ->toThrow(OAuthException::class, 'state parameter did not match');
 });
@@ -198,7 +198,7 @@ it('runs the client credentials grant', function (): void {
 
     $token = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'svc', clientSecret: 'secret', scope: 'mcp:use')
-        ->oAuth()
+        ->oAuthClient()
         ->clientCredentials();
 
     expect($token->accessToken)->toBe('machine-token');
@@ -217,7 +217,7 @@ it('throws when the authorization server redirects back with an error', function
 
     Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
-        ->oAuth()
+        ->oAuthClient()
         ->exchangeCallback();
 })->throws(OAuthException::class, 'The authorization server returned an error [access_denied]: The user denied the request');
 
@@ -226,7 +226,7 @@ it('requires an authorization code when exchanging a callback', function (): voi
 
     expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'svc', clientSecret: 'secret', scope: 'mcp:use')
-        ->oAuth()
+        ->oAuthClient()
         ->exchangeCallback())
         ->toThrow(OAuthException::class, 'did not include an authorization code');
 });
@@ -244,8 +244,8 @@ it('refreshes a token using the refresh grant', function (): void {
 
     $token = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', scope: 'mcp:use')
-        ->oAuth()
-        ->refresh('old-refresh');
+        ->oAuthClient()
+        ->refreshCredentials('old-refresh');
 
     expect($token->accessToken)->toBe('fresh-token')
         ->and($token->refreshToken)->toBe('new-refresh');
@@ -267,7 +267,7 @@ it('falls back to the resource origin when protected resource metadata is unavai
 
     $response = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect();
 
     expect($response->getTargetUrl())->toStartWith('https://mcp.test/authorize?');
@@ -282,8 +282,8 @@ it('throws when the token request fails', function (): void {
 
     expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', scope: 'mcp:use')
-        ->oAuth()
-        ->refresh('bad-token'))
+        ->oAuthClient()
+        ->refreshCredentials('bad-token'))
         ->toThrow(OAuthException::class, 'failed with status [400]');
 });
 
@@ -298,7 +298,7 @@ it('throws when the authorization server metadata cannot be discovered', functio
 
     expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', clientSecret: 'secret')
-        ->oAuth()
+        ->oAuthClient()
         ->clientCredentials())
         ->toThrow(OAuthException::class, 'Unable to discover authorization server metadata');
 });
@@ -317,13 +317,13 @@ it('throws when dynamic registration is needed but unsupported', function (): vo
 
     expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
         ->withOAuth(redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect())
         ->toThrow(OAuthException::class, 'does not support dynamic client registration');
 });
 
 it('throws when oauth is used without configuration', function (): void {
-    expect(fn (): OAuthClient => Client::web('https://mcp.test/mcp')->oAuth())
+    expect(fn (): OAuthClient => Client::web('https://mcp.test/mcp')->oAuthClient())
         ->toThrow(OAuthException::class, 'No OAuth configuration');
 });
 
@@ -332,7 +332,7 @@ it('requires a redirect uri before redirecting', function (): void {
 
     expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect())
         ->toThrow(OAuthException::class, 'redirect URI is required');
 });
@@ -351,7 +351,7 @@ it('uses the server advertised resource metadata url when provided', function ()
 
     $target = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth('https://mcp.test/.well-known/custom-resource')
+        ->oAuthClient('https://mcp.test/.well-known/custom-resource')
         ->redirect()
         ->getTargetUrl();
 
@@ -360,10 +360,41 @@ it('uses the server advertised resource metadata url when provided', function ()
     Http::assertSent(fn ($request): bool => $request->url() === 'https://mcp.test/.well-known/custom-resource');
 });
 
+it('throws instead of falling back to the origin when an explicit resource metadata url fails', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/custom-resource' => Http::response('', 404),
+        'https://mcp.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://mcp.test',
+            'authorization_endpoint' => 'https://mcp.test/authorize',
+            'token_endpoint' => 'https://mcp.test/token',
+        ]),
+    ]);
+
+    expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient('https://mcp.test/.well-known/custom-resource')
+        ->redirect())
+        ->toThrow(OAuthException::class, 'Protected resource metadata request to [https://mcp.test/.well-known/custom-resource] failed with status [404]');
+
+    Http::assertNotSent(fn ($request): bool => $request->url() === 'https://mcp.test/.well-known/oauth-authorization-server');
+});
+
+it('throws when an explicit resource metadata url returns invalid json', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/custom-resource' => Http::response('not json', 200, ['Content-Type' => 'text/plain']),
+    ]);
+
+    expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient('https://mcp.test/.well-known/custom-resource')
+        ->redirect())
+        ->toThrow(OAuthException::class, 'did not return a valid JSON object');
+});
+
 it('rejects protected resource metadata urls on internal hosts', function (): void {
     expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth('https://127.0.0.1/.well-known/oauth-protected-resource')
+        ->oAuthClient('https://127.0.0.1/.well-known/oauth-protected-resource')
         ->redirect())
         ->toThrow(OAuthException::class, 'private or internal host');
 });
@@ -371,7 +402,7 @@ it('rejects protected resource metadata urls on internal hosts', function (): vo
 it('rejects protected resource metadata urls served over plain http', function (): void {
     expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth('http://mcp.test/.well-known/oauth-protected-resource')
+        ->oAuthClient('http://mcp.test/.well-known/oauth-protected-resource')
         ->redirect())
         ->toThrow(OAuthException::class, 'must be served over HTTPS');
 });
@@ -390,7 +421,7 @@ it('rejects an authorization server whose issuer does not match', function (): v
 
     expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect())
         ->toThrow(OAuthException::class, 'did not match the expected issuer');
 });
@@ -405,7 +436,7 @@ it('rejects protected resource metadata whose resource does not match', function
 
     expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect())
         ->toThrow(OAuthException::class, 'did not match the expected resource');
 });
@@ -423,7 +454,7 @@ it('rejects authorization server metadata that omits the issuer', function (): v
 
     expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect())
         ->toThrow(OAuthException::class, 'did not match the expected issuer');
 });
@@ -443,7 +474,7 @@ it('rejects an authorization server that does not advertise the S256 PKCE method
 
     expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect())
         ->toThrow(OAuthException::class, 'does not support the required S256');
 });
@@ -457,7 +488,7 @@ it('rejects an authorization server served over plain http', function (): void {
 
     expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect())
         ->toThrow(OAuthException::class, 'must be served over HTTPS');
 });
@@ -477,7 +508,7 @@ it('falls back to openid connect discovery when oauth metadata is absent', funct
 
     $target = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect()
         ->getTargetUrl();
 
@@ -513,7 +544,7 @@ it('validates a matching iss parameter on the authorization callback', function 
 
     $token = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
-        ->oAuth()
+        ->oAuthClient()
         ->exchangeCallback();
 
     expect($token->accessToken)->toBe('access-token');
@@ -544,7 +575,7 @@ it('rejects a mismatched iss parameter on the authorization callback', function 
 
     expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
-        ->oAuth()
+        ->oAuthClient()
         ->exchangeCallback())
         ->toThrow(OAuthException::class, 'iss) parameter did not match');
 });
@@ -573,7 +604,7 @@ it('rejects a missing iss parameter when the server advertises support', functio
 
     expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
-        ->oAuth()
+        ->oAuthClient()
         ->exchangeCallback())
         ->toThrow(OAuthException::class, 'missing the required iss parameter');
 });
@@ -593,7 +624,7 @@ it('records the issuer in the session for callback validation', function (): voi
 
     Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect();
 
     $stored = Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'));
@@ -607,7 +638,7 @@ it('defaults the scope to mcp:use', function (): void {
 
     $target = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect()
         ->getTargetUrl();
 
@@ -631,7 +662,7 @@ it('does not request every supported scope from protected resource metadata', fu
 
     $target = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect()
         ->getTargetUrl();
 
@@ -655,7 +686,7 @@ it('prefers the challenge scope over the configured scope', function (): void {
 
     $target = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', scope: 'mcp:use', redirectUri: 'https://app.test/callback')
-        ->oAuth(challengeScope: 'files:read files:write')
+        ->oAuthClient(challengeScope: 'files:read files:write')
         ->redirect()
         ->getTargetUrl();
 
@@ -673,7 +704,7 @@ it('sends a native application_type when registering a localhost client', functi
 
     Client::web('https://mcp.test/mcp')
         ->withOAuth(redirectUri: 'http://localhost:3000/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect();
 
     Http::assertSent(fn ($request): bool => $request->url() === 'https://auth.test/register'
@@ -689,7 +720,7 @@ it('sends a web application_type when registering a remote client', function ():
 
     Client::web('https://mcp.test/mcp')
         ->withOAuth(redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect();
 
     Http::assertSent(fn ($request): bool => $request->url() === 'https://auth.test/register'
@@ -710,7 +741,7 @@ it('strips fragments but preserves trailing slashes in the resource identifier',
 
     $target = Client::web('https://mcp.test/mcp/#fragment')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect()
         ->getTargetUrl();
 
@@ -729,7 +760,7 @@ it('rejects protected resource metadata when a trailing slash differs', function
 
     expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp/')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect())
         ->toThrow(OAuthException::class, 'did not match the expected resource [https://mcp.test/mcp/]');
 });
@@ -743,8 +774,8 @@ it('includes the resource parameter on a refresh token request', function (): vo
 
     Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
-        ->oAuth()
-        ->refresh('old-refresh');
+        ->oAuthClient()
+        ->refreshCredentials('old-refresh');
 
     Http::assertSent(fn ($request): bool => $request->url() === 'https://auth.test/token'
         && ($request['grant_type'] ?? null) === 'refresh_token'
@@ -760,7 +791,7 @@ it('defaults the redirect uri to the package callback route for a registered cli
     $target = Client::web('https://mcp.test/mcp')
         ->setRegisteredName('github')
         ->withOAuth(clientId: 'client-123', scope: 'mcp:use')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect()
         ->getTargetUrl();
 
@@ -778,7 +809,7 @@ it('lets an explicit redirect uri override the default callback route', function
     $target = Client::web('https://mcp.test/mcp')
         ->setRegisteredName('github')
         ->withOAuth(clientId: 'client-123', scope: 'mcp:use', redirectUri: 'https://app.test/custom')
-        ->oAuth()
+        ->oAuthClient()
         ->redirect()
         ->getTargetUrl();
 
@@ -814,7 +845,7 @@ it('surfaces the dynamically registered credentials on the token set', function 
 
     $token = Client::web('https://mcp.test/mcp')
         ->withOAuth()
-        ->oAuth()
+        ->oAuthClient()
         ->exchangeCallback();
 
     expect($token->clientId)->toBe('dcr-999')
@@ -830,8 +861,8 @@ it('refreshes using explicitly passed client credentials', function (): void {
 
     $token = Client::web('https://mcp.test/mcp')
         ->withOAuth(scope: 'mcp:use')
-        ->oAuth()
-        ->refresh('old-refresh', clientId: 'dcr-999', clientSecret: 'dcr-secret');
+        ->oAuthClient()
+        ->refreshCredentials('old-refresh', clientId: 'dcr-999', clientSecret: 'dcr-secret');
 
     expect($token->clientId)->toBe('dcr-999');
 
@@ -856,7 +887,7 @@ it('uses client_secret_basic when the server only supports it', function (): voi
 
     Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'svc', clientSecret: 'secret', scope: 'mcp:use')
-        ->oAuth()
+        ->oAuthClient()
         ->clientCredentials();
 
     Http::assertSent(function ($request): bool {

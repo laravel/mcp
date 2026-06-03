@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Client\OAuth;
 
 use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
+use Laravel\Mcp\Client\OAuth\Enums\TokenEndpointAuthMethod;
 
 class DynamicClientRegistration
 {
