@@ -66,6 +66,36 @@ class UriTemplate implements Stringable
         return array_values(array_unique($this->variableNames));
     }
 
+    /**
+     * @param  array<string, mixed>  $variables
+     */
+    public function expand(array $variables): string
+    {
+        $expanded = $this->template;
+
+        foreach ($this->variableNames() as $name) {
+            if (! array_key_exists($name, $variables)) {
+                throw new InvalidArgumentException("Missing value for URI template variable [{$name}].");
+            }
+
+            $value = $variables[$name];
+
+            if (! is_scalar($value) && ! $value instanceof Stringable) {
+                throw new InvalidArgumentException("URI template variable [{$name}] must be a scalar or Stringable value.");
+            }
+
+            $value = (string) $value;
+
+            if (str_contains($value, '/')) {
+                throw new InvalidArgumentException("URI template variable [{$name}] value must not contain '/'.");
+            }
+
+            $expanded = str_replace('{'.$name.'}', $value, $expanded);
+        }
+
+        return $expanded;
+    }
+
     public function __toString(): string
     {
         return $this->template;

@@ -6,16 +6,20 @@ use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Schema\Icon;
+use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Attributes\Icon as IconAttribute;
 use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Blob;
+use Laravel\Mcp\Server\Content\EmbeddedResource;
 use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\ResourceLink;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Server\Ui\AppMeta;
 use Tests\Fixtures\AnnotatedResource;
 use Tests\Fixtures\DailyPlanResource;
+use Tests\Fixtures\ExampleResourceTemplate;
 
 it('creates a notification response', function (): void {
     $response = Response::notification('test.method', ['key' => 'value']);
@@ -321,6 +325,81 @@ it('creates a resource link from a Resource instance', function (): void {
     $response = Response::resourceLink($resource);
 
     expect($response->content()->toArray()['uri'])->toBe($resource->uri());
+});
+
+it('creates an embedded resource from a Resource class-string', function (): void {
+    $response = Response::embeddedResource(DailyPlanResource::class);
+
+    expect($response->content())->toBeInstanceOf(EmbeddedResource::class)
+        ->and($response->content()->toArray())->toEqual([
+            'type' => 'resource',
+            'resource' => [
+                'text' => "# Daily Plan\n\n- [ ] Task 1\n- [ ] Task 2\n- [ ] Task 3",
+                'uri' => 'file://resources/daily-plan.md',
+                'mimeType' => 'text/markdown',
+            ],
+        ]);
+});
+
+it('creates an embedded resource from a URI template Resource', function (): void {
+    $response = Response::embeddedResource(ExampleResourceTemplate::class, ['id' => '42']);
+
+    expect($response->content()->toArray())->toEqual([
+        'type' => 'resource',
+        'resource' => [
+            'text' => 'Example resource: 42',
+            'uri' => 'file://example/42',
+            'mimeType' => 'text/plain',
+        ],
+    ]);
+});
+
+it('includes AppResource metadata in embedded resources', function (): void {
+    config(['app.url' => 'https://mcp.example.test']);
+
+    $resource = new class extends AppResource
+    {
+        protected string $uri = 'ui://resources/dashboard';
+
+        public function appMeta(): AppMeta
+        {
+            return AppMeta::make()->prefersBorder(false);
+        }
+
+        public function handle(): Response
+        {
+            return Response::text('<main>Dashboard</main>');
+        }
+    };
+
+    $response = Response::embeddedResource($resource);
+
+    expect($response->content()->toArray())->toEqual([
+        'type' => 'resource',
+        'resource' => [
+            'text' => '<main>Dashboard</main>',
+            'uri' => 'ui://resources/dashboard',
+            'mimeType' => 'text/html;profile=mcp-app',
+            '_meta' => [
+                'ui' => [
+                    'domain' => 'mcp.example.test',
+                    'prefersBorder' => false,
+                ],
+            ],
+        ],
+    ]);
+});
+
+it('wraps a pre-built embedded resource instance', function (): void {
+    $embeddedResource = new EmbeddedResource([
+        'uri' => 'file://resources/summary.md',
+        'text' => 'Session summary',
+        'mimeType' => 'text/markdown',
+    ]);
+
+    $response = Response::embeddedResource($embeddedResource);
+
+    expect($response->content())->toBe($embeddedResource);
 });
 
 it('inherits annotations from a Resource', function (): void {

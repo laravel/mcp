@@ -54,6 +54,29 @@ it('matches nested path segments', function (): void {
     ]);
 });
 
+it('expands URI templates with variables', function (): void {
+    $template = new UriTemplate('file://sessions/{sessionId}/summaries/{summaryId}');
+
+    expect($template->expand([
+        'sessionId' => 42,
+        'summaryId' => 'daily',
+    ]))->toBe('file://sessions/42/summaries/daily');
+});
+
+it('requires all variables when expanding URI templates', function (): void {
+    $template = new UriTemplate('file://sessions/{sessionId}/summaries/{summaryId}');
+
+    expect(fn (): string => $template->expand(['sessionId' => 42]))
+        ->toThrow(InvalidArgumentException::class, 'Missing value for URI template variable [summaryId].');
+});
+
+it('rejects slash values when expanding URI templates', function (): void {
+    $template = new UriTemplate('file://sessions/{sessionId}');
+
+    expect(fn (): string => $template->expand(['sessionId' => 'a/b']))
+        ->toThrow(InvalidArgumentException::class, "URI template variable [sessionId] value must not contain '/'.");
+});
+
 it('rejects partial matches and incomplete URIs', function (): void {
     $template = new UriTemplate('file://users/{id}');
 

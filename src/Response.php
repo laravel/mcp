@@ -13,13 +13,16 @@ use InvalidArgumentException;
 use JsonException;
 use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Schema\Icon;
+use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Blob;
+use Laravel\Mcp\Server\Content\EmbeddedResource;
 use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\ResourceLink;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
+use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Resource;
 use League\Flysystem\UnableToReadFile;
 
@@ -186,6 +189,95 @@ class Response
         };
 
         return new static($link);
+    }
+
+    /**
+     * @param  class-string<Resource>|Resource|EmbeddedResource  $resource
+     * @param  array<string, mixed>  $arguments
+     */
+    public static function embeddedResource(string|Resource|EmbeddedResource $resource, array $arguments = []): static
+    {
+        if ($resource instanceof EmbeddedResource) {
+            return new static($resource);
+        }
+
+        if (is_string($resource)) {
+            if (! is_subclass_of($resource, Resource::class)) {
+                throw new InvalidArgumentException('Embedded resource class must extend [Laravel\Mcp\Server\Resource].');
+            }
+
+            $resource = Container::getInstance()->make($resource);
+        }
+
+        $uri = $resource instanceof HasUriTemplate
+            ? $resource->uriTemplate()->expand($arguments)
+            : $resource->uri();
+
+        return new static(new EmbeddedResource(
+            static::resourceContent($resource, $uri, $arguments),
+        ));
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>
+     */
+    protected static function resourceContent(Resource $resource, string $uri, array $arguments): array
+    {
+        $container = Container::getInstance();
+        $request = new Request($arguments, uri: $uri);
+
+        if ($resource instanceof HasUriTemplate) {
+            $request->merge($resource->uriTemplate()->match($uri) ?? []);
+        }
+
+        $container->instance(Request::class, $request);
+
+        if ($resource instanceof AppResource) {
+            $container->instance('mcp.library_scripts', $resource->libraryScripts());
+        }
+
+        try {
+            $handler = [$resource, 'handle'];
+
+            if (! is_callable($handler)) {
+                throw new InvalidArgumentException('Embedded resource must define a callable handle method.');
+            }
+
+            $response = $container->call($handler);
+        } finally {
+            $container->forgetInstance(Request::class);
+            $container->forgetInstance('mcp.library_scripts');
+        }
+
+        $content = match (true) {
+            $response instanceof ResponseFactory => $response,
+            $response instanceof Response => new ResponseFactory($response),
+            is_string($response) => new ResponseFactory(str_contains($response, "\0") ? static::blob($response) : static::text($response)),
+            is_array($response) => new ResponseFactory($response),
+            default => throw new InvalidArgumentException('Embedded resources must return a Response instance, ResponseFactory, array of Response instances, or string.'),
+        };
+
+        if ($content->responses()->count() !== 1) {
+            throw new InvalidArgumentException('Embedded resources must contain exactly one response.');
+        }
+
+        $resourceContent = $content->responses()->sole()->content()->toResource($resource);
+        $resourceContent['uri'] = $uri;
+
+        if ($resource instanceof AppResource) {
+            $appMeta = $resource->resolvedAppMeta();
+
+            if ($appMeta !== []) {
+                $meta = $resourceContent['_meta'] ?? [];
+
+                $resourceContent['_meta'] = array_merge(is_array($meta) ? $meta : [], [
+                    'ui' => $appMeta,
+                ]);
+            }
+        }
+
+        return $resourceContent;
     }
 
     public static function fromStorage(string $path, ?string $disk = null, ?string $mimeType = null): static

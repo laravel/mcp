@@ -18,7 +18,6 @@ use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Support\UriTemplate;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
-use Stringable;
 
 class PendingTestResponse
 {
@@ -183,28 +182,6 @@ class PendingTestResponse
      */
     protected function expandUriTemplate(UriTemplate $template, array $variables): string
     {
-        $expanded = (string) $template;
-
-        foreach ($template->variableNames() as $name) {
-            if (! array_key_exists($name, $variables)) {
-                throw new InvalidArgumentException("Missing value for URI template variable [{$name}].");
-            }
-
-            $value = $variables[$name];
-
-            if (! is_scalar($value) && ! $value instanceof Stringable) {
-                throw new InvalidArgumentException("URI template variable [{$name}] must be a scalar or Stringable value.");
-            }
-
-            $value = (string) $value;
-
-            if (str_contains($value, '/')) {
-                throw new InvalidArgumentException("URI template variable [{$name}] value must not contain '/'.");
-            }
-
-            $expanded = str_replace('{'.$name.'}', $value, $expanded);
-        }
-
-        return $expanded;
+        return $template->expand($variables);
     }
 }
