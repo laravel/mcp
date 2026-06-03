@@ -17,6 +17,10 @@ use Laravel\Mcp\Server\Registrar;
  * @method static array servers()
  * @method static void oauthRoutes(string $oauthPrefix = 'oauth')
  * @method static array ensureMcpScope()
+ * @method static void macro(string $name, object|callable $macro)
+ * @method static void mixin(object $mixin, bool $replace = true)
+ * @method static bool hasMacro(string $name)
+ * @method static void flushMacros()
  *
  * @see Registrar
  */
