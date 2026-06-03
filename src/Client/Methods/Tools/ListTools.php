@@ -6,7 +6,6 @@ namespace Laravel\Mcp\Client\Methods\Tools;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
-use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Protocol;
@@ -18,7 +17,6 @@ use Laravel\Mcp\Exceptions\ClientException;
 class ListTools implements Method
 {
     public function __construct(
-        protected Client $client,
         protected ?string $cursor = null,
         protected ?int $limit = null,
     ) {
@@ -43,21 +41,17 @@ class ListTools implements Method
      */
     public function handle(Protocol $protocol): Collection
     {
-        return self::hydrate($this->client, $this->fetch($protocol));
+        return $this->hydrate($this->fetch($protocol));
     }
 
     /**
-     * @param  array<int, mixed>  $payloads
+     * @param  array<int, array<string, mixed>>  $payloads
      * @return Collection<string, Tool>
      */
-    public static function hydrate(Client $client, array $payloads): Collection
+    protected function hydrate(array $payloads): Collection
     {
-        return collect($payloads)->mapWithKeys(function (mixed $payload) use ($client): array {
-            if (! is_array($payload)) {
-                throw new ClientException('Invalid tool payload.');
-            }
-
-            $tool = Tool::from($client, $payload);
+        return collect($payloads)->mapWithKeys(function (array $payload): array {
+            $tool = Tool::from($payload);
 
             return [$tool->name => $tool];
         });
@@ -66,7 +60,7 @@ class ListTools implements Method
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function fetch(Protocol $protocol): array
+    protected function fetch(Protocol $protocol): array
     {
         if ($this->limit === 0) {
             return [];
@@ -89,7 +83,7 @@ class ListTools implements Method
                 $seenCursors[$cursor] = true;
             }
 
-            $result = $protocol->dispatch(new self($this->client, $cursor, $this->limit));
+            $result = $protocol->dispatch(new self($cursor, $this->limit));
             $page = Arr::get($result, 'tools');
 
             if (! is_array($page)) {
