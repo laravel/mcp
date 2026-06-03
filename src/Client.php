@@ -6,6 +6,7 @@ namespace Laravel\Mcp;
 
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Client\Contracts\Transport;
+use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Client\Methods\Ping;
 use Laravel\Mcp\Client\Methods\Tools\CallTool;
 use Laravel\Mcp\Client\Methods\Tools\ListTools;
@@ -22,6 +23,15 @@ class Client
     public Implementation $clientInfo;
 
     protected Protocol $protocol;
+
+    protected ?string $registeredName = null;
+
+    public function setRegisteredName(string $name): static
+    {
+        $this->registeredName = $name;
+
+        return $this;
+    }
 
     public function __construct(
         protected Transport $transport,
@@ -83,11 +93,20 @@ class Client
     }
 
     /**
+     * @param  iterable<string, Tool>|null  $default
      * @return Collection<string, Tool>
      */
-    public function tools(?int $limit = null): Collection
+    public function tools(?int $limit = null, ?iterable $default = null): Collection
     {
-        return (new ListTools(limit: $limit))->handle($this->protocol);
+        try {
+            return (new ListTools(limit: $limit))->handle($this->protocol);
+        } catch (AuthorizationRequiredException $authorizationRequiredException) {
+            if ($default === null) {
+                throw $authorizationRequiredException;
+            }
+
+            return Collection::make($default);
+        }
     }
 
     /**

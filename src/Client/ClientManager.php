@@ -33,7 +33,7 @@ class ClientManager
             unset($this->clients[$name]);
         }
 
-        $this->factories[$name] = $factory;
+        $this->factories[$name] = fn (): Client => $factory()->setRegisteredName($name);
     }
 
     public function client(string $name): Client

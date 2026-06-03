@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\ClientManager;
+use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Facades\Mcp;
@@ -127,6 +130,29 @@ it('fetches a fresh tools list on every resolution', function (): void {
     expect(Mcp::client('everything')->tools()->keys()->all())->toBe(['add']);
     expect(Mcp::client('everything')->tools()->keys()->all())->toBe(['add']);
     expect($transport->responses)->toBeEmpty();
+});
+
+it('returns the given default from a named client when authorization is required', function (): void {
+    Http::fake([
+        'https://mcp.test/mcp' => Http::response('', 401),
+    ]);
+
+    Mcp::registerClient('nightwatch', fn (): Client => new Client(new HttpTransport('https://mcp.test/mcp')));
+
+    $tools = Mcp::client('nightwatch')->tools(default: []);
+
+    expect($tools)->toBeInstanceOf(Collection::class)->toBeEmpty();
+});
+
+it('rethrows the authorization exception from a named client when no default is given', function (): void {
+    Http::fake([
+        'https://mcp.test/mcp' => Http::response('', 401),
+    ]);
+
+    Mcp::registerClient('nightwatch', fn (): Client => new Client(new HttpTransport('https://mcp.test/mcp')));
+
+    expect(fn () => Mcp::client('nightwatch')->tools())
+        ->toThrow(AuthorizationRequiredException::class);
 });
 
 it('resolves a subclassed client and preserves fluent chaining', function (): void {
