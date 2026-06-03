@@ -750,6 +750,52 @@ it('strips fragments but preserves trailing slashes in the resource identifier',
     expect($query['resource'])->toBe('https://mcp.test/mcp/');
 });
 
+it('strips the fragment but preserves the query string in the resource identifier', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'token_endpoint' => 'https://auth.test/token',
+        ]),
+    ]);
+
+    $target = Client::web('https://mcp.test/mcp?tenant=acme#section')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect()
+        ->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($query['resource'])->toBe('https://mcp.test/mcp?tenant=acme');
+});
+
+it('leaves a resource identifier without a fragment unchanged', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'token_endpoint' => 'https://auth.test/token',
+        ]),
+    ]);
+
+    $target = Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect()
+        ->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($query['resource'])->toBe('https://mcp.test/mcp');
+});
+
 it('rejects protected resource metadata when a trailing slash differs', function (): void {
     Http::fake([
         'https://mcp.test/.well-known/oauth-protected-resource/mcp/' => Http::response([
