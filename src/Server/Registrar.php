@@ -128,7 +128,7 @@ class Registrar
         $connect->name("mcp.oauth.{$client}.connect")->middleware($middleware);
 
         $callback = Router::get($callbackUri ?? "mcp/oauth/{$client}/callback", function () use ($client, $handler): mixed {
-            $token = $this->webClient($client)->oAuth()->callbackToken();
+            $token = $this->webClient($client)->oAuth()->token();
 
             $result = Container::getInstance()->call($handler, [
                 'provider' => $client,

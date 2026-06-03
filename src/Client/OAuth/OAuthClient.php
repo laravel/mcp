@@ -78,7 +78,7 @@ class OAuthClient
         return new RedirectResponse((string) $authorizeUrl);
     }
 
-    public function callbackToken(): TokenSet
+    public function token(): TokenSet
     {
         $error = Request::query('error');
 
@@ -92,22 +92,17 @@ class OAuthClient
 
         $code = Request::query('code');
 
-        if (! is_string($code)) {
-            throw new OAuthException('The authorization response did not include an authorization code.');
+        if (is_string($code) && $code !== '') {
+            $state = Request::query('state');
+            $iss = Request::query('iss');
+
+            return $this->exchangeAuthorizationCode(
+                $code,
+                is_string($state) ? $state : '',
+                is_string($iss) ? $iss : null,
+            );
         }
 
-        $state = Request::query('state');
-        $iss = Request::query('iss');
-
-        return $this->exchangeAuthorizationCode(
-            $code,
-            is_string($state) ? $state : '',
-            is_string($iss) ? $iss : null,
-        );
-    }
-
-    public function clientCredentialsToken(): TokenSet
-    {
         if ($this->config->clientId === null) {
             throw new OAuthException('A client_id is required for the client_credentials grant.');
         }

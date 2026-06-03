@@ -143,7 +143,7 @@ it('exchanges an authorization code for a token set', function (): void {
     $token = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
         ->oAuth()
-        ->callbackToken();
+        ->token();
 
     expect($token)->toBeInstanceOf(TokenSet::class)
         ->and($token->accessToken)->toBe('access-token')
@@ -182,7 +182,7 @@ it('rejects a mismatched state parameter', function (): void {
     expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
         ->oAuth()
-        ->callbackToken())
+        ->token())
         ->toThrow(OAuthException::class, 'state parameter did not match');
 });
 
@@ -199,7 +199,7 @@ it('runs the client credentials grant', function (): void {
     $token = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'svc', clientSecret: 'secret', scope: 'mcp:use')
         ->oAuth()
-        ->clientCredentialsToken();
+        ->token();
 
     expect($token->accessToken)->toBe('machine-token');
 
@@ -218,17 +218,31 @@ it('throws when the authorization server redirects back with an error', function
     Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
         ->oAuth()
-        ->callbackToken();
+        ->token();
 })->throws(OAuthException::class, 'The authorization server returned an error [access_denied]: The user denied the request');
 
-it('throws when the authorization callback has no code', function (): void {
+it('falls back to the client credentials grant when no authorization code is present', function (): void {
+    fakeDiscovery();
+
+    Http::fake([
+        'https://auth.test/token' => Http::response([
+            'access_token' => 'machine-token',
+            'expires_in' => 7200,
+        ]),
+    ]);
+
     app()->instance('request', Request::create('https://app.test/callback', 'GET'));
 
-    Client::web('https://mcp.test/mcp')
-        ->withOAuth(clientId: 'client-123')
+    $token = Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'svc', clientSecret: 'secret', scope: 'mcp:use')
         ->oAuth()
-        ->callbackToken();
-})->throws(OAuthException::class, 'The authorization response did not include an authorization code.');
+        ->token();
+
+    expect($token->accessToken)->toBe('machine-token');
+
+    Http::assertSent(fn ($request): bool => $request->url() === 'https://auth.test/token'
+        && ($request->data()['grant_type'] ?? null) === 'client_credentials');
+});
 
 it('refreshes a token using the refresh grant', function (): void {
     fakeDiscovery();
@@ -298,7 +312,7 @@ it('throws when the authorization server metadata cannot be discovered', functio
     expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', clientSecret: 'secret')
         ->oAuth()
-        ->clientCredentialsToken())
+        ->token())
         ->toThrow(OAuthException::class, 'Unable to discover authorization server metadata');
 });
 
@@ -497,7 +511,7 @@ it('validates a matching iss parameter on the authorization callback', function 
     $token = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
         ->oAuth()
-        ->callbackToken();
+        ->token();
 
     expect($token->accessToken)->toBe('access-token');
 });
@@ -528,7 +542,7 @@ it('rejects a mismatched iss parameter on the authorization callback', function 
     expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
         ->oAuth()
-        ->callbackToken())
+        ->token())
         ->toThrow(OAuthException::class, 'iss) parameter did not match');
 });
 
@@ -557,7 +571,7 @@ it('rejects a missing iss parameter when the server advertises support', functio
     expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
         ->oAuth()
-        ->callbackToken())
+        ->token())
         ->toThrow(OAuthException::class, 'missing the required iss parameter');
 });
 
@@ -783,7 +797,7 @@ it('surfaces the dynamically registered credentials on the token set', function 
     $token = Client::web('https://mcp.test/mcp')
         ->withOAuth()
         ->oAuth()
-        ->callbackToken();
+        ->token();
 
     expect($token->clientId)->toBe('dcr-999')
         ->and($token->clientSecret)->toBe('dcr-secret');
@@ -825,7 +839,7 @@ it('uses client_secret_basic when the server only supports it', function (): voi
     Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'svc', clientSecret: 'secret', scope: 'mcp:use')
         ->oAuth()
-        ->clientCredentialsToken();
+        ->token();
 
     Http::assertSent(function ($request): bool {
         $authorization = $request->header('Authorization')[0] ?? '';
@@ -846,7 +860,7 @@ it('honors an explicitly configured token endpoint auth method', function (): vo
     Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'svc', clientSecret: 'secret', scope: 'mcp:use', tokenEndpointAuthMethod: 'client_secret_basic')
         ->oAuth()
-        ->clientCredentialsToken();
+        ->token();
 
     Http::assertSent(fn ($request): bool => ($request->header('Authorization')[0] ?? '') === 'Basic '.base64_encode('svc:secret'));
 });
