@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Session;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\OAuthClient;
+use Laravel\Mcp\Client\OAuth\TokenEndpointAuthMethod;
 use Laravel\Mcp\Client\OAuth\TokenSet;
 
 function fakeDiscovery(): void
@@ -858,7 +859,7 @@ it('honors an explicitly configured token endpoint auth method', function (): vo
     ]);
 
     Client::web('https://mcp.test/mcp')
-        ->withOAuth(clientId: 'svc', clientSecret: 'secret', scope: 'mcp:use', tokenEndpointAuthMethod: 'client_secret_basic')
+        ->withOAuth(clientId: 'svc', clientSecret: 'secret', scope: 'mcp:use', tokenEndpointAuthMethod: TokenEndpointAuthMethod::ClientSecretBasic)
         ->oAuth()
         ->token();
 

@@ -57,7 +57,7 @@ class OAuthClient
             'client_id' => $clientId,
             'client_secret' => $clientSecret,
             'token_endpoint' => $metadata->tokenEndpoint,
-            'token_auth_method' => $this->resolveTokenAuthMethod($metadata, $clientSecret),
+            'token_auth_method' => $this->resolveTokenAuthMethod($metadata, $clientSecret)->value,
             'redirect_uri' => $redirectUri,
             'return_to' => $returnTo,
             'issuer' => $metadata->issuer,
@@ -179,7 +179,7 @@ class OAuthClient
             ],
             $clientId,
             $clientSecret,
-            (string) ($stored['token_auth_method'] ?? 'client_secret_post'),
+            TokenEndpointAuthMethod::tryFrom((string) ($stored['token_auth_method'] ?? '')) ?? TokenEndpointAuthMethod::ClientSecretPost,
         );
 
         $token->clientId = $clientId;
@@ -206,18 +206,18 @@ class OAuthClient
     /**
      * @param  array<string, mixed>  $params
      */
-    protected function requestToken(string $tokenEndpoint, array $params, ?string $clientId, ?string $clientSecret, string $authMethod): TokenSet
+    protected function requestToken(string $tokenEndpoint, array $params, ?string $clientId, ?string $clientSecret, TokenEndpointAuthMethod $authMethod): TokenSet
     {
         $request = Http::asForm()->acceptJson();
 
-        if ($authMethod === 'client_secret_basic') {
+        if ($authMethod === TokenEndpointAuthMethod::ClientSecretBasic) {
             $request = $request->withBasicAuth((string) $clientId, (string) $clientSecret);
         } else {
             if ($clientId !== null) {
                 $params['client_id'] = $clientId;
             }
 
-            if ($authMethod === 'client_secret_post' && $clientSecret !== null) {
+            if ($authMethod === TokenEndpointAuthMethod::ClientSecretPost && $clientSecret !== null) {
                 $params['client_secret'] = $clientSecret;
             }
         }
@@ -268,23 +268,25 @@ class OAuthClient
         return null;
     }
 
-    protected function resolveTokenAuthMethod(AuthServerMetadata $metadata, ?string $clientSecret): string
+    protected function resolveTokenAuthMethod(AuthServerMetadata $metadata, ?string $clientSecret): TokenEndpointAuthMethod
     {
-        if ($this->config->tokenEndpointAuthMethod !== null) {
+        if ($this->config->tokenEndpointAuthMethod instanceof TokenEndpointAuthMethod) {
             return $this->config->tokenEndpointAuthMethod;
         }
 
         if ($clientSecret === null || $clientSecret === '') {
-            return 'none';
+            return TokenEndpointAuthMethod::None;
         }
 
         $supported = $metadata->tokenEndpointAuthMethodsSupported;
 
-        if ($supported !== [] && ! in_array('client_secret_post', $supported, true) && in_array('client_secret_basic', $supported, true)) {
-            return 'client_secret_basic';
+        if ($supported !== []
+            && ! in_array(TokenEndpointAuthMethod::ClientSecretPost->value, $supported, true)
+            && in_array(TokenEndpointAuthMethod::ClientSecretBasic->value, $supported, true)) {
+            return TokenEndpointAuthMethod::ClientSecretBasic;
         }
 
-        return 'client_secret_post';
+        return TokenEndpointAuthMethod::ClientSecretPost;
     }
 
     protected function applicationType(string $redirectUri): string

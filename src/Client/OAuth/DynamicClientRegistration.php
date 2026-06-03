@@ -15,14 +15,14 @@ class DynamicClientRegistration
         ?string $scope = null,
         string $clientName = 'Laravel MCP Client',
         string $applicationType = 'web',
-        string $tokenEndpointAuthMethod = 'client_secret_post',
+        TokenEndpointAuthMethod $tokenEndpointAuthMethod = TokenEndpointAuthMethod::ClientSecretPost,
     ): ClientRegistration {
         $response = Http::acceptJson()->asJson()->post($registrationEndpoint, array_filter([
             'client_name' => $clientName,
             'redirect_uris' => [$redirectUri],
             'grant_types' => ['authorization_code', 'refresh_token'],
             'response_types' => ['code'],
-            'token_endpoint_auth_method' => $tokenEndpointAuthMethod,
+            'token_endpoint_auth_method' => $tokenEndpointAuthMethod->value,
             'application_type' => $applicationType,
             'scope' => $scope,
         ], static fn (mixed $value): bool => $value !== null));
