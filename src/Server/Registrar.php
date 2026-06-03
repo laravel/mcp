@@ -6,7 +6,6 @@ namespace Laravel\Mcp\Server;
 
 use Closure;
 use Illuminate\Container\Container;
-use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
@@ -14,7 +13,6 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Traits\Macroable;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\ClientManager;
-use Laravel\Mcp\Client\RegisteredClient;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController;
@@ -75,18 +73,13 @@ class Registrar
 
     /**
      * @param  Closure(): Client  $factory
-     * @param  ?Closure(): (string|int|Authenticatable|null)  $scope
      */
-    public function registerClient(
-        string $name,
-        Closure $factory,
-        ?int $cacheTtl = null,
-        ?Closure $scope = null,
-    ): void {
-        $this->clientManager()->registerClient($name, $factory, $cacheTtl, $scope);
+    public function registerClient(string $name, Closure $factory): void
+    {
+        $this->clientManager()->registerClient($name, $factory);
     }
 
-    public function client(string $name): RegisteredClient
+    public function client(string $name): Client
     {
         return $this->clientManager()->client($name);
     }

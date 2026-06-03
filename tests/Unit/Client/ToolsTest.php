@@ -217,7 +217,7 @@ it('throws when tools/list returns a non-string cursor', function (): void {
         ->toThrow(ClientException::class, 'Invalid tools/list cursor from server.');
 });
 
-it('calls a tool fluently via $tool->call() and returns a ToolResult', function (): void {
+it('returns tools that survive a serialize round-trip for caching', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
     $transport->responses[] = json_encode([
@@ -227,24 +227,15 @@ it('calls a tool fluently via $tool->call() and returns a ToolResult', function 
             'tools' => [['name' => 'say-hi', 'description' => 'Greets a person']],
         ],
     ]);
-    $transport->responses[] = json_encode([
-        'jsonrpc' => '2.0',
-        'id' => 3,
-        'result' => [
-            'content' => [['type' => 'text', 'text' => 'Hello, John!']],
-            'isError' => false,
-        ],
-    ]);
 
-    $result = (new Client($transport))->tools()['say-hi']->call(['name' => 'John']);
+    $tools = (new Client($transport))->tools();
 
-    expect($result)
-        ->toBeInstanceOf(ToolResult::class)
-        ->and($result->text())->toBe('Hello, John!')
-        ->and(json_decode($transport->sent[3], true))
-        ->toHaveKey('method', 'tools/call')
-        ->toHaveKey('params.name', 'say-hi')
-        ->toHaveKey('params.arguments', ['name' => 'John']);
+    $restored = unserialize(serialize($tools));
+
+    expect($restored)
+        ->toBeInstanceOf(Collection::class)
+        ->and($restored->keys()->all())->toBe(['say-hi'])
+        ->and($restored['say-hi']->description)->toBe('Greets a person');
 });
 
 it('sends tools/call by name and concatenates text content', function (): void {

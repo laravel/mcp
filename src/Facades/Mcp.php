@@ -10,8 +10,8 @@ use Laravel\Mcp\Server\Registrar;
 /**
  * @method static \Illuminate\Routing\Route web(string $route, string $serverClass)
  * @method static void local(string $handle, string $serverClass)
- * @method static void registerClient(string $name, \Closure $factory, int|null $cacheTtl = null, ?\Closure $scope = null)
- * @method static \Laravel\Mcp\Client\RegisteredClient client(string $name)
+ * @method static void registerClient(string $name, \Closure $factory)
+ * @method static \Laravel\Mcp\Client client(string $name)
  * @method static callable|null getLocalServer(string $handle)
  * @method static \Illuminate\Routing\Route|null getWebServer(string $route)
  * @method static array servers()

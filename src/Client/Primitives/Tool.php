@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client\Primitives;
 
 use Illuminate\Support\Arr;
-use Laravel\Mcp\Client;
-use Laravel\Mcp\Client\Schema\ToolResult;
 use Laravel\Mcp\Exceptions\ClientException;
 
 class Tool
@@ -18,7 +16,6 @@ class Tool
      * @param  array<string, mixed>|null  $meta
      */
     public function __construct(
-        protected Client $client,
         public readonly string $name,
         public readonly ?string $title,
         public readonly ?string $description,
@@ -33,7 +30,7 @@ class Tool
     /**
      * @param  array<string, mixed>  $payload
      */
-    public static function from(Client $client, array $payload): self
+    public static function from(array $payload): self
     {
         $name = Arr::get($payload, 'name');
         $title = Arr::get($payload, 'title');
@@ -54,7 +51,6 @@ class Tool
         }
 
         return new self(
-            client: $client,
             name: $name,
             title: $title,
             description: $description,
@@ -63,13 +59,5 @@ class Tool
             annotations: $annotations,
             meta: $meta,
         );
-    }
-
-    /**
-     * @param  array<string, mixed>  $arguments
-     */
-    public function call(array $arguments = []): ToolResult
-    {
-        return $this->client->callTool($this->name, $arguments);
     }
 }

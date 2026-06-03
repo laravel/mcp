@@ -87,17 +87,7 @@ class Client
      */
     public function tools(?int $limit = null): Collection
     {
-        return (new ListTools($this, limit: $limit))->handle($this->protocol);
-    }
-
-    /**
-     * @internal Used by RegisteredClient to populate the tools list cache.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public function fetchToolPayloads(): array
-    {
-        return (new ListTools($this))->fetch($this->protocol);
+        return (new ListTools(limit: $limit))->handle($this->protocol);
     }
 
     /**
