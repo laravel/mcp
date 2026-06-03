@@ -28,7 +28,7 @@ class OAuthClient
         protected ?string $challengeScope = null,
         protected AuthServerDiscovery $discovery = new AuthServerDiscovery,
     ) {
-        $this->resourceUrl = (string) Uri::of($this->resourceUrl)->withoutFragment();
+        $this->resourceUrl = Str::before($this->resourceUrl, '#');
     }
 
     public function redirect(?string $returnTo = null): RedirectResponse
