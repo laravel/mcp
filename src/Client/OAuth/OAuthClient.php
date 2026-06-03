@@ -18,6 +18,8 @@ class OAuthClient
 
     protected ?DiscoveryResult $discovered = null;
 
+    protected ?string $returnTo = null;
+
     public function __construct(
         string $resourceUrl,
         protected OAuthConfig $config,
@@ -25,7 +27,7 @@ class OAuthClient
         protected ?string $challengeScope = null,
         protected AuthServerDiscovery $discovery = new AuthServerDiscovery,
     ) {
-        $this->resourceUrl = $this->canonical($resourceUrl);
+        $this->resourceUrl = $this->resourceIdentifier($resourceUrl);
     }
 
     public function redirect(?string $returnTo = null): RedirectResponse
@@ -71,38 +73,15 @@ class OAuthClient
             'state' => $state,
             'code_challenge' => $pkce->challenge,
             'code_challenge_method' => 'S256',
-            'scope' => $this->resolveScope($discovered),
+            'scope' => $this->resolveScope(),
             'resource' => $this->resourceUrl,
         ], static fn (mixed $value): bool => $value !== null && $value !== ''));
 
         return new RedirectResponse((string) $authorizeUrl);
     }
 
-    public function token(): TokenSet
+    public function clientCredentials(): TokenSet
     {
-        $error = Request::query('error');
-
-        if (is_string($error) && $error !== '') {
-            $description = Request::query('error_description');
-
-            throw new OAuthException(is_string($description) && $description !== ''
-                ? "The authorization server returned an error [{$error}]: {$description}"
-                : "The authorization server returned an error [{$error}].");
-        }
-
-        $code = Request::query('code');
-
-        if (is_string($code) && $code !== '') {
-            $state = Request::query('state');
-            $iss = Request::query('iss');
-
-            return $this->exchangeAuthorizationCode(
-                $code,
-                is_string($state) ? $state : '',
-                is_string($iss) ? $iss : null,
-            );
-        }
-
         if ($this->config->clientId === null) {
             throw new OAuthException('A client_id is required for the client_credentials grant.');
         }
@@ -113,13 +92,38 @@ class OAuthClient
             $discovered->server->tokenEndpoint,
             [
                 'grant_type' => 'client_credentials',
-                'scope' => $this->resolveScope($discovered),
+                'scope' => $this->resolveScope(),
                 'resource' => $this->resourceUrl,
             ],
             $this->config->clientId,
             $this->config->clientSecret,
             $this->resolveTokenAuthMethod($discovered->server, $this->config->clientSecret),
         );
+    }
+
+    public function exchangeCallback(): TokenSet
+    {
+        $this->throwOnServerError();
+
+        $code = $this->query('code');
+
+        if ($code === null) {
+            throw new OAuthException('The OAuth callback did not include an authorization code.');
+        }
+
+        $state = Request::query('state');
+        $iss = Request::query('iss');
+
+        return $this->exchangeAuthorizationCode(
+            $code,
+            is_string($state) ? $state : '',
+            is_string($iss) ? $iss : null,
+        );
+    }
+
+    public function returnTo(): ?string
+    {
+        return $this->returnTo;
     }
 
     public function refresh(string $refreshToken, ?string $clientId = null, ?string $clientSecret = null): TokenSet
@@ -134,7 +138,7 @@ class OAuthClient
             [
                 'grant_type' => 'refresh_token',
                 'refresh_token' => $refreshToken,
-                'scope' => $this->resolveScope($discovered),
+                'scope' => $this->resolveScope(),
                 'resource' => $this->resourceUrl,
             ],
             $clientId,
@@ -162,6 +166,10 @@ class OAuthClient
         }
 
         $this->validateIssuer($stored, $iss);
+
+        $this->returnTo = is_string($stored['return_to'] ?? null) && $stored['return_to'] !== ''
+            ? $stored['return_to']
+            : null;
 
         Session::forget($this->sessionKey());
 
@@ -197,7 +205,7 @@ class OAuthClient
         return (new DynamicClientRegistration)->register(
             $metadata->registrationEndpoint,
             $redirectUri,
-            $this->resolveScope($this->discover()),
+            $this->resolveScope(),
             applicationType: $this->applicationType($redirectUri),
             tokenEndpointAuthMethod: $this->resolveTokenAuthMethod($metadata, 'confidential'),
         );
@@ -208,21 +216,23 @@ class OAuthClient
      */
     protected function requestToken(string $tokenEndpoint, array $params, ?string $clientId, ?string $clientSecret, TokenEndpointAuthMethod $authMethod): TokenSet
     {
-        $request = Http::asForm()->acceptJson();
+        $request = Http::asForm()
+            ->acceptJson()
+            ->timeout(5)
+            ->connectTimeout(2)
+            ->withOptions(['allow_redirects' => false]);
+
+        $credentials = match ($authMethod) {
+            TokenEndpointAuthMethod::ClientSecretBasic => [],
+            TokenEndpointAuthMethod::ClientSecretPost => ['client_id' => $clientId, 'client_secret' => $clientSecret],
+            TokenEndpointAuthMethod::None => ['client_id' => $clientId],
+        };
 
         if ($authMethod === TokenEndpointAuthMethod::ClientSecretBasic) {
             $request = $request->withBasicAuth((string) $clientId, (string) $clientSecret);
-        } else {
-            if ($clientId !== null) {
-                $params['client_id'] = $clientId;
-            }
-
-            if ($authMethod === TokenEndpointAuthMethod::ClientSecretPost && $clientSecret !== null) {
-                $params['client_secret'] = $clientSecret;
-            }
         }
 
-        $response = $request->post($tokenEndpoint, $this->withoutNulls($params));
+        $response = $request->post($tokenEndpoint, $this->withoutNulls([...$params, ...$credentials]));
 
         if (! $response->successful()) {
             throw new OAuthException("Token request to [{$tokenEndpoint}] failed with status [{$response->status()}].");
@@ -246,26 +256,38 @@ class OAuthClient
         return array_filter($params, static fn (mixed $value): bool => $value !== null);
     }
 
+    protected function throwOnServerError(): void
+    {
+        if (($error = $this->query('error')) === null) {
+            return;
+        }
+
+        $description = $this->query('error_description');
+
+        throw new OAuthException($description === null
+            ? "The authorization server returned an error [{$error}]."
+            : "The authorization server returned an error [{$error}]: {$description}");
+    }
+
+    protected function query(string $key): ?string
+    {
+        $value = Request::query($key);
+
+        return is_string($value) && $value !== '' ? $value : null;
+    }
+
     protected function discover(): DiscoveryResult
     {
         return $this->discovered ??= $this->discovery->discover($this->resourceUrl, $this->resourceMetadataUrl);
     }
 
-    protected function resolveScope(DiscoveryResult $discovered): ?string
+    protected function resolveScope(): ?string
     {
-        if ($this->config->scope !== null) {
-            return $this->config->scope;
-        }
-
-        if ($this->challengeScope !== null && $this->challengeScope !== '') {
+        if (filled($this->challengeScope)) {
             return $this->challengeScope;
         }
 
-        if ($discovered->scopesSupported !== []) {
-            return implode(' ', $discovered->scopesSupported);
-        }
-
-        return null;
+        return $this->config->scope ?? 'mcp:use';
     }
 
     protected function resolveTokenAuthMethod(AuthServerMetadata $metadata, ?string $clientSecret): TokenEndpointAuthMethod
@@ -274,7 +296,7 @@ class OAuthClient
             return $this->config->tokenEndpointAuthMethod;
         }
 
-        if ($clientSecret === null || $clientSecret === '') {
+        if (blank($clientSecret)) {
             return TokenEndpointAuthMethod::None;
         }
 
@@ -293,14 +315,12 @@ class OAuthClient
     {
         $host = parse_url($redirectUri, PHP_URL_HOST);
 
-        if (is_string($host) && in_array($host, ['localhost', '127.0.0.1', '::1'], true)) {
-            return 'native';
-        }
-
-        return 'web';
+        return is_string($host) && in_array($host, ['localhost', '127.0.0.1', '::1'], true)
+            ? 'native'
+            : 'web';
     }
 
-    protected function canonical(string $url): string
+    protected function resourceIdentifier(string $url): string
     {
         $parts = parse_url($url);
 
@@ -310,7 +330,7 @@ class OAuthClient
 
         $origin = $parts['scheme'].'://'.$parts['host'].(isset($parts['port']) ? ':'.$parts['port'] : '');
 
-        $path = rtrim($parts['path'] ?? '', '/');
+        $path = $parts['path'] ?? '';
 
         $query = isset($parts['query']) ? '?'.$parts['query'] : '';
 

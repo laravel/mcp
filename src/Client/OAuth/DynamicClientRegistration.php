@@ -17,15 +17,20 @@ class DynamicClientRegistration
         string $applicationType = 'web',
         TokenEndpointAuthMethod $tokenEndpointAuthMethod = TokenEndpointAuthMethod::ClientSecretPost,
     ): ClientRegistration {
-        $response = Http::acceptJson()->asJson()->post($registrationEndpoint, array_filter([
-            'client_name' => $clientName,
-            'redirect_uris' => [$redirectUri],
-            'grant_types' => ['authorization_code', 'refresh_token'],
-            'response_types' => ['code'],
-            'token_endpoint_auth_method' => $tokenEndpointAuthMethod->value,
-            'application_type' => $applicationType,
-            'scope' => $scope,
-        ], static fn (mixed $value): bool => $value !== null));
+        $response = Http::acceptJson()
+            ->asJson()
+            ->timeout(5)
+            ->connectTimeout(2)
+            ->withOptions(['allow_redirects' => false])
+            ->post($registrationEndpoint, array_filter([
+                'client_name' => $clientName,
+                'redirect_uris' => [$redirectUri],
+                'grant_types' => ['authorization_code', 'refresh_token'],
+                'response_types' => ['code'],
+                'token_endpoint_auth_method' => $tokenEndpointAuthMethod->value,
+                'application_type' => $applicationType,
+                'scope' => $scope,
+            ], static fn (mixed $value): bool => $value !== null));
 
         if (! $response->successful()) {
             throw new OAuthException("Dynamic client registration failed with status [{$response->status()}].");

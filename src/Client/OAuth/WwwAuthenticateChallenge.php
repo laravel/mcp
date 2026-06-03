@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\OAuth;
 
+use Symfony\Component\HttpFoundation\HeaderUtils;
+
 class WwwAuthenticateChallenge
 {
     public function __construct(
@@ -21,10 +23,38 @@ class WwwAuthenticateChallenge
 
         $params = [];
 
-        preg_match_all('/(\w+)="([^"]*)"/', $header, $matches, PREG_SET_ORDER);
+        foreach (HeaderUtils::split($header, ',') as $part) {
+            $part = trim((string) $part);
 
-        foreach ($matches as $match) {
-            $params[$match[1]] = $match[2];
+            if ($part === '') {
+                continue;
+            }
+
+            if (str_contains($part, ' ')) {
+                [$scheme, $value] = explode(' ', $part, 2);
+
+                if (! str_contains($scheme, '=')) {
+                    $part = trim($value);
+                }
+            }
+
+            if (! str_contains($part, '=')) {
+                continue;
+            }
+
+            $pair = HeaderUtils::split($part, '=');
+
+            if (count($pair) !== 2) {
+                continue;
+            }
+
+            $key = strtolower(trim((string) $pair[0]));
+
+            if (str_contains($key, ' ')) {
+                $key = substr($key, strrpos($key, ' ') + 1);
+            }
+
+            $params[$key] = HeaderUtils::unquote(trim((string) $pair[1]));
         }
 
         return new self(

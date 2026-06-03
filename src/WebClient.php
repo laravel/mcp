@@ -37,7 +37,7 @@ class WebClient extends Client
     public function withOAuth(
         ?string $clientId = null,
         ?string $clientSecret = null,
-        ?string $scope = 'mcp:use',
+        ?string $scope = null,
         ?string $redirectUri = null,
         ?TokenEndpointAuthMethod $tokenEndpointAuthMethod = null,
     ): static {

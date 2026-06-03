@@ -137,6 +137,29 @@ it('falls back to redirecting home when the handler returns nothing', function (
         ->assertRedirect('/');
 });
 
+it('passes the stored return destination to the handler and fallback redirect', function (): void {
+    Http::fake([
+        'https://auth.test/token' => Http::response(['access_token' => 'access-token']),
+    ]);
+
+    registerGithubClient();
+
+    $capturedReturnTo = null;
+
+    Mcp::oAuthRoutesFor('github', function (string $provider, TokenSet $token, ?string $returnTo) use (&$capturedReturnTo): void {
+        $capturedReturnTo = $returnTo;
+    });
+
+    $session = fakeOAuthSession();
+    $session['mcp.oauth.'.sha1('https://mcp.test/mcp')]['return_to'] = '/connected';
+
+    $this->withSession($session)
+        ->get('/mcp/oauth/github/callback?code=auth-code&state=the-state')
+        ->assertRedirect('/connected');
+
+    expect($capturedReturnTo)->toBe('/connected');
+});
+
 it('forwards challenge metadata and scope from the connect route into discovery', function (): void {
     Http::fake([
         'https://mcp.test/.well-known/custom-resource' => Http::response([
@@ -151,7 +174,6 @@ it('forwards challenge metadata and scope from the connect route into discovery'
 
     Mcp::registerClient('github', fn (): WebClient => Client::web('https://mcp.test/mcp')->withOAuth(
         clientId: 'client-123',
-        scope: null,
         redirectUri: 'https://app.test/callback',
     ));
 

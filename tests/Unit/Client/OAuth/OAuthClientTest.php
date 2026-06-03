@@ -144,7 +144,7 @@ it('exchanges an authorization code for a token set', function (): void {
     $token = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
         ->oAuth()
-        ->token();
+        ->exchangeCallback();
 
     expect($token)->toBeInstanceOf(TokenSet::class)
         ->and($token->accessToken)->toBe('access-token')
@@ -183,7 +183,7 @@ it('rejects a mismatched state parameter', function (): void {
     expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
         ->oAuth()
-        ->token())
+        ->exchangeCallback())
         ->toThrow(OAuthException::class, 'state parameter did not match');
 });
 
@@ -200,7 +200,7 @@ it('runs the client credentials grant', function (): void {
     $token = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'svc', clientSecret: 'secret', scope: 'mcp:use')
         ->oAuth()
-        ->token();
+        ->clientCredentials();
 
     expect($token->accessToken)->toBe('machine-token');
 
@@ -219,30 +219,17 @@ it('throws when the authorization server redirects back with an error', function
     Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
         ->oAuth()
-        ->token();
+        ->exchangeCallback();
 })->throws(OAuthException::class, 'The authorization server returned an error [access_denied]: The user denied the request');
 
-it('falls back to the client credentials grant when no authorization code is present', function (): void {
-    fakeDiscovery();
-
-    Http::fake([
-        'https://auth.test/token' => Http::response([
-            'access_token' => 'machine-token',
-            'expires_in' => 7200,
-        ]),
-    ]);
-
+it('requires an authorization code when exchanging a callback', function (): void {
     app()->instance('request', Request::create('https://app.test/callback', 'GET'));
 
-    $token = Client::web('https://mcp.test/mcp')
+    expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'svc', clientSecret: 'secret', scope: 'mcp:use')
         ->oAuth()
-        ->token();
-
-    expect($token->accessToken)->toBe('machine-token');
-
-    Http::assertSent(fn ($request): bool => $request->url() === 'https://auth.test/token'
-        && ($request->data()['grant_type'] ?? null) === 'client_credentials');
+        ->exchangeCallback())
+        ->toThrow(OAuthException::class, 'did not include an authorization code');
 });
 
 it('refreshes a token using the refresh grant', function (): void {
@@ -313,7 +300,7 @@ it('throws when the authorization server metadata cannot be discovered', functio
     expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123', clientSecret: 'secret')
         ->oAuth()
-        ->token())
+        ->clientCredentials())
         ->toThrow(OAuthException::class, 'Unable to discover authorization server metadata');
 });
 
@@ -372,6 +359,22 @@ it('uses the server advertised resource metadata url when provided', function ()
     expect($target)->toStartWith('https://auth.test/authorize?');
 
     Http::assertSent(fn ($request): bool => $request->url() === 'https://mcp.test/.well-known/custom-resource');
+});
+
+it('rejects protected resource metadata urls on internal hosts', function (): void {
+    expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuth('https://127.0.0.1/.well-known/oauth-protected-resource')
+        ->redirect())
+        ->toThrow(OAuthException::class, 'private or internal host');
+});
+
+it('rejects protected resource metadata urls served over plain http', function (): void {
+    expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuth('http://mcp.test/.well-known/oauth-protected-resource')
+        ->redirect())
+        ->toThrow(OAuthException::class, 'must be served over HTTPS');
 });
 
 it('rejects an authorization server whose issuer does not match', function (): void {
@@ -512,7 +515,7 @@ it('validates a matching iss parameter on the authorization callback', function 
     $token = Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
         ->oAuth()
-        ->token();
+        ->exchangeCallback();
 
     expect($token->accessToken)->toBe('access-token');
 });
@@ -543,7 +546,7 @@ it('rejects a mismatched iss parameter on the authorization callback', function 
     expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
         ->oAuth()
-        ->token())
+        ->exchangeCallback())
         ->toThrow(OAuthException::class, 'iss) parameter did not match');
 });
 
@@ -572,7 +575,7 @@ it('rejects a missing iss parameter when the server advertises support', functio
     expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'client-123')
         ->oAuth()
-        ->token())
+        ->exchangeCallback())
         ->toThrow(OAuthException::class, 'missing the required iss parameter');
 });
 
@@ -614,7 +617,7 @@ it('defaults the scope to mcp:use', function (): void {
     expect($query['scope'])->toBe('mcp:use');
 });
 
-it('falls back to scopes_supported from the protected resource metadata', function (): void {
+it('does not request every supported scope from protected resource metadata', function (): void {
     Http::fake([
         'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
             'authorization_servers' => ['https://auth.test'],
@@ -628,17 +631,17 @@ it('falls back to scopes_supported from the protected resource metadata', functi
     ]);
 
     $target = Client::web('https://mcp.test/mcp')
-        ->withOAuth(clientId: 'client-123', scope: null, redirectUri: 'https://app.test/callback')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
         ->oAuth()
         ->redirect()
         ->getTargetUrl();
 
     parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
 
-    expect($query['scope'])->toBe('mcp:read mcp:write');
+    expect($query['scope'])->toBe('mcp:use');
 });
 
-it('prefers the challenge scope over scopes_supported', function (): void {
+it('prefers the challenge scope over the configured scope', function (): void {
     Http::fake([
         'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
             'authorization_servers' => ['https://auth.test'],
@@ -652,7 +655,7 @@ it('prefers the challenge scope over scopes_supported', function (): void {
     ]);
 
     $target = Client::web('https://mcp.test/mcp')
-        ->withOAuth(clientId: 'client-123', scope: null, redirectUri: 'https://app.test/callback')
+        ->withOAuth(clientId: 'client-123', scope: 'mcp:use', redirectUri: 'https://app.test/callback')
         ->oAuth(challengeScope: 'files:read files:write')
         ->redirect()
         ->getTargetUrl();
@@ -694,9 +697,9 @@ it('sends a web application_type when registering a remote client', function ():
         && ($request['application_type'] ?? null) === 'web');
 });
 
-it('normalizes the resource to its canonical form without a trailing slash', function (): void {
+it('strips fragments but preserves trailing slashes in the resource identifier', function (): void {
     Http::fake([
-        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp/' => Http::response([
             'authorization_servers' => ['https://auth.test'],
         ]),
         'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
@@ -714,7 +717,22 @@ it('normalizes the resource to its canonical form without a trailing slash', fun
 
     parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
 
-    expect($query['resource'])->toBe('https://mcp.test/mcp');
+    expect($query['resource'])->toBe('https://mcp.test/mcp/');
+});
+
+it('rejects protected resource metadata when a trailing slash differs', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp/' => Http::response([
+            'resource' => 'https://mcp.test/mcp',
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+    ]);
+
+    expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp/')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuth()
+        ->redirect())
+        ->toThrow(OAuthException::class, 'did not match the expected resource [https://mcp.test/mcp/]');
 });
 
 it('includes the resource parameter on a refresh token request', function (): void {
@@ -798,7 +816,7 @@ it('surfaces the dynamically registered credentials on the token set', function 
     $token = Client::web('https://mcp.test/mcp')
         ->withOAuth()
         ->oAuth()
-        ->token();
+        ->exchangeCallback();
 
     expect($token->clientId)->toBe('dcr-999')
         ->and($token->clientSecret)->toBe('dcr-secret');
@@ -840,7 +858,7 @@ it('uses client_secret_basic when the server only supports it', function (): voi
     Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'svc', clientSecret: 'secret', scope: 'mcp:use')
         ->oAuth()
-        ->token();
+        ->clientCredentials();
 
     Http::assertSent(function ($request): bool {
         $authorization = $request->header('Authorization')[0] ?? '';
@@ -861,7 +879,7 @@ it('honors an explicitly configured token endpoint auth method', function (): vo
     Client::web('https://mcp.test/mcp')
         ->withOAuth(clientId: 'svc', clientSecret: 'secret', scope: 'mcp:use', tokenEndpointAuthMethod: TokenEndpointAuthMethod::ClientSecretBasic)
         ->oAuth()
-        ->token();
+        ->clientCredentials();
 
     Http::assertSent(fn ($request): bool => ($request->header('Authorization')[0] ?? '') === 'Basic '.base64_encode('svc:secret'));
 });

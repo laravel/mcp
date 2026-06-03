@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
+use Laravel\Mcp\Client\OAuth\WwwAuthenticateChallenge;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 
 it('resolves a closure token at request time', function (): void {
@@ -51,6 +52,14 @@ it('throws AuthorizationRequiredException on a 403', function (): void {
 
     expect(fn () => $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list', 'params' => []])))
         ->toThrow(AuthorizationRequiredException::class);
+});
+
+it('parses mixed www authenticate challenges with quoted commas and unquoted values', function (): void {
+    $challenge = WwwAuthenticateChallenge::parse('Basic realm="api", Bearer resource_metadata="https://mcp.test/.well-known/oauth-protected-resource/a,b", scope=files:read, error_description="needs access"');
+
+    expect($challenge->resourceMetadataUrl)->toBe('https://mcp.test/.well-known/oauth-protected-resource/a,b')
+        ->and($challenge->scope)->toBe('files:read')
+        ->and($challenge->errorDescription)->toBe('needs access');
 });
 
 it('exposes the configured endpoint url', function (): void {

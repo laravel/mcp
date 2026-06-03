@@ -13,6 +13,8 @@ class AuthServerDiscovery
     {
         $metadataUrl = $resourceMetadataUrl ?? $this->wellKnown($resourceUrl, 'oauth-protected-resource');
 
+        $this->requireFetchable($metadataUrl, $resourceUrl);
+
         $resourceMetadata = $this->fetchResourceMetadata($metadataUrl);
 
         $this->requireResourceMatches($resourceMetadata, $resourceUrl);
@@ -20,6 +22,7 @@ class AuthServerDiscovery
         $issuer = $this->issuerFrom($resourceMetadata) ?? $this->origin($resourceUrl);
 
         $this->requireSecure($issuer);
+        $this->requireNotInternal($issuer, $resourceUrl);
 
         $serverMetadata = $this->fetchMetadata($issuer);
 
@@ -29,6 +32,13 @@ class AuthServerDiscovery
 
         $this->requireSecure($serverMetadata->authorizationEndpoint);
         $this->requireSecure($serverMetadata->tokenEndpoint);
+        $this->requireNotInternal($serverMetadata->authorizationEndpoint, $resourceUrl);
+        $this->requireNotInternal($serverMetadata->tokenEndpoint, $resourceUrl);
+
+        if ($serverMetadata->registrationEndpoint !== null) {
+            $this->requireSecure($serverMetadata->registrationEndpoint);
+            $this->requireNotInternal($serverMetadata->registrationEndpoint, $resourceUrl);
+        }
 
         $scopesSupported = array_values(array_map(strval(...), (array) ($resourceMetadata['scopes_supported'] ?? [])));
 
@@ -40,7 +50,11 @@ class AuthServerDiscovery
      */
     protected function fetchResourceMetadata(string $metadataUrl): array
     {
-        $response = Http::acceptJson()->get($metadataUrl);
+        $response = Http::acceptJson()
+            ->timeout(5)
+            ->connectTimeout(2)
+            ->withOptions(['allow_redirects' => false])
+            ->get($metadataUrl);
 
         if (! $response->successful()) {
             return [];
@@ -80,7 +94,11 @@ class AuthServerDiscovery
     protected function fetchMetadata(string $issuer): AuthServerMetadata
     {
         foreach ($this->metadataUrls($issuer) as $metadataUrl) {
-            $response = Http::acceptJson()->get($metadataUrl);
+            $response = Http::acceptJson()
+                ->timeout(5)
+                ->connectTimeout(2)
+                ->withOptions(['allow_redirects' => false])
+                ->get($metadataUrl);
 
             if (! $response->successful()) {
                 continue;
@@ -105,7 +123,7 @@ class AuthServerDiscovery
 
         $origin = $this->originFromParts($parts);
 
-        $path = rtrim($parts['path'] ?? '', '/');
+        $path = $parts['path'] ?? '';
 
         if ($path === '') {
             return [
@@ -125,7 +143,7 @@ class AuthServerDiscovery
     {
         $parts = $this->parse($url);
 
-        $path = rtrim($parts['path'] ?? '', '/');
+        $path = $parts['path'] ?? '';
 
         return $this->originFromParts($parts).'/.well-known/'.$type.$path;
     }
@@ -143,11 +161,52 @@ class AuthServerDiscovery
             return;
         }
 
-        if (in_array($parts['host'], ['localhost', '127.0.0.1', '::1'], true)) {
+        if ($this->isLocalhost($this->normalizedHost($parts['host']))) {
             return;
         }
 
         throw new OAuthException("OAuth endpoint [{$url}] must be served over HTTPS.");
+    }
+
+    protected function requireFetchable(string $url, string $resourceUrl): void
+    {
+        $this->requireSecure($url);
+        $this->requireNotInternal($url, $resourceUrl);
+    }
+
+    protected function requireNotInternal(string $url, string $resourceUrl): void
+    {
+        $parts = $this->parse($url);
+        $resourceParts = $this->parse($resourceUrl);
+        $host = $this->normalizedHost($parts['host']);
+        $resourceHost = $this->normalizedHost($resourceParts['host']);
+
+        if ($this->isInternalHost($host) && ! ($this->isLocalhost($host) && $this->isLocalhost($resourceHost))) {
+            throw new OAuthException("OAuth endpoint [{$url}] cannot use a private or internal host.");
+        }
+    }
+
+    protected function isInternalHost(string $host): bool
+    {
+        if ($this->isLocalhost($host)) {
+            return true;
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP) === false) {
+            return false;
+        }
+
+        return filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+    }
+
+    protected function isLocalhost(string $host): bool
+    {
+        return in_array($host, ['localhost', '127.0.0.1', '::1'], true);
+    }
+
+    protected function normalizedHost(string $host): string
+    {
+        return strtolower(trim($host, '[]'));
     }
 
     /**
