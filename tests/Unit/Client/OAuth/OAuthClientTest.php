@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Session;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\OAuthClient;
-use Laravel\Mcp\Client\OAuth\TokenEndpointAuthMethod;
 use Laravel\Mcp\Client\OAuth\TokenSet;
 
 function fakeDiscovery(): void
@@ -867,19 +866,4 @@ it('uses client_secret_basic when the server only supports it', function (): voi
             && $authorization === 'Basic '.base64_encode('svc:secret')
             && ! array_key_exists('client_secret', $request->data());
     });
-});
-
-it('honors an explicitly configured token endpoint auth method', function (): void {
-    fakeDiscovery();
-
-    Http::fake([
-        'https://auth.test/token' => Http::response(['access_token' => 'machine-token']),
-    ]);
-
-    Client::web('https://mcp.test/mcp')
-        ->withOAuth(clientId: 'svc', clientSecret: 'secret', scope: 'mcp:use', tokenEndpointAuthMethod: TokenEndpointAuthMethod::ClientSecretBasic)
-        ->oAuth()
-        ->clientCredentials();
-
-    Http::assertSent(fn ($request): bool => ($request->header('Authorization')[0] ?? '') === 'Basic '.base64_encode('svc:secret'));
 });

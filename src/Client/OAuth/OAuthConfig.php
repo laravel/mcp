@@ -11,6 +11,5 @@ class OAuthConfig
         public ?string $clientSecret = null,
         public ?string $scope = null,
         public ?string $redirectUri = null,
-        public ?TokenEndpointAuthMethod $tokenEndpointAuthMethod = null,
     ) {}
 }

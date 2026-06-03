@@ -292,10 +292,6 @@ class OAuthClient
 
     protected function resolveTokenAuthMethod(AuthServerMetadata $metadata, ?string $clientSecret): TokenEndpointAuthMethod
     {
-        if ($this->config->tokenEndpointAuthMethod instanceof TokenEndpointAuthMethod) {
-            return $this->config->tokenEndpointAuthMethod;
-        }
-
         if (blank($clientSecret)) {
             return TokenEndpointAuthMethod::None;
         }

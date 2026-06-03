@@ -8,7 +8,6 @@ use Closure;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\OAuthClient;
 use Laravel\Mcp\Client\OAuth\OAuthConfig;
-use Laravel\Mcp\Client\OAuth\TokenEndpointAuthMethod;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Schema\Implementation;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -39,14 +38,12 @@ class WebClient extends Client
         ?string $clientSecret = null,
         ?string $scope = null,
         ?string $redirectUri = null,
-        ?TokenEndpointAuthMethod $tokenEndpointAuthMethod = null,
     ): static {
         $this->oAuthConfig = new OAuthConfig(
             clientId: $clientId,
             clientSecret: $clientSecret,
             scope: $scope,
             redirectUri: $redirectUri,
-            tokenEndpointAuthMethod: $tokenEndpointAuthMethod,
         );
 
         return $this;
