@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\OAuth;
 
-use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
+use Laravel\Mcp\Client\OAuth\Concerns\InteractsWithOAuthEndpoints;
 use Laravel\Mcp\Client\OAuth\Enums\TokenEndpointAuthMethod;
 
 class DynamicClientRegistration
 {
+    use InteractsWithOAuthEndpoints;
+
     public function register(
         string $registrationEndpoint,
         string $redirectUri,
@@ -18,11 +20,8 @@ class DynamicClientRegistration
         string $applicationType = 'web',
         TokenEndpointAuthMethod $tokenEndpointAuthMethod = TokenEndpointAuthMethod::ClientSecretPost,
     ): ClientRegistration {
-        $response = Http::acceptJson()
+        $response = $this->oAuthRequest()
             ->asJson()
-            ->timeout(5)
-            ->connectTimeout(2)
-            ->withOptions(['allow_redirects' => false])
             ->post($registrationEndpoint, array_filter([
                 'client_name' => $clientName,
                 'redirect_uris' => [$redirectUri],

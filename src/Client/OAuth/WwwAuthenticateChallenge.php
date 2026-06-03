@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\OAuth;
 
+use Illuminate\Support\Arr;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 
 class WwwAuthenticateChallenge
@@ -21,47 +22,19 @@ class WwwAuthenticateChallenge
             return new self;
         }
 
+        preg_match_all('/([\w-]+)\s*=\s*("[^"]*"|[^,\s]+)/', $header, $matches, PREG_SET_ORDER);
+
         $params = [];
 
-        foreach (HeaderUtils::split($header, ',') as $part) {
-            $part = trim((string) $part);
-
-            if ($part === '') {
-                continue;
-            }
-
-            if (str_contains($part, ' ')) {
-                [$scheme, $value] = explode(' ', $part, 2);
-
-                if (! str_contains($scheme, '=')) {
-                    $part = trim($value);
-                }
-            }
-
-            if (! str_contains($part, '=')) {
-                continue;
-            }
-
-            $pair = HeaderUtils::split($part, '=');
-
-            if (count($pair) !== 2) {
-                continue;
-            }
-
-            $key = strtolower(trim((string) $pair[0]));
-
-            if (str_contains($key, ' ')) {
-                $key = substr($key, strrpos($key, ' ') + 1);
-            }
-
-            $params[$key] = HeaderUtils::unquote(trim((string) $pair[1]));
+        foreach ($matches as $match) {
+            $params[strtolower($match[1])] = HeaderUtils::unquote($match[2]);
         }
 
         return new self(
-            resourceMetadataUrl: $params['resource_metadata'] ?? null,
-            error: $params['error'] ?? null,
-            errorDescription: $params['error_description'] ?? null,
-            scope: $params['scope'] ?? null,
+            resourceMetadataUrl: Arr::get($params, 'resource_metadata'),
+            error: Arr::get($params, 'error'),
+            errorDescription: Arr::get($params, 'error_description'),
+            scope: Arr::get($params, 'scope'),
         );
     }
 }

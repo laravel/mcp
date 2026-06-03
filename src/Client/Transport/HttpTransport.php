@@ -20,7 +20,7 @@ use Throwable;
 
 class HttpTransport implements Transport
 {
-    /** @var string|Closure(): string|null */
+    /** @var string|(Closure(): string)|null */
     protected string|Closure|null $token = null;
 
     protected ?string $sessionId = null;

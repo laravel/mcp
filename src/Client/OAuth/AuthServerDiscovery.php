@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\OAuth;
 
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Arr;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
+use Laravel\Mcp\Client\OAuth\Concerns\InteractsWithOAuthEndpoints;
 
 class AuthServerDiscovery
 {
+    use InteractsWithOAuthEndpoints;
+
     public function discover(string $resourceUrl, ?string $resourceMetadataUrl = null): DiscoveryResult
     {
         $metadataUrl = $resourceMetadataUrl ?? $this->wellKnown($resourceUrl, 'oauth-protected-resource');
@@ -50,11 +53,7 @@ class AuthServerDiscovery
      */
     protected function fetchResourceMetadata(string $metadataUrl, bool $explicit = false): array
     {
-        $response = Http::acceptJson()
-            ->timeout(5)
-            ->connectTimeout(2)
-            ->withOptions(['allow_redirects' => false])
-            ->get($metadataUrl);
+        $response = $this->oAuthRequest()->get($metadataUrl);
 
         if (! $response->successful()) {
             if ($explicit) {
@@ -82,7 +81,7 @@ class AuthServerDiscovery
      */
     protected function requireResourceMatches(array $resourceMetadata, string $resourceUrl): void
     {
-        $resource = $resourceMetadata['resource'] ?? null;
+        $resource = Arr::get($resourceMetadata, 'resource');
 
         if (is_string($resource) && ! hash_equals($resourceUrl, $resource)) {
             throw new OAuthException("Protected resource metadata resource [{$resource}] did not match the expected resource [{$resourceUrl}].");
@@ -94,7 +93,7 @@ class AuthServerDiscovery
      */
     protected function issuerFrom(array $resourceMetadata): ?string
     {
-        $servers = $resourceMetadata['authorization_servers'] ?? null;
+        $servers = Arr::get($resourceMetadata, 'authorization_servers');
 
         if (is_array($servers) && $servers !== []) {
             return (string) $servers[0];
@@ -106,11 +105,7 @@ class AuthServerDiscovery
     protected function fetchMetadata(string $issuer): AuthServerMetadata
     {
         foreach ($this->metadataUrls($issuer) as $metadataUrl) {
-            $response = Http::acceptJson()
-                ->timeout(5)
-                ->connectTimeout(2)
-                ->withOptions(['allow_redirects' => false])
-                ->get($metadataUrl);
+            $response = $this->oAuthRequest()->get($metadataUrl);
 
             if (! $response->successful()) {
                 continue;

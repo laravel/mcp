@@ -5,16 +5,18 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client\OAuth;
 
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Illuminate\Support\Uri;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
+use Laravel\Mcp\Client\OAuth\Concerns\InteractsWithOAuthEndpoints;
 use Laravel\Mcp\Client\OAuth\Enums\TokenEndpointAuthMethod;
 
 class OAuthClient
 {
+    use InteractsWithOAuthEndpoints;
+
     protected ?DiscoveryResult $discovered = null;
 
     protected ?string $returnTo = null;
@@ -215,11 +217,7 @@ class OAuthClient
      */
     protected function requestToken(string $tokenEndpoint, array $params, ?string $clientId, ?string $clientSecret, TokenEndpointAuthMethod $authMethod): TokenSet
     {
-        $request = Http::asForm()
-            ->acceptJson()
-            ->timeout(5)
-            ->connectTimeout(2)
-            ->withOptions(['allow_redirects' => false]);
+        $request = $this->oAuthRequest()->asForm();
 
         $credentials = match ($authMethod) {
             TokenEndpointAuthMethod::ClientSecretBasic => [],
