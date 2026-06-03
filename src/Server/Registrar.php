@@ -13,6 +13,8 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Traits\Macroable;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\ClientManager;
+use Laravel\Mcp\Client\OAuth\TokenSet;
+use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController;
@@ -20,6 +22,7 @@ use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
 use Laravel\Mcp\Server\Middleware\ReorderJsonAccept;
 use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Server\Transport\StdioTransport;
+use Laravel\Mcp\WebClient;
 use Laravel\Passport\Passport;
 
 class Registrar
@@ -82,6 +85,65 @@ class Registrar
     public function client(string $name): Client
     {
         return $this->clientManager()->client($name);
+    }
+
+    protected function webClient(string $name): WebClient
+    {
+        $client = $this->client($name);
+
+        if (! $client instanceof WebClient) {
+            throw new ClientException("MCP client [{$name}] does not support OAuth.");
+        }
+
+        return $client;
+    }
+
+    /**
+     * @param  Closure(string, TokenSet): mixed|array{0: class-string, 1: string}  $handler
+     * @param  array<int, string>|string  $middleware
+     */
+    public function oAuthRoutesFor(
+        string $client,
+        Closure|array $handler,
+        array|string $middleware = 'web',
+        ?string $connectUri = null,
+        ?string $callbackUri = null,
+    ): void {
+        if (is_array($handler)) {
+            $handler = $handler[0].'@'.$handler[1];
+        }
+
+        $connect = Router::get($connectUri ?? "mcp/{$client}/connect", function () use ($client): mixed {
+            $resourceMetadata = request()->query('resource_metadata');
+            $scope = request()->query('scope');
+
+            return $this->webClient($client)->oAuth(
+                is_string($resourceMetadata) && $resourceMetadata !== '' ? $resourceMetadata : null,
+                is_string($scope) && $scope !== '' ? $scope : null,
+            )->redirect();
+        });
+
+        assert($connect instanceof Route);
+
+        $connect->name("mcp.oauth.{$client}.connect")->middleware($middleware);
+
+        $callback = Router::get($callbackUri ?? "mcp/oauth/{$client}/callback", function () use ($client, $handler): mixed {
+            $token = $this->webClient($client)->oAuth()->callbackToken();
+
+            $result = Container::getInstance()->call($handler, [
+                'provider' => $client,
+                'client' => $client,
+                'token' => $token,
+            ]);
+
+            return $result ?? redirect('/');
+        });
+
+        assert($callback instanceof Route);
+
+        $callback->name("mcp.oauth.{$client}.callback")->middleware($middleware);
+
+        Router::getRoutes()->refreshNameLookups();
     }
 
     public function getLocalServer(string $handle): ?callable
