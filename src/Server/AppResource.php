@@ -60,7 +60,7 @@ abstract class AppResource extends Resource
         return $data;
     }
 
-    private function toClaudeDomain(string $serverRoute) : string
+    private function toClaudeDomain(string $serverRoute): string
     {
         return str($serverRoute)
             ->hash('sha256')
