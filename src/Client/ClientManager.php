@@ -38,11 +38,16 @@ class ClientManager
 
     public function client(string $name): Client
     {
+        return $this->clients[$name] ??= $this->build($name);
+    }
+
+    public function build(string $name): Client
+    {
         if (! array_key_exists($name, $this->factories)) {
             throw new ClientException("MCP client [{$name}] has not been registered.");
         }
 
-        return $this->clients[$name] ??= ($this->factories[$name])();
+        return ($this->factories[$name])()->setName($name);
     }
 
     public function disconnectAll(): void

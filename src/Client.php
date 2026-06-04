@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
+use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Methods\Ping;
 use Laravel\Mcp\Client\Methods\Tools\CallTool;
@@ -15,6 +17,7 @@ use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Client\Schema\ToolResult;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Client\Transport\StdioTransport;
+use Laravel\Mcp\Client\Transport\TransportFactory;
 use Laravel\Mcp\Schema\Implementation;
 
 class Client
@@ -22,6 +25,8 @@ class Client
     public Implementation $clientInfo;
 
     protected Protocol $protocol;
+
+    protected ?string $name = null;
 
     public function __construct(
         protected Transport $transport,
@@ -33,6 +38,13 @@ class Client
         );
 
         $this->protocol = new Protocol($this->transport, $this->clientInfo);
+    }
+
+    public function setName(?string $name): static
+    {
+        $this->name = $name;
+
+        return $this;
     }
 
     /**
@@ -87,7 +99,7 @@ class Client
      */
     public function tools(?int $limit = null): Collection
     {
-        return (new ListTools(limit: $limit))->handle($this->protocol);
+        return (new ListTools(client: $this, limit: $limit))->handle($this->protocol);
     }
 
     /**
@@ -96,6 +108,42 @@ class Client
     public function callTool(string $name, array $arguments = []): ToolResult
     {
         return (new CallTool($name, $arguments))->handle($this->protocol);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function __serialize(): array
+    {
+        if ($this->name !== null) {
+            return ['name' => $this->name];
+        }
+
+        return [
+            'name' => null,
+            'clientInfo' => $this->clientInfo,
+            'transport' => $this->transport->recipe(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function __unserialize(array $data): void
+    {
+        $this->name = $data['name'] ?? null;
+
+        if ($this->name !== null) {
+            $resolved = Container::getInstance()->make(ClientManager::class)->build($this->name);
+
+            $this->transport = $resolved->transport;
+            $this->clientInfo = $resolved->clientInfo;
+        } else {
+            $this->clientInfo = $data['clientInfo'];
+            $this->transport = TransportFactory::fromRecipe($data['transport']);
+        }
+
+        $this->protocol = new Protocol($this->transport, $this->clientInfo);
     }
 
     public function __destruct()

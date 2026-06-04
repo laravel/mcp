@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Client\Methods\Tools;
 
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Protocol;
@@ -17,6 +18,7 @@ use Laravel\Mcp\Exceptions\ClientException;
 class ListTools implements Method
 {
     public function __construct(
+        protected ?Client $client = null,
         protected ?string $cursor = null,
         protected ?int $limit = null,
     ) {
@@ -51,7 +53,7 @@ class ListTools implements Method
     protected function hydrate(array $payloads): Collection
     {
         return collect($payloads)->mapWithKeys(function (array $payload): array {
-            $tool = Tool::from($payload);
+            $tool = Tool::from($this->client, $payload);
 
             return [$tool->name => $tool];
         });
@@ -83,7 +85,7 @@ class ListTools implements Method
                 $seenCursors[$cursor] = true;
             }
 
-            $result = $protocol->dispatch(new self($cursor, $this->limit));
+            $result = $protocol->dispatch(new self($this->client, $cursor, $this->limit));
             $page = Arr::get($result, 'tools');
 
             if (! is_array($page)) {

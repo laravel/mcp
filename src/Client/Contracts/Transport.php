@@ -15,4 +15,9 @@ interface Transport
     public function receive(): string;
 
     public function setTimeoutSeconds(float $seconds): void;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function recipe(): array;
 }
