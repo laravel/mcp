@@ -31,12 +31,17 @@ class Client
         protected Transport $transport,
         public ?Implementation $clientInfo = null,
     ) {
-        $this->clientInfo = $clientInfo ?? new Implementation(
+        $this->clientInfo = $clientInfo ?? $this->defaultClientInfo();
+
+        $this->protocol = new Protocol($this->transport, $this->clientInfo);
+    }
+
+    protected function defaultClientInfo(): Implementation
+    {
+        return new Implementation(
             name: config('app.name', 'Laravel MCP Client'),
             version: '0.0.1',
         );
-
-        $this->protocol = new Protocol($this->transport, $this->clientInfo);
     }
 
     public function setName(?string $name): static
@@ -151,10 +156,7 @@ class Client
             $this->transport = TransportFactory::fromRecipe($data['transport']);
         }
 
-        $this->clientInfo ??= new Implementation(
-            name: config('app.name', 'Laravel MCP Client'),
-            version: '0.0.1',
-        );
+        $this->clientInfo ??= $this->defaultClientInfo();
 
         $this->protocol = new Protocol($this->transport, $this->clientInfo);
     }

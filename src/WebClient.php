@@ -75,6 +75,8 @@ class WebClient extends Client
     {
         parent::__unserialize($data);
 
+        $this->oAuthConfig = null;
+
         if ($this->transport instanceof HttpTransport) {
             $this->httpTransport = $this->transport;
         }

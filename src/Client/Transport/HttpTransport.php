@@ -75,7 +75,7 @@ class HttpTransport implements Transport
         return [
             'driver' => 'http',
             'url' => $this->url,
-            'token' => $this->token,
+            'token' => $this->token instanceof Closure ? (string) ($this->token)() : $this->token,
             'timeoutSeconds' => $this->timeoutSeconds,
         ];
     }
