@@ -25,10 +25,7 @@ class ClientManager
     public function registerClient(string $name, Closure $factory): void
     {
         if (isset($this->clients[$name])) {
-            try {
-                $this->clients[$name]->disconnect();
-            } catch (ClientException) {
-            }
+            $this->disconnect($this->clients[$name]);
 
             unset($this->clients[$name]);
         }
@@ -53,12 +50,17 @@ class ClientManager
     public function disconnectAll(): void
     {
         foreach ($this->clients as $client) {
-            try {
-                $client->disconnect();
-            } catch (ClientException) {
-            }
+            $this->disconnect($client);
         }
 
         $this->clients = [];
+    }
+
+    protected function disconnect(Client $client): void
+    {
+        try {
+            $client->disconnect();
+        } catch (ClientException) {
+        }
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Client\Contracts\Transport;
+use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Client\Methods\Ping;
 use Laravel\Mcp\Client\Methods\Tools\CallTool;
 use Laravel\Mcp\Client\Methods\Tools\ListTools;
@@ -22,22 +23,25 @@ use Laravel\Mcp\Schema\Implementation;
 
 class Client
 {
-    public Implementation $clientInfo;
-
     protected Protocol $protocol;
 
     protected ?string $name = null;
 
     public function __construct(
         protected Transport $transport,
-        ?Implementation $clientInfo = null,
+        public ?Implementation $clientInfo = null,
     ) {
-        $this->clientInfo = $clientInfo ?? new Implementation(
+        $this->clientInfo = $clientInfo ?? $this->defaultClientInfo();
+
+        $this->protocol = new Protocol($this->transport, $this->clientInfo);
+    }
+
+    protected function defaultClientInfo(): Implementation
+    {
+        return new Implementation(
             name: config('app.name', 'Laravel MCP Client'),
             version: '0.0.1',
         );
-
-        $this->protocol = new Protocol($this->transport, $this->clientInfo);
     }
 
     public function setName(?string $name): static
@@ -95,11 +99,20 @@ class Client
     }
 
     /**
+     * @param  iterable<string, Tool>|null  $default
      * @return Collection<string, Tool>
      */
-    public function tools(?int $limit = null): Collection
+    public function tools(?int $limit = null, ?iterable $default = null): Collection
     {
-        return (new ListTools(client: $this, limit: $limit))->handle($this->protocol);
+        try {
+            return (new ListTools(client: $this, limit: $limit))->handle($this->protocol);
+        } catch (AuthorizationRequiredException $authorizationRequiredException) {
+            if ($default === null) {
+                throw $authorizationRequiredException;
+            }
+
+            return Collection::make($default);
+        }
     }
 
     /**
@@ -142,6 +155,8 @@ class Client
             $this->clientInfo = $data['clientInfo'];
             $this->transport = TransportFactory::fromRecipe($data['transport']);
         }
+
+        $this->clientInfo ??= $this->defaultClientInfo();
 
         $this->protocol = new Protocol($this->transport, $this->clientInfo);
     }
