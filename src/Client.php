@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
+use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Client\Methods\Ping;
@@ -16,13 +18,14 @@ use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Client\Schema\ToolResult;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Client\Transport\StdioTransport;
+use Laravel\Mcp\Client\Transport\TransportFactory;
 use Laravel\Mcp\Schema\Implementation;
 
 class Client
 {
     protected Protocol $protocol;
 
-    protected ?string $registeredName = null;
+    protected ?string $name = null;
 
     public function __construct(
         protected Transport $transport,
@@ -36,9 +39,9 @@ class Client
         $this->protocol = new Protocol($this->transport, $this->clientInfo);
     }
 
-    public function setRegisteredName(string $name): static
+    public function setName(?string $name): static
     {
-        $this->registeredName = $name;
+        $this->name = $name;
 
         return $this;
     }
@@ -97,7 +100,7 @@ class Client
     public function tools(?int $limit = null, ?iterable $default = null): Collection
     {
         try {
-            return (new ListTools(limit: $limit))->handle($this->protocol);
+            return (new ListTools(client: $this, limit: $limit))->handle($this->protocol);
         } catch (AuthorizationRequiredException $authorizationRequiredException) {
             if ($default === null) {
                 throw $authorizationRequiredException;
@@ -113,6 +116,47 @@ class Client
     public function callTool(string $name, array $arguments = []): ToolResult
     {
         return (new CallTool($name, $arguments))->handle($this->protocol);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function __serialize(): array
+    {
+        if ($this->name !== null) {
+            return ['name' => $this->name];
+        }
+
+        return [
+            'name' => null,
+            'clientInfo' => $this->clientInfo,
+            'transport' => $this->transport->recipe(),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function __unserialize(array $data): void
+    {
+        $this->name = $data['name'] ?? null;
+
+        if ($this->name !== null) {
+            $resolved = Container::getInstance()->make(ClientManager::class)->build($this->name);
+
+            $this->transport = $resolved->transport;
+            $this->clientInfo = $resolved->clientInfo;
+        } else {
+            $this->clientInfo = $data['clientInfo'];
+            $this->transport = TransportFactory::fromRecipe($data['transport']);
+        }
+
+        $this->clientInfo ??= new Implementation(
+            name: config('app.name', 'Laravel MCP Client'),
+            version: '0.0.1',
+        );
+
+        $this->protocol = new Protocol($this->transport, $this->clientInfo);
     }
 
     public function __destruct()

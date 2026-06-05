@@ -835,7 +835,7 @@ it('defaults the redirect uri to the package callback route for a registered cli
         ->name('mcp.oauth.github.callback');
 
     $target = Client::web('https://mcp.test/mcp')
-        ->setRegisteredName('github')
+        ->setName('github')
         ->withOAuth(clientId: 'client-123', scope: 'mcp:use')
         ->oAuthClient()
         ->redirect()
@@ -853,7 +853,7 @@ it('lets an explicit redirect uri override the default callback route', function
         ->name('mcp.oauth.github.callback');
 
     $target = Client::web('https://mcp.test/mcp')
-        ->setRegisteredName('github')
+        ->setName('github')
         ->withOAuth(clientId: 'client-123', scope: 'mcp:use', redirectUri: 'https://app.test/custom')
         ->oAuthClient()
         ->redirect()

@@ -216,6 +216,50 @@ it('returns a tools list the application can cache and restore', function (): vo
     expect($restored['add']->description)->toBe('Adds two numbers');
 });
 
+it('serializes a named client as its name only and re-resolves it when a restored tool is called', function (): void {
+    $resolutions = 0;
+
+    Mcp::registerClient('everything', function () use (&$resolutions): Client {
+        $resolutions++;
+
+        $transport = new FakeTransport;
+        $transport->responses[] = initializeResponse();
+        $transport->responses[] = $resolutions === 1
+            ? toolsResponse(2)
+            : json_encode([
+                'jsonrpc' => '2.0',
+                'id' => 2,
+                'result' => ['content' => [['type' => 'text', 'text' => 'added']], 'isError' => false],
+            ]);
+
+        return new Client($transport);
+    });
+
+    $payload = serialize(Mcp::client('everything')->tools());
+
+    expect($payload)->toContain('everything')->not->toContain('secret');
+
+    app(ClientManager::class)->disconnectAll();
+
+    $restored = unserialize($payload);
+
+    expect($restored['add']->call()->text())->toBe('added')
+        ->and($resolutions)->toBe(2);
+});
+
+it('gives a restored named client its own transport instead of aliasing the cached one', function (): void {
+    Mcp::registerClient('everything', fn (): Client => new Client(new FakeTransport));
+
+    $live = Mcp::client('everything');
+
+    $restored = unserialize(serialize($live));
+
+    $transport = new ReflectionProperty(Client::class, 'transport');
+
+    expect($restored)->not->toBe($live)
+        ->and($transport->getValue($restored))->not->toBe($transport->getValue($live));
+});
+
 it('does not cache tools on the resolved client', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();

@@ -67,6 +67,19 @@ class HttpTransport implements Transport
         return $this->url;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function recipe(): array
+    {
+        return [
+            'driver' => 'http',
+            'url' => $this->url,
+            'token' => $this->token,
+            'timeoutSeconds' => $this->timeoutSeconds,
+        ];
+    }
+
     public function send(string $message): void
     {
         $hadSession = $this->sessionId !== null;

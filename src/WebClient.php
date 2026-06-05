@@ -56,15 +56,27 @@ class WebClient extends Client
 
         $config = $this->oAuthConfig;
 
-        if ($config->redirectUri === null && $this->registeredName !== null) {
+        if ($config->redirectUri === null && $this->name !== null) {
             $config = clone $config;
 
             try {
-                $config->redirectUri = route("mcp.oauth.{$this->registeredName}.callback");
+                $config->redirectUri = route("mcp.oauth.{$this->name}.callback");
             } catch (RouteNotFoundException) {
             }
         }
 
         return new OAuthClient($config, $this->httpTransport->url(), $resourceMetadataUrl, $challengeScope);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function __unserialize(array $data): void
+    {
+        parent::__unserialize($data);
+
+        if ($this->transport instanceof HttpTransport) {
+            $this->httpTransport = $this->transport;
+        }
     }
 }
