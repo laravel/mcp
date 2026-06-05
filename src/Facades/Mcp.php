@@ -12,7 +12,7 @@ use Laravel\Mcp\Server\Registrar;
  * @method static void local(string $handle, string $serverClass)
  * @method static void registerClient(string $name, \Closure $factory)
  * @method static \Laravel\Mcp\Client client(string $name)
- * @method static void oAuthRoutesFor(string $client, \Closure|array $handler, array|string $middleware = 'web', ?string $connectUri = null, ?string $callbackUri = null)
+ * @method static void oAuthRoutesFor(string $client, \Closure|array $handler, array|string $middleware = 'web', string|null $connectUri = null, string|null $callbackUri = null)
  * @method static callable|null getLocalServer(string $handle)
  * @method static \Illuminate\Routing\Route|null getWebServer(string $route)
  * @method static array servers()
