@@ -22,4 +22,16 @@ class WebClient extends Client
 
         return $this;
     }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function __unserialize(array $data): void
+    {
+        parent::__unserialize($data);
+
+        if ($this->transport instanceof HttpTransport) {
+            $this->httpTransport = $this->transport;
+        }
+    }
 }

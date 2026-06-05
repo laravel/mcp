@@ -41,6 +41,14 @@ class FakeTransport implements Transport
         $this->timeoutSeconds = $seconds;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function recipe(): array
+    {
+        return ['driver' => 'fake'];
+    }
+
     public function receive(): string
     {
         if ($this->responses === []) {
