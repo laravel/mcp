@@ -1,6 +1,29 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.7.2...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.8.0...main)
+
+## [v0.8.0](https://github.com/laravel/mcp/compare/v0.7.2...v0.8.0) - 2026-06-08
+
+### What's Changed
+
+* Add MCP client tool listing and calling by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/226
+* Add MCP client Streamable HTTP transport by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/227
+* Add named MCP clients with tool list caching by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/228
+* Extract caching into RegisteredClient by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/230
+* GitHub Actions hardening by [@nunomaduro](https://github.com/nunomaduro) in https://github.com/laravel/mcp/pull/234
+* Remove MCP client tool-list caching layer by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/235
+* Add Dependabot cooldown of 5 days by [@nunomaduro](https://github.com/nunomaduro) in https://github.com/laravel/mcp/pull/237
+* Enable Dependabot auto-merge by [@nunomaduro](https://github.com/nunomaduro) in https://github.com/laravel/mcp/pull/238
+* Make MCP client tools cacheable via recipe serialization by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/239
+* Add OAuth layer for MCP web client by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/233
+* Fix Mcp alias: correct facade class name by [@adelf](https://github.com/adelf) in https://github.com/laravel/mcp/pull/241
+* Add prompts support to the MCP client by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/242
+
+### New Contributors
+
+* [@adelf](https://github.com/adelf) made their first contribution in https://github.com/laravel/mcp/pull/241
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.7.2...v0.8.0
 
 ## [v0.7.2](https://github.com/laravel/mcp/compare/v0.7.1...v0.7.2) - 2026-05-22
 
@@ -242,6 +265,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -252,6 +276,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
