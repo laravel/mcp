@@ -2,50 +2,46 @@
 
 declare(strict_types=1);
 
-namespace Laravel\Mcp\Client\Methods\Tools;
+namespace Laravel\Mcp\Client\Methods\Prompts;
 
 use Illuminate\Support\Collection;
-use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Methods\Concerns\PaginatesList;
-use Laravel\Mcp\Client\Primitives\Tool;
+use Laravel\Mcp\Client\Primitives\Prompt;
 
 /**
- * @implements Method<Collection<string, Tool>>
+ * @implements Method<Collection<string, Prompt>>
  */
-class ListTools implements Method
+class ListPrompts implements Method
 {
     use PaginatesList;
 
-    public function __construct(
-        protected ?Client $client = null,
-        ?string $cursor = null,
-        ?int $limit = null,
-    ) {
+    public function __construct(?string $cursor = null, ?int $limit = null)
+    {
         $this->cursor = $cursor;
         $this->limit = $limit;
     }
 
     protected function listType(): string
     {
-        return 'tools';
+        return 'prompts';
     }
 
     protected function nextPage(?string $cursor): static
     {
-        return new static($this->client, $cursor, $this->limit);
+        return new static($cursor, $this->limit);
     }
 
     /**
      * @param  array<int, array<string, mixed>>  $payloads
-     * @return Collection<string, Tool>
+     * @return Collection<string, Prompt>
      */
     protected function hydrate(array $payloads): Collection
     {
         return collect($payloads)->mapWithKeys(function (array $payload): array {
-            $tool = Tool::from($this->client, $payload);
+            $prompt = Prompt::from($payload);
 
-            return [$tool->name => $tool];
+            return [$prompt->name => $prompt];
         });
     }
 }

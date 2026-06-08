@@ -201,7 +201,7 @@ it('throws when a server repeats a tools/list cursor', function (): void {
         ->and($transport->sent)->toHaveCount(4);
 });
 
-it('throws when tools/list returns a non-string cursor', function (): void {
+it('throws when tools/list returns a non-string cursor', function (mixed $nextCursor): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
     $transport->responses[] = json_encode([
@@ -209,13 +209,16 @@ it('throws when tools/list returns a non-string cursor', function (): void {
         'id' => 2,
         'result' => [
             'tools' => [['name' => 'first']],
-            'nextCursor' => 123,
+            'nextCursor' => $nextCursor,
         ],
     ]);
 
     expect(fn (): Collection => (new Client($transport))->tools())
         ->toThrow(ClientException::class, 'Invalid tools/list cursor from server.');
-});
+})->with([
+    'integer' => [123],
+    'array' => [[1, 2, 3]],
+]);
 
 it('returns an unbound tool whose call throws until it is bound', function (): void {
     $tool = Tool::from(null, ['name' => 'say-hi', 'description' => 'Greets a person']);
