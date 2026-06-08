@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Methods;
 use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Container\BindingResolutionException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
@@ -48,6 +49,8 @@ class ReadResource implements Method
             $response = $this->invokeResource($resource, $uri);
         } catch (ValidationException $validationException) {
             $response = Response::error('Invalid params: '.ValidationMessages::from($validationException));
+        } catch (ModelNotFoundException $modelNotFoundException) {
+            $response = Response::error($modelNotFoundException->getMessage());
         }
 
         return is_iterable($response)
@@ -57,6 +60,7 @@ class ReadResource implements Method
 
     /**
      * @throws BindingResolutionException
+     * @throws ModelNotFoundException
      * @throws ValidationException
      */
     protected function invokeResource(Resource $resource, string $uri): mixed

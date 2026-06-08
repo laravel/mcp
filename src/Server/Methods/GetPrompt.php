@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
 use Illuminate\Container\Container;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
@@ -41,6 +42,8 @@ class GetPrompt implements Method
             $response = Container::getInstance()->call([$prompt, 'handle']);
         } catch (ValidationException $validationException) {
             $response = Response::error('Invalid params: '.ValidationMessages::from($validationException));
+        } catch (ModelNotFoundException $modelNotFoundException) {
+            $response = Response::error($modelNotFoundException->getMessage());
         }
 
         return is_iterable($response)

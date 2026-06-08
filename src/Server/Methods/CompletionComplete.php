@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods;
 
 use Illuminate\Container\Container;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
@@ -74,7 +75,11 @@ class CompletionComplete implements Method
 
         $contextArguments = Arr::get($request->get('context'), 'arguments', []);
 
-        $result = $this->invokeCompletion($primitive, $argumentName, $argumentValue, $contextArguments);
+        try {
+            $result = $this->invokeCompletion($primitive, $argumentName, $argumentValue, $contextArguments);
+        } catch (ModelNotFoundException) {
+            $result = CompletionResponse::empty();
+        }
 
         return JsonRpcResponse::result($request->id, [
             'completion' => $result->toArray(),

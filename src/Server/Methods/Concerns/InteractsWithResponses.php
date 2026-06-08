@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Methods\Concerns;
 use Generator;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -66,18 +67,15 @@ trait InteractsWithResponses
 
                 $pendingResponses[] = $response;
             }
-        } catch (AuthenticationException|AuthorizationException $authException) {
+        } catch (
+            AuthenticationException|
+            AuthorizationException|
+            ModelNotFoundException|
+            ValidationException $exception
+        ) {
             yield $this->toJsonRpcResponse(
                 $request,
-                Response::error($authException->getMessage()),
-                $serializable,
-            );
-
-            return;
-        } catch (ValidationException $validationException) {
-            yield $this->toJsonRpcResponse(
-                $request,
-                Response::error($validationException->getMessage()),
+                Response::error($exception->getMessage()),
                 $serializable,
             );
 
