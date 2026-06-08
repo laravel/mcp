@@ -12,13 +12,17 @@ use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Client\Methods\Ping;
 use Laravel\Mcp\Client\Methods\Prompts\GetPrompt;
 use Laravel\Mcp\Client\Methods\Prompts\ListPrompts;
+use Laravel\Mcp\Client\Methods\Resources\ListResources;
+use Laravel\Mcp\Client\Methods\Resources\ReadResource;
 use Laravel\Mcp\Client\Methods\Tools\CallTool;
 use Laravel\Mcp\Client\Methods\Tools\ListTools;
 use Laravel\Mcp\Client\Primitives\Prompt;
+use Laravel\Mcp\Client\Primitives\Resource;
 use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Protocol;
 use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Client\Schema\PromptResult;
+use Laravel\Mcp\Client\Schema\ResourceReadResult;
 use Laravel\Mcp\Client\Schema\ToolResult;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Client\Transport\StdioTransport;
@@ -150,6 +154,28 @@ class Client
     public function getPrompt(string $name, array $arguments = []): PromptResult
     {
         return (new GetPrompt($name, $arguments))->handle($this->protocol);
+    }
+
+    /**
+     * @param  iterable<string, Resource>|null  $default
+     * @return Collection<string, Resource>
+     */
+    public function resources(?int $limit = null, ?iterable $default = null): Collection
+    {
+        try {
+            return (new ListResources(limit: $limit))->handle($this->protocol);
+        } catch (AuthorizationRequiredException $authorizationRequiredException) {
+            if ($default === null) {
+                throw $authorizationRequiredException;
+            }
+
+            return Collection::make($default);
+        }
+    }
+
+    public function readResource(string $uri): ResourceReadResult
+    {
+        return (new ReadResource($uri))->handle($this->protocol);
     }
 
     /**
