@@ -56,7 +56,7 @@
                 "Laravel\\Mcp\\Server\\McpServiceProvider"
             ],
             "aliases": {
-                "Mcp": "Laravel\\Mcp\\Server\\Facades\\Mcp"
+                "Mcp": "Laravel\\Mcp\\Facades\\Mcp"
             }
         }
     },
