@@ -32,6 +32,22 @@ class WebClient extends Client
         return $this;
     }
 
+    /**
+     * Add custom headers sent with every request.
+     *
+     * Reserved protocol headers and the bearer token always take precedence,
+     * regardless of casing. Values are persisted in the serialized recipe like the
+     * bearer token.
+     *
+     * @param  array<string, string|(Closure(): string)>  $headers
+     */
+    public function withHeaders(array $headers): static
+    {
+        $this->httpTransport->withHeaders($headers);
+
+        return $this;
+    }
+
     public function withOAuth(
         ?string $clientId = null,
         ?string $clientSecret = null,

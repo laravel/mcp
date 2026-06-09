@@ -129,6 +129,137 @@ it('sends a bearer Authorization header when a token is set', function (): void 
     Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer secret-token'));
 });
 
+it('sends custom headers set via withHeaders', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withHeaders(['X-Tenant' => 'acme']);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping', 'params' => []]));
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('X-Tenant', 'acme'));
+});
+
+it('sends a custom Authorization header verbatim without a Bearer prefix', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withHeaders(['Authorization' => 'Key raw-api-key']);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping', 'params' => []]));
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Key raw-api-key'));
+});
+
+it('lets a bearer token take precedence over a custom Authorization header', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withHeaders(['Authorization' => 'Key raw-api-key']);
+    $transport->withToken('secret-token');
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping', 'params' => []]));
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer secret-token'));
+});
+
+it('does not let custom headers override the protocol Accept header', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withHeaders(['Accept' => 'text/plain']);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping', 'params' => []]));
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('Accept', 'application/json, text/event-stream'));
+});
+
+it('sends custom headers configured via Client::web', function (): void {
+    Http::fakeSequence()
+        ->push(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'result' => [
+                'protocolVersion' => ProtocolVersion::LATEST->value,
+                'capabilities' => new stdClass,
+                'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
+            ],
+        ]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-hdr'])
+        ->push('', 202)
+        ->push(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 2,
+            'result' => ['tools' => [['name' => 'add', 'description' => 'Adds two numbers']]],
+        ]), 200, ['Content-Type' => 'application/json'])
+        ->whenEmpty(Http::response('', 202));
+
+    Client::web('https://mcp.test/mcp')
+        ->withHeaders(['Authorization' => 'Key raw-api-key'])
+        ->tools();
+
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('Authorization', 'Key raw-api-key'));
+});
+
+it('lets a bearer token take precedence over a lower-cased custom authorization header', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withHeaders(['authorization' => 'Key raw-api-key']);
+    $transport->withToken('secret-token');
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping', 'params' => []]));
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer secret-token')
+        && ! $request->hasHeader('Authorization', 'Key raw-api-key'));
+});
+
+it('does not let a lower-cased custom accept header double up the protocol Accept', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withHeaders(['accept' => 'text/plain']);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping', 'params' => []]));
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('Accept', 'application/json, text/event-stream')
+        && ! $request->hasHeader('Accept', 'text/plain'));
+});
+
+it('ignores attempts to set protocol-managed headers via withHeaders', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withHeaders(['mcp-session-id' => 'forged', 'MCP-Protocol-Version' => 'forged']);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
+
+    Http::assertSent(fn ($request): bool => ! $request->hasHeader('MCP-Session-Id', 'forged')
+        && ! $request->hasHeader('MCP-Protocol-Version', 'forged'));
+});
+
+it('accumulates headers across multiple withHeaders calls with later values winning', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withHeaders(['X-A' => '1', 'X-B' => '2']);
+    $transport->withHeaders(['X-B' => '3', 'X-C' => '4']);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping', 'params' => []]));
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('X-A', '1')
+        && $request->hasHeader('X-B', '3')
+        && $request->hasHeader('X-C', '4'));
+});
+
+it('resolves closure header values on each request', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withHeaders(['Authorization' => fn (): string => 'Key '.'lazy-key']);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping', 'params' => []]));
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Key lazy-key'));
+});
+
+it('resolves closure header values when serializing the recipe', function (): void {
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withHeaders(['Authorization' => fn (): string => 'Key lazy-key']);
+
+    expect($transport->recipe()['headers'])->toBe(['Authorization' => 'Key lazy-key']);
+});
+
 it('throws a ClientException and resets the session on a 404 response', function (): void {
     Http::fakeSequence()
         ->push(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-xyz'])

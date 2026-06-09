@@ -37,6 +37,43 @@ it('rebuilds an http transport with its token and timeout from a recipe', functi
             'driver' => 'http',
             'url' => 'https://mcp.test/mcp',
             'token' => 'tok',
+            'headers' => [],
+            'timeoutSeconds' => 7.5,
+        ]);
+});
+
+it('rebuilds an http transport with custom headers from a recipe', function (): void {
+    $source = new HttpTransport('https://mcp.test/mcp');
+    $source->withHeaders(['Authorization' => 'Key abc123', 'X-Tenant' => 'acme']);
+
+    $transport = TransportFactory::fromRecipe($source->recipe());
+
+    expect($transport)
+        ->toBeInstanceOf(HttpTransport::class)
+        ->and($transport->recipe())->toBe([
+            'driver' => 'http',
+            'url' => 'https://mcp.test/mcp',
+            'token' => null,
+            'headers' => ['Authorization' => 'Key abc123', 'X-Tenant' => 'acme'],
+            'timeoutSeconds' => 30.0,
+        ]);
+});
+
+it('rebuilds an http transport from a legacy recipe without a headers key', function (): void {
+    $transport = TransportFactory::fromRecipe([
+        'driver' => 'http',
+        'url' => 'https://mcp.test/mcp',
+        'token' => 'tok',
+        'timeoutSeconds' => 7.5,
+    ]);
+
+    expect($transport)
+        ->toBeInstanceOf(HttpTransport::class)
+        ->and($transport->recipe())->toBe([
+            'driver' => 'http',
+            'url' => 'https://mcp.test/mcp',
+            'token' => 'tok',
+            'headers' => [],
             'timeoutSeconds' => 7.5,
         ]);
 });

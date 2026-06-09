@@ -23,6 +23,9 @@ class HttpTransport implements Transport
     /** @var string|(Closure(): string)|null */
     protected string|Closure|null $token = null;
 
+    /** @var array<string, string|(Closure(): string)> */
+    protected array $headers = [];
+
     protected ?string $sessionId = null;
 
     protected bool $initialized = false;
@@ -62,6 +65,21 @@ class HttpTransport implements Transport
         $this->token = $token;
     }
 
+    /**
+     * Add custom headers sent with every request.
+     *
+     * Reserved protocol headers (Accept, MCP-Session-Id, MCP-Protocol-Version) and
+     * the bearer token always take precedence and cannot be overridden, regardless
+     * of header-name casing. Values are persisted in the serialized recipe like the
+     * bearer token, so treat any secret they carry accordingly.
+     *
+     * @param  array<string, string|(Closure(): string)>  $headers
+     */
+    public function withHeaders(array $headers): void
+    {
+        $this->headers = array_merge($this->headers, $headers);
+    }
+
     public function url(): string
     {
         return $this->url;
@@ -72,10 +90,17 @@ class HttpTransport implements Transport
      */
     public function recipe(): array
     {
+        $headers = [];
+
+        foreach ($this->headers as $key => $value) {
+            $headers[$key] = $value instanceof Closure ? (string) $value() : $value;
+        }
+
         return [
             'driver' => 'http',
             'url' => $this->url,
             'token' => $this->token instanceof Closure ? (string) ($this->token)() : $this->token,
+            'headers' => $headers,
             'timeoutSeconds' => $this->timeoutSeconds,
         ];
     }
@@ -155,9 +180,25 @@ class HttpTransport implements Transport
      */
     protected function headers(): array
     {
-        $headers = [
-            'Accept' => 'application/json, text/event-stream',
-        ];
+        $reserved = ['accept', 'mcp-session-id', 'mcp-protocol-version'];
+
+        $token = $this->token instanceof Closure ? (string) ($this->token)() : $this->token;
+
+        if ($token !== null && $token !== '') {
+            $reserved[] = 'authorization';
+        }
+
+        $headers = [];
+
+        foreach ($this->headers as $key => $value) {
+            if (in_array(strtolower($key), $reserved, true)) {
+                continue;
+            }
+
+            $headers[$key] = $value instanceof Closure ? (string) $value() : $value;
+        }
+
+        $headers['Accept'] = 'application/json, text/event-stream';
 
         if ($this->sessionId !== null) {
             $headers['MCP-Session-Id'] = $this->sessionId;
@@ -166,8 +207,6 @@ class HttpTransport implements Transport
         if ($this->initialized) {
             $headers['MCP-Protocol-Version'] = ProtocolVersion::LATEST->value;
         }
-
-        $token = $this->token instanceof Closure ? (string) ($this->token)() : $this->token;
 
         if ($token !== null && $token !== '') {
             $headers['Authorization'] = "Bearer {$token}";
