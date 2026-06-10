@@ -42,7 +42,7 @@ class ReadResource implements Method
             throw new JsonRpcException($invalidArgumentException->getMessage(), -32002, $request->id);
         }
 
-        $response = $this->callHandler(fn (): mixed => $this->invokeResource($resource, $uri), $request, ['uri' => $uri]);
+        $response = $this->callHandler(fn (): mixed => $this->invokeResource($resource, $uri), $request);
 
         return is_iterable($response)
             ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($resource, $uri))
@@ -51,8 +51,6 @@ class ReadResource implements Method
 
     /**
      * @throws BindingResolutionException
-     * @throws ModelNotFoundException
-     * @throws ValidationException
      */
     protected function invokeResource(Resource $resource, string $uri): mixed
     {

@@ -7,7 +7,6 @@ namespace Laravel\Mcp\Server\Methods\Concerns;
 use Generator;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
@@ -86,10 +85,7 @@ trait InteractsWithResponses
         yield $this->toJsonRpcResponse($request, $pendingResponses, $serializable);
     }
 
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    protected function callHandler(callable $handler, JsonRpcRequest $request, array $data = []): mixed
+    protected function callHandler(callable $handler, JsonRpcRequest $request): mixed
     {
         try {
             return $handler();
@@ -98,21 +94,14 @@ trait InteractsWithResponses
                 return $this->toErrorResponse($throwable);
             }
 
-            throw $this->toJsonRpcException($throwable, $request->id, $data);
+            throw $this->toJsonRpcException($throwable, $request->id);
         }
     }
 
-    /**
-     * @param  array<string, mixed>  $data
-     */
-    protected function toJsonRpcException(Throwable $e, mixed $requestId, array $data = []): JsonRpcException
+    protected function toJsonRpcException(Throwable $e, mixed $requestId): JsonRpcException
     {
         if ($e instanceof ValidationException) {
             return new JsonRpcException(ValidationMessages::from($e), -32602, $requestId);
-        }
-
-        if ($e instanceof ModelNotFoundException) {
-            return new JsonRpcException($this->toErrorMessage($e), -32002, $requestId, $data ?: null);
         }
 
         return new JsonRpcException($this->toErrorMessage($e), -32603, $requestId);

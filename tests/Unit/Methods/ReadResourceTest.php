@@ -88,7 +88,7 @@ it('throws exception when resource is not found', function (): void {
     $readResource->handle($jsonRpcRequest, $context);
 });
 
-it('throws -32002 when resource handler throws ModelNotFoundException', function (): void {
+it('throws -32603 with exception message when ModelNotFoundException is thrown with APP_DEBUG true', function (): void {
     config(['app.debug' => true]);
 
     $resource = new class extends Resource
@@ -111,13 +111,12 @@ it('throws -32002 when resource handler throws ModelNotFoundException', function
         $readResource->handle($jsonRpcRequest, $context);
         $this->fail('Expected JsonRpcException to be thrown');
     } catch (JsonRpcException $jsonRpcException) {
-        expect($jsonRpcException->getCode())->toBe(-32002)
-            ->and($jsonRpcException->getMessage())->toBe('No query results for model [App\Models\User] 42.')
-            ->and($jsonRpcException->toJsonRpcResponse()->toArray()['error']['data'])->toBe(['uri' => 'file://resources/user-resource']);
+        expect($jsonRpcException->getCode())->toBe(-32603)
+            ->and($jsonRpcException->getMessage())->toBe('No query results for model [App\Models\User] 42.');
     }
 });
 
-it('throws -32002 with generic message when ModelNotFoundException is thrown with APP_DEBUG false', function (): void {
+it('throws -32603 with generic message when ModelNotFoundException is thrown with APP_DEBUG false', function (): void {
     config(['app.debug' => false]);
 
     $resource = new class extends Resource
@@ -140,9 +139,8 @@ it('throws -32002 with generic message when ModelNotFoundException is thrown wit
         $readResource->handle($jsonRpcRequest, $context);
         $this->fail('Expected JsonRpcException to be thrown');
     } catch (JsonRpcException $jsonRpcException) {
-        expect($jsonRpcException->getCode())->toBe(-32002)
-            ->and($jsonRpcException->getMessage())->toBe('An internal server error occurred.')
-            ->and($jsonRpcException->toJsonRpcResponse()->toArray()['error']['data'])->toBe(['uri' => 'file://resources/user-resource']);
+        expect($jsonRpcException->getCode())->toBe(-32603)
+            ->and($jsonRpcException->getMessage())->toBe('An internal server error occurred.');
     }
 });
 
