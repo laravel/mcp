@@ -8,6 +8,7 @@ use Generator;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Container\Container;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Response;
@@ -53,8 +54,12 @@ class CallTool implements Errable, Method
         try {
             // @phpstan-ignore-next-line
             $response = Container::getInstance()->call([$tool, 'handle']);
-        } catch (AuthenticationException|AuthorizationException $authException) {
-            $response = Response::error($authException->getMessage());
+        } catch (
+            AuthenticationException|
+            AuthorizationException|
+            ModelNotFoundException $exception
+        ) {
+            $response = Response::error($exception->getMessage());
         } catch (ValidationException $validationException) {
             $response = Response::error(ValidationMessages::from($validationException));
         }
