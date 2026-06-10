@@ -283,7 +283,7 @@ it('rethrows the authorization exception for resources when no default is given'
         ->toThrow(AuthorizationRequiredException::class);
 });
 
-it('sends resources/read by uri and concatenates text content', function (): void {
+it('sends resources/read by uri and returns text content', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
     $transport->responses[] = json_encode([
@@ -302,8 +302,7 @@ it('sends resources/read by uri and concatenates text content', function (): voi
     expect($result)
         ->toBeInstanceOf(ResourceReadResult::class)
         ->contents->toHaveCount(2)
-        ->and($result->text())->toBe('Hello, world!')
-        ->and($result->blob())->toBe('')
+        ->and($result->content())->toBe('Hello, world!')
         ->and((string) $result)->toBe('Hello, world!')
         ->and(json_decode($transport->sent[2], true))
         ->toHaveKey('method', 'resources/read')
@@ -328,8 +327,39 @@ it('decodes blob content from a resources/read result', function (): void {
 
     $result = (new Client($transport))->readResource('file://logo');
 
-    expect($result->blob())->toBe('binary-data')
-        ->and($result->text())->toBe('');
+    expect($result->content())->toBe('binary-data');
+});
+
+it('returns the mime type from the first content item', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => [
+            'contents' => [
+                ['uri' => 'file://logo', 'mimeType' => 'image/png', 'blob' => base64_encode('data')],
+            ],
+        ],
+    ]);
+
+    $result = (new Client($transport))->readResource('file://logo');
+
+    expect($result->mimeType())->toBe('image/png');
+});
+
+it('returns null mime type when contents are empty', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => ['contents' => []],
+    ]);
+
+    $result = (new Client($transport))->readResource('file://empty');
+
+    expect($result->mimeType())->toBeNull();
 });
 
 it('preserves _meta from the resources/read response', function (): void {
@@ -380,8 +410,7 @@ it('returns an empty result when resources/read omits contents', function (): vo
         ->toBeInstanceOf(ResourceReadResult::class)
         ->contents->toBe([])
         ->meta->toBeNull()
-        ->and($result->text())->toBe('')
-        ->and($result->blob())->toBe('')
+        ->and($result->content())->toBe('')
         ->and((string) $result)->toBe('');
 });
 
@@ -402,7 +431,7 @@ it('filters out non-array content items from a resources/read result', function 
     $result = (new Client($transport))->readResource('file://readme');
 
     expect($result->contents)->toHaveCount(1)
-        ->and($result->text())->toBe('Hi');
+        ->and($result->content())->toBe('Hi');
 });
 
 it('coerces a non-array _meta from resources/read to null', function (): void {

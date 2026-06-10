@@ -39,7 +39,20 @@ class ResourceReadResult implements Stringable
         );
     }
 
-    public function text(): string
+    public function mimeType(): ?string
+    {
+        foreach ($this->contents as $content) {
+            $mimeType = Arr::get($content, 'mimeType');
+
+            if (is_string($mimeType) && $mimeType !== '') {
+                return $mimeType;
+            }
+        }
+
+        return null;
+    }
+
+    public function content(): string
     {
         $parts = [];
 
@@ -48,27 +61,17 @@ class ResourceReadResult implements Stringable
 
             if (is_string($text)) {
                 $parts[] = $text;
-            }
-        }
-
-        return implode('', $parts);
-    }
-
-    public function blob(): string
-    {
-        $parts = [];
-
-        foreach ($this->contents as $content) {
-            $blob = Arr::get($content, 'blob');
-
-            if (! is_string($blob)) {
                 continue;
             }
 
-            $decoded = base64_decode($blob, true);
+            $blob = Arr::get($content, 'blob');
 
-            if ($decoded !== false) {
-                $parts[] = $decoded;
+            if (is_string($blob)) {
+                $decoded = base64_decode($blob, true);
+
+                if ($decoded !== false) {
+                    $parts[] = $decoded;
+                }
             }
         }
 
@@ -77,6 +80,6 @@ class ResourceReadResult implements Stringable
 
     public function __toString(): string
     {
-        return $this->text();
+        return $this->content();
     }
 }
