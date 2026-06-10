@@ -61,6 +61,7 @@ class ResourceReadResult implements Stringable
 
             if (is_string($text)) {
                 $parts[] = $text;
+
                 continue;
             }
 
