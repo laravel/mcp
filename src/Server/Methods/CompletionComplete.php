@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Methods;
 
+use Exception;
 use Illuminate\Container\Container;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
@@ -77,7 +77,7 @@ class CompletionComplete implements Method
 
         try {
             $result = $this->invokeCompletion($primitive, $argumentName, $argumentValue, $contextArguments);
-        } catch (ModelNotFoundException) {
+        } catch (Exception) {
             $result = CompletionResponse::empty();
         }
 
