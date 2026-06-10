@@ -60,6 +60,13 @@ class TransportFactory
             $transport->withToken($token);
         }
 
+        $headers = Arr::get($recipe, 'headers');
+
+        if (is_array($headers)) {
+            /** @var array<string, string> $headers */
+            $transport->withHeaders($headers);
+        }
+
         self::applyTimeout($transport, $recipe);
 
         return $transport;

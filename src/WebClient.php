@@ -32,6 +32,16 @@ class WebClient extends Client
         return $this;
     }
 
+    /**
+     * @param  array<string, string>  $headers
+     */
+    public function withHeaders(array $headers): static
+    {
+        $this->httpTransport->withHeaders($headers);
+
+        return $this;
+    }
+
     public function withOAuth(
         ?string $clientId = null,
         ?string $clientSecret = null,
