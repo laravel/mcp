@@ -112,7 +112,7 @@ trait InteractsWithResponses
         }
 
         if ($e instanceof ModelNotFoundException) {
-            return new JsonRpcException($e->getMessage(), -32002, $requestId, $data ?: null);
+            return new JsonRpcException($this->toErrorMessage($e), -32002, $requestId, $data ?: null);
         }
 
         return new JsonRpcException($this->toErrorMessage($e), -32603, $requestId);

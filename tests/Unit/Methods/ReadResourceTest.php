@@ -89,6 +89,8 @@ it('throws exception when resource is not found', function (): void {
 });
 
 it('throws -32002 when resource handler throws ModelNotFoundException', function (): void {
+    config(['app.debug' => true]);
+
     $resource = new class extends Resource
     {
         protected string $uri = 'file://resources/user-resource';
@@ -111,6 +113,35 @@ it('throws -32002 when resource handler throws ModelNotFoundException', function
     } catch (JsonRpcException $jsonRpcException) {
         expect($jsonRpcException->getCode())->toBe(-32002)
             ->and($jsonRpcException->getMessage())->toBe('No query results for model [App\Models\User] 42.')
+            ->and($jsonRpcException->toJsonRpcResponse()->toArray()['error']['data'])->toBe(['uri' => 'file://resources/user-resource']);
+    }
+});
+
+it('throws -32002 with generic message when ModelNotFoundException is thrown with APP_DEBUG false', function (): void {
+    config(['app.debug' => false]);
+
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://resources/user-resource';
+
+        protected string $mimeType = 'text/plain';
+
+        public function handle(): string
+        {
+            throw new ModelNotFoundException('No query results for model [App\Models\User] 42.');
+        }
+    };
+
+    $readResource = new ReadResource;
+    $context = $this->getServerContext(['resources' => [$resource]]);
+    $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/read', params: ['uri' => 'file://resources/user-resource']);
+
+    try {
+        $readResource->handle($jsonRpcRequest, $context);
+        $this->fail('Expected JsonRpcException to be thrown');
+    } catch (JsonRpcException $jsonRpcException) {
+        expect($jsonRpcException->getCode())->toBe(-32002)
+            ->and($jsonRpcException->getMessage())->toBe('An internal server error occurred.')
             ->and($jsonRpcException->toJsonRpcResponse()->toArray()['error']['data'])->toBe(['uri' => 'file://resources/user-resource']);
     }
 });
