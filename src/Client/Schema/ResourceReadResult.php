@@ -15,8 +15,8 @@ class ResourceReadResult implements Stringable
      * @param  array<string, mixed>|null  $meta
      */
     public function __construct(
-        public array $contents,
-        public ?array $meta = null,
+        public readonly array $contents,
+        public readonly ?array $meta = null,
     ) {
         //
     }

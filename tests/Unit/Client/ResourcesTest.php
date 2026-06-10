@@ -171,6 +171,7 @@ it('throws when a resource payload is missing a uri or name', function (array $p
     'blank uri' => [['uri' => '   ', 'name' => 'readme']],
     'missing name' => [['uri' => 'file://readme']],
     'empty name' => [['uri' => 'file://readme', 'name' => '']],
+    'blank name' => [['uri' => 'file://readme', 'name' => '   ']],
 ]);
 
 it('throws when a resource payload has a field of the wrong type', function (array $payload): void {
