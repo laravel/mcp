@@ -7,8 +7,6 @@ namespace Laravel\Mcp\Server\Methods;
 use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Container\BindingResolutionException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
@@ -21,7 +19,6 @@ use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
 use Laravel\Mcp\Server\Methods\Concerns\ResolvesResources;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Support\ValidationMessages;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 
@@ -45,13 +42,7 @@ class ReadResource implements Method
             throw new JsonRpcException($invalidArgumentException->getMessage(), -32002, $request->id);
         }
 
-        try {
-            $response = $this->invokeResource($resource, $uri);
-        } catch (ValidationException $validationException) {
-            $response = Response::error('Invalid params: '.ValidationMessages::from($validationException));
-        } catch (ModelNotFoundException $modelNotFoundException) {
-            $response = Response::error($modelNotFoundException->getMessage());
-        }
+        $response = $this->callHandler(fn (): mixed => $this->invokeResource($resource, $uri), $request);
 
         return is_iterable($response)
             ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($resource, $uri))
@@ -60,8 +51,6 @@ class ReadResource implements Method
 
     /**
      * @throws BindingResolutionException
-     * @throws ModelNotFoundException
-     * @throws ValidationException
      */
     protected function invokeResource(Resource $resource, string $uri): mixed
     {

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Container\Container;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -85,6 +86,146 @@ it('throws exception when resource is not found', function (): void {
     );
 
     $readResource->handle($jsonRpcRequest, $context);
+});
+
+it('throws -32603 with exception message when ModelNotFoundException is thrown with APP_DEBUG true', function (): void {
+    config(['app.debug' => true]);
+
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://resources/user-resource';
+
+        protected string $mimeType = 'text/plain';
+
+        public function handle(): string
+        {
+            throw new ModelNotFoundException('No query results for model [App\Models\User] 42.');
+        }
+    };
+
+    $readResource = new ReadResource;
+    $context = $this->getServerContext(['resources' => [$resource]]);
+    $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/read', params: ['uri' => 'file://resources/user-resource']);
+
+    try {
+        $readResource->handle($jsonRpcRequest, $context);
+        $this->fail('Expected JsonRpcException to be thrown');
+    } catch (JsonRpcException $jsonRpcException) {
+        expect($jsonRpcException->getCode())->toBe(-32603)
+            ->and($jsonRpcException->getMessage())->toBe('No query results for model [App\Models\User] 42.');
+    }
+});
+
+it('throws -32603 with generic message when ModelNotFoundException is thrown with APP_DEBUG false', function (): void {
+    config(['app.debug' => false]);
+
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://resources/user-resource';
+
+        protected string $mimeType = 'text/plain';
+
+        public function handle(): string
+        {
+            throw new ModelNotFoundException('No query results for model [App\Models\User] 42.');
+        }
+    };
+
+    $readResource = new ReadResource;
+    $context = $this->getServerContext(['resources' => [$resource]]);
+    $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/read', params: ['uri' => 'file://resources/user-resource']);
+
+    try {
+        $readResource->handle($jsonRpcRequest, $context);
+        $this->fail('Expected JsonRpcException to be thrown');
+    } catch (JsonRpcException $jsonRpcException) {
+        expect($jsonRpcException->getCode())->toBe(-32603)
+            ->and($jsonRpcException->getMessage())->toBe('An internal server error occurred.');
+    }
+});
+
+it('throws -32603 when resource handler throws a generic exception', function (): void {
+    config(['app.debug' => true]);
+
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://resources/failing-resource';
+
+        protected string $mimeType = 'text/plain';
+
+        public function handle(): string
+        {
+            throw new RuntimeException('Something went wrong internally.');
+        }
+    };
+
+    $readResource = new ReadResource;
+    $context = $this->getServerContext(['resources' => [$resource]]);
+    $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/read', params: ['uri' => 'file://resources/failing-resource']);
+
+    try {
+        $readResource->handle($jsonRpcRequest, $context);
+        $this->fail('Expected JsonRpcException to be thrown');
+    } catch (JsonRpcException $jsonRpcException) {
+        expect($jsonRpcException->getCode())->toBe(-32603)
+            ->and($jsonRpcException->getMessage())->toContain('Something went wrong internally.');
+    }
+});
+
+it('includes exception message in resource -32603 when APP_DEBUG is true', function (): void {
+    config(['app.debug' => true]);
+
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://resources/debug-resource';
+
+        protected string $mimeType = 'text/plain';
+
+        public function handle(): string
+        {
+            throw new RuntimeException('Debug this.');
+        }
+    };
+
+    $readResource = new ReadResource;
+    $context = $this->getServerContext(['resources' => [$resource]]);
+    $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/read', params: ['uri' => 'file://resources/debug-resource']);
+
+    try {
+        $readResource->handle($jsonRpcRequest, $context);
+        $this->fail('Expected JsonRpcException to be thrown');
+    } catch (JsonRpcException $jsonRpcException) {
+        expect($jsonRpcException->getCode())->toBe(-32603)
+            ->and($jsonRpcException->getMessage())->toBe('Debug this.');
+    }
+});
+
+it('returns plain message in resource -32603 when APP_DEBUG is false', function (): void {
+    config(['app.debug' => false]);
+
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://resources/plain-resource';
+
+        protected string $mimeType = 'text/plain';
+
+        public function handle(): string
+        {
+            throw new RuntimeException('Plain error message.');
+        }
+    };
+
+    $readResource = new ReadResource;
+    $context = $this->getServerContext(['resources' => [$resource]]);
+    $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/read', params: ['uri' => 'file://resources/plain-resource']);
+
+    try {
+        $readResource->handle($jsonRpcRequest, $context);
+        $this->fail('Expected JsonRpcException to be thrown');
+    } catch (JsonRpcException $jsonRpcException) {
+        expect($jsonRpcException->getCode())->toBe(-32603)
+            ->and($jsonRpcException->getMessage())->toBe('An internal server error occurred.');
+    }
 });
 
 it('reads resource template by matching a URI pattern', function (): void {
