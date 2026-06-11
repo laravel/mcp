@@ -1,6 +1,22 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.8.0...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.8.1...main)
+
+## [v0.8.1](https://github.com/laravel/mcp/compare/v0.8.0...v0.8.1) - 2026-06-11
+
+### What's Changed
+
+* Add resources support to the MCP client by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/243
+* feat: automatically convert model not found exceptions to proper error messages by [@calebdw](https://github.com/calebdw) in https://github.com/laravel/mcp/pull/244
+* Add withHeaders() to the MCP web client by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/250
+* Bump actions/checkout from 6.0.2 to 6.0.3 in the github-actions group by [@dependabot](https://github.com/dependabot)[bot] in https://github.com/laravel/mcp/pull/251
+* Centralize exception handling in method handlers with debug-aware errors by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/249
+
+### New Contributors
+
+* [@calebdw](https://github.com/calebdw) made their first contribution in https://github.com/laravel/mcp/pull/244
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.8.0...v0.8.1
 
 ## [v0.8.0](https://github.com/laravel/mcp/compare/v0.7.2...v0.8.0) - 2026-06-08
 
@@ -266,6 +282,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -276,6 +293,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
