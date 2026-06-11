@@ -29,6 +29,9 @@ class HttpTransport implements Transport
 
     protected float $timeoutSeconds = 30.0;
 
+    /** @var array<string, string> */
+    protected array $customHeaders = [];
+
     /** @var array<int, string> */
     protected array $queue = [];
 
@@ -62,6 +65,14 @@ class HttpTransport implements Transport
         $this->token = $token;
     }
 
+    /**
+     * @param  array<string, string>  $headers
+     */
+    public function withHeaders(array $headers): void
+    {
+        $this->customHeaders = array_merge($this->customHeaders, $headers);
+    }
+
     public function url(): string
     {
         return $this->url;
@@ -76,6 +87,7 @@ class HttpTransport implements Transport
             'driver' => 'http',
             'url' => $this->url,
             'token' => $this->token instanceof Closure ? (string) ($this->token)() : $this->token,
+            'headers' => $this->customHeaders,
             'timeoutSeconds' => $this->timeoutSeconds,
         ];
     }
@@ -171,6 +183,16 @@ class HttpTransport implements Transport
 
         if ($token !== null && $token !== '') {
             $headers['Authorization'] = "Bearer {$token}";
+        }
+
+        foreach ($this->customHeaders as $name => $value) {
+            foreach (array_keys($headers) as $existing) {
+                if (strcasecmp($existing, $name) === 0) {
+                    unset($headers[$existing]);
+                }
+            }
+
+            $headers[$name] = $value;
         }
 
         return $headers;
