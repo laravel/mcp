@@ -79,7 +79,6 @@ class OAuthRegisterController
             name: $validated['client_name'] ?? $validated['name'],
             redirectUris: $validated['redirect_uris'],
             confidential: false,
-            user: null,
             enableDeviceFlow: false,
         );
 

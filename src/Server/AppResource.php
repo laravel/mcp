@@ -10,6 +10,8 @@ use Laravel\Mcp\Server\Ui\Enums\Library;
 
 abstract class AppResource extends Resource
 {
+    public const CLAUDE_DOMAIN_SUFFIX = '.claudemcpcontent.com';
+
     protected string $mimeType = 'text/html;profile=mcp-app';
 
     protected string $defaultUriScheme = 'ui';
@@ -29,11 +31,7 @@ abstract class AppResource extends Resource
         $appMeta = $this->appMeta()->toArray();
 
         if (! isset($appMeta['domain'])) {
-            $domain = parse_url((string) config('app.url', ''), PHP_URL_HOST) ?: null;
-
-            if ($domain !== null) {
-                $appMeta['domain'] = $domain;
-            }
+            $appMeta['domain'] = $this->toClaudeDomain(url()->current());
         }
 
         return $appMeta;
@@ -60,5 +58,13 @@ abstract class AppResource extends Resource
         }
 
         return $data;
+    }
+
+    private function toClaudeDomain(string $serverRoute): string
+    {
+        return str(hash('sha256', $serverRoute))
+            ->limit(32, '')
+            ->append(self::CLAUDE_DOMAIN_SUFFIX)
+            ->value();
     }
 }

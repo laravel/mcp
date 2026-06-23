@@ -8,7 +8,6 @@ it('converts to JsonRpc error without id and with data', function (): void {
     $exception = new JsonRpcException(
         message: 'Invalid params',
         code: -32602,
-        requestId: null,
         data: ['hint' => 'Missing field']
     );
 

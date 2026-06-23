@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Request as HttpRequest;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\AppResource;
@@ -118,20 +119,32 @@ it('serializes name title description and mimeType', function (): void {
         ->toHaveKey('uri');
 });
 
-it('includes domain from app url in _meta.ui by default', function (): void {
-    config(['app.url' => 'https://myapp.example.com']);
+it('uses the computed Claude domain when not set on app resource', function (): void {
+    $currentUrl = 'https://myapp.example.com/mcp/test';
+    $previousRequest = app('request');
 
-    $resource = new class extends AppResource
-    {
-        public function handle(Request $request): Response
+    try {
+        app()->instance('request', HttpRequest::create($currentUrl, 'GET'));
+
+        $expectedDomain = str(hash('sha256', $currentUrl))
+            ->limit(32, '')
+            ->append(AppResource::CLAUDE_DOMAIN_SUFFIX)
+            ->value();
+
+        $resource = new class extends AppResource
         {
-            return Response::text('<html></html>');
-        }
-    };
+            public function handle(Request $request): Response
+            {
+                return Response::text('<html></html>');
+            }
+        };
 
-    $array = $resource->toArray();
+        $array = $resource->toArray();
 
-    expect($array['_meta']['ui'])->toEqual(['domain' => 'myapp.example.com', 'prefersBorder' => true]);
+        expect($array['_meta']['ui']['domain'])->toBe($expectedDomain);
+    } finally {
+        app()->instance('request', $previousRequest);
+    }
 });
 
 it('attribute domain overrides auto-resolved domain', function (): void {
