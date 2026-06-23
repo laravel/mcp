@@ -62,8 +62,7 @@ abstract class AppResource extends Resource
 
     private function toClaudeDomain(string $serverRoute): string
     {
-        return str($serverRoute)
-            ->hash('sha256')
+        return str(hash('sha256', $serverRoute))
             ->limit(32, '')
             ->append(self::CLAUDE_DOMAIN_SUFFIX)
             ->value();
