@@ -201,7 +201,7 @@ it('throws when a server repeats a tools/list cursor', function (): void {
         ->and($transport->sent)->toHaveCount(4);
 });
 
-it('throws when tools/list returns a non-string cursor', function (): void {
+it('throws when tools/list returns a non-string cursor', function (mixed $nextCursor): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
     $transport->responses[] = json_encode([
@@ -209,38 +209,41 @@ it('throws when tools/list returns a non-string cursor', function (): void {
         'id' => 2,
         'result' => [
             'tools' => [['name' => 'first']],
-            'nextCursor' => 123,
+            'nextCursor' => $nextCursor,
         ],
     ]);
 
     expect(fn (): Collection => (new Client($transport))->tools())
         ->toThrow(ClientException::class, 'Invalid tools/list cursor from server.');
+})->with([
+    'integer' => [123],
+    'array' => [[1, 2, 3]],
+]);
+
+it('returns an unbound tool whose call throws until it is bound', function (): void {
+    $tool = Tool::from(null, ['name' => 'say-hi', 'description' => 'Greets a person']);
+
+    expect(fn (): ToolResult => $tool->call())
+        ->toThrow(ClientException::class, 'Tool [say-hi] is not bound to a client.');
 });
 
-it('calls a tool fluently via $tool->call() and returns a ToolResult', function (): void {
+it('calls a bound tool returned from tools()', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
     $transport->responses[] = json_encode([
         'jsonrpc' => '2.0',
         'id' => 2,
-        'result' => [
-            'tools' => [['name' => 'say-hi', 'description' => 'Greets a person']],
-        ],
+        'result' => ['tools' => [['name' => 'say-hi', 'description' => 'Greets a person']]],
     ]);
     $transport->responses[] = json_encode([
         'jsonrpc' => '2.0',
         'id' => 3,
-        'result' => [
-            'content' => [['type' => 'text', 'text' => 'Hello, John!']],
-            'isError' => false,
-        ],
+        'result' => ['content' => [['type' => 'text', 'text' => 'Hello, John!']], 'isError' => false],
     ]);
 
-    $result = (new Client($transport))->tools()['say-hi']->call(['name' => 'John']);
+    $tool = (new Client($transport))->tools()['say-hi'];
 
-    expect($result)
-        ->toBeInstanceOf(ToolResult::class)
-        ->and($result->text())->toBe('Hello, John!')
+    expect($tool->call(['name' => 'John'])->text())->toBe('Hello, John!')
         ->and(json_decode($transport->sent[3], true))
         ->toHaveKey('method', 'tools/call')
         ->toHaveKey('params.name', 'say-hi')

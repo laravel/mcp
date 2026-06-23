@@ -65,6 +65,19 @@ class StdioTransport implements Transport
         $this->timeoutSeconds = $seconds;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function recipe(): array
+    {
+        return [
+            'driver' => 'stdio',
+            'command' => $this->command,
+            'args' => $this->args,
+            'timeoutSeconds' => $this->timeoutSeconds,
+        ];
+    }
+
     public function send(string $message): void
     {
         if (! $this->input instanceof InputStream || ! $this->process?->isRunning()) {

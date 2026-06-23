@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\Transport;
 
+use Closure;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response as ClientResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Client\Contracts\Transport;
+use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
+use Laravel\Mcp\Client\OAuth\WwwAuthenticateChallenge;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\SessionExpiredException;
@@ -17,13 +20,17 @@ use Throwable;
 
 class HttpTransport implements Transport
 {
-    protected ?string $token = null;
+    /** @var string|(Closure(): string)|null */
+    protected string|Closure|null $token = null;
 
     protected ?string $sessionId = null;
 
     protected bool $initialized = false;
 
     protected float $timeoutSeconds = 30.0;
+
+    /** @var array<string, string> */
+    protected array $customHeaders = [];
 
     /** @var array<int, string> */
     protected array $queue = [];
@@ -50,9 +57,39 @@ class HttpTransport implements Transport
         $this->timeoutSeconds = $seconds;
     }
 
-    public function withToken(string $token): void
+    /**
+     * @param  string|Closure(): string  $token
+     */
+    public function withToken(string|Closure $token): void
     {
         $this->token = $token;
+    }
+
+    /**
+     * @param  array<string, string>  $headers
+     */
+    public function withHeaders(array $headers): void
+    {
+        $this->customHeaders = array_merge($this->customHeaders, $headers);
+    }
+
+    public function url(): string
+    {
+        return $this->url;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function recipe(): array
+    {
+        return [
+            'driver' => 'http',
+            'url' => $this->url,
+            'token' => $this->token instanceof Closure ? (string) ($this->token)() : $this->token,
+            'headers' => $this->customHeaders,
+            'timeoutSeconds' => $this->timeoutSeconds,
+        ];
     }
 
     public function send(string $message): void
@@ -70,6 +107,17 @@ class HttpTransport implements Transport
         }
 
         $this->captureSessionId($response);
+
+        if ($response->status() === 401 || $response->status() === 403) {
+            $challenge = WwwAuthenticateChallenge::parse($response->header('WWW-Authenticate'));
+
+            $this->reset();
+
+            throw new AuthorizationRequiredException(
+                "The server responded with HTTP {$response->status()} for endpoint [{$this->url}]. Authorization is required.",
+                $challenge,
+            );
+        }
 
         if ($response->notFound() && $hadSession) {
             $this->reset();
@@ -131,8 +179,20 @@ class HttpTransport implements Transport
             $headers['MCP-Protocol-Version'] = ProtocolVersion::LATEST->value;
         }
 
-        if ($this->token !== null) {
-            $headers['Authorization'] = "Bearer {$this->token}";
+        $token = $this->token instanceof Closure ? (string) ($this->token)() : $this->token;
+
+        if ($token !== null && $token !== '') {
+            $headers['Authorization'] = "Bearer {$token}";
+        }
+
+        foreach ($this->customHeaders as $name => $value) {
+            foreach (array_keys($headers) as $existing) {
+                if (strcasecmp($existing, $name) === 0) {
+                    unset($headers[$existing]);
+                }
+            }
+
+            $headers[$name] = $value;
         }
 
         return $headers;

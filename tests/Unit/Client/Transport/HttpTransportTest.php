@@ -129,6 +129,90 @@ it('sends a bearer Authorization header when a token is set', function (): void 
     Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'Bearer secret-token'));
 });
 
+it('sends custom headers alongside the default headers', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withHeaders(['X-Tenant-Id' => 'acme', 'X-Api-Version' => '2025-01-01']);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping', 'params' => []]));
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('X-Tenant-Id', 'acme')
+        && $request->hasHeader('X-Api-Version', '2025-01-01')
+        && $request->hasHeader('Accept', 'application/json, text/event-stream'));
+});
+
+it('replaces a default header case-insensitively instead of sending a duplicate', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withToken('secret-token');
+    $transport->withHeaders(['accept' => 'text/plain', 'authorization' => 'raw-api-key']);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping', 'params' => []]));
+
+    Http::assertSent(function ($request): bool {
+        $headers = [];
+
+        foreach ($request->headers() as $name => $values) {
+            $headers[strtolower($name)][] = implode(',', $values);
+        }
+
+        return $headers['accept'] === ['text/plain']
+            && $headers['authorization'] === ['raw-api-key'];
+    });
+});
+
+it('lets a custom Authorization header override the bearer token', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withToken('secret-token');
+    $transport->withHeaders(['Authorization' => 'raw-api-key']);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping', 'params' => []]));
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('Authorization', 'raw-api-key'));
+});
+
+it('merges custom headers across multiple withHeaders calls', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withHeaders(['X-One' => 'first']);
+    $transport->withHeaders(['X-Two' => 'second', 'X-One' => 'overridden']);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping', 'params' => []]));
+
+    Http::assertSent(fn ($request): bool => $request->hasHeader('X-One', 'overridden') && $request->hasHeader('X-Two', 'second'));
+});
+
+it('sends custom headers when built via Client::web', function (): void {
+    Http::fakeSequence()
+        ->push(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'result' => [
+                'protocolVersion' => ProtocolVersion::LATEST->value,
+                'capabilities' => new stdClass,
+                'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
+            ],
+        ]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-headers'])
+        ->push('', 202)
+        ->push(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 2,
+            'result' => ['tools' => [['name' => 'add', 'description' => 'Adds two numbers']]],
+        ]), 200, ['Content-Type' => 'application/json'])
+        ->whenEmpty(Http::response('', 202));
+
+    $client = Client::web('https://mcp.test/mcp')->withHeaders(['Authorization' => 'raw-api-key', 'X-Tenant-Id' => 'acme']);
+
+    expect($client)->toBeInstanceOf(WebClient::class);
+
+    $client->tools();
+
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list'
+        && $request->hasHeader('Authorization', 'raw-api-key')
+        && $request->hasHeader('X-Tenant-Id', 'acme'));
+});
+
 it('throws a ClientException and resets the session on a 404 response', function (): void {
     Http::fakeSequence()
         ->push(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-xyz'])

@@ -15,8 +15,10 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Contracts\Errable;
+use Laravel\Mcp\Support\ValidationMessages;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
+use Throwable;
 
 trait InteractsWithResponses
 {
@@ -66,25 +68,67 @@ trait InteractsWithResponses
 
                 $pendingResponses[] = $response;
             }
-        } catch (AuthenticationException|AuthorizationException $authException) {
-            yield $this->toJsonRpcResponse(
-                $request,
-                Response::error($authException->getMessage()),
-                $serializable,
-            );
+        } catch (Throwable $throwable) {
+            if ($this instanceof Errable) {
+                yield $this->toJsonRpcResponse(
+                    $request,
+                    $this->toErrorResponse($throwable),
+                    $serializable,
+                );
 
-            return;
-        } catch (ValidationException $validationException) {
-            yield $this->toJsonRpcResponse(
-                $request,
-                Response::error($validationException->getMessage()),
-                $serializable,
-            );
+                return;
+            }
 
-            return;
+            throw $this->toJsonRpcException($throwable, $request->id);
         }
 
         yield $this->toJsonRpcResponse($request, $pendingResponses, $serializable);
+    }
+
+    protected function callHandler(callable $handler, JsonRpcRequest $request): mixed
+    {
+        try {
+            return $handler();
+        } catch (Throwable $throwable) {
+            if ($this instanceof Errable) {
+                return $this->toErrorResponse($throwable);
+            }
+
+            throw $this->toJsonRpcException($throwable, $request->id);
+        }
+    }
+
+    protected function toJsonRpcException(Throwable $e, mixed $requestId): JsonRpcException
+    {
+        if ($e instanceof ValidationException) {
+            return new JsonRpcException(ValidationMessages::from($e), -32602, $requestId);
+        }
+
+        return new JsonRpcException($this->toErrorMessage($e), -32603, $requestId);
+    }
+
+    protected function toErrorResponse(Throwable $e): Response
+    {
+        if ($e instanceof ValidationException) {
+            return Response::error(ValidationMessages::from($e));
+        }
+
+        if ($e instanceof AuthenticationException || $e instanceof AuthorizationException) {
+            return Response::error($e->getMessage());
+        }
+
+        return Response::error($this->toErrorMessage($e));
+    }
+
+    protected function toErrorMessage(Throwable $e): string
+    {
+        if (config('app.debug', false)) {
+            return $e->getMessage();
+        }
+
+        report($e);
+
+        return 'An internal server error occurred.';
     }
 
     protected function isBinary(string $content): bool

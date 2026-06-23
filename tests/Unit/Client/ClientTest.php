@@ -6,6 +6,7 @@ use Laravel\Mcp\Client;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\WebClient;
 use Tests\Fixtures\Client\FakeTransport;
 
 it('performs the initialize handshake on connect', function (): void {
@@ -354,4 +355,32 @@ it('times out when a stdio process stays silent', function (): void {
 
     expect(fn (): Client => $client->connect())
         ->toThrow(ClientException::class, 'Timed out while waiting for server response.');
+});
+
+it('preserves its shape across a serialize round-trip and wakes disconnected', function (): void {
+    config(['app.name' => 'Acme MCP App']);
+
+    $client = Client::local('node', ['server.js'])->withTimeout(12.5);
+
+    $payload = serialize($client);
+    $restored = unserialize($payload);
+
+    expect($restored)
+        ->toBeInstanceOf(Client::class)
+        ->and($restored->connected())->toBeFalse()
+        ->and($restored->__serialize())->toEqual($client->__serialize())
+        ->and($payload)
+        ->toContain('node')
+        ->not->toContain('Symfony\Component\Process');
+});
+
+it('restores a web client transport across a serialize round-trip', function (): void {
+    $client = Client::web('https://mcp.test/mcp')->withToken('tok');
+
+    $restored = unserialize(serialize($client));
+
+    expect($restored)
+        ->toBeInstanceOf(WebClient::class)
+        ->and($restored->connected())->toBeFalse()
+        ->and($restored->withToken('rotated'))->toBe($restored);
 });

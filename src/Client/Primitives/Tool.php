@@ -18,7 +18,7 @@ class Tool
      * @param  array<string, mixed>|null  $meta
      */
     public function __construct(
-        protected Client $client,
+        protected ?Client $client,
         public readonly string $name,
         public readonly ?string $title,
         public readonly ?string $description,
@@ -33,7 +33,7 @@ class Tool
     /**
      * @param  array<string, mixed>  $payload
      */
-    public static function from(Client $client, array $payload): self
+    public static function from(?Client $client, array $payload): self
     {
         $name = Arr::get($payload, 'name');
         $title = Arr::get($payload, 'title');
@@ -70,6 +70,10 @@ class Tool
      */
     public function call(array $arguments = []): ToolResult
     {
+        if (! $this->client instanceof Client) {
+            throw new ClientException("Tool [{$this->name}] is not bound to a client.");
+        }
+
         return $this->client->callTool($this->name, $arguments);
     }
 }

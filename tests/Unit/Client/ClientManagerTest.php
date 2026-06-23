@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Contracts\Cache\Repository;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\ClientManager;
+use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
+use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Facades\Mcp;
+use Laravel\Mcp\WebClient;
 use Tests\Fixtures\Client\FakeTransport;
 use Tests\Fixtures\Client\ThrowingTransport;
 
@@ -116,20 +119,65 @@ it('keeps disconnecting other clients when one throws during teardown', function
     expect($healthy->connected)->toBeFalse();
 });
 
-it('caches a named client tools list across resolutions', function (): void {
+it('fetches a fresh tools list on every resolution', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
     $transport->responses[] = toolsResponse(2);
+    $transport->responses[] = toolsResponse(3);
 
     Mcp::registerClient('everything', fn (): Client => new Client($transport));
 
     expect(Mcp::client('everything')->tools()->keys()->all())->toBe(['add']);
     expect(Mcp::client('everything')->tools()->keys()->all())->toBe(['add']);
     expect($transport->responses)->toBeEmpty();
-    expect($transport->sent)->toHaveCount(3);
 });
 
-it('forwards callTool / ping / connected / initializeResult / withTimeout to the inner client', function (): void {
+it('returns the given default from a named client when authorization is required', function (): void {
+    Http::fake([
+        'https://mcp.test/mcp' => Http::response('', 401),
+    ]);
+
+    Mcp::registerClient('nightwatch', fn (): Client => new Client(new HttpTransport('https://mcp.test/mcp')));
+
+    $tools = Mcp::client('nightwatch')->tools(default: []);
+
+    expect($tools)->toBeInstanceOf(Collection::class)->toBeEmpty();
+});
+
+it('rethrows the authorization exception from a named client when no default is given', function (): void {
+    Http::fake([
+        'https://mcp.test/mcp' => Http::response('', 401),
+    ]);
+
+    Mcp::registerClient('nightwatch', fn (): Client => new Client(new HttpTransport('https://mcp.test/mcp')));
+
+    expect(fn () => Mcp::client('nightwatch')->tools())
+        ->toThrow(AuthorizationRequiredException::class);
+});
+
+it('resolves a subclassed client and preserves fluent chaining', function (): void {
+    $web = new WebClient(new HttpTransport('https://example.test/mcp'));
+
+    Mcp::registerClient('remote', fn (): WebClient => $web);
+
+    $client = Mcp::client('remote');
+
+    expect($client)->toBe($web);
+    expect($client->withToken('secret'))->toBe($client);
+});
+
+it('applies a tools limit on the resolved client', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = toolsResponse(2);
+
+    Mcp::registerClient('everything', fn (): Client => new Client($transport));
+
+    expect(Mcp::client('everything')->tools(1)->keys()->all())->toBe(['add']);
+    expect($transport->responses)->toBeEmpty();
+});
+
+it('exposes callTool / ping / connected / initializeResult / withTimeout on the resolved client', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
     $transport->responses[] = pingResponse(2);
@@ -153,91 +201,66 @@ it('forwards callTool / ping / connected / initializeResult / withTimeout to the
     expect($client->callTool('say-hi')->text())->toBe('hi');
 });
 
-it('keeps a separate cache per client name', function (): void {
-    $alpha = new FakeTransport;
-    $alpha->responses[] = initializeResponse();
-    $alpha->responses[] = json_encode([
-        'jsonrpc' => '2.0',
-        'id' => 2,
-        'result' => ['tools' => [['name' => 'alpha']]],
-    ]);
-
-    $beta = new FakeTransport;
-    $beta->responses[] = initializeResponse();
-    $beta->responses[] = json_encode([
-        'jsonrpc' => '2.0',
-        'id' => 2,
-        'result' => ['tools' => [['name' => 'beta']]],
-    ]);
-
-    Mcp::registerClient('alpha', fn (): Client => new Client($alpha));
-    Mcp::registerClient('beta', fn (): Client => new Client($beta));
-
-    expect(Mcp::client('alpha')->tools()->keys()->all())->toBe(['alpha']);
-    expect(Mcp::client('beta')->tools()->keys()->all())->toBe(['beta']);
-});
-
-it('caches with an explicit ttl', function (): void {
+it('returns a tools list the application can cache and restore', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
     $transport->responses[] = toolsResponse(2);
-
-    Mcp::registerClient('everything', fn (): Client => new Client($transport), cacheTtl: 1800);
-
-    Mcp::client('everything')->tools();
-    Mcp::client('everything')->tools();
-
-    expect($transport->responses)->toBeEmpty();
-});
-
-it('treats a zero ttl as no cache', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = initializeResponse();
-    $transport->responses[] = toolsResponse(2);
-    $transport->responses[] = toolsResponse(3);
-
-    Mcp::registerClient('dev', fn (): Client => new Client($transport), cacheTtl: 0);
-
-    Mcp::client('dev')->tools();
-    Mcp::client('dev')->tools();
-
-    expect($transport->responses)->toBeEmpty();
-});
-
-it('rehydrates cached tools against the live client', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = initializeResponse();
-    $transport->responses[] = toolsResponse(2);
-    $transport->responses[] = json_encode([
-        'jsonrpc' => '2.0',
-        'id' => 3,
-        'result' => ['content' => [['type' => 'text', 'text' => 'three']], 'isError' => false],
-    ]);
 
     Mcp::registerClient('everything', fn (): Client => new Client($transport));
 
-    Mcp::client('everything')->tools();
-    $result = Mcp::client('everything')->tools()['add']->call(['a' => 1, 'b' => 2]);
+    $tools = Mcp::client('everything')->tools();
 
-    expect($result->text())->toBe('three');
+    $restored = unserialize(serialize($tools));
+
+    expect($restored->keys()->all())->toBe(['add']);
+    expect($restored['add']->description)->toBe('Adds two numbers');
 });
 
-it('flushes the cached tools list on demand', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = initializeResponse();
-    $transport->responses[] = toolsResponse(2);
-    $transport->responses[] = toolsResponse(3);
+it('serializes a named client as its name only and re-resolves it when a restored tool is called', function (): void {
+    $resolutions = 0;
 
-    Mcp::registerClient('everything', fn (): Client => new Client($transport));
+    Mcp::registerClient('everything', function () use (&$resolutions): Client {
+        $resolutions++;
 
-    Mcp::client('everything')->tools();
-    Mcp::client('everything')->flushCache();
-    Mcp::client('everything')->tools();
+        $transport = new FakeTransport;
+        $transport->responses[] = initializeResponse();
+        $transport->responses[] = $resolutions === 1
+            ? toolsResponse(2)
+            : json_encode([
+                'jsonrpc' => '2.0',
+                'id' => 2,
+                'result' => ['content' => [['type' => 'text', 'text' => 'added']], 'isError' => false],
+            ]);
 
-    expect($transport->responses)->toBeEmpty();
+        return new Client($transport);
+    });
+
+    $payload = serialize(Mcp::client('everything')->tools());
+
+    expect($payload)->toContain('everything')->not->toContain('secret');
+
+    app(ClientManager::class)->disconnectAll();
+
+    $restored = unserialize($payload);
+
+    expect($restored['add']->call()->text())->toBe('added')
+        ->and($resolutions)->toBe(2);
 });
 
-it('does not cache inline clients', function (): void {
+it('gives a restored named client its own transport instead of aliasing the cached one', function (): void {
+    Mcp::registerClient('everything', fn (): Client => new Client(new FakeTransport));
+
+    $live = Mcp::client('everything');
+
+    $restored = unserialize(serialize($live));
+
+    $transport = new ReflectionProperty(Client::class, 'transport');
+
+    expect($restored)->not->toBe($live)
+        ->and($transport->getValue($restored))->not->toBe($transport->getValue($live));
+});
+
+it('does not cache tools on the resolved client', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
     $transport->responses[] = toolsResponse(2);
@@ -248,38 +271,6 @@ it('does not cache inline clients', function (): void {
     $client->tools();
 
     expect($transport->responses)->toBeEmpty();
-});
-
-it('scopes the tools list cache per resolved scope value', function (): void {
-    $alpha = new FakeTransport;
-    $alpha->responses[] = initializeResponse();
-    $alpha->responses[] = json_encode([
-        'jsonrpc' => '2.0',
-        'id' => 2,
-        'result' => ['tools' => [['name' => 'alpha-tool']]],
-    ]);
-    $alpha->responses[] = json_encode([
-        'jsonrpc' => '2.0',
-        'id' => 3,
-        'result' => ['tools' => [['name' => 'beta-tool']]],
-    ]);
-
-    $scope = 1;
-
-    Mcp::registerClient(
-        'notion',
-        fn (): Client => new Client($alpha),
-        scope: function () use (&$scope): int {
-            return $scope;
-        },
-    );
-
-    expect(Mcp::client('notion')->tools()->keys()->all())->toBe(['alpha-tool']);
-
-    $scope = 2;
-
-    expect(Mcp::client('notion')->tools()->keys()->all())->toBe(['beta-tool']);
-    expect($alpha->responses)->toBeEmpty();
 });
 
 it('still installs a fresh factory when an old client fails to disconnect', function (): void {
@@ -301,35 +292,7 @@ it('still installs a fresh factory when an old client fails to disconnect', func
     expect($fresh->connected)->toBeTrue();
 });
 
-it('refetches when the cached payload no longer validates', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = initializeResponse();
-    $transport->responses[] = toolsResponse(2);
-
-    Mcp::registerClient('everything', fn (): Client => new Client($transport));
-
-    app(Repository::class)
-        ->put('mcp-list:everything:tools', [['not-a-valid' => 'tool-payload']], 3600);
-
-    expect(Mcp::client('everything')->tools()->keys()->all())->toBe(['add']);
-    expect($transport->responses)->toBeEmpty();
-});
-
-it('refetches when the cached payload contains a non-array entry', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = initializeResponse();
-    $transport->responses[] = toolsResponse(2);
-
-    Mcp::registerClient('everything', fn (): Client => new Client($transport));
-
-    app(Repository::class)
-        ->put('mcp-list:everything:tools', ['not-an-array'], 3600);
-
-    expect(Mcp::client('everything')->tools()->keys()->all())->toBe(['add']);
-    expect($transport->responses)->toBeEmpty();
-});
-
-it('does not retry on a live fetch failure', function (): void {
+it('propagates a live fetch failure', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
     $transport->responses[] = json_encode([
@@ -344,69 +307,4 @@ it('does not retry on a live fetch failure', function (): void {
         ->toThrow(ClientException::class, 'Invalid tools/list response from server.');
 
     expect($transport->responses)->toBeEmpty();
-});
-
-it('uses the auth identifier when a scope closure returns an Authenticatable', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = initializeResponse();
-    $transport->responses[] = toolsResponse(2);
-
-    $user = new class implements Authenticatable
-    {
-        public function getAuthIdentifier(): int
-        {
-            return 42;
-        }
-
-        public function getAuthIdentifierName(): string
-        {
-            return 'id';
-        }
-
-        public function getAuthPassword(): string
-        {
-            return '';
-        }
-
-        public function getAuthPasswordName(): string
-        {
-            return 'password';
-        }
-
-        public function getRememberToken(): string
-        {
-            return '';
-        }
-
-        public function setRememberToken($value): void {}
-
-        public function getRememberTokenName(): string
-        {
-            return 'remember_token';
-        }
-    };
-
-    Mcp::registerClient(
-        'notion',
-        fn (): Client => new Client($transport),
-        scope: fn (): Authenticatable => $user,
-    );
-
-    Mcp::client('notion')->tools();
-
-    expect(app(Repository::class)->get('mcp-list:notion:tools:scope:42'))->toBeArray();
-});
-
-it('throws when the scope closure returns an unsupported type', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = initializeResponse();
-
-    Mcp::registerClient(
-        'notion',
-        fn (): Client => new Client($transport),
-        scope: fn (): array => ['oops'],
-    );
-
-    expect(fn () => Mcp::client('notion')->tools())
-        ->toThrow(ClientException::class, 'MCP cache scope closure must return');
 });

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Methods;
 
+use Exception;
 use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
 use InvalidArgumentException;
@@ -74,7 +75,11 @@ class CompletionComplete implements Method
 
         $contextArguments = Arr::get($request->get('context'), 'arguments', []);
 
-        $result = $this->invokeCompletion($primitive, $argumentName, $argumentValue, $contextArguments);
+        try {
+            $result = $this->invokeCompletion($primitive, $argumentName, $argumentValue, $contextArguments);
+        } catch (Exception) {
+            $result = CompletionResponse::empty();
+        }
 
         return JsonRpcResponse::result($request->id, [
             'completion' => $result->toArray(),

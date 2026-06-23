@@ -6,7 +6,6 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
 use Illuminate\Container\Container;
-use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Response;
@@ -16,7 +15,6 @@ use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
 use Laravel\Mcp\Server\Methods\Concerns\ResolvesPrompts;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Support\ValidationMessages;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 
@@ -36,12 +34,8 @@ class GetPrompt implements Method
             throw new JsonRpcException($invalidArgumentException->getMessage(), -32602, $request->id);
         }
 
-        try {
-            // @phpstan-ignore-next-line
-            $response = Container::getInstance()->call([$prompt, 'handle']);
-        } catch (ValidationException $validationException) {
-            $response = Response::error('Invalid params: '.ValidationMessages::from($validationException));
-        }
+        // @phpstan-ignore-next-line
+        $response = $this->callHandler(fn (): mixed => Container::getInstance()->call([$prompt, 'handle']), $request);
 
         return is_iterable($response)
             ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($prompt))

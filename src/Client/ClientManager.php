@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client;
 
 use Closure;
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Contracts\Cache\Repository;
 use Illuminate\Support\Traits\Macroable;
 use Laravel\Mcp\Client;
-use Laravel\Mcp\Client\Cache\PrimitiveCache;
 use Laravel\Mcp\Exceptions\ClientException;
 
 class ClientManager
@@ -22,72 +19,48 @@ class ClientManager
     /** @var array<string, Client> */
     protected array $clients = [];
 
-    public function __construct(protected ?Repository $cacheRepository = null)
-    {
-        //
-    }
-
     /**
      * @param  Closure(): Client  $factory
-     * @param  ?Closure(): (string|int|Authenticatable|null)  $scope
      */
-    public function registerClient(
-        string $name,
-        Closure $factory,
-        ?int $cacheTtl = null,
-        ?Closure $scope = null,
-    ): void {
-        $cacheTtl ??= (int) config('mcp.client.cache_ttl', 3600);
-
+    public function registerClient(string $name, Closure $factory): void
+    {
         if (isset($this->clients[$name])) {
-            try {
-                $this->clients[$name]->disconnect();
-            } catch (ClientException) {
-            }
+            $this->disconnect($this->clients[$name]);
 
             unset($this->clients[$name]);
         }
 
-        $this->factories[$name] = fn (): Client => $factory()->withListCache(
-            $this->buildListCache($name, $cacheTtl, $scope),
-        );
+        $this->factories[$name] = $factory;
     }
 
     public function client(string $name): Client
+    {
+        return $this->clients[$name] ??= $this->build($name);
+    }
+
+    public function build(string $name): Client
     {
         if (! array_key_exists($name, $this->factories)) {
             throw new ClientException("MCP client [{$name}] has not been registered.");
         }
 
-        return $this->clients[$name] ??= ($this->factories[$name])();
+        return ($this->factories[$name])()->setName($name);
     }
 
     public function disconnectAll(): void
     {
         foreach ($this->clients as $client) {
-            try {
-                $client->disconnect();
-            } catch (ClientException) {
-            }
+            $this->disconnect($client);
         }
 
         $this->clients = [];
     }
 
-    /**
-     * @param  ?Closure(): (string|int|Authenticatable|null)  $scope
-     */
-    protected function buildListCache(string $name, int $cacheTtl, ?Closure $scope): ?PrimitiveCache
+    protected function disconnect(Client $client): void
     {
-        if ($cacheTtl <= 0 || ! $this->cacheRepository instanceof Repository) {
-            return null;
+        try {
+            $client->disconnect();
+        } catch (ClientException) {
         }
-
-        return new PrimitiveCache(
-            cache: $this->cacheRepository,
-            name: $name,
-            ttl: $cacheTtl,
-            scope: $scope,
-        );
     }
 }
