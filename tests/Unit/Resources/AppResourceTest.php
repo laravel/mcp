@@ -126,8 +126,7 @@ it('uses the computed Claude domain when not set on app resource', function (): 
     try {
         app()->instance('request', HttpRequest::create($currentUrl, 'GET'));
 
-        $expectedDomain = str($currentUrl)
-            ->hash('sha256')
+        $expectedDomain = str(hash('sha256', $currentUrl))
             ->limit(32, '')
             ->append(AppResource::CLAUDE_DOMAIN_SUFFIX)
             ->value();

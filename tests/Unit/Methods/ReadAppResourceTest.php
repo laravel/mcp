@@ -59,8 +59,7 @@ it('includes auto-resolved Claude domain in _meta.ui content when no appMeta set
     try {
         app()->instance('request', HttpRequest::create($currentUrl, 'GET'));
 
-        $expectedDomain = str($currentUrl)
-            ->hash('sha256')
+        $expectedDomain = str(hash('sha256', $currentUrl))
             ->limit(32, '')
             ->append(AppResource::CLAUDE_DOMAIN_SUFFIX)
             ->value();
