@@ -138,8 +138,7 @@ it('returns null for uri when not set via constructor', function (): void {
 
 it('returns null for uri when explicitly set to null in constructor', function (): void {
     $request = new Request(
-        arguments: ['name' => 'Alice'],
-        uri: null
+        arguments: ['name' => 'Alice']
     );
 
     expect($request->uri())->toBeNull();
