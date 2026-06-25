@@ -75,15 +75,9 @@ class OAuthRegisterController
             'Laravel\Passport\ClientRepository'
         );
 
-        $redirectUris = (array) $validated['redirect_uris'];
-
-        $name = $validated['client_name']
-            ?? $validated['name']
-            ?? (parse_url((string) ($redirectUris[0] ?? ''), PHP_URL_HOST) ?: 'MCP Client');
-
         $client = $clients->createAuthorizationCodeGrantClient(
-            name: $name,
-            redirectUris: $redirectUris,
+            name: $this->resolveClientName($validated),
+            redirectUris: $validated['redirect_uris'],
             confidential: false,
             enableDeviceFlow: false,
         );
@@ -96,6 +90,18 @@ class OAuthRegisterController
             'scope' => 'mcp:use',
             'token_endpoint_auth_method' => 'none',
         ], 201);
+    }
+
+    /**
+     * Resolve the client name, falling back to the redirect host or a default.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    protected function resolveClientName(array $validated): string
+    {
+        return $validated['client_name']
+            ?? $validated['name']
+            ?? (parse_url((string) ($validated['redirect_uris'][0] ?? ''), PHP_URL_HOST) ?: 'MCP Client');
     }
 
     protected function isValidRedirectUri(string $value): bool
