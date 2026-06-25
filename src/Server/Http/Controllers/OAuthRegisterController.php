@@ -21,8 +21,8 @@ class OAuthRegisterController
     public function __invoke(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'client_name' => ['nullable', 'string', 'min:1', 'max:255', 'required_without:name'],
-            'name' => ['nullable', 'string', 'min:1', 'max:255', 'required_without:client_name'],
+            'client_name' => ['nullable', 'string', 'min:1', 'max:255'],
+            'name' => ['nullable', 'string', 'min:1', 'max:255'],
             'redirect_uris' => ['required', 'array', 'min:1'],
             'redirect_uris.*' => ['required', 'string', function (string $attribute, $value, $fail): void {
                 if (! $this->isValidRedirectUri($value)) {
@@ -76,7 +76,7 @@ class OAuthRegisterController
         );
 
         $client = $clients->createAuthorizationCodeGrantClient(
-            name: $validated['client_name'] ?? $validated['name'],
+            name: $this->resolveClientName($validated),
             redirectUris: $validated['redirect_uris'],
             confidential: false,
             enableDeviceFlow: false,
@@ -90,6 +90,18 @@ class OAuthRegisterController
             'scope' => 'mcp:use',
             'token_endpoint_auth_method' => 'none',
         ], 201);
+    }
+
+    /**
+     * Resolve the client name, falling back to the redirect host or a default.
+     *
+     * @param  array<string, mixed>  $validated
+     */
+    protected function resolveClientName(array $validated): string
+    {
+        return $validated['client_name']
+            ?? $validated['name']
+            ?? (parse_url((string) ($validated['redirect_uris'][0] ?? ''), PHP_URL_HOST) ?: 'MCP Client');
     }
 
     protected function isValidRedirectUri(string $value): bool

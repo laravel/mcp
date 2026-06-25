@@ -221,7 +221,7 @@ it('handles oauth registration endpoint', function (): void {
     ]);
 });
 
-it('requires an oauth client name for registration', function (): void {
+it('falls back to the redirect host when no client name is provided', function (): void {
     $clientRepository = new class
     {
         public ?string $capturedName = null;
@@ -244,13 +244,63 @@ it('requires an oauth client name for registration', function (): void {
     $this->app->instance(ClientRepository::class, $clientRepository);
 
     $response = $this->postJson('/oauth/register', [
-        'redirect_uris' => ['http://localhost:3000/callback'],
+        'redirect_uris' => ['https://example.com/callback'],
+    ]);
+
+    $response->assertStatus(201);
+
+    expect($clientRepository->capturedName)->toBe('example.com');
+});
+
+it('returns invalid_client_metadata when client metadata is invalid', function (): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => str_repeat('a', 256),
+        'redirect_uris' => ['https://example.com/callback'],
     ]);
 
     $response->assertStatus(400);
     $response->assertJson([
         'error' => 'invalid_client_metadata',
     ]);
+});
+
+it('preserves a falsy client name for oauth registration', function (): void {
+    $clientRepository = new class
+    {
+        public ?string $capturedName = null;
+
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        {
+            $this->capturedName = $name;
+
+            return (object) [
+                'id' => 'test-client-id',
+                'grant_types' => ['authorization_code'],
+                'redirect_uris' => $redirectUris,
+            ];
+        }
+    };
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance(ClientRepository::class, $clientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => '0',
+        'redirect_uris' => ['https://example.com/callback'],
+    ]);
+
+    $response->assertStatus(201);
+
+    expect($clientRepository->capturedName)->toBe('0');
 });
 
 it('falls back to the legacy name field for oauth registration', function (): void {
@@ -699,7 +749,7 @@ it('returns json validation errors even without Accept application/json header',
     $this->app->instance(ClientRepository::class, new ClientRepository);
 
     $response = $this->post('/oauth/register', [
-        'redirect_uris' => ['http://localhost:3000/callback'],
+        'redirect_uris' => ['not-a-valid-url'],
     ], ['Accept' => '*/*']);
 
     $response->assertStatus(400);
