@@ -21,8 +21,8 @@ class OAuthRegisterController
     public function __invoke(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'client_name' => ['nullable', 'string', 'min:1', 'max:255', 'required_without:name'],
-            'name' => ['nullable', 'string', 'min:1', 'max:255', 'required_without:client_name'],
+            'client_name' => ['nullable', 'string', 'min:1', 'max:255'],
+            'name' => ['nullable', 'string', 'min:1', 'max:255'],
             'redirect_uris' => ['required', 'array', 'min:1'],
             'redirect_uris.*' => ['required', 'string', function (string $attribute, $value, $fail): void {
                 if (! $this->isValidRedirectUri($value)) {
@@ -75,9 +75,15 @@ class OAuthRegisterController
             'Laravel\Passport\ClientRepository'
         );
 
+        $redirectUris = (array) $validated['redirect_uris'];
+
+        $name = $validated['client_name']
+            ?? $validated['name']
+            ?? (parse_url((string) ($redirectUris[0] ?? ''), PHP_URL_HOST) ?: 'MCP Client');
+
         $client = $clients->createAuthorizationCodeGrantClient(
-            name: $validated['client_name'] ?? $validated['name'],
-            redirectUris: $validated['redirect_uris'],
+            name: $name,
+            redirectUris: $redirectUris,
             confidential: false,
             enableDeviceFlow: false,
         );
