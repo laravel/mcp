@@ -1,6 +1,22 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.8.1...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.8.2...main)
+
+## [v0.8.2](https://github.com/laravel/mcp/compare/v0.8.1...v0.8.2) - 2026-06-25
+
+### What's Changed
+
+* Bump shivammathur/setup-php from 2.37.1 to 2.37.2 in the github-actions group by [@dependabot](https://github.com/dependabot)[bot] in https://github.com/laravel/mcp/pull/252
+* feat: compute default AppResource ui.domain from current URL for Claude compatibility by [@cirolosapio](https://github.com/cirolosapio) in https://github.com/laravel/mcp/pull/231
+* Bump actions/checkout from 6.0.3 to 7.0.0 in the github-actions group by [@dependabot](https://github.com/dependabot)[bot] in https://github.com/laravel/mcp/pull/255
+* Allow OAuth client registration without a client name by [@lazerg](https://github.com/lazerg) in https://github.com/laravel/mcp/pull/254
+
+### New Contributors
+
+* [@cirolosapio](https://github.com/cirolosapio) made their first contribution in https://github.com/laravel/mcp/pull/231
+* [@lazerg](https://github.com/lazerg) made their first contribution in https://github.com/laravel/mcp/pull/254
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.8.1...v0.8.2
 
 ## [v0.8.1](https://github.com/laravel/mcp/compare/v0.8.0...v0.8.1) - 2026-06-11
 
@@ -283,6 +299,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -293,6 +310,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
