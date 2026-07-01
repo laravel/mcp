@@ -57,6 +57,7 @@ class Protocol
 
         try {
             $this->initializeResult = (new Initialize($this->clientInfo))->handle($this);
+            $this->transport->setProtocolVersion($this->initializeResult->protocolVersion);
 
             $this->notify('notifications/initialized');
         } catch (Throwable $throwable) {

@@ -27,6 +27,8 @@ class HttpTransport implements Transport
 
     protected bool $initialized = false;
 
+    protected ?string $protocolVersion = null;
+
     protected float $timeoutSeconds = 30.0;
 
     /** @var array<string, string> */
@@ -55,6 +57,11 @@ class HttpTransport implements Transport
     public function setTimeoutSeconds(float $seconds): void
     {
         $this->timeoutSeconds = $seconds;
+    }
+
+    public function setProtocolVersion(?string $version): void
+    {
+        $this->protocolVersion = $version;
     }
 
     /**
@@ -176,7 +183,7 @@ class HttpTransport implements Transport
         }
 
         if ($this->initialized) {
-            $headers['MCP-Protocol-Version'] = ProtocolVersion::LATEST->value;
+            $headers['MCP-Protocol-Version'] = $this->protocolVersion ?? ProtocolVersion::LATEST->value;
         }
 
         $token = $this->token instanceof Closure ? (string) ($this->token)() : $this->token;
@@ -275,6 +282,7 @@ class HttpTransport implements Transport
     {
         $this->sessionId = null;
         $this->initialized = false;
+        $this->protocolVersion = null;
         $this->queue = [];
     }
 

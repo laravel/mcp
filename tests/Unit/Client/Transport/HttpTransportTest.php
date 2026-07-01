@@ -107,7 +107,20 @@ it('captures the MCP-Session-Id and resends it on later requests', function (): 
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'ping' && $request->hasHeader('MCP-Session-Id', 'session-abc'));
 });
 
-it('omits the protocol version header on initialize and includes it afterwards', function (): void {
+it('omits the protocol version header on initialize and includes the negotiated version afterwards', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
+    $transport->receive();
+    $transport->setProtocolVersion(ProtocolVersion::V2025_06_18->value);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list']));
+
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'initialize' && ! $request->hasHeader('MCP-Protocol-Version'));
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::V2025_06_18->value));
+});
+
+it('falls back to the latest protocol version when initialized without a negotiated version', function (): void {
     Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
 
     $transport = new HttpTransport('https://mcp.test/mcp');
@@ -115,7 +128,6 @@ it('omits the protocol version header on initialize and includes it afterwards',
     $transport->receive();
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list']));
 
-    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'initialize' && ! $request->hasHeader('MCP-Protocol-Version'));
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::LATEST->value));
 });
 

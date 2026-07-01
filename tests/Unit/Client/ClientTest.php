@@ -37,6 +37,24 @@ it('performs the initialize handshake on connect', function (): void {
     expect($initialized)->not->toHaveKey('id');
 });
 
+it('stores the negotiated protocol version on the transport before initialized notification', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'protocolVersion' => ProtocolVersion::V2025_06_18->value,
+            'capabilities' => new stdClass,
+            'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
+        ],
+    ]);
+
+    $client = new Client($transport);
+    $client->connect();
+
+    expect($transport->protocolVersion)->toBe(ProtocolVersion::V2025_06_18->value);
+});
+
 it('pings the server', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
