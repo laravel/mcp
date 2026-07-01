@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Client\Transport;
 use Closure;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response as ClientResponse;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Client\Contracts\Transport;
@@ -57,11 +58,6 @@ class HttpTransport implements Transport
     public function setTimeoutSeconds(float $seconds): void
     {
         $this->timeoutSeconds = $seconds;
-    }
-
-    public function setProtocolVersion(?string $version): void
-    {
-        $this->protocolVersion = $version;
     }
 
     /**
@@ -136,21 +132,45 @@ class HttpTransport implements Transport
             $this->failWith("Unexpected HTTP status [{$response->status()}] from endpoint [{$this->url}].");
         }
 
+        $justInitialized = ! $this->initialized;
         $this->initialized = true;
+        $queuedBefore = count($this->queue);
 
         if (str_contains($response->header('Content-Type'), 'text/event-stream')) {
             $this->readSseStream($response);
+        } else {
+            $body = trim($response->body());
 
-            return;
+            if (! $response->accepted() && $body !== '') {
+                $this->queue[] = $body;
+            }
         }
 
-        $body = trim($response->body());
-
-        if ($response->accepted() || $body === '') {
-            return;
+        if ($justInitialized) {
+            $this->captureProtocolVersion(array_slice($this->queue, $queuedBefore));
         }
+    }
 
-        $this->queue[] = $body;
+    /**
+     * @param  array<int, string>  $messages
+     */
+    protected function captureProtocolVersion(array $messages): void
+    {
+        foreach ($messages as $message) {
+            $decoded = json_decode($message, true);
+
+            if (! is_array($decoded)) {
+                continue;
+            }
+
+            $version = Arr::get($decoded, 'result.protocolVersion');
+
+            if (is_string($version)) {
+                $this->protocolVersion = $version;
+
+                return;
+            }
+        }
     }
 
     public function receive(): string

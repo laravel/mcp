@@ -37,22 +37,25 @@ it('performs the initialize handshake on connect', function (): void {
     expect($initialized)->not->toHaveKey('id');
 });
 
-it('stores the negotiated protocol version on the transport before initialized notification', function (): void {
+it('disconnects when the server negotiates a version the client does not support', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,
         'result' => [
-            'protocolVersion' => ProtocolVersion::V2025_06_18->value,
+            'protocolVersion' => ProtocolVersion::V2024_11_05->value,
             'capabilities' => new stdClass,
             'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
         ],
     ]);
 
     $client = new Client($transport);
-    $client->connect();
 
-    expect($transport->protocolVersion)->toBe(ProtocolVersion::V2025_06_18->value);
+    expect(function () use ($client): void {
+        $client->connect();
+    })->toThrow(ClientException::class, 'The server negotiated an unsupported protocol version.');
+
+    expect($transport->connected)->toBeFalse();
 });
 
 it('pings the server', function (): void {
@@ -241,15 +244,15 @@ it('throws when the error payload is not an object', function (): void {
         ->toThrow(ClientException::class, 'Invalid JSON-RPC error payload.');
 });
 
-it('throws when the initialize result is invalid', function (): void {
+it('throws when the initialize result is structurally invalid', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,
         'result' => [
-            'protocolVersion' => 'invalid',
+            'protocolVersion' => ProtocolVersion::LATEST->value,
             'capabilities' => new stdClass,
-            'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
+            'serverInfo' => ['version' => '1.0.0'],
         ],
     ]);
 

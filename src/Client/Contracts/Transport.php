@@ -10,8 +10,6 @@ interface Transport
 
     public function disconnect(): void;
 
-    public function setProtocolVersion(?string $version): void;
-
     public function send(string $message): void;
 
     public function receive(): string;

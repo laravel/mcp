@@ -65,11 +65,6 @@ class StdioTransport implements Transport
         $this->timeoutSeconds = $seconds;
     }
 
-    public function setProtocolVersion(?string $version): void
-    {
-        // Stdio transports do not send protocol version headers.
-    }
-
     /**
      * @return array<string, mixed>
      */

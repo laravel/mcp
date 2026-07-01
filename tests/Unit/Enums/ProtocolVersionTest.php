@@ -21,3 +21,10 @@ it('returns only string values', function (): void {
         expect($version)->toBeString();
     }
 });
+
+it('supports only the versions that define the protocol version header as a client', function (): void {
+    expect(ProtocolVersion::clientSupported())->toBe([
+        ProtocolVersion::V2025_11_25->value,
+        ProtocolVersion::V2025_06_18->value,
+    ]);
+});
