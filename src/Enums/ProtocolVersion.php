@@ -20,4 +20,15 @@ enum ProtocolVersion: string
     {
         return array_column(self::cases(), 'value');
     }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function clientSupported(): array
+    {
+        return [
+            self::V2025_11_25->value,
+            self::V2025_06_18->value,
+        ];
+    }
 }

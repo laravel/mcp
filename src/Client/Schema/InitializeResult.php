@@ -36,9 +36,11 @@ class InitializeResult
         $serverVersion = Arr::get($serverInfo, 'version');
         $instructions = Arr::get($payload, 'instructions');
 
-        if (! is_string($protocolVersion)
-            || ! in_array($protocolVersion, ProtocolVersion::supported(), true)
-            || ! is_array($capabilities)
+        if (! is_string($protocolVersion) || ! in_array($protocolVersion, ProtocolVersion::clientSupported(), true)) {
+            throw new ClientException('The server negotiated an unsupported protocol version.');
+        }
+
+        if (! is_array($capabilities)
             || ! is_array($serverInfo)
             || ! is_string($serverName)
             || ! is_string($serverVersion)) {

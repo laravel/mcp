@@ -107,7 +107,20 @@ it('captures the MCP-Session-Id and resends it on later requests', function (): 
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'ping' && $request->hasHeader('MCP-Session-Id', 'session-abc'));
 });
 
-it('omits the protocol version header on initialize and includes it afterwards', function (): void {
+it('omits the protocol version header on initialize and includes the negotiated version afterwards', function (): void {
+    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
+    $transport->receive();
+    $transport->setProtocolVersion(ProtocolVersion::V2025_06_18->value);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list']));
+
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'initialize' && ! $request->hasHeader('MCP-Protocol-Version'));
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::V2025_06_18->value));
+});
+
+it('falls back to the latest protocol version when initialized without a negotiated version', function (): void {
     Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
 
     $transport = new HttpTransport('https://mcp.test/mcp');
@@ -115,7 +128,6 @@ it('omits the protocol version header on initialize and includes it afterwards',
     $transport->receive();
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list']));
 
-    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'initialize' && ! $request->hasHeader('MCP-Protocol-Version'));
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::LATEST->value));
 });
 
@@ -355,6 +367,87 @@ it('drives a full handshake and tools list over HTTP via Client::web', function 
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Session-Id', 'session-e2e'));
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('Authorization', 'Bearer e2e-token'));
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::LATEST->value));
+});
+
+it('throws when the server negotiates a protocol version the client does not support', function (): void {
+    Http::fakeSequence()
+        ->push(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'result' => [
+                'protocolVersion' => ProtocolVersion::V2025_03_26->value,
+                'capabilities' => new stdClass,
+                'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
+            ],
+        ]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-old'])
+        ->whenEmpty(Http::response('', 202));
+
+    expect(function (): void {
+        Client::web('https://mcp.test/mcp')->tools();
+    })->toThrow(ClientException::class, 'The server negotiated an unsupported protocol version.');
+});
+
+it('interoperates with a server negotiated down to 2025-06-18', function (): void {
+    Http::fakeSequence()
+        ->push(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'result' => [
+                'protocolVersion' => ProtocolVersion::V2025_06_18->value,
+                'capabilities' => new stdClass,
+                'serverInfo' => ['name' => 'Legacy Server', 'version' => '1.0.0'],
+            ],
+        ]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-2025-06-18'])
+        ->push('', 202)
+        ->push(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 2,
+            'result' => [
+                'tools' => [[
+                    'name' => 'add',
+                    'title' => 'Add Numbers',
+                    'description' => 'Adds two numbers',
+                    'inputSchema' => [
+                        'type' => 'object',
+                        'properties' => ['a' => ['type' => 'number'], 'b' => ['type' => 'number']],
+                        'required' => ['a', 'b'],
+                    ],
+                    'outputSchema' => [
+                        'type' => 'object',
+                        'properties' => ['sum' => ['type' => 'number']],
+                    ],
+                ]],
+            ],
+        ]), 200, ['Content-Type' => 'application/json'])
+        ->push(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 3,
+            'result' => [
+                'content' => [['type' => 'text', 'text' => '3']],
+                'structuredContent' => ['sum' => 3],
+                'isError' => false,
+            ],
+        ]), 200, ['Content-Type' => 'application/json'])
+        ->whenEmpty(Http::response('', 202));
+
+    $client = Client::web('https://mcp.test/mcp');
+    $tools = $client->tools();
+    $result = $client->callTool('add', ['a' => 1, 'b' => 2]);
+
+    expect($tools->keys()->all())->toBe(['add'])
+        ->and($tools->get('add')->title)->toBe('Add Numbers')
+        ->and($tools->get('add')->outputSchema)->toBe([
+            'type' => 'object',
+            'properties' => ['sum' => ['type' => 'number']],
+        ])
+        ->and($result->text())->toBe('3')
+        ->and($result->structuredContent)->toBe(['sum' => 3])
+        ->and($result->isError)->toBeFalse();
+
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'initialize' && ! $request->hasHeader('MCP-Protocol-Version'));
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'notifications/initialized' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::V2025_06_18->value));
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::V2025_06_18->value));
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/call' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::V2025_06_18->value));
 });
 
 it('builds a WebClient from Client::web', function (): void {

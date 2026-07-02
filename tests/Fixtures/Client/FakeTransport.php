@@ -21,6 +21,8 @@ class FakeTransport implements Transport
 
     public float $timeoutSeconds = 30.0;
 
+    public ?string $protocolVersion = null;
+
     public function connect(): void
     {
         $this->connected = true;
@@ -39,6 +41,11 @@ class FakeTransport implements Transport
     public function setTimeoutSeconds(float $seconds): void
     {
         $this->timeoutSeconds = $seconds;
+    }
+
+    public function setProtocolVersion(string $version): void
+    {
+        $this->protocolVersion = $version;
     }
 
     /**
