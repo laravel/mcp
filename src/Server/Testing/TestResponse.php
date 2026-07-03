@@ -195,7 +195,7 @@ class TestResponse
 
     public function assertHasNoErrors(): static
     {
-        Assert::assertEmpty($this->errors());
+        Assert::assertSame([], $this->errors(), 'The response has errors.');
 
         return $this;
     }
