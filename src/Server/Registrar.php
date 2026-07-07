@@ -137,7 +137,11 @@ class Registrar
                 ->name('mcp.oauth.authorization-server');
         }
 
-        Router::get('/.well-known/oauth-protected-resource/{path}', static fn (string $path) => response()->json(static::protectedResourceMetadata($path)))
+        Router::get('/.well-known/oauth-protected-resource/{path}', static function (Route $route) {
+            $path = $route->parameter('path');
+
+            return response()->json(static::protectedResourceMetadata(is_string($path) ? $path : ''));
+        })
             ->where('path', '.*')
             ->name('mcp.oauth.protected-resource.nested');
 
