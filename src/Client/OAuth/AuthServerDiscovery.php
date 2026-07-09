@@ -188,7 +188,7 @@ class AuthServerDiscovery
         $host = $this->normalizedHost($parts['host']);
         $resourceHost = $this->normalizedHost($resourceParts['host']);
 
-        if ($this->isInternalHost($host) && ! ($this->isLocalhost($host) && $this->isLocalhost($resourceHost))) {
+        if ($this->isInternalHost($host) && (! $this->isLocalhost($host) || ! $this->isLocalhost($resourceHost))) {
             throw new OAuthException("OAuth endpoint [{$url}] cannot use a private or internal host.");
         }
     }

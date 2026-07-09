@@ -165,6 +165,19 @@ it('does not override an existing exact oauth protected resource route', functio
     ]);
 });
 
+it('resolves the nested protected resource path when a route parameter precedes it', function (): void {
+    Route::group(['domain' => '{account}.example.com'], function (): void {
+        (new Registrar)->oauthRoutes();
+    });
+
+    $response = $this->getJson('http://tenant.example.com/.well-known/oauth-protected-resource/mcp/server');
+
+    $response->assertStatus(200);
+    $response->assertJson([
+        'resource' => 'http://tenant.example.com/mcp/server',
+    ]);
+});
+
 it('adds mcp scope when passport is available', function (): void {
     if (! class_exists(Passport::class)) {
         require_once __DIR__.'/../../Fixtures/PassportPassport.php';
