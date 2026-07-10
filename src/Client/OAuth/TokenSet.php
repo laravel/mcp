@@ -4,15 +4,20 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\OAuth;
 
+use SensitiveParameter;
+
 class TokenSet
 {
     public function __construct(
+        #[SensitiveParameter]
         public string $accessToken,
+        #[SensitiveParameter]
         public ?string $refreshToken = null,
         public ?int $expiresAt = null,
         public string $tokenType = 'Bearer',
         public ?string $scope = null,
         public ?string $clientId = null,
+        #[SensitiveParameter]
         public ?string $clientSecret = null,
     ) {}
 

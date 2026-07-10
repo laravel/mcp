@@ -12,6 +12,7 @@ use Illuminate\Support\Uri;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\Concerns\InteractsWithOAuthEndpoints;
 use Laravel\Mcp\Client\OAuth\Enums\TokenEndpointAuthMethod;
+use SensitiveParameter;
 
 class OAuthClient
 {
@@ -127,8 +128,13 @@ class OAuthClient
         return $this->returnTo;
     }
 
-    public function refreshCredentials(string $refreshToken, ?string $clientId = null, ?string $clientSecret = null): TokenSet
-    {
+    public function refreshCredentials(
+        #[SensitiveParameter]
+        string $refreshToken,
+        ?string $clientId = null,
+        #[SensitiveParameter]
+        ?string $clientSecret = null,
+    ): TokenSet {
         $discovered = $this->discover();
 
         $clientId ??= $this->config->clientId;
@@ -153,8 +159,12 @@ class OAuthClient
         return $token;
     }
 
-    protected function exchangeAuthorizationCode(string $code, string $state, ?string $iss): TokenSet
-    {
+    protected function exchangeAuthorizationCode(
+        #[SensitiveParameter]
+        string $code,
+        string $state,
+        ?string $iss,
+    ): TokenSet {
         /** @var array<string, mixed>|null $stored */
         $stored = Session::get($this->sessionKey());
 
@@ -215,8 +225,14 @@ class OAuthClient
     /**
      * @param  array<string, mixed>  $params
      */
-    protected function requestToken(string $tokenEndpoint, array $params, ?string $clientId, ?string $clientSecret, TokenEndpointAuthMethod $authMethod): TokenSet
-    {
+    protected function requestToken(
+        string $tokenEndpoint,
+        array $params,
+        ?string $clientId,
+        #[SensitiveParameter]
+        ?string $clientSecret,
+        TokenEndpointAuthMethod $authMethod,
+    ): TokenSet {
         $request = $this->oAuthRequest()->asForm();
 
         $credentials = match ($authMethod) {
@@ -278,8 +294,11 @@ class OAuthClient
         return $this->config->scope ?? 'mcp:use';
     }
 
-    protected function resolveTokenAuthMethod(AuthServerMetadata $metadata, ?string $clientSecret): TokenEndpointAuthMethod
-    {
+    protected function resolveTokenAuthMethod(
+        AuthServerMetadata $metadata,
+        #[SensitiveParameter]
+        ?string $clientSecret,
+    ): TokenEndpointAuthMethod {
         if (blank($clientSecret)) {
             return TokenEndpointAuthMethod::None;
         }

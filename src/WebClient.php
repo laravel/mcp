@@ -10,6 +10,7 @@ use Laravel\Mcp\Client\OAuth\OAuthClient;
 use Laravel\Mcp\Client\OAuth\OAuthConfig;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Schema\Implementation;
+use SensitiveParameter;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 class WebClient extends Client
@@ -25,7 +26,7 @@ class WebClient extends Client
     /**
      * @param  string|Closure(): string  $token
      */
-    public function withToken(string|Closure $token): static
+    public function withToken(#[SensitiveParameter] string|Closure $token): static
     {
         $this->httpTransport->withToken($token);
 
@@ -44,6 +45,7 @@ class WebClient extends Client
 
     public function withOAuth(
         ?string $clientId = null,
+        #[SensitiveParameter]
         ?string $clientSecret = null,
         ?string $scope = null,
         ?string $redirectUri = null,
