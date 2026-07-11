@@ -16,6 +16,7 @@ use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\SessionExpiredException;
 use Psr\Http\Message\StreamInterface;
+use SensitiveParameter;
 use Throwable;
 
 class HttpTransport implements Transport
@@ -62,7 +63,7 @@ class HttpTransport implements Transport
     /**
      * @param  string|Closure(): string  $token
      */
-    public function withToken(string|Closure $token): void
+    public function withToken(#[SensitiveParameter] string|Closure $token): void
     {
         $this->token = $token;
     }
