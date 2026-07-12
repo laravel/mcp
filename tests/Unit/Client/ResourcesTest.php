@@ -451,3 +451,32 @@ it('coerces a non-array _meta from resources/read to null', function (): void {
 
     expect($result->meta)->toBeNull();
 });
+
+it('returns an unbound resource whose read throws until it is bound', function (): void {
+    $resource = Resource::from(null, ['uri' => 'file://readme', 'name' => 'readme']);
+
+    expect(fn (): ResourceReadResult => $resource->read())
+        ->toThrow(ClientException::class, 'Resource [file://readme] is not bound to a client.');
+});
+
+it('reads a bound resource returned from resources()', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => ['resources' => [['uri' => 'file://readme', 'name' => 'readme']]],
+    ]);
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 3,
+        'result' => ['contents' => [['uri' => 'file://readme', 'mimeType' => 'text/plain', 'text' => 'Hello, world!']]],
+    ]);
+
+    $resource = (new Client($transport))->resources()['file://readme'];
+
+    expect($resource->read()->content())->toBe('Hello, world!')
+        ->and(json_decode($transport->sent[3], true))
+        ->toHaveKey('method', 'resources/read')
+        ->toHaveKey('params.uri', 'file://readme');
+});

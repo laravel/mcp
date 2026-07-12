@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client\Primitives;
 
 use Illuminate\Support\Arr;
+use Laravel\Mcp\Client;
+use Laravel\Mcp\Client\Schema\ResourceReadResult;
 use Laravel\Mcp\Exceptions\ClientException;
 
 class Resource
@@ -14,6 +16,7 @@ class Resource
      * @param  array<string, mixed>|null  $meta
      */
     public function __construct(
+        protected ?Client $client,
         public readonly string $uri,
         public readonly string $name,
         public readonly ?string $title,
@@ -29,7 +32,7 @@ class Resource
     /**
      * @param  array<string, mixed>  $payload
      */
-    public static function from(array $payload): self
+    public static function from(?Client $client, array $payload): self
     {
         $uri = Arr::get($payload, 'uri');
         $name = Arr::get($payload, 'name');
@@ -52,6 +55,7 @@ class Resource
         }
 
         return new self(
+            client: $client,
             uri: $uri,
             name: $name,
             title: $title,
@@ -61,5 +65,14 @@ class Resource
             annotations: $annotations,
             meta: $meta,
         );
+    }
+
+    public function read(): ResourceReadResult
+    {
+        if (! $this->client instanceof Client) {
+            throw new ClientException("Resource [{$this->uri}] is not bound to a client.");
+        }
+
+        return $this->client->readResource($this->uri);
     }
 }

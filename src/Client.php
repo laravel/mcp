@@ -163,7 +163,7 @@ class Client
     public function resources(?int $limit = null, ?iterable $default = null): Collection
     {
         try {
-            return (new ListResources(limit: $limit))->handle($this->protocol);
+            return (new ListResources(client: $this, limit: $limit))->handle($this->protocol);
         } catch (AuthorizationRequiredException $authorizationRequiredException) {
             if ($default === null) {
                 throw $authorizationRequiredException;
