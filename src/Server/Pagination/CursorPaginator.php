@@ -56,7 +56,7 @@ class CursorPaginator
                 return 0;
             }
 
-            return (int) ($cursorData['offset'] ?? 0);
+            return max(0, (int) ($cursorData['offset'] ?? 0));
         } catch (Throwable) {
             //
         }
