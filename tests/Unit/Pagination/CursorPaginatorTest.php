@@ -73,3 +73,39 @@ it('handles invalid cursor gracefully', function (): void {
             ['name' => 'Item 2'],
         ]);
 });
+
+it('falls back to the first page for cursors that do not decode to an offset', function (string $cursor): void {
+    $items = collect([
+        ['name' => 'Item 1'],
+        ['name' => 'Item 2'],
+        ['name' => 'Item 3'],
+    ]);
+
+    $result = (new CursorPaginator($items, 2, $cursor))->paginate();
+
+    expect($result['items'])->toEqual([
+        ['name' => 'Item 1'],
+        ['name' => 'Item 2'],
+    ]);
+})->with([
+    'non-array JSON' => [base64_encode((string) json_encode(123))],
+    'valid base64 but invalid JSON' => [base64_encode('not-json{')],
+    'object without an offset key' => [base64_encode((string) json_encode(['foo' => 'bar']))],
+]);
+
+it('falls back to the first page for a negative offset', function (): void {
+    $items = collect([
+        ['name' => 'Item 1'],
+        ['name' => 'Item 2'],
+        ['name' => 'Item 3'],
+    ]);
+
+    $cursor = base64_encode((string) json_encode(['offset' => -1]));
+
+    $result = (new CursorPaginator($items, 2, $cursor))->paginate();
+
+    expect($result['items'])->toEqual([
+        ['name' => 'Item 1'],
+        ['name' => 'Item 2'],
+    ]);
+});
