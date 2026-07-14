@@ -107,7 +107,7 @@ class TestResponse
     }
 
     /**
-     * @param  array<string, mixed>|Closure(AssertableJson): bool  $structuredContent
+     * @param  array<string, mixed>|Closure(AssertableJson): mixed  $structuredContent
      */
     public function assertStructuredContent(Closure|array $structuredContent): static
     {
