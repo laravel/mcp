@@ -9,6 +9,7 @@ use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
+use Illuminate\Testing\AssertableJsonString;
 use Illuminate\Testing\Fluent\AssertableJson;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
@@ -111,8 +112,10 @@ class TestResponse
      */
     public function assertStructuredContent(Closure|array $structuredContent): static
     {
+        $structuredContentResponse = $this->decodeStructuredContentResponse();
+
         if ($structuredContent instanceof Closure) {
-            $assertableJson = AssertableJson::fromArray($this->response->toArray()['result']['structuredContent'] ?? null);
+            $assertableJson = AssertableJson::fromAssertableJsonString($structuredContentResponse);
 
             $structuredContent($assertableJson);
 
@@ -123,7 +126,7 @@ class TestResponse
 
         Assert::assertSame(
             $structuredContent,
-            $this->response->toArray()['result']['structuredContent'] ?? null,
+            $structuredContentResponse->json(),
             'The expected structured content does not match the actual structured content.'
         );
 
@@ -373,5 +376,16 @@ class TestResponse
         $response = $this->response->toArray();
 
         return $response['result']['completion']['values'] ?? [];
+    }
+
+    protected function decodeStructuredContentResponse(): AssertableJsonString
+    {
+        $response = json_decode(
+            $this->response->toJson(),
+            associative: true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+
+        return new AssertableJsonString($response['result']['structuredContent'] ?? []);
     }
 }
