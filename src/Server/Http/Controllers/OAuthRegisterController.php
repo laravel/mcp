@@ -95,6 +95,9 @@ class OAuthRegisterController
         ], 201);
     }
 
+    /**
+     * Grant the MCP scope when client scope restrictions are enabled.
+     */
     protected function grantMcpScope(mixed $client): void
     {
         if (! $client instanceof Model) {
