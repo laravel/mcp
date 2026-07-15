@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server\Http\Controllers;
 
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Container\BindingResolutionException;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -82,6 +83,8 @@ class OAuthRegisterController
             enableDeviceFlow: false,
         );
 
+        $this->grantMcpScope($client);
+
         return response()->json([
             'client_id' => (string) $client->id,
             'grant_types' => $client->grant_types,
@@ -90,6 +93,21 @@ class OAuthRegisterController
             'scope' => 'mcp:use',
             'token_endpoint_auth_method' => 'none',
         ], 201);
+    }
+
+    protected function grantMcpScope(mixed $client): void
+    {
+        if (! $client instanceof Model) {
+            return;
+        }
+
+        $columns = $client->getConnection()->getSchemaBuilder()->getColumnListing($client->getTable());
+
+        if (! in_array('scopes', $columns, true)) {
+            return;
+        }
+
+        $client->forceFill(['scopes' => ['mcp:use']])->save();
     }
 
     /**

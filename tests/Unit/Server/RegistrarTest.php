@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
 use Laravel\Mcp\Server\Registrar;
 use Laravel\Passport\ClientRepository;
 use Laravel\Passport\Passport;
@@ -13,6 +16,63 @@ function ensureMockClientRepository(): void
     if (! class_exists(ClientRepository::class)) {
         require_once __DIR__.'/../../Fixtures/PassportClientRepository.php';
     }
+}
+
+function oauthClientRepository(bool $supportsScopes): object
+{
+    Schema::dropIfExists('oauth_clients');
+    Schema::create('oauth_clients', function (Blueprint $table) use ($supportsScopes): void {
+        $table->string('id')->primary();
+        $table->string('name');
+        $table->json('grant_types');
+        $table->json('redirect_uris');
+
+        if ($supportsScopes) {
+            $table->json('scopes')->nullable();
+        }
+    });
+
+    $prototype = new class extends Model
+    {
+        public $incrementing = false;
+
+        public $timestamps = false;
+
+        protected $guarded = [];
+
+        protected $keyType = 'string';
+
+        protected $table = 'oauth_clients';
+
+        protected function casts(): array
+        {
+            return [
+                'grant_types' => 'array',
+                'redirect_uris' => 'array',
+                'scopes' => 'array',
+            ];
+        }
+    };
+
+    return new class($prototype)
+    {
+        public Model $client;
+
+        public function __construct(protected Model $prototype) {}
+
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false): Model
+        {
+            $client = $this->prototype->newInstance([
+                'id' => 'test-client-id',
+                'name' => $name,
+                'grant_types' => ['authorization_code'],
+                'redirect_uris' => $redirectUris,
+            ]);
+            $client->save();
+
+            return $this->client = $client;
+        }
+    };
 }
 
 it('registers a local server and retrieves it', function (): void {
@@ -232,6 +292,46 @@ it('handles oauth registration endpoint', function (): void {
         'scope' => 'mcp:use',
         'token_endpoint_auth_method' => 'none',
     ]);
+});
+
+it('persists the advertised mcp scope when passport client scopes are enabled', function (): void {
+    ensureMockClientRepository();
+
+    $clientRepository = oauthClientRepository(supportsScopes: true);
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance(ClientRepository::class, $clientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ]);
+
+    $response->assertStatus(201);
+    $response->assertJson(['scope' => 'mcp:use']);
+
+    expect($clientRepository->client->fresh()?->scopes)->toBe(['mcp:use']);
+});
+
+it('leaves passport clients unrestricted when client scopes are not enabled', function (): void {
+    ensureMockClientRepository();
+
+    $clientRepository = oauthClientRepository(supportsScopes: false);
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance(ClientRepository::class, $clientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ]);
+
+    $response->assertStatus(201);
+    $response->assertJson(['scope' => 'mcp:use']);
+
+    expect($clientRepository->client->fresh()?->getAttributes())->not->toHaveKey('scopes');
 });
 
 it('falls back to the redirect host when no client name is provided', function (): void {
