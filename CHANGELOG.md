@@ -1,6 +1,64 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.8.2...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.9.0...main)
+
+## [v0.9.0](https://github.com/laravel/mcp/compare/v0.8.2...v0.9.0) - 2026-07-16
+
+### What's Changed
+
+* Use negotiated MCP protocol version for HTTP client requests by [@andrew-downey](https://github.com/andrew-downey) in https://github.com/laravel/mcp/pull/257
+* Improve test error when unexpected errors are found in response by [@axlon](https://github.com/axlon) in https://github.com/laravel/mcp/pull/259
+* Fix schema return type in tool stub by [@axlon](https://github.com/axlon) in https://github.com/laravel/mcp/pull/261
+* Bump stefanzweifel/git-auto-commit-action from 7.1.0 to 7.2.0 in the github-actions group by [@dependabot](https://github.com/dependabot)[bot] in https://github.com/laravel/mcp/pull/263
+* Bump stefanzweifel/git-auto-commit-action from 7.1.0 to 7.2.0 in the github-actions group by [@dependabot](https://github.com/dependabot)[bot] in https://github.com/laravel/mcp/pull/264
+* Fix nested OAuth resource path with preceding route parameters by [@lazerg](https://github.com/lazerg) in https://github.com/laravel/mcp/pull/262
+* Add `#[SensitiveParameter]` to parameters carrying secrets by [@axlon](https://github.com/axlon) in https://github.com/laravel/mcp/pull/265
+* Fix CursorPaginator returning trailing items for a negative cursor offset by [@dfinchenko](https://github.com/dfinchenko) in https://github.com/laravel/mcp/pull/267
+* Update phpdoc for assertStructuredContent by [@chrisvanlier2005](https://github.com/chrisvanlier2005) in https://github.com/laravel/mcp/pull/268
+* Fix DCR scope persistence for Passport clients by [@Gujiassh](https://github.com/Gujiassh) in https://github.com/laravel/mcp/pull/270
+* Serialize structured content before asserting by [@chrisvanlier2005](https://github.com/chrisvanlier2005) in https://github.com/laravel/mcp/pull/269
+
+### New Contributors
+
+* [@andrew-downey](https://github.com/andrew-downey) made their first contribution in https://github.com/laravel/mcp/pull/257
+* [@axlon](https://github.com/axlon) made their first contribution in https://github.com/laravel/mcp/pull/259
+* [@dfinchenko](https://github.com/dfinchenko) made their first contribution in https://github.com/laravel/mcp/pull/267
+* [@chrisvanlier2005](https://github.com/chrisvanlier2005) made their first contribution in https://github.com/laravel/mcp/pull/268
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.8.2...v0.9.0
+
+### Upgrading To v0.9.0 From v0.8.0
+
+<a name="custom-client-transports"></a>
+
+#### Custom Client Transports
+
+**Likelihood Of Impact: low**
+
+The `Laravel\Mcp\Client\Contracts\Transport` contract now requires a `setProtocolVersion` method. The client calls this method after the `initialize` handshake so the transport can send the negotiated protocol version on subsequent requests.
+
+If your application implements this contract, add the method to your transport:
+
+```php
+public function setProtocolVersion(string $version): void
+{
+    $this->protocolVersion = $version;
+}
+
+
+```
+Transports that do not send per-request headers may implement the method as a no-op, as the first-party `StdioTransport` does.
+
+<a name="client-protocol-version-negotiation"></a>
+
+#### Client Protocol Version Negotiation
+
+**Likelihood Of Impact: Medium**
+
+The MCP client now validates the negotiated protocol version against the new `ProtocolVersion::clientSupported()` method rather than `ProtocolVersion::supported()`. The client supports `2025-11-25` and `2025-06-18`.
+
+Connecting to a server that negotiates `2025-03-26` or `2024-11-05` previously succeeded and will now throw a `Laravel\Mcp\Exceptions\ClientException`.
+The `ProtocolVersion::supported()` method is unchanged and still reports every version the *server* accepts.
 
 ## [v0.8.2](https://github.com/laravel/mcp/compare/v0.8.1...v0.8.2) - 2026-06-25
 
@@ -300,6 +358,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -310,6 +369,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
