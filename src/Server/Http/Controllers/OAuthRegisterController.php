@@ -9,7 +9,6 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Registrar;
@@ -80,18 +79,14 @@ class OAuthRegisterController
         );
 
         try {
-            $client = DB::transaction(function () use ($clients, $validated): mixed {
-                $client = $clients->createAuthorizationCodeGrantClient(
-                    name: $this->resolveClientName($validated),
-                    redirectUris: $validated['redirect_uris'],
-                    confidential: false,
-                    enableDeviceFlow: false,
-                );
+            $client = $clients->createAuthorizationCodeGrantClient(
+                name: $this->resolveClientName($validated),
+                redirectUris: $validated['redirect_uris'],
+                confidential: false,
+                enableDeviceFlow: false,
+            );
 
-                $this->grantMcpScope($client);
-
-                return $client;
-            });
+            $this->grantMcpScope($client);
         } catch (Throwable $throwable) {
             report($throwable);
 
