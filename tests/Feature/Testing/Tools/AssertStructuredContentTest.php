@@ -7,12 +7,35 @@ use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Tool;
 use PHPUnit\Framework\ExpectationFailedException;
 
+enum BookingStatus: string
+{
+    case Confirmed = 'confirmed';
+}
+
 class BookingServer extends Server
 {
     protected array $tools = [
         GetBookingTool::class,
         GetBookingWithoutStructuredContentTool::class,
+        GetBookingWithSerializableValuesTool::class,
     ];
+}
+
+class GetBookingWithSerializableValuesTool extends Tool
+{
+    protected string $name = 'booking/get/serializable';
+
+    protected string $title = 'Get booking';
+
+    protected string $description = 'Get a booking';
+
+    public function handle(): ResponseFactory
+    {
+        return Response::structured([
+            'status' => BookingStatus::Confirmed,
+            'amount' => 10.0,
+        ]);
+    }
 }
 
 class GetBookingTool extends Tool
@@ -87,4 +110,30 @@ it('fails to assert the structured content with closure', function (): void {
     $response = BookingServer::tool(GetBookingTool::class);
 
     $response->assertStructuredContent(fn (AssertableJson $json): AssertableJson => $json->where('type', 'foo')->etc());
+})->throws(ExpectationFailedException::class);
+
+it('serializes the structured content before asserting with a closure', function (): void {
+    $response = BookingServer::tool(GetBookingWithSerializableValuesTool::class);
+
+    $response->assertStructuredContent(
+        fn (AssertableJson $json): AssertableJson => $json
+            ->where('status', BookingStatus::Confirmed)
+            ->where('amount', 10)
+            ->etc()
+    );
+});
+
+it('serializes the structured content before asserting with an array', function (): void {
+    $response = BookingServer::tool(GetBookingWithSerializableValuesTool::class);
+
+    $response->assertStructuredContent([
+        'status' => BookingStatus::Confirmed,
+        'amount' => 10.0,
+    ]);
+});
+
+it('fails to assert the structured content with a closure when it is not present', function (): void {
+    $response = BookingServer::tool(GetBookingWithoutStructuredContentTool::class);
+
+    $response->assertStructuredContent(fn (AssertableJson $json): AssertableJson => $json->etc());
 })->throws(ExpectationFailedException::class);
