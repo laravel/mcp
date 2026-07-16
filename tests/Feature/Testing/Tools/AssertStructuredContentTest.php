@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Testing\Fluent\AssertableJson;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
