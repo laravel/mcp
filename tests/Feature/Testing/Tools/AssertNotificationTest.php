@@ -7,11 +7,29 @@ use Laravel\Mcp\Server\Tool;
 use PHPUnit\Framework\AssertionFailedError;
 use PHPUnit\Framework\ExpectationFailedException;
 
+enum ReservationStep: string
+{
+    case Starting = 'starting';
+}
+
 class RestaurantT extends Server
 {
     protected array $tools = [
         ReservationTool::class,
+        SerializableNotificationTool::class,
     ];
+}
+
+class SerializableNotificationTool extends Tool
+{
+    public function handle(): Generator
+    {
+        yield Response::notification('booking/step', ['step' => ReservationStep::Starting]);
+
+        yield Response::notification('booking/empty', []);
+
+        yield 'Your booking is confirmed!';
+    }
 }
 
 class ReservationTool extends Tool
@@ -70,3 +88,16 @@ it('may fail to assert a notification that was sent with wrong params', function
 
     $response->assertSentNotification('booking/starting', ['step' => 2]);
 })->throws(AssertionFailedError::class);
+
+it('serializes notification params before asserting', function (): void {
+    $response = RestaurantT::tool(SerializableNotificationTool::class);
+
+    $response->assertSentNotification('booking/step', ['step' => ReservationStep::Starting])
+        ->assertSentNotification('booking/step', ['step' => 'starting']);
+});
+
+it('may assert a notification that was sent with empty params', function (): void {
+    $response = RestaurantT::tool(SerializableNotificationTool::class);
+
+    $response->assertSentNotification('booking/empty', []);
+});
