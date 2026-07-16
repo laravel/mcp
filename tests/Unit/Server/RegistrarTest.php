@@ -18,20 +18,25 @@ function ensureMockClientRepository(): void
     }
 }
 
-function oauthClientRepository(bool $supportsScopes): object
+function createOauthClientsTable(bool $withScopesColumn, ?string $scopesDefault = null): void
 {
     Schema::dropIfExists('oauth_clients');
-    Schema::create('oauth_clients', function (Blueprint $table) use ($supportsScopes): void {
+    Schema::create('oauth_clients', function (Blueprint $table) use ($withScopesColumn, $scopesDefault): void {
         $table->string('id')->primary();
         $table->string('name');
         $table->json('grant_types');
         $table->json('redirect_uris');
 
-        if ($supportsScopes) {
+        if ($withScopesColumn && $scopesDefault !== null) {
+            $table->json('scopes')->default($scopesDefault);
+        } elseif ($withScopesColumn) {
             $table->json('scopes')->nullable();
         }
     });
+}
 
+function databaseClientRepository(?array $initialScopes = null): object
+{
     $prototype = new class extends Model
     {
         public $incrementing = false;
@@ -54,11 +59,11 @@ function oauthClientRepository(bool $supportsScopes): object
         }
     };
 
-    return new class($prototype)
+    return new class($prototype, $initialScopes)
     {
         public Model $client;
 
-        public function __construct(protected Model $prototype) {}
+        public function __construct(protected Model $prototype, protected ?array $initialScopes = null) {}
 
         public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false): Model
         {
@@ -67,6 +72,7 @@ function oauthClientRepository(bool $supportsScopes): object
                 'name' => $name,
                 'grant_types' => ['authorization_code'],
                 'redirect_uris' => $redirectUris,
+                ...($this->initialScopes === null ? [] : ['scopes' => $this->initialScopes]),
             ]);
             $client->save();
 
@@ -294,10 +300,11 @@ it('handles oauth registration endpoint', function (): void {
     ]);
 });
 
-it('persists the advertised mcp scope when passport client scopes are enabled', function (): void {
+it('persists the advertised mcp scope when passport clients are scope-restricted by default', function (): void {
     ensureMockClientRepository();
 
-    $clientRepository = oauthClientRepository(supportsScopes: true);
+    createOauthClientsTable(withScopesColumn: true, scopesDefault: '[]');
+    $clientRepository = databaseClientRepository();
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 
@@ -314,10 +321,72 @@ it('persists the advertised mcp scope when passport client scopes are enabled', 
     expect($clientRepository->client->fresh()?->scopes)->toBe(['mcp:use']);
 });
 
+it('preserves scopes granted at creation when persisting the mcp scope', function (): void {
+    ensureMockClientRepository();
+
+    createOauthClientsTable(withScopesColumn: true);
+    $clientRepository = databaseClientRepository(initialScopes: ['custom:scope']);
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance(ClientRepository::class, $clientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ]);
+
+    $response->assertStatus(201);
+
+    expect($clientRepository->client->fresh()?->scopes)->toBe(['custom:scope', 'mcp:use']);
+});
+
+it('does not duplicate the mcp scope when it was already granted at creation', function (): void {
+    ensureMockClientRepository();
+
+    createOauthClientsTable(withScopesColumn: true);
+    $clientRepository = databaseClientRepository(initialScopes: ['mcp:use']);
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance(ClientRepository::class, $clientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ]);
+
+    $response->assertStatus(201);
+
+    expect($clientRepository->client->fresh()?->scopes)->toBe(['mcp:use']);
+});
+
+it('leaves passport clients unrestricted when the scopes value is null', function (): void {
+    ensureMockClientRepository();
+
+    createOauthClientsTable(withScopesColumn: true);
+    $clientRepository = databaseClientRepository();
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance(ClientRepository::class, $clientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ]);
+
+    $response->assertStatus(201);
+    $response->assertJson(['scope' => 'mcp:use']);
+
+    expect($clientRepository->client->fresh()?->scopes)->toBeNull();
+});
+
 it('leaves passport clients unrestricted when client scopes are not enabled', function (): void {
     ensureMockClientRepository();
 
-    $clientRepository = oauthClientRepository(supportsScopes: false);
+    createOauthClientsTable(withScopesColumn: false);
+    $clientRepository = databaseClientRepository();
     $registrar = new Registrar;
     $registrar->oauthRoutes();
 

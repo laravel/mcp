@@ -9,8 +9,11 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Registrar;
+use Throwable;
 
 class OAuthRegisterController
 {
@@ -76,41 +79,51 @@ class OAuthRegisterController
             'Laravel\Passport\ClientRepository'
         );
 
-        $client = $clients->createAuthorizationCodeGrantClient(
-            name: $this->resolveClientName($validated),
-            redirectUris: $validated['redirect_uris'],
-            confidential: false,
-            enableDeviceFlow: false,
-        );
+        try {
+            $client = DB::transaction(function () use ($clients, $validated): mixed {
+                $client = $clients->createAuthorizationCodeGrantClient(
+                    name: $this->resolveClientName($validated),
+                    redirectUris: $validated['redirect_uris'],
+                    confidential: false,
+                    enableDeviceFlow: false,
+                );
 
-        $this->grantMcpScope($client);
+                $this->grantMcpScope($client);
+
+                return $client;
+            });
+        } catch (Throwable $throwable) {
+            report($throwable);
+
+            return response()->json([
+                'error' => 'server_error',
+                'error_description' => 'The client could not be registered.',
+            ], 500);
+        }
 
         return response()->json([
             'client_id' => (string) $client->id,
             'grant_types' => $client->grant_types,
             'response_types' => ['code'],
             'redirect_uris' => $client->redirect_uris,
-            'scope' => 'mcp:use',
+            'scope' => Registrar::OAUTH_SCOPE,
             'token_endpoint_auth_method' => 'none',
         ], 201);
     }
 
-    /**
-     * Grant the MCP scope when client scope restrictions are enabled.
-     */
     protected function grantMcpScope(mixed $client): void
     {
         if (! $client instanceof Model) {
             return;
         }
 
-        $columns = $client->getConnection()->getSchemaBuilder()->getColumnListing($client->getTable());
+        $scopes = $client->refresh()->getAttribute('scopes');
 
-        if (! in_array('scopes', $columns, true)) {
+        if (! is_array($scopes) || in_array(Registrar::OAUTH_SCOPE, $scopes, true)) {
             return;
         }
 
-        $client->forceFill(['scopes' => ['mcp:use']])->save();
+        $client->forceFill(['scopes' => [...$scopes, Registrar::OAUTH_SCOPE]])->save();
     }
 
     /**
