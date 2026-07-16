@@ -6,10 +6,13 @@ namespace Laravel\Mcp\Server\Http\Controllers;
 
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Container\BindingResolutionException;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Server\Registrar;
+use Throwable;
 
 class OAuthRegisterController
 {
@@ -75,21 +78,47 @@ class OAuthRegisterController
             'Laravel\Passport\ClientRepository'
         );
 
-        $client = $clients->createAuthorizationCodeGrantClient(
-            name: $this->resolveClientName($validated),
-            redirectUris: $validated['redirect_uris'],
-            confidential: false,
-            enableDeviceFlow: false,
-        );
+        try {
+            $client = $clients->createAuthorizationCodeGrantClient(
+                name: $this->resolveClientName($validated),
+                redirectUris: $validated['redirect_uris'],
+                confidential: false,
+                enableDeviceFlow: false,
+            );
+
+            $this->grantMcpScope($client);
+        } catch (Throwable $throwable) {
+            report($throwable);
+
+            return response()->json([
+                'error' => 'server_error',
+                'error_description' => 'The client could not be registered.',
+            ], 500);
+        }
 
         return response()->json([
             'client_id' => (string) $client->id,
             'grant_types' => $client->grant_types,
             'response_types' => ['code'],
             'redirect_uris' => $client->redirect_uris,
-            'scope' => 'mcp:use',
+            'scope' => Registrar::OAUTH_SCOPE,
             'token_endpoint_auth_method' => 'none',
         ], 201);
+    }
+
+    protected function grantMcpScope(mixed $client): void
+    {
+        if (! $client instanceof Model) {
+            return;
+        }
+
+        $scopes = $client->refresh()->getAttribute('scopes');
+
+        if (! is_array($scopes) || in_array(Registrar::OAUTH_SCOPE, $scopes, true)) {
+            return;
+        }
+
+        $client->forceFill(['scopes' => [...$scopes, Registrar::OAUTH_SCOPE]])->save();
     }
 
     /**
