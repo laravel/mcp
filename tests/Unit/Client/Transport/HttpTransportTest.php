@@ -45,6 +45,40 @@ it('parses an SSE stream into individual frames in order', function (): void {
         ->and(json_decode($transport->receive(), true))->toMatchArray(['id' => 1, 'result' => ['done' => true]]);
 });
 
+it('joins multiple data lines from the same SSE event', function (): void {
+    $stream = <<<'SSE'
+data: {"jsonrpc":"2.0",
+data: "id":1,"result":{"done":true}}
+
+SSE;
+
+    Http::fake(['*' => Http::response($stream, 200, ['Content-Type' => 'text/event-stream'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/call', 'params' => []]));
+
+    expect(json_decode($transport->receive(), true))->toBe([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => ['done' => true],
+    ])->and(fn (): string => $transport->receive())
+        ->toThrow(ClientException::class, 'No message available');
+});
+
+it('queues the final SSE event without a trailing blank line', function (): void {
+    $stream = 'data: '.json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => ['done' => true]]);
+
+    Http::fake(['*' => Http::response($stream, 200, ['Content-Type' => 'text/event-stream'])]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/call', 'params' => []]));
+
+    expect(json_decode($transport->receive(), true))->toMatchArray([
+        'id' => 1,
+        'result' => ['done' => true],
+    ]);
+});
+
 it('fails fast when the server initiates a request over the SSE stream', function (): void {
     Http::fake(['*' => Http::response(sseStream([
         ['jsonrpc' => '2.0', 'id' => 99, 'method' => 'ping'],

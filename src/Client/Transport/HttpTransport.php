@@ -218,14 +218,28 @@ class HttpTransport implements Transport
     protected function readSseStream(ClientResponse $response): void
     {
         $stream = $response->toPsrResponse()->getBody();
+        $dataLines = [];
 
         while (! $stream->eof()) {
-            $line = trim($this->readLine($stream));
+            $line = rtrim($this->readLine($stream), "\r\n");
 
-            if (Str::startsWith($line, 'data:')) {
-                $this->queueSseEvent(trim(Str::after($line, 'data:')));
+            if ($line === '') {
+                $this->queueSseEvent(implode("\n", $dataLines));
+                $dataLines = [];
+
+                continue;
             }
+
+            [$field, $value] = array_pad(explode(':', $line, 2), 2, '');
+
+            if ($field !== 'data') {
+                continue;
+            }
+
+            $dataLines[] = Str::startsWith($value, ' ') ? Str::after($value, ' ') : $value;
         }
+
+        $this->queueSseEvent(implode("\n", $dataLines));
     }
 
     protected function readLine(StreamInterface $stream): string
