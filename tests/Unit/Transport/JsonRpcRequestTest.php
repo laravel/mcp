@@ -110,6 +110,7 @@ it('throws exception for invalid params type', function (mixed $params): void {
     'integer' => [1],
     'boolean' => [true],
     'null' => [null],
+    'list' => [[1, 2, 3]],
 ]);
 
 it('defaults params to empty array and supports getters', function (): void {
@@ -204,6 +205,7 @@ it('throws exception for invalid arguments type', function (mixed $arguments): v
     'integer' => [1],
     'boolean' => [true],
     'null' => [null],
+    'list' => [[1, 2, 3]],
 ]);
 
 it('serializes to an array with params when present', function (): void {

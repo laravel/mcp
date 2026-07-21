@@ -42,7 +42,7 @@ class JsonRpcRequest
             throw new JsonRpcException('Invalid Request: The [method] member is required and must be a string.', -32600, $requestId);
         }
 
-        if (array_key_exists('params', $jsonRequest) && ! is_array($jsonRequest['params'])) {
+        if (array_key_exists('params', $jsonRequest) && ! self::isObject($jsonRequest['params'])) {
             throw new JsonRpcException('Invalid params: The [params] member must be an object.', -32602, $requestId);
         }
 
@@ -52,6 +52,11 @@ class JsonRpcRequest
             params: $jsonRequest['params'] ?? [],
             sessionId: $sessionId,
         );
+    }
+
+    private static function isObject(mixed $value): bool
+    {
+        return is_array($value) && ($value === [] || ! array_is_list($value));
     }
 
     public function cursor(): ?string
@@ -77,7 +82,7 @@ class JsonRpcRequest
         if (array_key_exists('arguments', $this->params)) {
             $arguments = $this->params['arguments'];
 
-            if (! is_array($arguments)) {
+            if (! self::isObject($arguments)) {
                 throw new JsonRpcException('Invalid params: The [arguments] member must be an object.', -32602, $this->id);
             }
         } else {
