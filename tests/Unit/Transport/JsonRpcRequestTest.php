@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 
 it('can create a message from valid json', function (): void {
@@ -93,6 +94,25 @@ it('throws exception for non string method', function (): void {
     ]);
 });
 
+it('throws exception for invalid params type', function (mixed $params): void {
+    $this->expectException(JsonRpcException::class);
+    $this->expectExceptionMessage('Invalid params: The [params] member must be an object.');
+    $this->expectExceptionCode(-32602);
+
+    JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => $params,
+    ]);
+})->with([
+    'string' => ['invalid'],
+    'integer' => [1],
+    'boolean' => [true],
+    'null' => [null],
+    'list' => [[1, 2, 3]],
+]);
+
 it('defaults params to empty array and supports getters', function (): void {
     $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
@@ -166,6 +186,27 @@ it('passes meta to Request object', function (): void {
 
     expect($request->meta())->toEqual(['requestId' => '456']);
 });
+
+it('throws exception for invalid arguments type', function (mixed $arguments): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'echo',
+            'arguments' => $arguments,
+        ],
+    ]);
+
+    expect(fn (): Request => $request->toRequest())
+        ->toThrow(JsonRpcException::class, 'Invalid params: The [arguments] member must be an object.', -32602);
+})->with([
+    'string' => ['invalid'],
+    'integer' => [1],
+    'boolean' => [true],
+    'null' => [null],
+    'list' => [[1, 2, 3]],
+]);
 
 it('serializes to an array with params when present', function (): void {
     $request = new JsonRpcRequest(1, 'tools/call', ['name' => 'echo']);

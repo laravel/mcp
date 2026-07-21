@@ -51,7 +51,7 @@ jobs:
           extensions: dom, curl, libxml, mbstring, zip, fileinfo, pdo_sqlite, sqlite3
           ini-values: error_reporting=E_ALL
           tools: composer:v2
-          coverage: xdebug
+          coverage: ${{ (matrix.os == 'windows-latest' && matrix.php == '8.5') && 'none' || 'xdebug' }}
 
       - name: Install dependencies
         run: |
@@ -59,3 +59,11 @@ jobs:
 
       - name: Execute tests
         run: composer test
+        if: ${{ ! (matrix.os == 'windows-latest' && matrix.php == '8.5') }}
+
+      - name: Execute tests (no coverage)
+        run: |
+          composer test:lint
+          vendor/bin/pest --ci
+          composer test:types
+        if: ${{ matrix.os == 'windows-latest' && matrix.php == '8.5' }}

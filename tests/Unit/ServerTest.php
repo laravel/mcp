@@ -128,6 +128,37 @@ it('can handle an unknown method', function (): void {
     ]);
 });
 
+it('returns protocol errors for invalid parameter shapes', function (mixed $params, string $message): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 272,
+        'method' => 'tools/call',
+        'params' => $params,
+    ]);
+
+    ($transport->handler)($payload);
+
+    expect(json_decode((string) $transport->sent[0], true))->toEqual([
+        'jsonrpc' => '2.0',
+        'id' => 272,
+        'error' => [
+            'code' => -32602,
+            'message' => $message,
+        ],
+    ]);
+})->with([
+    'top-level params' => ['invalid', 'Invalid params: The [params] member must be an object.'],
+    'tool arguments' => [[
+        'name' => 'say-hi-tool',
+        'arguments' => 'invalid',
+    ], 'Invalid params: The [arguments] member must be an object.'],
+]);
+
 it('handles json decode errors', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
