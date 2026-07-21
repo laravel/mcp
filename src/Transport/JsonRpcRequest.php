@@ -22,7 +22,7 @@ class JsonRpcRequest
     }
 
     /**
-     * @param  array{id: mixed, jsonrpc?: mixed, method?: mixed, params?: array<string, mixed>}  $jsonRequest
+     * @param  array{id: mixed, jsonrpc?: mixed, method?: mixed, params?: mixed}  $jsonRequest
      *
      * @throws JsonRpcException
      */
@@ -40,6 +40,10 @@ class JsonRpcRequest
 
         if (! isset($jsonRequest['method']) || ! is_string($jsonRequest['method'])) {
             throw new JsonRpcException('Invalid Request: The [method] member is required and must be a string.', -32600, $requestId);
+        }
+
+        if (array_key_exists('params', $jsonRequest) && ! is_array($jsonRequest['params'])) {
+            throw new JsonRpcException('Invalid params: The [params] member must be an object.', -32602, $requestId);
         }
 
         return new static(
@@ -70,7 +74,17 @@ class JsonRpcRequest
 
     public function toRequest(): Request
     {
-        return new Request($this->params['arguments'] ?? [], $this->sessionId, $this->meta());
+        if (array_key_exists('arguments', $this->params)) {
+            $arguments = $this->params['arguments'];
+
+            if (! is_array($arguments)) {
+                throw new JsonRpcException('Invalid params: The [arguments] member must be an object.', -32602, $this->id);
+            }
+        } else {
+            $arguments = [];
+        }
+
+        return new Request($arguments, $this->sessionId, $this->meta());
     }
 
     /**
