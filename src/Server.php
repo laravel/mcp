@@ -6,6 +6,8 @@ namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Str;
+use Laravel\Mcp\Enums\ErrorCode;
+use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Events\SessionInitialized;
 use Laravel\Mcp\Exceptions\JsonRpcException;
@@ -20,6 +22,7 @@ use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\Methods\CompletionComplete;
+use Laravel\Mcp\Server\Methods\Discover;
 use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\Methods\Initialize;
 use Laravel\Mcp\Server\Methods\ListPrompts;
@@ -105,6 +108,28 @@ abstract class Server
     public int $defaultPaginationLength = 15;
 
     /**
+     * Freshness hint, in milliseconds, attached to cacheable results for modern clients.
+     */
+    protected int $cacheTtlMs = 0;
+
+    /**
+     * Whether shared intermediaries may cache responses: "public" or "private".
+     */
+    protected string $cacheScope = 'private';
+
+    /**
+     * Methods whose results carry the [ttlMs] and [cacheScope] fields for modern clients.
+     */
+    protected const CACHEABLE_METHODS = [
+        'tools/list',
+        'prompts/list',
+        'resources/list',
+        'resources/read',
+        'resources/templates/list',
+        'server/discover',
+    ];
+
+    /**
      * @var array<string, class-string<Method>>
      */
     protected array $methods = [
@@ -117,6 +142,7 @@ abstract class Server
         'prompts/get' => GetPrompt::class,
         'completion/complete' => CompletionComplete::class,
         'ping' => Ping::class,
+        'server/discover' => Discover::class,
     ];
 
     public function __construct(
@@ -193,7 +219,25 @@ abstract class Server
                 return;
             }
 
-            if ($request->method === 'initialize') {
+            $declaredVersion = $request->protocolVersion();
+
+            if ($declaredVersion !== null) {
+                if (! in_array($declaredVersion, $context->supportedProtocolVersions, true)) {
+                    throw new JsonRpcException(
+                        message: 'Unsupported protocol version',
+                        code: ErrorCode::UNSUPPORTED_PROTOCOL_VERSION->value,
+                        requestId: $request->id,
+                        data: [
+                            'supported' => $context->supportedProtocolVersions,
+                            'requested' => $declaredVersion,
+                        ],
+                    );
+                }
+
+                $context->protocolVersion = $declaredVersion;
+            }
+
+            if ($request->method === 'initialize' && ! $context->isModern()) {
                 $this->handleInitializeMessage($request, $context);
 
                 return;
@@ -249,6 +293,8 @@ abstract class Server
             tools: $this->tools,
             resources: $this->resources,
             prompts: $this->prompts,
+            cacheTtlMs: $this->cacheTtlMs,
+            cacheScope: $this->cacheScope,
         );
     }
 
@@ -268,16 +314,39 @@ abstract class Server
         $response = $this->runMethodHandle($request, $context);
 
         if (! is_iterable($response)) {
-            $this->transport->send($response->toJson());
+            $this->transport->send($this->prepareResponse($request, $context, $response)->toJson());
 
             return;
         }
 
-        $this->transport->stream(function () use ($response): void {
+        $this->transport->stream(function () use ($request, $context, $response): void {
             foreach ($response as $message) {
-                $this->transport->send($message->toJson());
+                $this->transport->send($this->prepareResponse($request, $context, $message)->toJson());
             }
         });
+    }
+
+    /**
+     * Decorate results for modern clients with the fields the stateless revision requires.
+     */
+    protected function prepareResponse(JsonRpcRequest $request, ServerContext $context, JsonRpcResponse $response): JsonRpcResponse
+    {
+        if (! $context->isModern() || ! $response->isResult()) {
+            return $response;
+        }
+
+        $fields = ['resultType' => 'complete'];
+
+        if (in_array($request->method, static::CACHEABLE_METHODS, true)) {
+            $fields['ttlMs'] = $context->cacheTtlMs;
+            $fields['cacheScope'] = $context->cacheScope;
+        }
+
+        return $response
+            ->mergeResult($fields)
+            ->mergeResultMeta([
+                MetaKey::SERVER_INFO->value => $context->implementation->toArray(),
+            ]);
     }
 
     /**

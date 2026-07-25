@@ -7,6 +7,8 @@ namespace Laravel\Mcp\Server\Transport;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Laravel\Mcp\Enums\ErrorCode;
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -68,7 +70,7 @@ class HttpTransport implements Transport
         }
 
         // Must be 202 - https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#sending-messages-to-the-server
-        $statusCode = $this->reply === null ? 202 : 200;
+        $statusCode = $this->reply === null ? 202 : $this->replyStatusCode();
         $response = response($this->reply, $statusCode, $this->getHeaders());
 
         assert($response instanceof Response);
@@ -102,6 +104,30 @@ class HttpTransport implements Transport
         }
 
         flush();
+    }
+
+    /**
+     * The 2026-07-28 revision maps protocol errors to HTTP statuses: unknown
+     * methods are 404 and version or header validation failures are 400.
+     */
+    protected function replyStatusCode(): int
+    {
+        $version = $this->request->headers->get('MCP-Protocol-Version');
+
+        if ($version === null || ! ProtocolVersion::isModern($version)) {
+            return 200;
+        }
+
+        $reply = json_decode((string) $this->reply, true);
+        $code = is_array($reply) ? ($reply['error']['code'] ?? null) : null;
+
+        return match ($code) {
+            ErrorCode::METHOD_NOT_FOUND->value => 404,
+            ErrorCode::HEADER_MISMATCH->value,
+            ErrorCode::MISSING_REQUIRED_CLIENT_CAPABILITY->value,
+            ErrorCode::UNSUPPORTED_PROTOCOL_VERSION->value => 400,
+            default => 200,
+        };
     }
 
     /**

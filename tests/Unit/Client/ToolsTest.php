@@ -33,7 +33,7 @@ it('returns a collection of tools keyed by name', function (): void {
         ->toBeInstanceOf(Tool::class)
         ->name->toBe('add')
         ->description->toBe('Adds two numbers')
-        ->and(json_decode($transport->sent[2], true))
+        ->and(json_decode($transport->sent[3], true))
         ->toHaveKey('method', 'tools/list')
         ->not->toHaveKey('params');
 });
@@ -60,8 +60,8 @@ it('auto-paginates tools/list until nextCursor is absent', function (): void {
     $tools = (new Client($transport))->tools();
 
     expect($tools->keys()->all())->toBe(['first', 'second', 'third'])
-        ->and(json_decode($transport->sent[2], true))->not->toHaveKey('params')
-        ->and(json_decode($transport->sent[3], true))->toHaveKey('params.cursor', 'cursor-page-2');
+        ->and(json_decode($transport->sent[3], true))->not->toHaveKey('params')
+        ->and(json_decode($transport->sent[4], true))->toHaveKey('params.cursor', 'cursor-page-2');
 });
 
 it('stops paginating once limit is reached without fetching the next page', function (): void {
@@ -79,7 +79,7 @@ it('stops paginating once limit is reached without fetching the next page', func
     $tools = (new Client($transport))->tools(2);
 
     expect($tools->keys()->all())->toBe(['a', 'b'])
-        ->and($transport->sent)->toHaveCount(3)
+        ->and($transport->sent)->toHaveCount(4)
         ->and($transport->responses)->toBeEmpty();
 });
 
@@ -198,7 +198,7 @@ it('throws when a server repeats a tools/list cursor', function (): void {
 
     expect(fn (): Collection => (new Client($transport))->tools())
         ->toThrow(ClientException::class, 'Repeated tools/list cursor [cursor-page-2] received from server.')
-        ->and($transport->sent)->toHaveCount(4);
+        ->and($transport->sent)->toHaveCount(5);
 });
 
 it('throws when tools/list returns a non-string cursor', function (mixed $nextCursor): void {
@@ -244,7 +244,7 @@ it('calls a bound tool returned from tools()', function (): void {
     $tool = (new Client($transport))->tools()['say-hi'];
 
     expect($tool->call(['name' => 'John'])->text())->toBe('Hello, John!')
-        ->and(json_decode($transport->sent[3], true))
+        ->and(json_decode($transport->sent[4], true))
         ->toHaveKey('method', 'tools/call')
         ->toHaveKey('params.name', 'say-hi')
         ->toHaveKey('params.arguments', ['name' => 'John']);
@@ -274,7 +274,7 @@ it('sends tools/call by name and concatenates text content', function (): void {
         ->content->toHaveCount(3)
         ->and($result->text())->toBe('Hello, John!')
         ->and((string) $result)->toBe('Hello, John!')
-        ->and(json_decode($transport->sent[2], true))
+        ->and(json_decode($transport->sent[3], true))
         ->toHaveKey('method', 'tools/call')
         ->toHaveKey('params.name', 'say-hi')
         ->toHaveKey('params.arguments', ['name' => 'John']);
@@ -291,7 +291,7 @@ it('encodes empty arguments as an object on the wire', function (): void {
 
     (new Client($transport))->callTool('no-args');
 
-    expect(json_decode($transport->sent[2])->params->arguments)->toBeInstanceOf(stdClass::class);
+    expect(json_decode($transport->sent[3])->params->arguments)->toBeInstanceOf(stdClass::class);
 });
 
 it('preserves structuredContent and _meta from the server response', function (): void {

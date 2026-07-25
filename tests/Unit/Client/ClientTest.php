@@ -20,19 +20,23 @@ it('performs the initialize handshake on connect', function (): void {
 
     expect($transport->connected)->toBeTrue();
     expect($client->connected())->toBeTrue();
-    expect($client->initializeResult()?->protocolVersion)->toBe(ProtocolVersion::LATEST->value);
+    expect($client->initializeResult()?->protocolVersion)->toBe(ProtocolVersion::LATEST_LEGACY->value);
     expect($client->initializeResult()?->serverInfo->name)->toBe('Test Server');
     expect($client->initializeResult()?->serverInfo->version)->toBe('1.0.0');
     expect($client->initializeResult()?->capabilities)->toBeArray();
     expect($client->initializeResult())->not->toBeNull();
     expect($client->initializeResult()?->instructions)->toBeNull();
 
-    $initialize = json_decode($transport->sent[0], true);
+    $discover = json_decode($transport->sent[0], true);
+    expect($discover['method'])->toBe('server/discover');
+    expect($discover['params']['_meta']['io.modelcontextprotocol/protocolVersion'])->toBe(ProtocolVersion::LATEST->value);
+
+    $initialize = json_decode($transport->sent[1], true);
     expect($initialize['method'])->toBe('initialize');
-    expect($initialize['params']['protocolVersion'])->toBe(ProtocolVersion::LATEST->value);
+    expect($initialize['params']['protocolVersion'])->toBe(ProtocolVersion::LATEST_LEGACY->value);
     expect($initialize['params']['clientInfo']['name'])->toBe('Acme MCP App');
 
-    $initialized = json_decode($transport->sent[1], true);
+    $initialized = json_decode($transport->sent[2], true);
     expect($initialized['method'])->toBe('notifications/initialized');
     expect($initialized)->not->toHaveKey('id');
 });
@@ -66,7 +70,7 @@ it('pings the server', function (): void {
     $client = new Client($transport);
     $client->ping();
 
-    $ping = json_decode($transport->sent[2], true);
+    $ping = json_decode($transport->sent[3], true);
     expect($ping['method'])->toBe('ping');
     expect($ping['id'])->toBe(2);
 });
@@ -93,7 +97,7 @@ it('does not reconnect when already connected', function (): void {
     $client->connect();
     $client->connect();
 
-    expect(count($transport->sent))->toBe(2);
+    expect(count($transport->sent))->toBe(3);
 });
 
 it('disconnects cleanly', function (): void {
@@ -275,7 +279,7 @@ it('responds to server-initiated ping requests with an empty result', function (
     $client = new Client($transport);
     $client->ping();
 
-    $pingReply = json_decode($transport->sent[3], true);
+    $pingReply = json_decode($transport->sent[4], true);
     expect($pingReply['id'])->toBe('server-ping-1');
     expect($pingReply['result'])->toBeArray()->toBeEmpty();
     expect($pingReply)->not->toHaveKey('error');
@@ -295,7 +299,7 @@ it('responds with method-not-found to unsupported server-initiated requests', fu
     $client = new Client($transport);
     $client->ping();
 
-    $errorReply = json_decode($transport->sent[3], true);
+    $errorReply = json_decode($transport->sent[4], true);
     expect($errorReply['id'])->toBe('sampling-1');
     expect($errorReply['error']['code'])->toBe(-32601);
     expect($errorReply['error']['message'])->toContain('sampling/createMessage');

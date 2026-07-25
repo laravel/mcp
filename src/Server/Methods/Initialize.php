@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Methods;
 
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\ServerContext;
@@ -28,7 +29,26 @@ class Initialize implements Method
             );
         }
 
-        $protocolVersion = $requestedVersion ?? $context->supportedProtocolVersions[0];
+        $latestLegacy = ProtocolVersion::latestLegacy($context->supportedProtocolVersions);
+
+        if ($latestLegacy === null) {
+            throw new JsonRpcException(
+                message: 'This server does not support initialization-based protocol versions',
+                code: -32602,
+                requestId: $request->id,
+                data: [
+                    'supported' => $context->supportedProtocolVersions,
+                    'requested' => $requestedVersion,
+                ]
+            );
+        }
+
+        // Modern revisions are stateless and cannot be negotiated via a handshake,
+        // so an initialize request never yields a version newer than the latest
+        // handshake-based revision the server supports.
+        $protocolVersion = $requestedVersion !== null && ! ProtocolVersion::isModern($requestedVersion)
+            ? $requestedVersion
+            : $latestLegacy;
 
         return JsonRpcResponse::result($request->id, [
             'protocolVersion' => $protocolVersion,

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Transport;
 
+use Laravel\Mcp\Enums\MetaKey;
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
 
@@ -75,6 +77,26 @@ class JsonRpcRequest
     public function meta(): ?array
     {
         return isset($this->params['_meta']) && is_array($this->params['_meta']) ? $this->params['_meta'] : null;
+    }
+
+    /**
+     * The protocol version declared in the request's [_meta], if any.
+     */
+    public function protocolVersion(): ?string
+    {
+        $version = $this->meta()[MetaKey::PROTOCOL_VERSION->value] ?? null;
+
+        return is_string($version) ? $version : null;
+    }
+
+    /**
+     * Determine if the request declares a stateless, per-request-metadata revision.
+     */
+    public function isModern(): bool
+    {
+        $version = $this->protocolVersion();
+
+        return $version !== null && ProtocolVersion::isModern($version);
     }
 
     public function toRequest(): Request

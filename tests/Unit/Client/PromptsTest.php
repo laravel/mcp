@@ -33,7 +33,7 @@ it('returns a collection of prompts keyed by name', function (): void {
         ->toBeInstanceOf(Prompt::class)
         ->name->toBe('summarize')
         ->description->toBe('Summarizes text')
-        ->and(json_decode($transport->sent[2], true))
+        ->and(json_decode($transport->sent[3], true))
         ->toHaveKey('method', 'prompts/list')
         ->not->toHaveKey('params');
 });
@@ -60,8 +60,8 @@ it('auto-paginates prompts/list until nextCursor is absent', function (): void {
     $prompts = (new Client($transport))->prompts();
 
     expect($prompts->keys()->all())->toBe(['first', 'second', 'third'])
-        ->and(json_decode($transport->sent[2], true))->not->toHaveKey('params')
-        ->and(json_decode($transport->sent[3], true))->toHaveKey('params.cursor', 'cursor-page-2');
+        ->and(json_decode($transport->sent[3], true))->not->toHaveKey('params')
+        ->and(json_decode($transport->sent[4], true))->toHaveKey('params.cursor', 'cursor-page-2');
 });
 
 it('stops paginating once the prompt limit is reached without fetching the next page', function (): void {
@@ -79,7 +79,7 @@ it('stops paginating once the prompt limit is reached without fetching the next 
     $prompts = (new Client($transport))->prompts(2);
 
     expect($prompts->keys()->all())->toBe(['a', 'b'])
-        ->and($transport->sent)->toHaveCount(3)
+        ->and($transport->sent)->toHaveCount(4)
         ->and($transport->responses)->toBeEmpty();
 });
 
@@ -196,7 +196,7 @@ it('throws when a server repeats a prompts/list cursor', function (): void {
 
     expect(fn (): Collection => (new Client($transport))->prompts())
         ->toThrow(ClientException::class, 'Repeated prompts/list cursor [cursor-page-2] received from server.')
-        ->and($transport->sent)->toHaveCount(4);
+        ->and($transport->sent)->toHaveCount(5);
 });
 
 it('throws when prompts/list returns a non-string cursor', function (mixed $nextCursor): void {
@@ -242,7 +242,7 @@ it('sends prompts/get by name and concatenates text content', function (): void 
         ->messages->toHaveCount(3)
         ->and($result->text())->toBe('Hello, John!')
         ->and((string) $result)->toBe('Hello, John!')
-        ->and(json_decode($transport->sent[2], true))
+        ->and(json_decode($transport->sent[3], true))
         ->toHaveKey('method', 'prompts/get')
         ->toHaveKey('params.name', 'greeting')
         ->toHaveKey('params.arguments', ['name' => 'John']);
@@ -259,7 +259,7 @@ it('encodes empty prompt arguments as an object on the wire', function (): void 
 
     (new Client($transport))->getPrompt('no-args');
 
-    expect(json_decode($transport->sent[2])->params->arguments)->toBeInstanceOf(stdClass::class);
+    expect(json_decode($transport->sent[3])->params->arguments)->toBeInstanceOf(stdClass::class);
 });
 
 it('skips messages whose content is not an object when extracting text', function (): void {

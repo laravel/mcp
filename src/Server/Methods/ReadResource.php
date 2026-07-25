@@ -8,6 +8,7 @@ use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use InvalidArgumentException;
+use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -39,7 +40,13 @@ class ReadResource implements Method
         try {
             $resource = $this->resolveResource($uri, $context);
         } catch (InvalidArgumentException $invalidArgumentException) {
-            throw new JsonRpcException($invalidArgumentException->getMessage(), -32002, $request->id);
+            // The 2026-07-28 revision aligns missing-resource errors with JSON-RPC's
+            // Invalid Params code; earlier revisions used the MCP-specific -32002.
+            throw new JsonRpcException(
+                $invalidArgumentException->getMessage(),
+                $context->isModern() ? ErrorCode::INVALID_PARAMS->value : ErrorCode::RESOURCE_NOT_FOUND_LEGACY->value,
+                $request->id,
+            );
         }
 
         $response = $this->callHandler(fn (): mixed => $this->invokeResource($resource, $uri), $request);

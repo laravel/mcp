@@ -31,7 +31,7 @@ class Initialize implements Method
     public function params(): array
     {
         return [
-            'protocolVersion' => ProtocolVersion::LATEST->value,
+            'protocolVersion' => ProtocolVersion::LATEST_LEGACY->value,
             'capabilities' => (object) [],
             'clientInfo' => $this->clientInfo->toArray(),
         ];

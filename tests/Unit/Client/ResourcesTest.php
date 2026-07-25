@@ -44,7 +44,7 @@ it('returns a collection of resources keyed by uri', function (): void {
         ->description->toBeNull()
         ->mimeType->toBeNull()
         ->size->toBeNull()
-        ->and(json_decode($transport->sent[2], true))
+        ->and(json_decode($transport->sent[3], true))
         ->toHaveKey('method', 'resources/list')
         ->not->toHaveKey('params');
 });
@@ -74,8 +74,8 @@ it('auto-paginates resources/list until nextCursor is absent', function (): void
     $resources = (new Client($transport))->resources();
 
     expect($resources->keys()->all())->toBe(['file://first', 'file://second', 'file://third'])
-        ->and(json_decode($transport->sent[2], true))->not->toHaveKey('params')
-        ->and(json_decode($transport->sent[3], true))->toHaveKey('params.cursor', 'cursor-page-2');
+        ->and(json_decode($transport->sent[3], true))->not->toHaveKey('params')
+        ->and(json_decode($transport->sent[4], true))->toHaveKey('params.cursor', 'cursor-page-2');
 });
 
 it('stops paginating once the resource limit is reached without fetching the next page', function (): void {
@@ -97,7 +97,7 @@ it('stops paginating once the resource limit is reached without fetching the nex
     $resources = (new Client($transport))->resources(2);
 
     expect($resources->keys()->all())->toBe(['file://a', 'file://b'])
-        ->and($transport->sent)->toHaveCount(3)
+        ->and($transport->sent)->toHaveCount(4)
         ->and($transport->responses)->toBeEmpty();
 });
 
@@ -243,7 +243,7 @@ it('throws when a server repeats a resources/list cursor', function (): void {
 
     expect(fn (): Collection => (new Client($transport))->resources())
         ->toThrow(ClientException::class, 'Repeated resources/list cursor [cursor-page-2] received from server.')
-        ->and($transport->sent)->toHaveCount(4);
+        ->and($transport->sent)->toHaveCount(5);
 });
 
 it('throws when resources/list returns a non-string cursor', function (mixed $nextCursor): void {
@@ -305,7 +305,7 @@ it('sends resources/read by uri and returns text content', function (): void {
         ->contents->toHaveCount(2)
         ->and($result->content())->toBe('Hello, world!')
         ->and((string) $result)->toBe('Hello, world!')
-        ->and(json_decode($transport->sent[2], true))
+        ->and(json_decode($transport->sent[3], true))
         ->toHaveKey('method', 'resources/read')
         ->toHaveKey('params.uri', 'file://readme');
 });

@@ -65,6 +65,18 @@ function initializeResponse(): string
     ]);
 }
 
+function discoverNotFoundResponse(int $probe = 1): string
+{
+    return json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 'discover-'.$probe,
+        'error' => [
+            'code' => -32601,
+            'message' => 'The method [server/discover] was not found.',
+        ],
+    ]);
+}
+
 function pingResponse(int $id): string
 {
     return json_encode([

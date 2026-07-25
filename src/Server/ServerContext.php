@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 
@@ -28,8 +29,19 @@ class ServerContext
         protected array $tools,
         protected array $resources,
         protected array $prompts,
+        public ?string $protocolVersion = null,
+        public int $cacheTtlMs = 0,
+        public string $cacheScope = 'private',
     ) {
         //
+    }
+
+    /**
+     * Determine if the request being served declared a stateless, per-request-metadata revision.
+     */
+    public function isModern(): bool
+    {
+        return $this->protocolVersion !== null && ProtocolVersion::isModern($this->protocolVersion);
     }
 
     /**
