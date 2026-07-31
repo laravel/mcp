@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
+use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Client\ClientManager;
@@ -15,6 +17,7 @@ use Laravel\Mcp\Console\Commands\MakeServerCommand;
 use Laravel\Mcp\Console\Commands\MakeToolCommand;
 use Laravel\Mcp\Console\Commands\StartCommand;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -31,6 +34,7 @@ class McpServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerMiddlewarePriority();
         $this->registerMcpScope();
         $this->registerRoutes();
         $this->registerContainerCallbacks();
@@ -66,6 +70,36 @@ class McpServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../../config/mcp.php' => config_path('mcp.php'),
         ], 'mcp-config');
+    }
+
+    /**
+     * Ensure the WWW-Authenticate challenge is applied outside authentication.
+     *
+     * AddWwwAuthenticateHeader decorates a returned 401, so it only works from
+     * outside whatever produces one. Protecting an MCP route means adding an
+     * auth middleware, and Laravel sorts Authenticate to the front of the stack
+     * because it implements AuthenticatesRequests, which is in the framework's
+     * middleware priority list. This middleware is not in that list, so it
+     * cannot be sorted ahead of auth and ends up inside it, never seeing the
+     * rejection.
+     *
+     * The result is that the header is silently absent on exactly the
+     * OAuth-protected servers it exists for, with no error and a
+     * correctly-served metadata document to make it look fine.
+     */
+    protected function registerMiddlewarePriority(): void
+    {
+        if (! $this->app->bound(HttpKernelContract::class)) {
+            return;
+        }
+
+        $kernel = $this->app->make(HttpKernelContract::class);
+
+        if (! $kernel instanceof HttpKernel) {
+            return;
+        }
+
+        $kernel->prependToMiddlewarePriority(AddWwwAuthenticateHeader::class);
     }
 
     protected function registerRoutes(): void
