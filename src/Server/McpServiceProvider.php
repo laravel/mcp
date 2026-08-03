@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
+use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Client\ClientManager;
@@ -15,6 +17,8 @@ use Laravel\Mcp\Console\Commands\MakeServerCommand;
 use Laravel\Mcp\Console\Commands\MakeToolCommand;
 use Laravel\Mcp\Console\Commands\StartCommand;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
+use Laravel\Mcp\Server\Middleware\ReorderJsonAccept;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -32,6 +36,7 @@ class McpServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerMcpScope();
+        $this->registerMiddlewarePriority();
         $this->registerRoutes();
         $this->registerContainerCallbacks();
         $this->registerClientDisconnect();
@@ -66,6 +71,19 @@ class McpServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../../config/mcp.php' => config_path('mcp.php'),
         ], 'mcp-config');
+    }
+
+    protected function registerMiddlewarePriority(): void
+    {
+        $this->callAfterResolving(HttpKernelContract::class, function (mixed $kernel): void {
+            if (! $kernel instanceof HttpKernel) {
+                return;
+            }
+
+            // Both middleware wrap the MCP route, so they must run outside of any prioritized authentication middleware...
+            $kernel->prependToMiddlewarePriority(AddWwwAuthenticateHeader::class);
+            $kernel->prependToMiddlewarePriority(ReorderJsonAccept::class);
+        });
     }
 
     protected function registerRoutes(): void
