@@ -80,7 +80,7 @@ class InspectorCommand extends Command
                 'stdio',
                 $this->phpBinary(),
                 $artisanPath,
-                "mcp:start",
+                'mcp:start',
                 $handle,
             ];
 
