@@ -19,8 +19,7 @@ return RectorConfig::configure()
         StringClassNameToClassConstantRector::class => [
             __DIR__.'/src/Server/Http/Controllers/OAuthRegisterController.php',
         ],
-        RemoveDeadInstanceOfAssertRector::class => [
-            __DIR__.'/src/Server/Registrar.php',
+        RemoveDeadInstanceOfAssertRector::class,
         ],
     ])
     ->withPreparedSets(
