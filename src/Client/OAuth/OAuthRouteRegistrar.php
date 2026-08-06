@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Client\OAuth;
 
 use Closure;
 use Illuminate\Container\Container;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Exceptions\ClientException;
@@ -38,6 +39,8 @@ class OAuthRouteRegistrar
             )->redirect();
         });
 
+        assert($connect instanceof Route);
+
         $connect->name("mcp.oauth.{$client}.connect")->middleware($middleware);
 
         $callback = Router::get($callbackUri ?? "mcp/oauth/{$client}/callback", function () use ($client, $handler): mixed {
@@ -53,6 +56,8 @@ class OAuthRouteRegistrar
 
             return $result ?? redirect($oauth->returnTo() ?? '/');
         });
+
+        assert($callback instanceof Route);
 
         $callback->name("mcp.oauth.{$client}.callback")->middleware($middleware);
 
