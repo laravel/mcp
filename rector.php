@@ -20,7 +20,6 @@ return RectorConfig::configure()
             __DIR__.'/src/Server/Http/Controllers/OAuthRegisterController.php',
         ],
         RemoveDeadInstanceOfAssertRector::class,
-        ],
     ])
     ->withPreparedSets(
         deadCode: true,
