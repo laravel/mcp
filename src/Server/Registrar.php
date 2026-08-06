@@ -58,8 +58,6 @@ class Registrar
             AddWwwAuthenticateHeader::class,
         ]);
 
-        assert($route instanceof Route);
-
         $this->httpServers[$route->uri()] = $route;
 
         return $route;
