@@ -21,7 +21,7 @@ class UriTemplate implements Stringable
     private const URI_TEMPLATE_PATTERN = '/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/.*{[^{}]+}.*/';
 
     /** @var list<string> */
-    private array $variableNames = [];
+    private array $variableNames;
 
     private ?string $compiledRegex = null;
 
