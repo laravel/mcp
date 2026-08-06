@@ -124,6 +124,6 @@ it('throws when a modern server returns an input_required result', function (): 
         ],
     ]);
 
-    expect(fn () => (new Client($transport))->tools())
+    expect(fn (): \Illuminate\Support\Collection => (new Client($transport))->tools())
         ->toThrow(ClientException::class, 'input_required');
 });
