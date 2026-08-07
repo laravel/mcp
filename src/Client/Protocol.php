@@ -198,15 +198,22 @@ class Protocol
             $this->connect();
         }
 
+        return $this->fulfillInputRequests($method, $this->attemptOrReconnect($method));
+    }
+
+    /**
+     * @param  Method<mixed>  $method
+     * @return array<string, mixed>
+     */
+    protected function attemptOrReconnect(Method $method): array
+    {
         try {
-            $result = $this->attempt($method);
+            return $this->attempt($method);
         } catch (SessionExpiredException) {
             $this->connect();
 
-            $result = $this->attempt($method);
+            return $this->attempt($method);
         }
-
-        return $this->fulfillInputRequests($method, $result);
     }
 
     /**
@@ -237,7 +244,7 @@ class Protocol
             is_string($result['requestState'] ?? null) ? $result['requestState'] : null,
         );
 
-        return $this->fulfillInputRequests($method, $this->attempt($retry), $round + 1);
+        return $this->fulfillInputRequests($method, $this->attemptOrReconnect($retry), $round + 1);
     }
 
     /**

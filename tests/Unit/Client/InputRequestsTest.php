@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Exceptions\ClientException;
+use Laravel\Mcp\Exceptions\SessionExpiredException;
 use Tests\Fixtures\Client\FakeTransport;
 
 function inputRequiredResponse(int $id, string $state = 'opaque-state'): string
@@ -112,4 +113,34 @@ it('omits the request state when the server sent none', function (): void {
     expect(json_decode($transport->sent[2], true)['params'])
         ->not->toHaveKey('requestState')
         ->not->toHaveKey('inputResponses');
+});
+
+it('reconnects when the session expires between input rounds', function (): void {
+    $transport = new class extends FakeTransport
+    {
+        public int $expireOnSend = 0;
+
+        public function send(string $message): void
+        {
+            parent::send($message);
+
+            if (count($this->sent) === $this->expireOnSend) {
+                throw new SessionExpiredException('Session expired.');
+            }
+        }
+    };
+
+    $transport->expireOnSend = 3;
+    $transport->responses[] = discoverResponse();
+    $transport->responses[] = inputRequiredResponse(2);
+    $transport->responses[] = discoverResponse(4);
+    $transport->responses[] = toolCallResponse(5, 'Hello, John');
+
+    $result = (new Client($transport))
+        ->onElicitation(fn (array $params): array => ['action' => 'accept', 'content' => ['name' => 'John']])
+        ->callTool('say-hi');
+
+    expect($result->text())->toBe('Hello, John');
+    expect(json_decode($transport->sent[3], true)['method'])->toBe('server/discover');
+    expect(json_decode($transport->sent[4], true)['params']['inputResponses']['who']['content']['name'])->toBe('John');
 });

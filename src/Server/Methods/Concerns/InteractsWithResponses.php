@@ -48,16 +48,23 @@ trait InteractsWithResponses
     }
 
     /**
-     * @param  iterable<Response|ResponseFactory|string>  $responses
+     * @param  iterable<InputRequired|Response|ResponseFactory|string>  $responses
      * @return Generator<JsonRpcResponse>
      */
     protected function toJsonRpcStreamedResponse(JsonRpcRequest $request, iterable $responses, callable $serializable): Generator
     {
         /** @var array<int, Response|ResponseFactory|string> $pendingResponses */
         $pendingResponses = [];
+        $inputRequired = null;
 
         try {
             foreach ($responses as $response) {
+                if ($response instanceof InputRequired) {
+                    $inputRequired = $response;
+
+                    break;
+                }
+
                 if ($response instanceof Response && $response->isNotification()) {
                     /** @var Notification $content */
                     $content = $response->content();
@@ -83,6 +90,12 @@ trait InteractsWithResponses
             }
 
             throw $this->toJsonRpcException($throwable, $request->id);
+        }
+
+        if ($inputRequired instanceof InputRequired) {
+            yield $this->toInputRequiredResponse($request, $inputRequired);
+
+            return;
         }
 
         yield $this->toJsonRpcResponse($request, $pendingResponses, $serializable);
