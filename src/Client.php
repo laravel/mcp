@@ -40,9 +40,6 @@ class Client
 
     protected ProtocolEra $era = ProtocolEra::AUTO;
 
-    /** @var array<string, Closure(array<string, mixed>): array<string, mixed>> */
-    protected array $inputHandlers = [];
-
     public function __construct(
         protected Transport $transport,
         public ?Implementation $clientInfo = null,
@@ -157,8 +154,6 @@ class Client
      */
     protected function onInput(string $method, Closure $handler): static
     {
-        $this->inputHandlers[$method] = $handler;
-
         $this->protocol->onInput($method, $handler);
 
         return $this;
@@ -280,10 +275,6 @@ class Client
         $this->clientInfo ??= $this->defaultClientInfo();
 
         $this->protocol = new Protocol($this->transport, $this->clientInfo, $this->era);
-
-        foreach ($this->inputHandlers as $method => $handler) {
-            $this->protocol->onInput($method, $handler);
-        }
     }
 
     public function __destruct()

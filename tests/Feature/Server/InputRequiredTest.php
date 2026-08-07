@@ -117,3 +117,57 @@ it('refuses an input request the protocol does not define', function (): void {
     expect(fn (): InputRequired => InputRequired::make(['x' => ['method' => 'tools/call']]))
         ->toThrow(InvalidArgumentException::class, 'Input request [x] must use one of');
 });
+
+it('returns an input required result yielded from a streaming handler', function (): void {
+    $tool = new class extends Tool
+    {
+        protected string $name = 'stream-ask';
+
+        protected string $description = 'Logs, then asks for a name.';
+
+        public function handle(Request $request): Generator
+        {
+            yield Response::notification('notifications/progress', ['progress' => 1]);
+
+            yield InputRequired::make([
+                'who' => [
+                    'method' => 'elicitation/create',
+                    'params' => ['mode' => 'form', 'message' => 'Who are you?'],
+                ],
+            ]);
+        }
+    };
+
+    $server = new class(new ArrayTransport, $tool) extends Server
+    {
+        public function __construct(ArrayTransport $transport, Tool $tool)
+        {
+            parent::__construct($transport);
+
+            $this->tools = [$tool];
+        }
+    };
+
+    $transport = (fn (): ArrayTransport => $this->transport)->call($server);
+
+    $server->start();
+
+    ($transport->handler)((string) json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'stream-ask',
+            '_meta' => [
+                ...protocolMeta(),
+                'io.modelcontextprotocol/clientCapabilities' => ['elicitation' => []],
+            ],
+        ],
+    ]));
+
+    $final = json_decode((string) $transport->sent[array_key_last($transport->sent)], true);
+
+    expect(json_decode((string) $transport->sent[0], true)['method'])->toBe('notifications/progress');
+    expect($final['result']['resultType'])->toBe('input_required');
+    expect($final['result']['inputRequests']['who']['method'])->toBe('elicitation/create');
+});
