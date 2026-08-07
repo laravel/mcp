@@ -17,7 +17,7 @@ class FakeTransporter implements Transport
         //
     }
 
-    public function send(string $message, ?string $sessionId = null): void
+    public function send(string $message): void
     {
         //
     }
@@ -25,11 +25,6 @@ class FakeTransporter implements Transport
     public function run(): Response|StreamedResponse
     {
         throw new LogicException('Not implemented.');
-    }
-
-    public function sessionId(): ?string
-    {
-        return uniqid();
     }
 
     public function stream(Closure $stream): void

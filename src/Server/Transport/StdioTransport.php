@@ -13,7 +13,6 @@ class StdioTransport implements Transport
      * @param  (Closure(string): void)|null  $handler
      */
     public function __construct(
-        protected string $sessionId,
         protected ?Closure $handler = null,
     ) {
         //
@@ -24,7 +23,7 @@ class StdioTransport implements Transport
         $this->handler = $handler;
     }
 
-    public function send(string $message, ?string $sessionId = null): void
+    public function send(string $message): void
     {
         fwrite(STDOUT, $message.PHP_EOL);
     }
@@ -44,11 +43,6 @@ class StdioTransport implements Transport
                 ($this->handler)($line);
             }
         }
-    }
-
-    public function sessionId(): string
-    {
-        return $this->sessionId;
     }
 
     public function stream(Closure $stream): void

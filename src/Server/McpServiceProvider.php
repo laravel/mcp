@@ -91,7 +91,6 @@ class McpServiceProvider extends ServiceProvider
                 $currentRequest = $app->make('mcp.request');
 
                 $request->setArguments($currentRequest->all());
-                $request->setSessionId($currentRequest->sessionId());
                 $request->setMeta($currentRequest->meta());
             }
         });
