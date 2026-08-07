@@ -182,7 +182,7 @@ class HttpTransport implements Transport
 
     protected function isModern(): bool
     {
-        return in_array($this->protocolVersion, ProtocolVersion::modernSupported(), true);
+        return $this->protocolVersion === ProtocolVersion::LATEST->value;
     }
 
     protected function hasJsonRpcError(ClientResponse $response): bool
@@ -205,7 +205,7 @@ class HttpTransport implements Transport
             $headers['MCP-Session-Id'] = $this->sessionId;
         }
 
-        if ($this->initialized || $this->isModern()) {
+        if (($this->initialized || $this->isModern()) && ! $this->isInitialize($message)) {
             $headers[RequestHeaders::PROTOCOL_VERSION] = $this->protocolVersion ?? ProtocolVersion::V2025_11_25->value;
         }
 
@@ -230,6 +230,17 @@ class HttpTransport implements Transport
         }
 
         return $headers;
+    }
+
+    protected function isInitialize(?string $message): bool
+    {
+        if ($message === null) {
+            return false;
+        }
+
+        $body = json_decode($message, true);
+
+        return is_array($body) && ($body['method'] ?? null) === 'initialize';
     }
 
     /**

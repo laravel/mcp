@@ -67,6 +67,10 @@ class Protocol
     {
         $this->era = $era;
         $this->resolvedEra = null;
+
+        if ($this->connected) {
+            $this->disconnect();
+        }
     }
 
     public function resolvedEra(): ?ProtocolEra
@@ -116,12 +120,26 @@ class Protocol
         $this->transport->setProtocolVersion(ProtocolVersion::LATEST->value);
 
         $this->discoverResult = (new Discover)->handle($this);
+
+        if (! in_array(ProtocolVersion::LATEST->value, $this->discoverResult->supportedVersions, true)) {
+            throw new ClientException(sprintf(
+                'The server does not support protocol version [%s]. It supports [%s].',
+                ProtocolVersion::LATEST->value,
+                implode(', ', $this->discoverResult->supportedVersions),
+            ));
+        }
     }
 
     protected function resolveEra(): void
     {
         if ($this->era === ProtocolEra::LEGACY || $this->resolvedEra === ProtocolEra::LEGACY) {
             $this->resolvedEra = ProtocolEra::LEGACY;
+
+            return;
+        }
+
+        if ($this->resolvedEra === ProtocolEra::MODERN) {
+            $this->connectModern();
 
             return;
         }

@@ -90,3 +90,50 @@ it('falls back to the handshake when the endpoint rejects the modern probe', fun
     expect($client->tools()->keys()->all())->toBe(['add']);
     expect($client->era())->toBe(ProtocolEra::LEGACY);
 });
+
+it('base64 encodes a name ending in a newline', function (): void {
+    Http::fakeSequence()
+        ->push(discoverResponse(), 200, ['Content-Type' => 'application/json'])
+        ->push(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 2,
+            'result' => ['contents' => [['uri' => "file://hello\n", 'text' => 'hi']]],
+        ]), 200, ['Content-Type' => 'application/json']);
+
+    Client::web('https://mcp.test/mcp')->readResource("file://hello\n");
+
+    Http::assertSent(function (Request $request): bool {
+        if ($request->header(RequestHeaders::METHOD)[0] !== 'resources/read') {
+            return false;
+        }
+
+        $name = $request->header(RequestHeaders::NAME)[0];
+
+        return str_starts_with($name, '=?base64?')
+            && RequestHeaders::decode($name) === "file://hello\n";
+    });
+});
+
+it('does not send a protocol version header through the legacy handshake', function (): void {
+    Http::fakeSequence()
+        ->push('Method Not Allowed', 405)
+        ->push(initializeResponse(2), 200, ['Content-Type' => 'application/json'])
+        ->push('', 202)
+        ->push(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 3,
+            'result' => ['tools' => []],
+        ]), 200, ['Content-Type' => 'application/json']);
+
+    Client::web('https://mcp.test/mcp')->tools();
+
+    Http::assertSent(function (Request $request): bool {
+        $body = json_decode($request->body(), true);
+
+        if (($body['method'] ?? null) !== 'initialize') {
+            return false;
+        }
+
+        return $request->header(RequestHeaders::PROTOCOL_VERSION) === [];
+    });
+});
