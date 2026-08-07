@@ -12,6 +12,8 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ValidateMcpHeaders
 {
+    protected const NAMED_METHODS = ['tools/call', 'prompts/get', 'resources/read'];
+
     /**
      * Handle an incoming request.
      *
@@ -34,9 +36,9 @@ class ValidateMcpHeaders
         $params = is_array($body['params'] ?? null) ? $body['params'] : [];
         $meta = is_array($params['_meta'] ?? null) ? $params['_meta'] : [];
 
-        $mismatch = $this->mismatch($request, 'MCP-Protocol-Version', $meta[MetaKey::PROTOCOL_VERSION->value] ?? null)
-            ?? $this->mismatch($request, 'Mcp-Method', $method)
-            ?? $this->mismatch($request, 'Mcp-Name', $this->name($method, $params));
+        $mismatch = $this->mismatch($request, 'MCP-Protocol-Version', $meta[MetaKey::PROTOCOL_VERSION->value] ?? null, true)
+            ?? $this->mismatch($request, 'Mcp-Method', $method, true)
+            ?? $this->mismatch($request, 'Mcp-Name', $this->name($method, $params), in_array($method, self::NAMED_METHODS, true));
 
         if ($mismatch === null) {
             return $next($request);
@@ -66,21 +68,19 @@ class ValidateMcpHeaders
         return is_string($value) ? $value : null;
     }
 
-    protected function mismatch(Request $request, string $header, mixed $expected): ?string
+    protected function mismatch(Request $request, string $header, mixed $expected, bool $required): ?string
     {
-        if (! is_string($expected)) {
-            return null;
-        }
-
         $value = $request->header($header);
 
         if (! is_string($value) || $value === '') {
-            return "Header mismatch: The [{$header}] header is required.";
+            return $required ? "Header mismatch: The [{$header}] header is required." : null;
         }
 
-        $value = $this->decode($value);
+        if ($header === 'Mcp-Name') {
+            $value = $this->decode($value);
+        }
 
-        if ($value !== $expected) {
+        if (is_string($expected) && $value !== $expected) {
             return "Header mismatch: The [{$header}] header value [{$value}] does not match the request body value [{$expected}].";
         }
 

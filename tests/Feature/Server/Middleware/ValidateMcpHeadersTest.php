@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Server\Methods\ListTools;
+use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
+
 it('accepts a request whose headers mirror the body', function (): void {
     $response = $this->postJson('test-mcp', $message = callToolMessage(), mcpHeaders($message));
 
@@ -122,4 +127,74 @@ it('answers an unknown method with a 404', function (): void {
     $response->assertStatus(404);
 
     expect($response->json('error.code'))->toBe(-32601);
+});
+
+it('requires the protocol version header even when the body omits the meta member', function (): void {
+    $message = listToolsMessage();
+    unset($message['params']['_meta']['io.modelcontextprotocol/protocolVersion']);
+
+    $headers = mcpHeaders($message);
+    unset($headers['MCP-Protocol-Version']);
+
+    $response = $this->postJson('test-mcp', $message, $headers);
+
+    $response->assertStatus(400);
+
+    expect($response->json('error'))->toEqual([
+        'code' => -32020,
+        'message' => 'Header mismatch: The [MCP-Protocol-Version] header is required.',
+    ]);
+});
+
+it('requires the name header even when the body carries no usable name', function (): void {
+    $message = callToolMessage();
+    $message['params']['name'] = 123;
+
+    $headers = mcpHeaders($message);
+    unset($headers['Mcp-Name']);
+
+    $response = $this->postJson('test-mcp', $message, $headers);
+
+    $response->assertStatus(400);
+
+    expect($response->json('error'))->toEqual([
+        'code' => -32020,
+        'message' => 'Header mismatch: The [Mcp-Name] header is required.',
+    ]);
+});
+
+it('does not decode the base64 sentinel on headers other than the name', function (): void {
+    $message = callToolMessage();
+
+    $response = $this->postJson('test-mcp', $message, [
+        ...mcpHeaders($message),
+        'Mcp-Method' => '=?base64?'.base64_encode('tools/call').'?=',
+    ]);
+
+    $response->assertStatus(400);
+
+    expect($response->json('error.code'))->toBe(-32020);
+});
+
+it('answers an internal error with a 500', function (): void {
+    config(['app.debug' => false]);
+
+    $this->app->bind(ListTools::class, fn (): ListTools => new class extends ListTools
+    {
+        public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
+        {
+            throw new RuntimeException('Something exploded.');
+        }
+    });
+
+    $message = listToolsMessage();
+
+    $response = $this->postJson('test-mcp', $message, mcpHeaders($message));
+
+    $response->assertStatus(500);
+
+    expect($response->json('error'))->toEqual([
+        'code' => -32603,
+        'message' => 'Something went wrong while processing the request.',
+    ]);
 });
