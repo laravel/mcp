@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Enums\ProtocolEra;
 use Laravel\Mcp\Enums\ProtocolVersion;
+use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Tests\Fixtures\Client\FakeTransport;
 
@@ -137,4 +138,48 @@ it('remembers a detected legacy server across reconnects', function (): void {
 
     expect($client->era())->toBe(ProtocolEra::LEGACY);
     expect(json_decode($transport->sent[0], true)['method'])->toBe('initialize');
+});
+
+it('reconnects when the era is forced after connecting', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = discoverResponse();
+    $transport->responses[] = initializeResponse(2);
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 3,
+        'result' => ['tools' => []],
+    ]);
+
+    $client = new Client($transport);
+    $client->connect();
+
+    expect($client->era())->toBe(ProtocolEra::MODERN);
+
+    $client->withEra(ProtocolEra::LEGACY);
+    $client->tools();
+
+    expect($client->era())->toBe(ProtocolEra::LEGACY);
+
+    $handshake = json_decode($transport->sent[1], true);
+
+    expect($handshake['method'])->toBe('initialize');
+    expect(json_decode($transport->sent[3], true)['params'] ?? null)->not->toHaveKey('_meta');
+});
+
+it('rejects a modern server that does not support the latest version', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'result' => [
+            'supportedVersions' => ['2027-01-01'],
+            'capabilities' => [],
+            'instructions' => null,
+        ],
+    ]);
+
+    expect(function () use ($transport): void {
+        (new Client($transport))->connect();
+    })
+        ->toThrow(ClientException::class, 'The server does not support protocol version [2026-07-28]. It supports [2027-01-01].');
 });
