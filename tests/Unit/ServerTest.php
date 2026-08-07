@@ -13,7 +13,7 @@ use Tests\Fixtures\CustomMethodHandler;
 use Tests\Fixtures\ExampleServer;
 use Tests\Fixtures\ThrowingMethodHandler;
 
-it('can handle an initialize message', function (): void {
+it('rejects the initialize handshake', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
 
@@ -25,7 +25,90 @@ it('can handle an initialize message', function (): void {
 
     $response = json_decode((string) $transport->sent[0], true);
 
-    expect($response)->toEqual(expectedInitializeResponse());
+    expect($response)->toEqual(expectedInitializeRejection());
+});
+
+it('can handle a discover message', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    $payload = json_encode(discoverMessage());
+
+    ($transport->handler)($payload);
+
+    $response = json_decode((string) $transport->sent[0], true);
+
+    expect($response)->toEqual(expectedDiscoverResponse());
+});
+
+it('rejects a request without the required protocol metadata', function (array $meta, string $message): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/list',
+        'params' => ['_meta' => $meta],
+    ]);
+
+    ($transport->handler)($payload);
+
+    expect(json_decode((string) $transport->sent[0], true))->toEqual([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'error' => [
+            'code' => -32602,
+            'message' => $message,
+        ],
+    ]);
+})->with([
+    'missing version' => [
+        ['io.modelcontextprotocol/clientCapabilities' => []],
+        'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/protocolVersion] member.',
+    ],
+    'missing capabilities' => [
+        ['io.modelcontextprotocol/protocolVersion' => '2026-07-28'],
+        'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/clientCapabilities] member.',
+    ],
+]);
+
+it('rejects an unsupported protocol version', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/list',
+        'params' => [
+            '_meta' => [
+                'io.modelcontextprotocol/protocolVersion' => '2025-11-25',
+                'io.modelcontextprotocol/clientCapabilities' => [],
+            ],
+        ],
+    ]);
+
+    ($transport->handler)($payload);
+
+    expect(json_decode((string) $transport->sent[0], true))->toEqual([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'error' => [
+            'code' => -32022,
+            'message' => 'Unsupported protocol version',
+            'data' => [
+                'supported' => ['2026-07-28'],
+                'requested' => '2025-11-25',
+            ],
+        ],
+    ]);
 });
 
 it('can add a capability', function (): void {
@@ -37,7 +120,7 @@ it('can add a capability', function (): void {
 
     $server->start();
 
-    $payload = json_encode(initializeMessage());
+    $payload = json_encode(discoverMessage());
 
     ($transport->handler)($payload);
 
@@ -111,7 +194,7 @@ it('can handle an unknown method', function (): void {
         'jsonrpc' => '2.0',
         'id' => 789,
         'method' => 'unknown/method',
-        'params' => [],
+        'params' => ['_meta' => protocolMeta()],
     ]);
 
     ($transport->handler)($payload);
@@ -156,6 +239,10 @@ it('returns protocol errors for invalid parameter shapes', function (mixed $para
     'tool arguments' => [[
         'name' => 'say-hi-tool',
         'arguments' => 'invalid',
+        '_meta' => [
+            'io.modelcontextprotocol/protocolVersion' => '2026-07-28',
+            'io.modelcontextprotocol/clientCapabilities' => [],
+        ],
     ], 'Invalid params: The [arguments] member must be an object.'],
 ]);
 
@@ -196,7 +283,7 @@ it('can handle a custom method message', function (): void {
         'jsonrpc' => '2.0',
         'id' => 12345,
         'method' => 'custom/method',
-        'params' => [],
+        'params' => ['_meta' => protocolMeta()],
     ]);
 
     ($transport->handler)($payload);
@@ -207,25 +294,30 @@ it('can handle a custom method message', function (): void {
     expect($response)->toEqual([
         'jsonrpc' => '2.0',
         'id' => 12345,
-        'result' => [
+        'result' => completeResult([
             'message' => 'Custom method executed successfully!',
-        ],
+        ]),
     ]);
 });
 
-it('can handle a ping message', function (): void {
+it('no longer answers a ping message', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
 
     $server->start();
 
-    $payload = json_encode(pingMessage());
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 789,
+        'method' => 'ping',
+        'params' => ['_meta' => protocolMeta()],
+    ]);
 
     ($transport->handler)($payload);
 
     $response = json_decode((string) $transport->sent[0], true);
 
-    expect($response)->toEqual(expectedPingResponse());
+    expect($response['error']['code'])->toBe(-32601);
 });
 
 it('calls boot method on connect', function (): void {
@@ -270,7 +362,7 @@ it('handles capability with non-array existing value', function (): void {
 
     $server->start();
 
-    $payload = json_encode(initializeMessage());
+    $payload = json_encode(discoverMessage());
 
     ($transport->handler)($payload);
 
@@ -305,7 +397,7 @@ it('handles exceptions in debug mode', function (): void {
         'jsonrpc' => '2.0',
         'id' => 999,
         'method' => 'test/method',
-        'params' => [],
+        'params' => ['_meta' => protocolMeta()],
     ]);
 
     expect(function () use ($transport, $payload): void {
@@ -338,7 +430,7 @@ it('handles exceptions in production mode', function (): void {
         'jsonrpc' => '2.0',
         'id' => 999,
         'method' => 'test/method',
-        'params' => [],
+        'params' => ['_meta' => protocolMeta()],
     ]);
 
     ($transport->handler)($payload);

@@ -42,6 +42,28 @@ expect()->extend('toBeOne', fn () => $this->toBe(1));
 |
 */
 
+function protocolMeta(): array
+{
+    return [
+        'io.modelcontextprotocol/protocolVersion' => '2026-07-28',
+        'io.modelcontextprotocol/clientCapabilities' => [],
+    ];
+}
+
+function completeResult(array $result): array
+{
+    return [
+        'resultType' => 'complete',
+        ...$result,
+        '_meta' => [
+            'io.modelcontextprotocol/serverInfo' => [
+                'name' => 'Laravel MCP Server',
+                'version' => '0.0.1',
+            ],
+        ],
+    ];
+}
+
 function initializeMessage(): array
 {
     return [
@@ -49,6 +71,53 @@ function initializeMessage(): array
         'id' => 456,
         'method' => 'initialize',
         'params' => [],
+    ];
+}
+
+function discoverMessage(): array
+{
+    return [
+        'jsonrpc' => '2.0',
+        'id' => 456,
+        'method' => 'server/discover',
+        'params' => [
+            '_meta' => protocolMeta(),
+        ],
+    ];
+}
+
+function expectedDiscoverResponse(): array
+{
+    $server = new ExampleServer(new ArrayTransport);
+
+    [$capabilities, $instructions] = (fn (): array => [
+        $this->capabilities,
+        $this->instructions,
+    ])->call($server);
+
+    return [
+        'jsonrpc' => '2.0',
+        'id' => 456,
+        'result' => completeResult([
+            'supportedVersions' => ['2026-07-28'],
+            'capabilities' => $capabilities,
+            'instructions' => $instructions,
+        ]),
+    ];
+}
+
+function expectedInitializeRejection(): array
+{
+    return [
+        'jsonrpc' => '2.0',
+        'id' => 456,
+        'error' => [
+            'code' => -32601,
+            'message' => 'The [initialize] handshake was removed in MCP 2026-07-28. Send the protocol version in the request [_meta] instead.',
+            'data' => [
+                'supported' => ['2026-07-28'],
+            ],
+        ],
     ];
 }
 
@@ -74,43 +143,15 @@ function pingResponse(int $id): string
     ]);
 }
 
-function expectedInitializeResponse(): array
-{
-    $server = new ExampleServer(new ArrayTransport);
-
-    [
-        $capabilities,
-        $name,
-        $version,
-        $instructions,
-    ] = (fn (): array => [
-        $this->capabilities,
-        $this->name,
-        $this->version,
-        $this->instructions,
-    ])->call($server);
-
-    return [
-        'jsonrpc' => '2.0',
-        'id' => 456,
-        'result' => [
-            'protocolVersion' => '2025-11-25',
-            'capabilities' => $capabilities,
-            'serverInfo' => [
-                'name' => $name,
-                'version' => $version,
-            ],
-            'instructions' => $instructions,
-        ],
-    ];
-}
-
 function listToolsMessage(): array
 {
     return [
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'tools/list',
+        'params' => [
+            '_meta' => protocolMeta(),
+        ],
     ];
 }
 
@@ -119,7 +160,7 @@ function expectedListToolsResponse(): array
     return [
         'jsonrpc' => '2.0',
         'id' => 1,
-        'result' => [
+        'result' => completeResult([
             'tools' => [
                 [
                     'name' => 'say-hi-tool',
@@ -154,7 +195,7 @@ function expectedListToolsResponse(): array
                     'title' => 'Streaming Tool',
                 ],
             ],
-        ],
+        ]),
     ];
 }
 
@@ -164,6 +205,9 @@ function listResourcesMessage(): array
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'resources/list',
+        'params' => [
+            '_meta' => protocolMeta(),
+        ],
     ];
 }
 
@@ -172,7 +216,7 @@ function expectedListResourcesResponse(): array
     return [
         'jsonrpc' => '2.0',
         'id' => 1,
-        'result' => [
+        'result' => completeResult([
             'resources' => [
                 [
                     'name' => 'last-log-line-resource',
@@ -196,7 +240,7 @@ function expectedListResourcesResponse(): array
                     'mimeType' => 'video/mp4',
                 ],
             ],
-        ],
+        ]),
     ];
 }
 
@@ -211,6 +255,7 @@ function callToolMessage(): array
             'arguments' => [
                 'name' => 'John Doe',
             ],
+            '_meta' => protocolMeta(),
         ],
     ];
 }
@@ -223,6 +268,7 @@ function readResourceMessage(): array
         'method' => 'resources/read',
         'params' => [
             'uri' => 'file://resources/last-log-line-resource',
+            '_meta' => protocolMeta(),
         ],
     ];
 }
@@ -232,21 +278,13 @@ function expectedReadResourceResponse(): array
     return [
         'jsonrpc' => '2.0',
         'id' => 123,
-        'result' => [
+        'result' => completeResult([
             'contents' => [[
                 'text' => '2025-07-02 12:00:00 Error: Something went wrong.',
                 'uri' => 'file://resources/last-log-line-resource',
                 'mimeType' => 'text/plain',
             ]],
-        ],
-    ];
-}
-
-function initializeNotificationMessage(): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'method' => 'notifications/initialized',
+        ]),
     ];
 }
 
@@ -255,31 +293,13 @@ function expectedCallToolResponse(): array
     return [
         'jsonrpc' => '2.0',
         'id' => 1,
-        'result' => [
+        'result' => completeResult([
             'content' => [[
                 'type' => 'text',
                 'text' => 'Hello, John Doe!',
             ]],
             'isError' => false,
-        ],
-    ];
-}
-
-function pingMessage(): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'id' => 789,
-        'method' => 'ping',
-    ];
-}
-
-function expectedPingResponse(): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'id' => 789,
-        'result' => [],
+        ]),
     ];
 }
 
@@ -294,6 +314,7 @@ function callStreamingToolMessage(int $count = 2): array
             'arguments' => [
                 'count' => $count,
             ],
+            '_meta' => protocolMeta(),
         ],
     ];
 }
@@ -313,10 +334,10 @@ function expectedStreamingToolResponse(int $count = 2): array
     $messages[] = [
         'jsonrpc' => '2.0',
         'id' => 2,
-        'result' => [
+        'result' => completeResult([
             'content' => [['type' => 'text', 'text' => "Finished streaming {$count} messages."]],
             'isError' => false,
-        ],
+        ]),
     ];
 
     return $messages;

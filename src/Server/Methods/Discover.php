@@ -9,10 +9,14 @@ use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 
-class Ping implements Method
+class Discover implements Method
 {
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
-        return JsonRpcResponse::result($request->id, []);
+        return JsonRpcResponse::result($request->id, [
+            'supportedVersions' => $context->supportedProtocolVersions,
+            'capabilities' => $context->serverCapabilities,
+            'instructions' => $context->instructions,
+        ]);
     }
 }

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
-use Illuminate\Support\Str;
+use Laravel\Mcp\Enums\ErrorCode;
+use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\ProtocolVersion;
-use Laravel\Mcp\Events\SessionInitialized;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Schema\Implementation;
@@ -20,13 +20,12 @@ use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\Methods\CompletionComplete;
+use Laravel\Mcp\Server\Methods\Discover;
 use Laravel\Mcp\Server\Methods\GetPrompt;
-use Laravel\Mcp\Server\Methods\Initialize;
 use Laravel\Mcp\Server\Methods\ListPrompts;
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Methods\ListResourceTemplates;
 use Laravel\Mcp\Server\Methods\ListTools;
-use Laravel\Mcp\Server\Methods\Ping;
 use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -116,7 +115,7 @@ abstract class Server
         'prompts/list' => ListPrompts::class,
         'prompts/get' => GetPrompt::class,
         'completion/complete' => CompletionComplete::class,
-        'ping' => Ping::class,
+        'server/discover' => Discover::class,
     ];
 
     public function __construct(
@@ -177,12 +176,13 @@ abstract class Server
     public function handle(string $rawMessage): void
     {
         $context = $this->createContext();
+        $requestId = null;
 
         try {
             $jsonRequest = json_decode($rawMessage, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', -32700);
+                throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', ErrorCode::PARSE_ERROR->value);
             }
 
             $request = isset($jsonRequest['id'])
@@ -193,16 +193,23 @@ abstract class Server
                 return;
             }
 
-            if ($request->method === 'initialize') {
-                $this->handleInitializeMessage($request, $context);
+            $requestId = $request->id;
 
-                return;
+            if ($request->method === 'initialize') {
+                throw new JsonRpcException(
+                    'The [initialize] handshake was removed in MCP '.ProtocolVersion::LATEST->value.'. Send the protocol version in the request [_meta] instead.',
+                    ErrorCode::METHOD_NOT_FOUND->value,
+                    $request->id,
+                    ['supported' => $context->supportedProtocolVersions],
+                );
             }
+
+            $this->validateProtocolMeta($request, $context);
 
             if (! isset($this->methods[$request->method])) {
                 throw new JsonRpcException(
                     "The method [{$request->method}] was not found.",
-                    -32601,
+                    ErrorCode::METHOD_NOT_FOUND->value,
                     $request->id,
                 );
             }
@@ -220,8 +227,8 @@ abstract class Server
             }
 
             $jsonRpcResponse = JsonRpcResponse::error(
-                $request->id ?? null,
-                -32603,
+                $requestId,
+                ErrorCode::INTERNAL_ERROR->value,
                 'Something went wrong while processing the request.',
             );
 
@@ -263,21 +270,61 @@ abstract class Server
     /**
      * @throws JsonRpcException
      */
+    protected function validateProtocolMeta(JsonRpcRequest $request, ServerContext $context): void
+    {
+        $meta = $request->meta() ?? [];
+
+        foreach ([MetaKey::PROTOCOL_VERSION, MetaKey::CLIENT_CAPABILITIES] as $metaKey) {
+            if (! array_key_exists($metaKey->value, $meta)) {
+                throw new JsonRpcException(
+                    "Invalid params: The request [_meta] is missing the required [{$metaKey->value}] member.",
+                    ErrorCode::INVALID_PARAMS->value,
+                    $request->id,
+                );
+            }
+        }
+
+        $requestedVersion = $meta[MetaKey::PROTOCOL_VERSION->value];
+
+        if (! in_array($requestedVersion, $context->supportedProtocolVersions, true)) {
+            throw new JsonRpcException(
+                'Unsupported protocol version',
+                ErrorCode::UNSUPPORTED_PROTOCOL_VERSION->value,
+                $request->id,
+                [
+                    'supported' => $context->supportedProtocolVersions,
+                    'requested' => $requestedVersion,
+                ],
+            );
+        }
+    }
+
+    /**
+     * @throws JsonRpcException
+     */
     protected function handleMessage(JsonRpcRequest $request, ServerContext $context): void
     {
         $response = $this->runMethodHandle($request, $context);
 
         if (! is_iterable($response)) {
-            $this->transport->send($response->toJson());
+            $this->transport->send($this->completeResult($response, $context)->toJson());
 
             return;
         }
 
-        $this->transport->stream(function () use ($response): void {
+        $this->transport->stream(function () use ($response, $context): void {
             foreach ($response as $message) {
-                $this->transport->send($message->toJson());
+                $this->transport->send($this->completeResult($message, $context)->toJson());
             }
         });
+    }
+
+    protected function completeResult(JsonRpcResponse $response, ServerContext $context): JsonRpcResponse
+    {
+        return $response->mergeResult(
+            ['resultType' => 'complete'],
+            [MetaKey::SERVER_INFO->value => $context->implementation->toArray()],
+        );
     }
 
     /**
@@ -303,27 +350,6 @@ abstract class Server
         }
 
         return $response;
-    }
-
-    protected function handleInitializeMessage(JsonRpcRequest $request, ServerContext $context): void
-    {
-        $response = (new Initialize)->handle($request, $context);
-
-        $sessionId = $this->generateSessionId();
-
-        Container::getInstance()->make('events')->dispatch(new SessionInitialized(
-            sessionId: $sessionId,
-            clientInfo: $request->params['clientInfo'] ?? null,
-            protocolVersion: $request->params['protocolVersion'] ?? null,
-            clientCapabilities: $request->params['capabilities'] ?? null,
-        ));
-
-        $this->transport->send($response->toJson(), $sessionId);
-    }
-
-    protected function generateSessionId(): string
-    {
-        return Str::uuid()->toString();
     }
 
     protected function detectUiCapability(): void

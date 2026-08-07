@@ -59,6 +59,28 @@ class JsonRpcResponse implements Arrayable
     }
 
     /**
+     * @param  array<string, mixed>  $fields
+     * @param  array<string, mixed>  $meta
+     */
+    public function mergeResult(array $fields, array $meta = []): static
+    {
+        if (! array_key_exists('result', $this->content)) {
+            return $this;
+        }
+
+        $result = (array) $this->content['result'];
+
+        if ($meta !== []) {
+            $result['_meta'] = array_merge($meta, (array) ($result['_meta'] ?? []));
+        }
+
+        $response = clone $this;
+        $response->content['result'] = array_merge($fields, $result);
+
+        return $response;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array

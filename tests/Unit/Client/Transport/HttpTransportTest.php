@@ -128,7 +128,7 @@ it('falls back to the latest protocol version when initialized without a negotia
     $transport->receive();
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list']));
 
-    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::LATEST->value));
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::V2025_11_25->value));
 });
 
 it('sends a bearer Authorization header when a token is set', function (): void {
@@ -201,7 +201,7 @@ it('sends custom headers when built via Client::web', function (): void {
             'jsonrpc' => '2.0',
             'id' => 1,
             'result' => [
-                'protocolVersion' => ProtocolVersion::LATEST->value,
+                'protocolVersion' => ProtocolVersion::V2025_11_25->value,
                 'capabilities' => new stdClass,
                 'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
             ],
@@ -344,7 +344,7 @@ it('drives a full handshake and tools list over HTTP via Client::web', function 
             'jsonrpc' => '2.0',
             'id' => 1,
             'result' => [
-                'protocolVersion' => ProtocolVersion::LATEST->value,
+                'protocolVersion' => ProtocolVersion::V2025_11_25->value,
                 'capabilities' => new stdClass,
                 'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
             ],
@@ -366,7 +366,7 @@ it('drives a full handshake and tools list over HTTP via Client::web', function 
 
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Session-Id', 'session-e2e'));
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('Authorization', 'Bearer e2e-token'));
-    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::LATEST->value));
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::V2025_11_25->value));
 });
 
 it('throws when the server negotiates a protocol version the client does not support', function (): void {
@@ -457,14 +457,14 @@ it('builds a WebClient from Client::web', function (): void {
 it('re-initializes and retries once after a 404 session expiry', function (): void {
     Http::fakeSequence()
         ->push(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => [
-            'protocolVersion' => ProtocolVersion::LATEST->value,
+            'protocolVersion' => ProtocolVersion::V2025_11_25->value,
             'capabilities' => new stdClass,
             'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
         ]]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-1'])
         ->push('', 202)
         ->push('', 404)
         ->push(json_encode(['jsonrpc' => '2.0', 'id' => 3, 'result' => [
-            'protocolVersion' => ProtocolVersion::LATEST->value,
+            'protocolVersion' => ProtocolVersion::V2025_11_25->value,
             'capabilities' => new stdClass,
             'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
         ]]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-2'])

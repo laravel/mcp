@@ -184,7 +184,7 @@ class HttpTransport implements Transport
         }
 
         if ($this->initialized) {
-            $headers['MCP-Protocol-Version'] = $this->protocolVersion ?? ProtocolVersion::LATEST->value;
+            $headers['MCP-Protocol-Version'] = $this->protocolVersion ?? ProtocolVersion::V2025_11_25->value;
         }
 
         $token = $this->token instanceof Closure ? (string) ($this->token)() : $this->token;

@@ -20,7 +20,7 @@ it('performs the initialize handshake on connect', function (): void {
 
     expect($transport->connected)->toBeTrue();
     expect($client->connected())->toBeTrue();
-    expect($client->initializeResult()?->protocolVersion)->toBe(ProtocolVersion::LATEST->value);
+    expect($client->initializeResult()?->protocolVersion)->toBe(ProtocolVersion::V2025_11_25->value);
     expect($client->initializeResult()?->serverInfo->name)->toBe('Test Server');
     expect($client->initializeResult()?->serverInfo->version)->toBe('1.0.0');
     expect($client->initializeResult()?->capabilities)->toBeArray();
@@ -29,7 +29,7 @@ it('performs the initialize handshake on connect', function (): void {
 
     $initialize = json_decode($transport->sent[0], true);
     expect($initialize['method'])->toBe('initialize');
-    expect($initialize['params']['protocolVersion'])->toBe(ProtocolVersion::LATEST->value);
+    expect($initialize['params']['protocolVersion'])->toBe(ProtocolVersion::V2025_11_25->value);
     expect($initialize['params']['clientInfo']['name'])->toBe('Acme MCP App');
 
     $initialized = json_decode($transport->sent[1], true);
@@ -250,7 +250,7 @@ it('throws when the initialize result is structurally invalid', function (): voi
         'jsonrpc' => '2.0',
         'id' => 1,
         'result' => [
-            'protocolVersion' => ProtocolVersion::LATEST->value,
+            'protocolVersion' => ProtocolVersion::V2025_11_25->value,
             'capabilities' => new stdClass,
             'serverInfo' => ['version' => '1.0.0'],
         ],
@@ -308,7 +308,7 @@ it('stores the full server info and instructions from initialize', function (): 
         'jsonrpc' => '2.0',
         'id' => 1,
         'result' => [
-            'protocolVersion' => ProtocolVersion::LATEST->value,
+            'protocolVersion' => ProtocolVersion::V2025_11_25->value,
             'capabilities' => new stdClass,
             'serverInfo' => [
                 'name' => 'ExampleServer',
@@ -347,7 +347,7 @@ it('parses icons with sizes and theme when the server includes them', function (
         'jsonrpc' => '2.0',
         'id' => 1,
         'result' => [
-            'protocolVersion' => ProtocolVersion::LATEST->value,
+            'protocolVersion' => ProtocolVersion::V2025_11_25->value,
             'capabilities' => new stdClass,
             'serverInfo' => [
                 'name' => 'ExampleServer',
