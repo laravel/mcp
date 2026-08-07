@@ -9,7 +9,6 @@ use Illuminate\Container\Container;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
-use Illuminate\Support\Str;
 use Illuminate\Support\Traits\Macroable;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\ClientManager;
@@ -48,11 +47,7 @@ class Registrar
 
         $route = Router::post($route, static fn (): mixed => static::startServer(
             $serverClass,
-            static fn (): HttpTransport => new HttpTransport(
-                $request = request(),
-                // @phpstan-ignore-next-line
-                (string) $request->header('MCP-Session-Id')
-            ),
+            static fn (): HttpTransport => new HttpTransport(request()),
         ))->middleware([
             ReorderJsonAccept::class,
             AddWwwAuthenticateHeader::class,
@@ -70,9 +65,7 @@ class Registrar
      */
     public function local(string $handle, string $serverClass): void
     {
-        $this->localServers[$handle] = fn (): mixed => static::startServer($serverClass, fn (): StdioTransport => new StdioTransport(
-            Str::uuid()->toString(),
-        ));
+        $this->localServers[$handle] = fn (): mixed => static::startServer($serverClass, fn (): StdioTransport => new StdioTransport);
     }
 
     /**

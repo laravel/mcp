@@ -26,6 +26,26 @@ it('does not return a session id over http', function (): void {
     expect($response->json())->toEqual(expectedDiscoverResponse());
 });
 
+it('ignores an inbound session id header', function (): void {
+    $response = $this->postJson('test-mcp', listToolsMessage(), ['MCP-Session-Id' => 'stale-session']);
+
+    $response->assertStatus(200);
+    $response->assertHeaderMissing('MCP-Session-Id');
+
+    expect($response->json())->toEqual(expectedListToolsResponse());
+});
+
+it('handles consecutive requests without any prior handshake', function (): void {
+    $first = $this->postJson('test-mcp', listToolsMessage());
+    $second = $this->postJson('test-mcp', callToolMessage());
+
+    $first->assertStatus(200);
+    $second->assertStatus(200);
+
+    expect($first->json())->toEqual(expectedListToolsResponse());
+    expect($second->json())->toEqual(expectedCallToolResponse());
+});
+
 it('can list resources over http', function (): void {
     $response = $this->postJson('test-mcp', listResourcesMessage());
 
