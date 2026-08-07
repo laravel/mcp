@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Transport;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -64,13 +65,31 @@ class HttpTransport implements Transport
             }, 200, $this->getHeaders());
         }
 
-        // Must be 202 - https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#sending-messages-to-the-server
-        $statusCode = $this->reply === null ? 202 : 200;
-        $response = response($this->reply, $statusCode, $this->getHeaders());
+        $response = response($this->reply, $this->statusCode(), $this->getHeaders());
 
         assert($response instanceof Response);
 
         return $response;
+    }
+
+    protected function statusCode(): int
+    {
+        // Must be 202 - https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http#sending-messages
+        if ($this->reply === null) {
+            return 202;
+        }
+
+        $reply = json_decode($this->reply, true);
+
+        if (! is_array($reply) || ! is_array($reply['error'] ?? null)) {
+            return 200;
+        }
+
+        return match ($reply['error']['code'] ?? null) {
+            ErrorCode::METHOD_NOT_FOUND->value => 404,
+            ErrorCode::INTERNAL_ERROR->value => 500,
+            default => 400,
+        };
     }
 
     /**
