@@ -15,7 +15,7 @@ it('performs the initialize handshake on connect', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
     $client->connect();
 
     expect($transport->connected)->toBeTrue();
@@ -49,7 +49,7 @@ it('disconnects when the server negotiates a version the client does not support
         ],
     ]);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
 
     expect(function () use ($client): void {
         $client->connect();
@@ -63,7 +63,7 @@ it('pings the server', function (): void {
     $transport->responses[] = initializeResponse();
     $transport->responses[] = pingResponse(2);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
     $client->ping();
 
     $ping = json_decode($transport->sent[2], true);
@@ -76,7 +76,7 @@ it('lazily connects when ping is called first', function (): void {
     $transport->responses[] = initializeResponse();
     $transport->responses[] = pingResponse(2);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
 
     expect($client->connected())->toBeFalse();
 
@@ -89,7 +89,7 @@ it('does not reconnect when already connected', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
     $client->connect();
     $client->connect();
 
@@ -100,7 +100,7 @@ it('disconnects cleanly', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
     $client->connect();
     $client->disconnect();
 
@@ -113,7 +113,7 @@ it('clears connected state when a request fails after the handshake', function (
     $transport->responses[] = initializeResponse();
     $transport->responses[] = '{not json';
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
     $client->connect();
 
     expect($client->connected())->toBeTrue();
@@ -135,7 +135,7 @@ it('keeps the connection open after a JSON-RPC error response', function (): voi
         'error' => ['code' => -32601, 'message' => 'Method not found'],
     ]);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
     $client->connect();
 
     expect(function () use ($client): void {
@@ -156,7 +156,7 @@ it('skips notification frames received before the matching response', function (
     ]);
     $transport->responses[] = pingResponse(2);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
     $client->ping();
 
     expect($transport->responses)->toBeEmpty();
@@ -170,7 +170,7 @@ it('rethrows JSON-RPC errors and disconnects the transport on handshake failure'
         'error' => ['code' => -32600, 'message' => 'Invalid request'],
     ]);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
 
     expect(fn (): Client => $client->connect())
         ->toThrow(JsonRpcException::class, 'Invalid request');
@@ -183,7 +183,7 @@ it('throws when the response payload is malformed JSON', function (): void {
     $transport = new FakeTransport;
     $transport->responses[] = '{not json';
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
 
     expect(fn (): Client => $client->connect())
         ->toThrow(ClientException::class, 'Malformed JSON-RPC response from server');
@@ -196,7 +196,7 @@ it('throws when the response is missing the jsonrpc version', function (): void 
         'result' => ['protocolVersion' => '2025-11-25', 'capabilities' => new stdClass, 'serverInfo' => ['name' => 'x', 'version' => 'y']],
     ]);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
 
     expect(fn (): Client => $client->connect())
         ->toThrow(ClientException::class, 'Invalid JSON-RPC response from server.');
@@ -211,7 +211,7 @@ it('throws when the response carries both result and error', function (): void {
         'error' => ['code' => -32600, 'message' => 'nope'],
     ]);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
 
     expect(fn (): Client => $client->connect())
         ->toThrow(ClientException::class, 'must contain exactly one of "result" or "error"');
@@ -224,7 +224,7 @@ it('throws when the response carries neither result nor error', function (): voi
         'id' => 1,
     ]);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
 
     expect(fn (): Client => $client->connect())
         ->toThrow(ClientException::class, 'must contain exactly one of "result" or "error"');
@@ -238,7 +238,7 @@ it('throws when the error payload is not an object', function (): void {
         'error' => 'not an object',
     ]);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
 
     expect(fn (): Client => $client->connect())
         ->toThrow(ClientException::class, 'Invalid JSON-RPC error payload.');
@@ -256,7 +256,7 @@ it('throws when the initialize result is structurally invalid', function (): voi
         ],
     ]);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
 
     expect(fn (): Client => $client->connect())
         ->toThrow(ClientException::class, 'Invalid initialize response from server.');
@@ -272,7 +272,7 @@ it('responds to server-initiated ping requests with an empty result', function (
     ]);
     $transport->responses[] = pingResponse(2);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
     $client->ping();
 
     $pingReply = json_decode($transport->sent[3], true);
@@ -292,7 +292,7 @@ it('responds with method-not-found to unsupported server-initiated requests', fu
     ]);
     $transport->responses[] = pingResponse(2);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
     $client->ping();
 
     $errorReply = json_decode($transport->sent[3], true);
@@ -322,7 +322,7 @@ it('stores the full server info and instructions from initialize', function (): 
         ],
     ]);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
     $client->connect();
 
     $result = $client->initializeResult();
@@ -362,7 +362,7 @@ it('parses icons with sizes and theme when the server includes them', function (
         ],
     ]);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
     $client->connect();
 
     $icon = $client->initializeResult()?->serverInfo->icons[0] ?? null;

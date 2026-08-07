@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Collection;
-use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Primitives\Prompt;
 use Laravel\Mcp\Client\Schema\PromptResult;
 use Laravel\Mcp\Exceptions\ClientException;
@@ -23,7 +22,7 @@ it('returns a collection of prompts keyed by name', function (): void {
         ],
     ]);
 
-    $prompts = (new Client($transport))->prompts();
+    $prompts = legacyClient($transport)->prompts();
 
     expect($prompts)
         ->toBeInstanceOf(Collection::class)
@@ -57,7 +56,7 @@ it('auto-paginates prompts/list until nextCursor is absent', function (): void {
         ],
     ]);
 
-    $prompts = (new Client($transport))->prompts();
+    $prompts = legacyClient($transport)->prompts();
 
     expect($prompts->keys()->all())->toBe(['first', 'second', 'third'])
         ->and(json_decode($transport->sent[2], true))->not->toHaveKey('params')
@@ -76,7 +75,7 @@ it('stops paginating once the prompt limit is reached without fetching the next 
         ],
     ]);
 
-    $prompts = (new Client($transport))->prompts(2);
+    $prompts = legacyClient($transport)->prompts(2);
 
     expect($prompts->keys()->all())->toBe(['a', 'b'])
         ->and($transport->sent)->toHaveCount(3)
@@ -85,7 +84,7 @@ it('stops paginating once the prompt limit is reached without fetching the next 
 
 it('returns no prompts without connecting when limit is zero', function (): void {
     $transport = new FakeTransport;
-    $client = new Client($transport);
+    $client = legacyClient($transport);
 
     $prompts = $client->prompts(0);
 
@@ -99,7 +98,7 @@ it('returns no prompts without connecting when limit is zero', function (): void
 it('throws when the prompt limit is negative', function (): void {
     $transport = new FakeTransport;
 
-    expect(fn (): Collection => (new Client($transport))->prompts(-1))
+    expect(fn (): Collection => legacyClient($transport)->prompts(-1))
         ->toThrow(ClientException::class, 'Prompt list limit must be greater than or equal to zero.')
         ->and($transport->sent)->toBeEmpty();
 });
@@ -115,7 +114,7 @@ it('throws when prompts/list does not return a prompts array', function (): void
         ],
     ]);
 
-    expect(fn (): Collection => (new Client($transport))->prompts())
+    expect(fn (): Collection => legacyClient($transport)->prompts())
         ->toThrow(ClientException::class, 'Invalid prompts/list response from server.');
 });
 
@@ -130,7 +129,7 @@ it('throws when a prompt payload is not an object', function (): void {
         ],
     ]);
 
-    expect(fn (): Collection => (new Client($transport))->prompts())
+    expect(fn (): Collection => legacyClient($transport)->prompts())
         ->toThrow(ClientException::class, 'Invalid prompt payload from server.');
 });
 
@@ -145,7 +144,7 @@ it('throws when a prompt name is missing or empty', function (array $payload): v
         ],
     ]);
 
-    expect(fn (): Collection => (new Client($transport))->prompts())
+    expect(fn (): Collection => legacyClient($transport)->prompts())
         ->toThrow(ClientException::class, 'Invalid prompt payload from server.');
 })->with([
     'missing name' => [[]],
@@ -164,7 +163,7 @@ it('throws when a prompt payload has a field of the wrong type', function (array
         ],
     ]);
 
-    expect(fn (): Collection => (new Client($transport))->prompts())
+    expect(fn (): Collection => legacyClient($transport)->prompts())
         ->toThrow(ClientException::class, 'Invalid prompt payload from server.');
 })->with([
     'non-string name' => [['name' => 123]],
@@ -194,7 +193,7 @@ it('throws when a server repeats a prompts/list cursor', function (): void {
         ],
     ]);
 
-    expect(fn (): Collection => (new Client($transport))->prompts())
+    expect(fn (): Collection => legacyClient($transport)->prompts())
         ->toThrow(ClientException::class, 'Repeated prompts/list cursor [cursor-page-2] received from server.')
         ->and($transport->sent)->toHaveCount(4);
 });
@@ -211,7 +210,7 @@ it('throws when prompts/list returns a non-string cursor', function (mixed $next
         ],
     ]);
 
-    expect(fn (): Collection => (new Client($transport))->prompts())
+    expect(fn (): Collection => legacyClient($transport)->prompts())
         ->toThrow(ClientException::class, 'Invalid prompts/list cursor from server.');
 })->with([
     'integer' => [123],
@@ -234,7 +233,7 @@ it('sends prompts/get by name and concatenates text content', function (): void 
         ],
     ]);
 
-    $result = (new Client($transport))->getPrompt('greeting', ['name' => 'John']);
+    $result = legacyClient($transport)->getPrompt('greeting', ['name' => 'John']);
 
     expect($result)
         ->toBeInstanceOf(PromptResult::class)
@@ -257,7 +256,7 @@ it('encodes empty prompt arguments as an object on the wire', function (): void 
         'result' => ['messages' => []],
     ]);
 
-    (new Client($transport))->getPrompt('no-args');
+    legacyClient($transport)->getPrompt('no-args');
 
     expect(json_decode($transport->sent[2])->params->arguments)->toBeInstanceOf(stdClass::class);
 });
@@ -276,7 +275,7 @@ it('skips messages whose content is not an object when extracting text', functio
         ],
     ]);
 
-    $result = (new Client($transport))->getPrompt('greeting');
+    $result = legacyClient($transport)->getPrompt('greeting');
 
     expect($result->text())->toBe('Hello!');
 });
@@ -293,7 +292,7 @@ it('preserves _meta from the prompts/get response', function (): void {
         ],
     ]);
 
-    $result = (new Client($transport))->getPrompt('greeting');
+    $result = legacyClient($transport)->getPrompt('greeting');
 
     expect($result)
         ->meta->toBe(['source' => 'cached', 'duration_ms' => 12]);
@@ -308,7 +307,7 @@ it('throws when a prompts/get result has a field of the wrong type', function (a
         'result' => $result,
     ]);
 
-    expect(fn (): PromptResult => (new Client($transport))->getPrompt('greeting'))
+    expect(fn (): PromptResult => legacyClient($transport)->getPrompt('greeting'))
         ->toThrow(ClientException::class, 'Invalid prompts/get result from server.');
 })->with([
     'non-array messages' => [['messages' => 'not-an-array']],

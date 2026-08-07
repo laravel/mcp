@@ -11,10 +11,12 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
+use Laravel\Mcp\Client\Exceptions\UnexpectedResponseException;
 use Laravel\Mcp\Client\OAuth\WwwAuthenticateChallenge;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\SessionExpiredException;
+use Laravel\Mcp\Support\RequestHeaders;
 use Psr\Http\Message\StreamInterface;
 use SensitiveParameter;
 use Throwable;
@@ -100,7 +102,7 @@ class HttpTransport implements Transport
         $hadSession = $this->sessionId !== null;
 
         try {
-            $response = Http::withHeaders($this->headers())
+            $response = Http::withHeaders($this->headers($message))
                 ->withBody($message, 'application/json')
                 ->timeout($this->timeoutSeconds)
                 ->withOptions(['stream' => true])
@@ -129,7 +131,15 @@ class HttpTransport implements Transport
         }
 
         if (! $response->successful()) {
-            $this->failWith("Unexpected HTTP status [{$response->status()}] from endpoint [{$this->url}].");
+            if ($this->hasJsonRpcError($response)) {
+                $this->queue[] = trim($response->body());
+
+                return;
+            }
+
+            $this->reset();
+
+            throw new UnexpectedResponseException("Unexpected HTTP status [{$response->status()}] from endpoint [{$this->url}].");
         }
 
         $this->initialized = true;
@@ -170,21 +180,37 @@ class HttpTransport implements Transport
         $this->disconnect();
     }
 
+    protected function isModern(): bool
+    {
+        return in_array($this->protocolVersion, ProtocolVersion::modernSupported(), true);
+    }
+
+    protected function hasJsonRpcError(ClientResponse $response): bool
+    {
+        $body = json_decode($response->body(), true);
+
+        return is_array($body) && is_array($body['error'] ?? null);
+    }
+
     /**
      * @return array<string, string>
      */
-    protected function headers(): array
+    protected function headers(?string $message = null): array
     {
         $headers = [
             'Accept' => 'application/json, text/event-stream',
         ];
 
-        if ($this->sessionId !== null) {
+        if ($this->sessionId !== null && ! $this->isModern()) {
             $headers['MCP-Session-Id'] = $this->sessionId;
         }
 
-        if ($this->initialized) {
-            $headers['MCP-Protocol-Version'] = $this->protocolVersion ?? ProtocolVersion::V2025_11_25->value;
+        if ($this->initialized || $this->isModern()) {
+            $headers[RequestHeaders::PROTOCOL_VERSION] = $this->protocolVersion ?? ProtocolVersion::V2025_11_25->value;
+        }
+
+        if ($message !== null && $this->isModern()) {
+            $headers = array_merge($headers, $this->mirroredHeaders($message));
         }
 
         $token = $this->token instanceof Closure ? (string) ($this->token)() : $this->token;
@@ -206,8 +232,37 @@ class HttpTransport implements Transport
         return $headers;
     }
 
+    /**
+     * @return array<string, string>
+     */
+    protected function mirroredHeaders(string $message): array
+    {
+        $body = json_decode($message, true);
+
+        if (! is_array($body) || ! isset($body['id']) || ! is_string($body['method'] ?? null)) {
+            return [];
+        }
+
+        $headers = [RequestHeaders::METHOD => $body['method']];
+
+        $name = RequestHeaders::name(
+            $body['method'],
+            is_array($body['params'] ?? null) ? $body['params'] : [],
+        );
+
+        if ($name !== null) {
+            $headers[RequestHeaders::NAME] = RequestHeaders::encode($name);
+        }
+
+        return $headers;
+    }
+
     protected function captureSessionId(ClientResponse $response): void
     {
+        if ($this->isModern()) {
+            return;
+        }
+
         $sessionId = $response->header('MCP-Session-Id');
 
         if ($sessionId !== '') {

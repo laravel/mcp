@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Client\Contracts\Transport;
+use Laravel\Mcp\Client\Enums\ProtocolEra;
 use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Client\Methods\Ping;
 use Laravel\Mcp\Client\Methods\Prompts\GetPrompt;
@@ -20,6 +21,7 @@ use Laravel\Mcp\Client\Primitives\Prompt;
 use Laravel\Mcp\Client\Primitives\Resource;
 use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Protocol;
+use Laravel\Mcp\Client\Schema\DiscoverResult;
 use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Client\Schema\PromptResult;
 use Laravel\Mcp\Client\Schema\ResourceReadResult;
@@ -35,13 +37,15 @@ class Client
 
     protected ?string $name = null;
 
+    protected ProtocolEra $era = ProtocolEra::AUTO;
+
     public function __construct(
         protected Transport $transport,
         public ?Implementation $clientInfo = null,
     ) {
         $this->clientInfo = $clientInfo ?? $this->defaultClientInfo();
 
-        $this->protocol = new Protocol($this->transport, $this->clientInfo);
+        $this->protocol = new Protocol($this->transport, $this->clientInfo, $this->era);
     }
 
     protected function defaultClientInfo(): Implementation
@@ -99,6 +103,25 @@ class Client
     public function initializeResult(): ?InitializeResult
     {
         return $this->protocol->initializeResult();
+    }
+
+    public function discoverResult(): ?DiscoverResult
+    {
+        return $this->protocol->discoverResult();
+    }
+
+    public function withEra(ProtocolEra $era): static
+    {
+        $this->era = $era;
+
+        $this->protocol->era($era);
+
+        return $this;
+    }
+
+    public function era(): ?ProtocolEra
+    {
+        return $this->protocol->resolvedEra();
     }
 
     public function ping(): void
@@ -191,6 +214,7 @@ class Client
             'name' => null,
             'clientInfo' => $this->clientInfo,
             'transport' => $this->transport->recipe(),
+            'era' => $this->era->value,
         ];
     }
 
@@ -206,14 +230,16 @@ class Client
 
             $this->transport = $resolved->transport;
             $this->clientInfo = $resolved->clientInfo;
+            $this->era = $resolved->era;
         } else {
             $this->clientInfo = $data['clientInfo'];
             $this->transport = TransportFactory::fromRecipe($data['transport']);
+            $this->era = ProtocolEra::tryFrom($data['era'] ?? '') ?? ProtocolEra::AUTO;
         }
 
         $this->clientInfo ??= $this->defaultClientInfo();
 
-        $this->protocol = new Protocol($this->transport, $this->clientInfo);
+        $this->protocol = new Protocol($this->transport, $this->clientInfo, $this->era);
     }
 
     public function __destruct()

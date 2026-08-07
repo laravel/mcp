@@ -1,6 +1,11 @@
 <?php
 
 use Illuminate\Filesystem\Filesystem;
+use Laravel\Mcp\Client;
+use Laravel\Mcp\Client\Contracts\Transport as ClientTransport;
+use Laravel\Mcp\Client\Enums\ProtocolEra;
+use Laravel\Mcp\Client\Transport\HttpTransport as ClientHttpTransport;
+use Laravel\Mcp\WebClient;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
@@ -48,6 +53,20 @@ function protocolMeta(): array
         'io.modelcontextprotocol/protocolVersion' => '2026-07-28',
         'io.modelcontextprotocol/clientCapabilities' => [],
     ];
+}
+
+function legacyClient(ClientTransport $transport): Client
+{
+    return (new Client($transport))->withEra(ProtocolEra::LEGACY);
+}
+
+function legacyWebClient(ClientHttpTransport $transport): WebClient
+{
+    $client = new WebClient($transport);
+
+    $client->withEra(ProtocolEra::LEGACY);
+
+    return $client;
 }
 
 function mcpHeaders(array $message): array
@@ -138,16 +157,42 @@ function expectedInitializeRejection(): array
     ];
 }
 
-function initializeResponse(): string
+function initializeResponse(int $id = 1): string
 {
     return json_encode([
         'jsonrpc' => '2.0',
-        'id' => 1,
+        'id' => $id,
         'result' => [
             'protocolVersion' => '2025-11-25',
             'capabilities' => new stdClass,
             'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
         ],
+    ]);
+}
+
+function discoverResponse(int $id = 1): string
+{
+    return json_encode([
+        'jsonrpc' => '2.0',
+        'id' => $id,
+        'result' => [
+            'resultType' => 'complete',
+            'supportedVersions' => ['2026-07-28'],
+            'capabilities' => ['tools' => ['listChanged' => false]],
+            'instructions' => 'Be nice.',
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
+            ],
+        ],
+    ]);
+}
+
+function methodNotFoundResponse(int $id = 1): string
+{
+    return json_encode([
+        'jsonrpc' => '2.0',
+        'id' => $id,
+        'error' => ['code' => -32601, 'message' => 'Method not found.'],
     ]);
 }
 
