@@ -195,7 +195,7 @@ abstract class Server
 
             $requestId = $request->id;
 
-            if ($request->method === 'initialize') {
+            if ($request->method === 'initialize' && ! isset($this->methods['initialize'])) {
                 throw new JsonRpcException(
                     'The [initialize] handshake was removed in MCP '.ProtocolVersion::LATEST->value.'. Send the protocol version in the request [_meta] instead.',
                     ErrorCode::METHOD_NOT_FOUND->value,
@@ -274,10 +274,15 @@ abstract class Server
     {
         $meta = $request->meta() ?? [];
 
-        foreach ([MetaKey::PROTOCOL_VERSION, MetaKey::CLIENT_CAPABILITIES] as $metaKey) {
-            if (! array_key_exists($metaKey->value, $meta)) {
+        $expected = [
+            MetaKey::PROTOCOL_VERSION->value => 'is_string',
+            MetaKey::CLIENT_CAPABILITIES->value => 'is_array',
+        ];
+
+        foreach ($expected as $metaKey => $isValid) {
+            if (! array_key_exists($metaKey, $meta) || ! $isValid($meta[$metaKey])) {
                 throw new JsonRpcException(
-                    "Invalid params: The request [_meta] is missing the required [{$metaKey->value}] member.",
+                    "Invalid params: The request [_meta] is missing the required [{$metaKey}] member.",
                     ErrorCode::INVALID_PARAMS->value,
                     $request->id,
                 );

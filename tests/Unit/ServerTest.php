@@ -75,6 +75,27 @@ it('rejects a request without the required protocol metadata', function (array $
         ['io.modelcontextprotocol/protocolVersion' => '2026-07-28'],
         'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/clientCapabilities] member.',
     ],
+    'null version' => [
+        [
+            'io.modelcontextprotocol/protocolVersion' => null,
+            'io.modelcontextprotocol/clientCapabilities' => [],
+        ],
+        'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/protocolVersion] member.',
+    ],
+    'non-string version' => [
+        [
+            'io.modelcontextprotocol/protocolVersion' => 123,
+            'io.modelcontextprotocol/clientCapabilities' => [],
+        ],
+        'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/protocolVersion] member.',
+    ],
+    'non-array capabilities' => [
+        [
+            'io.modelcontextprotocol/protocolVersion' => '2026-07-28',
+            'io.modelcontextprotocol/clientCapabilities' => 'nope',
+        ],
+        'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/clientCapabilities] member.',
+    ],
 ]);
 
 it('rejects an unsupported protocol version', function (): void {
@@ -318,6 +339,52 @@ it('no longer answers a ping message', function (): void {
     $response = json_decode((string) $transport->sent[0], true);
 
     expect($response['error']['code'])->toBe(-32601);
+});
+
+it('lets a dual-era server serve initialize through addMethod', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->addMethod('initialize', CustomMethodHandler::class);
+
+    $this->app->bind(CustomMethodHandler::class, fn (): CustomMethodHandler => new CustomMethodHandler('custom-dependency'));
+
+    $server->start();
+
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 456,
+        'method' => 'initialize',
+        'params' => ['_meta' => protocolMeta()],
+    ]);
+
+    ($transport->handler)($payload);
+
+    $response = json_decode((string) $transport->sent[0], true);
+
+    expect($response['result']['message'])->toBe('Custom method executed successfully!');
+});
+
+it('discovers an empty capability set as a json object', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    (function (): void {
+        $this->capabilities = [];
+    })->call($server);
+
+    $server->start();
+
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 456,
+        'method' => 'server/discover',
+        'params' => ['_meta' => protocolMeta()],
+    ]);
+
+    ($transport->handler)($payload);
+
+    expect((string) $transport->sent[0])->toContain('"capabilities":{}');
 });
 
 it('calls boot method on connect', function (): void {

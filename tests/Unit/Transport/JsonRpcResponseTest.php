@@ -107,3 +107,30 @@ it('converts empty array params in notification to object', function (): void {
 
     expect($response->toJson())->toEqual($expectedJson);
 });
+
+it('keeps result metadata supplied by the method when merging server metadata', function (): void {
+    $response = JsonRpcResponse::result(1, [
+        'resultType' => 'input_required',
+        '_meta' => ['app/trace' => 'abc'],
+    ]);
+
+    $merged = $response->mergeResult(
+        ['resultType' => 'complete'],
+        ['io.modelcontextprotocol/serverInfo' => ['name' => 'Example']],
+    );
+
+    expect($merged->toArray()['result'])->toEqual([
+        'resultType' => 'input_required',
+        '_meta' => [
+            'io.modelcontextprotocol/serverInfo' => ['name' => 'Example'],
+            'app/trace' => 'abc',
+        ],
+    ]);
+});
+
+it('leaves notifications untouched when merging server metadata', function (): void {
+    $notification = JsonRpcResponse::notification('notifications/tools/list_changed', []);
+
+    expect($notification->mergeResult(['resultType' => 'complete'])->toArray())
+        ->not->toHaveKey('result');
+});

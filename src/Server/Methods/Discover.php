@@ -15,7 +15,7 @@ class Discover implements Method
     {
         return JsonRpcResponse::result($request->id, [
             'supportedVersions' => $context->supportedProtocolVersions,
-            'capabilities' => $context->serverCapabilities,
+            'capabilities' => $context->serverCapabilities ?: (object) [],
             'instructions' => $context->instructions,
         ]);
     }
