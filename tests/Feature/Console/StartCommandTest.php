@@ -11,14 +11,14 @@ use function Orchestra\Testbench\remote;
 it('rejects the initialize handshake over http', function (): void {
     $response = $this->postJson('test-mcp', initializeMessage());
 
-    $response->assertStatus(200);
+    $response->assertStatus(404);
 
     expect($response->json())->toEqual(expectedInitializeRejection());
 });
 
 it('does not return a session id over http', function (): void {
     /** @var TestResponse $response */
-    $response = $this->postJson('test-mcp', discoverMessage());
+    $response = $this->postJson('test-mcp', $message = discoverMessage(), mcpHeaders($message));
 
     $response->assertStatus(200);
     $response->assertHeaderMissing('MCP-Session-Id');
@@ -27,7 +27,10 @@ it('does not return a session id over http', function (): void {
 });
 
 it('ignores an inbound session id header', function (): void {
-    $response = $this->postJson('test-mcp', listToolsMessage(), ['MCP-Session-Id' => 'stale-session']);
+    $response = $this->postJson('test-mcp', $message = listToolsMessage(), [
+        ...mcpHeaders($message),
+        'MCP-Session-Id' => 'stale-session',
+    ]);
 
     $response->assertStatus(200);
     $response->assertHeaderMissing('MCP-Session-Id');
@@ -36,8 +39,8 @@ it('ignores an inbound session id header', function (): void {
 });
 
 it('handles consecutive requests without any prior handshake', function (): void {
-    $first = $this->postJson('test-mcp', listToolsMessage());
-    $second = $this->postJson('test-mcp', callToolMessage());
+    $first = $this->postJson('test-mcp', $message = listToolsMessage(), mcpHeaders($message));
+    $second = $this->postJson('test-mcp', $message = callToolMessage(), mcpHeaders($message));
 
     $first->assertStatus(200);
     $second->assertStatus(200);
@@ -47,7 +50,7 @@ it('handles consecutive requests without any prior handshake', function (): void
 });
 
 it('can list resources over http', function (): void {
-    $response = $this->postJson('test-mcp', listResourcesMessage());
+    $response = $this->postJson('test-mcp', $message = listResourcesMessage(), mcpHeaders($message));
 
     $response->assertStatus(200);
 
@@ -55,7 +58,7 @@ it('can list resources over http', function (): void {
 });
 
 it('can read a resource over http', function (): void {
-    $response = $this->postJson('test-mcp', readResourceMessage());
+    $response = $this->postJson('test-mcp', $message = readResourceMessage(), mcpHeaders($message));
 
     $response->assertStatus(200);
 
@@ -63,7 +66,7 @@ it('can read a resource over http', function (): void {
 });
 
 it('can list tools over http', function (): void {
-    $response = $this->postJson('test-mcp', listToolsMessage());
+    $response = $this->postJson('test-mcp', $message = listToolsMessage(), mcpHeaders($message));
 
     $response->assertStatus(200);
 
@@ -71,7 +74,7 @@ it('can list tools over http', function (): void {
 });
 
 it('can call a tool over http', function (): void {
-    $response = $this->postJson('test-mcp', callToolMessage());
+    $response = $this->postJson('test-mcp', $message = callToolMessage(), mcpHeaders($message));
 
     $response->assertStatus(200);
 
@@ -81,8 +84,8 @@ it('can call a tool over http', function (): void {
 it('can stream a tool response over http', function (): void {
     $response = $this->postJson(
         'test-mcp',
-        callStreamingToolMessage(),
-        ['Accept' => 'text/event-stream'],
+        $message = callStreamingToolMessage(),
+        [...mcpHeaders($message), 'Accept' => 'text/event-stream'],
     );
 
     $response->assertStatus(200);
@@ -141,7 +144,7 @@ it('can stream a tool response over stdio', function (): void {
 });
 
 it('can list dynamically added tools', function (): void {
-    $response = $this->postJson('test-mcp-dynamic-tools', listToolsMessage());
+    $response = $this->postJson('test-mcp-dynamic-tools', $message = listToolsMessage(), mcpHeaders($message));
 
     $response->assertStatus(200);
 
@@ -213,7 +216,7 @@ it('returns Sanctum WWW-Authenticate header when OAuth routes are not enabled an
 it('does not add WWW-Authenticate header when response is not 401', function (): void {
     app(Registrar::class)->oauthRoutes();
 
-    $response = $this->postJson('test-mcp', listToolsMessage());
+    $response = $this->postJson('test-mcp', $message = listToolsMessage(), mcpHeaders($message));
 
     $response->assertStatus(200);
     $response->assertHeaderMissing('WWW-Authenticate');

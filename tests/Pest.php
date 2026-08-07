@@ -50,6 +50,23 @@ function protocolMeta(): array
     ];
 }
 
+function mcpHeaders(array $message): array
+{
+    $params = $message['params'] ?? [];
+
+    $name = match ($message['method']) {
+        'tools/call', 'prompts/get' => $params['name'] ?? null,
+        'resources/read' => $params['uri'] ?? null,
+        default => null,
+    };
+
+    return array_filter([
+        'MCP-Protocol-Version' => '2026-07-28',
+        'Mcp-Method' => $message['method'],
+        'Mcp-Name' => $name,
+    ], fn (?string $value): bool => $value !== null);
+}
+
 function completeResult(array $result): array
 {
     return [
