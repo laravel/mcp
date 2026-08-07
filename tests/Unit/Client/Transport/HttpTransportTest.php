@@ -6,6 +6,7 @@ use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client;
+use Laravel\Mcp\Client\Enums\ProtocolEra;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
@@ -214,7 +215,7 @@ it('sends custom headers when built via Client::web', function (): void {
         ]), 200, ['Content-Type' => 'application/json'])
         ->whenEmpty(Http::response('', 202));
 
-    $client = Client::web('https://mcp.test/mcp')->withHeaders(['Authorization' => 'raw-api-key', 'X-Tenant-Id' => 'acme']);
+    $client = Client::web('https://mcp.test/mcp')->withEra(ProtocolEra::LEGACY)->withHeaders(['Authorization' => 'raw-api-key', 'X-Tenant-Id' => 'acme']);
 
     expect($client)->toBeInstanceOf(WebClient::class);
 
@@ -357,7 +358,7 @@ it('drives a full handshake and tools list over HTTP via Client::web', function 
         ]), 200, ['Content-Type' => 'application/json'])
         ->whenEmpty(Http::response('', 202));
 
-    $tools = Client::web('https://mcp.test/mcp')
+    $tools = Client::web('https://mcp.test/mcp')->withEra(ProtocolEra::LEGACY)
         ->withToken('e2e-token')
         ->withTimeout(15)
         ->tools();
@@ -383,7 +384,7 @@ it('throws when the server negotiates a protocol version the client does not sup
         ->whenEmpty(Http::response('', 202));
 
     expect(function (): void {
-        Client::web('https://mcp.test/mcp')->tools();
+        Client::web('https://mcp.test/mcp')->withEra(ProtocolEra::LEGACY)->tools();
     })->toThrow(ClientException::class, 'The server negotiated an unsupported protocol version.');
 });
 
@@ -430,7 +431,7 @@ it('interoperates with a server negotiated down to 2025-06-18', function (): voi
         ]), 200, ['Content-Type' => 'application/json'])
         ->whenEmpty(Http::response('', 202));
 
-    $client = Client::web('https://mcp.test/mcp');
+    $client = Client::web('https://mcp.test/mcp')->withEra(ProtocolEra::LEGACY);
     $tools = $client->tools();
     $result = $client->callTool('add', ['a' => 1, 'b' => 2]);
 
@@ -451,7 +452,7 @@ it('interoperates with a server negotiated down to 2025-06-18', function (): voi
 });
 
 it('builds a WebClient from Client::web', function (): void {
-    expect(Client::web('https://mcp.test/mcp'))->toBeInstanceOf(WebClient::class);
+    expect(Client::web('https://mcp.test/mcp')->withEra(ProtocolEra::LEGACY))->toBeInstanceOf(WebClient::class);
 });
 
 it('re-initializes and retries once after a 404 session expiry', function (): void {
@@ -474,7 +475,7 @@ it('re-initializes and retries once after a 404 session expiry', function (): vo
         ]]), 200, ['Content-Type' => 'application/json'])
         ->whenEmpty(Http::response('', 202));
 
-    $tools = Client::web('https://mcp.test/mcp')->tools();
+    $tools = Client::web('https://mcp.test/mcp')->withEra(ProtocolEra::LEGACY)->tools();
 
     expect($tools->keys()->all())->toBe(['add']);
 
@@ -484,6 +485,6 @@ it('re-initializes and retries once after a 404 session expiry', function (): vo
 it('surfaces a 404 during the initialize handshake as a normal error', function (): void {
     Http::fake(['*' => Http::response('', 404)]);
 
-    expect(fn (): WebClient => Client::web('https://mcp.test/mcp')->connect())
+    expect(fn (): WebClient => Client::web('https://mcp.test/mcp')->withEra(ProtocolEra::LEGACY)->connect())
         ->toThrow(ClientException::class, 'Unexpected HTTP status [404]');
 });

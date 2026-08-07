@@ -25,6 +25,14 @@ enum ProtocolVersion: string
     /**
      * @return array<int, string>
      */
+    public static function modernSupported(): array
+    {
+        return [self::LATEST->value];
+    }
+
+    /**
+     * @return array<int, string>
+     */
     public static function clientSupported(): array
     {
         return [

@@ -8,8 +8,15 @@ use Illuminate\Support\Arr;
 use JsonException;
 use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Contracts\Transport;
+use Laravel\Mcp\Client\Enums\ProtocolEra;
+use Laravel\Mcp\Client\Exceptions\UnexpectedResponseException;
+use Laravel\Mcp\Client\Methods\Discover;
 use Laravel\Mcp\Client\Methods\Initialize;
+use Laravel\Mcp\Client\Schema\DiscoverResult;
 use Laravel\Mcp\Client\Schema\InitializeResult;
+use Laravel\Mcp\Enums\ErrorCode;
+use Laravel\Mcp\Enums\MetaKey;
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Exceptions\SessionExpiredException;
@@ -29,9 +36,14 @@ class Protocol
 
     protected ?InitializeResult $initializeResult = null;
 
+    protected ?DiscoverResult $discoverResult = null;
+
+    protected ?ProtocolEra $resolvedEra = null;
+
     public function __construct(
         protected Transport $transport,
         protected Implementation $clientInfo,
+        protected ProtocolEra $era = ProtocolEra::AUTO,
     ) {
         //
     }
@@ -46,6 +58,22 @@ class Protocol
         return $this->initializeResult;
     }
 
+    public function discoverResult(): ?DiscoverResult
+    {
+        return $this->discoverResult;
+    }
+
+    public function era(ProtocolEra $era): void
+    {
+        $this->era = $era;
+        $this->resolvedEra = null;
+    }
+
+    public function resolvedEra(): ?ProtocolEra
+    {
+        return $this->resolvedEra;
+    }
+
     public function connect(): void
     {
         if ($this->connected) {
@@ -56,11 +84,11 @@ class Protocol
         $this->connecting = true;
 
         try {
-            $this->initializeResult = (new Initialize($this->clientInfo))->handle($this);
+            $this->resolveEra();
 
-            $this->transport->setProtocolVersion($this->initializeResult->protocolVersion);
-
-            $this->notify('notifications/initialized');
+            if ($this->resolvedEra === ProtocolEra::LEGACY) {
+                $this->connectLegacy();
+            }
         } catch (Throwable $throwable) {
             $this->disconnect();
 
@@ -70,6 +98,60 @@ class Protocol
         }
 
         $this->connected = true;
+    }
+
+    protected function connectLegacy(): void
+    {
+        $this->transport->setProtocolVersion(ProtocolVersion::V2025_11_25->value);
+
+        $this->initializeResult = (new Initialize($this->clientInfo))->handle($this);
+
+        $this->transport->setProtocolVersion($this->initializeResult->protocolVersion);
+
+        $this->notify('notifications/initialized');
+    }
+
+    protected function connectModern(): void
+    {
+        $this->transport->setProtocolVersion(ProtocolVersion::LATEST->value);
+
+        $this->discoverResult = (new Discover)->handle($this);
+    }
+
+    protected function resolveEra(): void
+    {
+        if ($this->era === ProtocolEra::LEGACY || $this->resolvedEra === ProtocolEra::LEGACY) {
+            $this->resolvedEra = ProtocolEra::LEGACY;
+
+            return;
+        }
+
+        $this->resolvedEra = ProtocolEra::MODERN;
+
+        try {
+            $this->connectModern();
+
+            return;
+        } catch (JsonRpcException $jsonRpcException) {
+            if ($this->era === ProtocolEra::MODERN || $this->speaksModern($jsonRpcException)) {
+                throw $jsonRpcException;
+            }
+        } catch (UnexpectedResponseException $unexpectedResponseException) {
+            if ($this->era === ProtocolEra::MODERN) {
+                throw $unexpectedResponseException;
+            }
+        }
+
+        $this->resolvedEra = ProtocolEra::LEGACY;
+    }
+
+    protected function speaksModern(JsonRpcException $jsonRpcException): bool
+    {
+        return in_array($jsonRpcException->getCode(), [
+            ErrorCode::HEADER_MISMATCH->value,
+            ErrorCode::MISSING_REQUIRED_CLIENT_CAPABILITY->value,
+            ErrorCode::UNSUPPORTED_PROTOCOL_VERSION->value,
+        ], true);
     }
 
     public function disconnect(): void
@@ -107,7 +189,7 @@ class Protocol
         $request = new JsonRpcRequest(
             id: $this->nextRequestId++,
             method: $method->method(),
-            params: $method->params(),
+            params: $this->params($method),
         );
 
         try {
@@ -168,6 +250,28 @@ class Protocol
         $result = Arr::get($response, 'result');
 
         return is_array($result) ? $result : [];
+    }
+
+    /**
+     * @param  Method<mixed>  $method
+     * @return array<string, mixed>
+     */
+    protected function params(Method $method): array
+    {
+        $params = $method->params();
+
+        if ($this->resolvedEra !== ProtocolEra::MODERN) {
+            return $params;
+        }
+
+        $params['_meta'] = [
+            MetaKey::PROTOCOL_VERSION->value => ProtocolVersion::LATEST->value,
+            MetaKey::CLIENT_CAPABILITIES->value => (object) [],
+            MetaKey::CLIENT_INFO->value => $this->clientInfo->toArray(),
+            ...is_array($params['_meta'] ?? null) ? $params['_meta'] : [],
+        ];
+
+        return $params;
     }
 
     public function notify(string $method): void

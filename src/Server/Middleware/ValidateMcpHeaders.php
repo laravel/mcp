@@ -8,12 +8,11 @@ use Closure;
 use Illuminate\Http\Request;
 use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\MetaKey;
+use Laravel\Mcp\Support\RequestHeaders;
 use Symfony\Component\HttpFoundation\Response;
 
 class ValidateMcpHeaders
 {
-    protected const NAMED_METHODS = ['tools/call', 'prompts/get', 'resources/read'];
-
     /**
      * Handle an incoming request.
      *
@@ -36,9 +35,9 @@ class ValidateMcpHeaders
         $params = is_array($body['params'] ?? null) ? $body['params'] : [];
         $meta = is_array($params['_meta'] ?? null) ? $params['_meta'] : [];
 
-        $mismatch = $this->mismatch($request, 'MCP-Protocol-Version', $meta[MetaKey::PROTOCOL_VERSION->value] ?? null, true)
-            ?? $this->mismatch($request, 'Mcp-Method', $method, true)
-            ?? $this->mismatch($request, 'Mcp-Name', $this->name($method, $params), in_array($method, self::NAMED_METHODS, true));
+        $mismatch = $this->mismatch($request, RequestHeaders::PROTOCOL_VERSION, $meta[MetaKey::PROTOCOL_VERSION->value] ?? null, true)
+            ?? $this->mismatch($request, RequestHeaders::METHOD, $method, true)
+            ?? $this->mismatch($request, RequestHeaders::NAME, RequestHeaders::name($method, $params), RequestHeaders::requiresName($method));
 
         if ($mismatch === null) {
             return $next($request);
@@ -54,20 +53,6 @@ class ValidateMcpHeaders
         ], 400);
     }
 
-    /**
-     * @param  array<string, mixed>  $params
-     */
-    protected function name(string $method, array $params): ?string
-    {
-        $value = match ($method) {
-            'tools/call', 'prompts/get' => $params['name'] ?? null,
-            'resources/read' => $params['uri'] ?? null,
-            default => null,
-        };
-
-        return is_string($value) ? $value : null;
-    }
-
     protected function mismatch(Request $request, string $header, mixed $expected, bool $required): ?string
     {
         $value = $request->header($header);
@@ -76,8 +61,8 @@ class ValidateMcpHeaders
             return $required ? "Header mismatch: The [{$header}] header is required." : null;
         }
 
-        if ($header === 'Mcp-Name') {
-            $value = $this->decode($value);
+        if ($header === RequestHeaders::NAME) {
+            $value = RequestHeaders::decode($value);
         }
 
         if (is_string($expected) && $value !== $expected) {
@@ -85,16 +70,5 @@ class ValidateMcpHeaders
         }
 
         return null;
-    }
-
-    protected function decode(string $value): string
-    {
-        if (! str_starts_with($value, '=?base64?') || ! str_ends_with($value, '?=')) {
-            return $value;
-        }
-
-        $decoded = base64_decode(substr($value, 9, -2), true);
-
-        return $decoded === false ? $value : $decoded;
     }
 }

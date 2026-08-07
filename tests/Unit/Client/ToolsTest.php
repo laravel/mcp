@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Collection;
-use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Schema\ToolResult;
 use Laravel\Mcp\Exceptions\ClientException;
@@ -23,7 +22,7 @@ it('returns a collection of tools keyed by name', function (): void {
         ],
     ]);
 
-    $tools = (new Client($transport))->tools();
+    $tools = legacyClient($transport)->tools();
 
     expect($tools)
         ->toBeInstanceOf(Collection::class)
@@ -57,7 +56,7 @@ it('auto-paginates tools/list until nextCursor is absent', function (): void {
         ],
     ]);
 
-    $tools = (new Client($transport))->tools();
+    $tools = legacyClient($transport)->tools();
 
     expect($tools->keys()->all())->toBe(['first', 'second', 'third'])
         ->and(json_decode($transport->sent[2], true))->not->toHaveKey('params')
@@ -76,7 +75,7 @@ it('stops paginating once limit is reached without fetching the next page', func
         ],
     ]);
 
-    $tools = (new Client($transport))->tools(2);
+    $tools = legacyClient($transport)->tools(2);
 
     expect($tools->keys()->all())->toBe(['a', 'b'])
         ->and($transport->sent)->toHaveCount(3)
@@ -85,7 +84,7 @@ it('stops paginating once limit is reached without fetching the next page', func
 
 it('returns no tools without connecting when limit is zero', function (): void {
     $transport = new FakeTransport;
-    $client = new Client($transport);
+    $client = legacyClient($transport);
 
     $tools = $client->tools(0);
 
@@ -99,7 +98,7 @@ it('returns no tools without connecting when limit is zero', function (): void {
 it('throws when the tool limit is negative', function (): void {
     $transport = new FakeTransport;
 
-    expect(fn (): Collection => (new Client($transport))->tools(-1))
+    expect(fn (): Collection => legacyClient($transport)->tools(-1))
         ->toThrow(ClientException::class, 'Tool list limit must be greater than or equal to zero.')
         ->and($transport->sent)->toBeEmpty();
 });
@@ -115,7 +114,7 @@ it('throws when tools/list does not return a tools array', function (): void {
         ],
     ]);
 
-    expect(fn (): Collection => (new Client($transport))->tools())
+    expect(fn (): Collection => legacyClient($transport)->tools())
         ->toThrow(ClientException::class, 'Invalid tools/list response from server.');
 });
 
@@ -130,7 +129,7 @@ it('throws when a tool payload is not an object', function (): void {
         ],
     ]);
 
-    expect(fn (): Collection => (new Client($transport))->tools())
+    expect(fn (): Collection => legacyClient($transport)->tools())
         ->toThrow(ClientException::class, 'Invalid tool payload from server.');
 });
 
@@ -145,7 +144,7 @@ it('throws when a tool name is missing or empty', function (array $payload): voi
         ],
     ]);
 
-    expect(fn (): Collection => (new Client($transport))->tools())
+    expect(fn (): Collection => legacyClient($transport)->tools())
         ->toThrow(ClientException::class, 'Invalid tool payload from server.');
 })->with([
     'missing name' => [[]],
@@ -164,7 +163,7 @@ it('throws when a tool payload has a field of the wrong type', function (array $
         ],
     ]);
 
-    expect(fn (): Collection => (new Client($transport))->tools())
+    expect(fn (): Collection => legacyClient($transport)->tools())
         ->toThrow(ClientException::class, 'Invalid tool payload from server.');
 })->with([
     'non-string name' => [['name' => 123]],
@@ -196,7 +195,7 @@ it('throws when a server repeats a tools/list cursor', function (): void {
         ],
     ]);
 
-    expect(fn (): Collection => (new Client($transport))->tools())
+    expect(fn (): Collection => legacyClient($transport)->tools())
         ->toThrow(ClientException::class, 'Repeated tools/list cursor [cursor-page-2] received from server.')
         ->and($transport->sent)->toHaveCount(4);
 });
@@ -213,7 +212,7 @@ it('throws when tools/list returns a non-string cursor', function (mixed $nextCu
         ],
     ]);
 
-    expect(fn (): Collection => (new Client($transport))->tools())
+    expect(fn (): Collection => legacyClient($transport)->tools())
         ->toThrow(ClientException::class, 'Invalid tools/list cursor from server.');
 })->with([
     'integer' => [123],
@@ -241,7 +240,7 @@ it('calls a bound tool returned from tools()', function (): void {
         'result' => ['content' => [['type' => 'text', 'text' => 'Hello, John!']], 'isError' => false],
     ]);
 
-    $tool = (new Client($transport))->tools()['say-hi'];
+    $tool = legacyClient($transport)->tools()['say-hi'];
 
     expect($tool->call(['name' => 'John'])->text())->toBe('Hello, John!')
         ->and(json_decode($transport->sent[3], true))
@@ -266,7 +265,7 @@ it('sends tools/call by name and concatenates text content', function (): void {
         ],
     ]);
 
-    $result = (new Client($transport))->callTool('say-hi', ['name' => 'John']);
+    $result = legacyClient($transport)->callTool('say-hi', ['name' => 'John']);
 
     expect($result)
         ->toBeInstanceOf(ToolResult::class)
@@ -289,7 +288,7 @@ it('encodes empty arguments as an object on the wire', function (): void {
         'result' => ['content' => [], 'isError' => false],
     ]);
 
-    (new Client($transport))->callTool('no-args');
+    legacyClient($transport)->callTool('no-args');
 
     expect(json_decode($transport->sent[2])->params->arguments)->toBeInstanceOf(stdClass::class);
 });
@@ -308,7 +307,7 @@ it('preserves structuredContent and _meta from the server response', function ()
         ],
     ]);
 
-    $result = (new Client($transport))->callTool('weather', ['city' => 'NYC']);
+    $result = legacyClient($transport)->callTool('weather', ['city' => 'NYC']);
 
     expect($result)
         ->structuredContent->toBe(['temp' => 72, 'conditions' => 'sunny'])
@@ -327,7 +326,7 @@ it('surfaces tool-level errors as ToolResult::isError true', function (): void {
         ],
     ]);
 
-    $result = (new Client($transport))->callTool('say-hi');
+    $result = legacyClient($transport)->callTool('say-hi');
 
     expect($result)
         ->isError->toBeTrue()
@@ -343,7 +342,7 @@ it('throws when a tools/call result has a field of the wrong type', function (ar
         'result' => $result,
     ]);
 
-    expect(fn (): ToolResult => (new Client($transport))->callTool('say-hi'))
+    expect(fn (): ToolResult => legacyClient($transport)->callTool('say-hi'))
         ->toThrow(ClientException::class, 'Invalid tools/call result from server.');
 })->with([
     'non-array content' => [['content' => 'not-an-array']],

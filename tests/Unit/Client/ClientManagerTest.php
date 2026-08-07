@@ -26,7 +26,7 @@ function toolsResponse(int $id): string
 }
 
 it('registers a named client and resolves it by name', function (): void {
-    Mcp::registerClient('everything', fn (): Client => new Client(new FakeTransport));
+    Mcp::registerClient('everything', fn (): Client => legacyClient(new FakeTransport));
 
     expect(Mcp::client('everything'))->toBeInstanceOf(Client::class);
 });
@@ -37,7 +37,7 @@ it('resolves and memoizes a registered client per request', function (): void {
     Mcp::registerClient('everything', function () use (&$resolved): Client {
         $resolved++;
 
-        return new Client(new FakeTransport);
+        return legacyClient(new FakeTransport);
     });
 
     $first = Mcp::client('everything');
@@ -53,10 +53,10 @@ it('throws when resolving an unregistered client', function (): void {
 });
 
 it('resolves a fresh instance when the same name is re-registered', function (): void {
-    Mcp::registerClient('everything', fn (): Client => new Client(new FakeTransport));
+    Mcp::registerClient('everything', fn (): Client => legacyClient(new FakeTransport));
     $first = Mcp::client('everything');
 
-    Mcp::registerClient('everything', fn (): Client => new Client(new FakeTransport));
+    Mcp::registerClient('everything', fn (): Client => legacyClient(new FakeTransport));
     $second = Mcp::client('everything');
 
     expect($second)->not->toBe($first);
@@ -66,12 +66,12 @@ it('disconnects a resolved client when its name is re-registered', function (): 
     $transport = new FakeTransport;
     $transport->responses[] = initializeResponse();
 
-    Mcp::registerClient('everything', fn (): Client => new Client($transport));
+    Mcp::registerClient('everything', fn (): Client => legacyClient($transport));
     Mcp::client('everything')->connect();
 
     expect($transport->connected)->toBeTrue();
 
-    Mcp::registerClient('everything', fn (): Client => new Client(new FakeTransport));
+    Mcp::registerClient('everything', fn (): Client => legacyClient(new FakeTransport));
 
     expect($transport->connected)->toBeFalse();
 });
@@ -84,7 +84,7 @@ it('disconnects every resolved client and re-resolves afterwards', function (): 
     Mcp::registerClient('everything', function () use (&$resolved, $transport): Client {
         $resolved++;
 
-        return new Client($transport);
+        return legacyClient($transport);
     });
 
     $first = Mcp::client('everything');
@@ -106,8 +106,8 @@ it('keeps disconnecting other clients when one throws during teardown', function
     $healthy = new FakeTransport;
     $healthy->responses[] = initializeResponse();
 
-    Mcp::registerClient('broken', fn (): Client => new Client(new ThrowingTransport));
-    Mcp::registerClient('healthy', fn (): Client => new Client($healthy));
+    Mcp::registerClient('broken', fn (): Client => legacyClient(new ThrowingTransport));
+    Mcp::registerClient('healthy', fn (): Client => legacyClient($healthy));
 
     Mcp::client('broken');
     Mcp::client('healthy')->connect();
@@ -125,7 +125,7 @@ it('fetches a fresh tools list on every resolution', function (): void {
     $transport->responses[] = toolsResponse(2);
     $transport->responses[] = toolsResponse(3);
 
-    Mcp::registerClient('everything', fn (): Client => new Client($transport));
+    Mcp::registerClient('everything', fn (): Client => legacyClient($transport));
 
     expect(Mcp::client('everything')->tools()->keys()->all())->toBe(['add']);
     expect(Mcp::client('everything')->tools()->keys()->all())->toBe(['add']);
@@ -137,7 +137,7 @@ it('returns the given default from a named client when authorization is required
         'https://mcp.test/mcp' => Http::response('', 401),
     ]);
 
-    Mcp::registerClient('nightwatch', fn (): Client => new Client(new HttpTransport('https://mcp.test/mcp')));
+    Mcp::registerClient('nightwatch', fn (): Client => legacyClient(new HttpTransport('https://mcp.test/mcp')));
 
     $tools = Mcp::client('nightwatch')->tools(default: []);
 
@@ -149,14 +149,14 @@ it('rethrows the authorization exception from a named client when no default is 
         'https://mcp.test/mcp' => Http::response('', 401),
     ]);
 
-    Mcp::registerClient('nightwatch', fn (): Client => new Client(new HttpTransport('https://mcp.test/mcp')));
+    Mcp::registerClient('nightwatch', fn (): Client => legacyClient(new HttpTransport('https://mcp.test/mcp')));
 
     expect(fn () => Mcp::client('nightwatch')->tools())
         ->toThrow(AuthorizationRequiredException::class);
 });
 
 it('resolves a subclassed client and preserves fluent chaining', function (): void {
-    $web = new WebClient(new HttpTransport('https://example.test/mcp'));
+    $web = legacyWebClient(new HttpTransport('https://example.test/mcp'));
 
     Mcp::registerClient('remote', fn (): WebClient => $web);
 
@@ -171,7 +171,7 @@ it('applies a tools limit on the resolved client', function (): void {
     $transport->responses[] = initializeResponse();
     $transport->responses[] = toolsResponse(2);
 
-    Mcp::registerClient('everything', fn (): Client => new Client($transport));
+    Mcp::registerClient('everything', fn (): Client => legacyClient($transport));
 
     expect(Mcp::client('everything')->tools(1)->keys()->all())->toBe(['add']);
     expect($transport->responses)->toBeEmpty();
@@ -187,7 +187,7 @@ it('exposes callTool / ping / connected / initializeResult / withTimeout on the 
         'result' => ['content' => [['type' => 'text', 'text' => 'hi']], 'isError' => false],
     ]);
 
-    Mcp::registerClient('everything', fn (): Client => new Client($transport));
+    Mcp::registerClient('everything', fn (): Client => legacyClient($transport));
 
     $client = Mcp::client('everything')->withTimeout(0.5);
 
@@ -206,7 +206,7 @@ it('returns a tools list the application can cache and restore', function (): vo
     $transport->responses[] = initializeResponse();
     $transport->responses[] = toolsResponse(2);
 
-    Mcp::registerClient('everything', fn (): Client => new Client($transport));
+    Mcp::registerClient('everything', fn (): Client => legacyClient($transport));
 
     $tools = Mcp::client('everything')->tools();
 
@@ -232,7 +232,7 @@ it('serializes a named client as its name only and re-resolves it when a restore
                 'result' => ['content' => [['type' => 'text', 'text' => 'added']], 'isError' => false],
             ]);
 
-        return new Client($transport);
+        return legacyClient($transport);
     });
 
     $payload = serialize(Mcp::client('everything')->tools());
@@ -248,7 +248,7 @@ it('serializes a named client as its name only and re-resolves it when a restore
 });
 
 it('gives a restored named client its own transport instead of aliasing the cached one', function (): void {
-    Mcp::registerClient('everything', fn (): Client => new Client(new FakeTransport));
+    Mcp::registerClient('everything', fn (): Client => legacyClient(new FakeTransport));
 
     $live = Mcp::client('everything');
 
@@ -266,7 +266,7 @@ it('does not cache tools on the resolved client', function (): void {
     $transport->responses[] = toolsResponse(2);
     $transport->responses[] = toolsResponse(3);
 
-    $client = new Client($transport);
+    $client = legacyClient($transport);
     $client->tools();
     $client->tools();
 
@@ -277,13 +277,13 @@ it('still installs a fresh factory when an old client fails to disconnect', func
     $broken = new ThrowingTransport;
     $broken->responses[] = initializeResponse();
 
-    Mcp::registerClient('everything', fn (): Client => new Client($broken));
+    Mcp::registerClient('everything', fn (): Client => legacyClient($broken));
     $first = Mcp::client('everything');
     $first->connect();
 
     $fresh = new FakeTransport;
     $fresh->responses[] = initializeResponse();
-    Mcp::registerClient('everything', fn (): Client => new Client($fresh));
+    Mcp::registerClient('everything', fn (): Client => legacyClient($fresh));
 
     $second = Mcp::client('everything');
     $second->connect();
@@ -301,7 +301,7 @@ it('propagates a live fetch failure', function (): void {
         'result' => ['tools' => 'not-an-array'],
     ]);
 
-    Mcp::registerClient('everything', fn (): Client => new Client($transport));
+    Mcp::registerClient('everything', fn (): Client => legacyClient($transport));
 
     expect(fn () => Mcp::client('everything')->tools())
         ->toThrow(ClientException::class, 'Invalid tools/list response from server.');
