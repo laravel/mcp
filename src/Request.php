@@ -28,7 +28,6 @@ class Request implements Arrayable
      */
     public function __construct(
         protected array $arguments = [],
-        protected ?string $sessionId = null,
         protected ?array $meta = null,
         protected ?string $uri = null,
     ) {
@@ -100,11 +99,6 @@ class Request implements Arrayable
         return call_user_func($auth->userResolver(), $guard);
     }
 
-    public function sessionId(): ?string
-    {
-        return $this->sessionId;
-    }
-
     /**
      * @return array<string, mixed>|null
      */
@@ -124,11 +118,6 @@ class Request implements Arrayable
     public function setArguments(array $arguments): void
     {
         $this->arguments = $arguments;
-    }
-
-    public function setSessionId(?string $sessionId): void
-    {
-        $this->sessionId = $sessionId;
     }
 
     /**

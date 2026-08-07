@@ -17,10 +17,8 @@ class HttpTransport implements Transport
      */
     public function __construct(
         protected Request $request,
-        protected string $sessionId,
         protected ?Closure $handler = null,
         protected ?string $reply = null,
-        protected ?string $replySessionId = null,
         protected ?Closure $stream = null,
     ) {
         //
@@ -31,14 +29,13 @@ class HttpTransport implements Transport
         $this->handler = $handler;
     }
 
-    public function send(string $message, ?string $sessionId = null): void
+    public function send(string $message): void
     {
         if ($this->stream instanceof Closure) {
             $this->sendStreamMessage($message);
         }
 
         $this->reply = $message;
-        $this->replySessionId = $sessionId;
     }
 
     public function run(): Response|StreamedResponse
@@ -76,11 +73,6 @@ class HttpTransport implements Transport
         return $response;
     }
 
-    public function sessionId(): ?string
-    {
-        return $this->sessionId;
-    }
-
     /**
      * Register a streaming callback.
      *
@@ -112,10 +104,6 @@ class HttpTransport implements Transport
         $headers = [
             'Content-Type' => $this->stream instanceof Closure ? 'text/event-stream' : 'application/json',
         ];
-
-        if ($this->replySessionId !== null) {
-            $headers['MCP-Session-Id'] = $this->replySessionId;
-        }
 
         if ($this->stream instanceof Closure) {
             $headers['X-Accel-Buffering'] = 'no';
