@@ -87,7 +87,12 @@ class JsonRpcRequest
             $arguments = [];
         }
 
-        return new Request($arguments, $this->meta());
+        return new Request(
+            $arguments,
+            $this->meta(),
+            inputResponses: is_array($this->params['inputResponses'] ?? null) ? $this->params['inputResponses'] : [],
+            requestState: is_string($this->params['requestState'] ?? null) ? $this->params['requestState'] : null,
+        );
     }
 
     /**

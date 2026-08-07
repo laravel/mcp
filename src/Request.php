@@ -25,11 +25,14 @@ class Request implements Arrayable
     /**
      * @param  array<string, mixed>  $arguments
      * @param  array<string, mixed>|null  $meta
+     * @param  array<string, mixed>  $inputResponses
      */
     public function __construct(
         protected array $arguments = [],
         protected ?array $meta = null,
         protected ?string $uri = null,
+        protected array $inputResponses = [],
+        protected ?string $requestState = null,
     ) {
         //
     }
@@ -110,6 +113,32 @@ class Request implements Arrayable
     public function uri(): ?string
     {
         return $this->uri;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function inputResponses(): array
+    {
+        return $this->inputResponses;
+    }
+
+    public function requestState(): ?string
+    {
+        return $this->requestState;
+    }
+
+    /**
+     * @param  array<string, mixed>  $inputResponses
+     */
+    public function setInputResponses(array $inputResponses): void
+    {
+        $this->inputResponses = $inputResponses;
+    }
+
+    public function setRequestState(?string $requestState): void
+    {
+        $this->requestState = $requestState;
     }
 
     /**

@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\ProtocolVersion;
+use Laravel\Mcp\Enums\ResultType;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Schema\Implementation;
@@ -328,7 +329,7 @@ abstract class Server
             $result = (array) $response->content['result'];
             $result['_meta'][MetaKey::SERVER_INFO->value] = $context->implementation->toArray();
 
-            $response->content['result'] = ['resultType' => 'complete', ...$result];
+            $response->content['result'] = ['resultType' => ResultType::COMPLETE->value, ...$result];
         }
 
         $this->transport->send($response->toJson());

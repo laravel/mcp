@@ -10,11 +10,14 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
+use Laravel\Mcp\Enums\ErrorCode;
+use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Contracts\Errable;
+use Laravel\Mcp\Server\InputRequired;
 use Laravel\Mcp\Support\ValidationMessages;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -83,6 +86,29 @@ trait InteractsWithResponses
         }
 
         yield $this->toJsonRpcResponse($request, $pendingResponses, $serializable);
+    }
+
+    /**
+     * @throws JsonRpcException
+     */
+    protected function toInputRequiredResponse(JsonRpcRequest $request, InputRequired $inputRequired): JsonRpcResponse
+    {
+        $meta = $request->meta() ?? [];
+        $capabilities = $meta[MetaKey::CLIENT_CAPABILITIES->value] ?? [];
+        $capabilities = is_array($capabilities) ? $capabilities : [];
+
+        foreach ($inputRequired->requiredCapabilities() as $capability) {
+            if (! array_key_exists($capability, $capabilities)) {
+                throw new JsonRpcException(
+                    "The client did not declare the required [{$capability}] capability.",
+                    ErrorCode::MISSING_REQUIRED_CLIENT_CAPABILITY->value,
+                    $request->id,
+                    ['capability' => $capability],
+                );
+            }
+        }
+
+        return JsonRpcResponse::result($request->id, $inputRequired->toArray());
     }
 
     protected function callHandler(callable $handler, JsonRpcRequest $request): mixed

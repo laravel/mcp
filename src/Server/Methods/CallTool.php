@@ -11,6 +11,7 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\InputRequired;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Tool;
@@ -48,6 +49,10 @@ class CallTool implements Errable, Method
 
         // @phpstan-ignore-next-line
         $response = $this->callHandler(fn (): mixed => Container::getInstance()->call([$tool, 'handle']), $request);
+
+        if ($response instanceof InputRequired) {
+            return $this->toInputRequiredResponse($request, $response);
+        }
 
         return is_iterable($response)
             ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($tool))
