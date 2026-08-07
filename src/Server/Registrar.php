@@ -19,6 +19,7 @@ use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController;
 use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
 use Laravel\Mcp\Server\Middleware\ReorderJsonAccept;
+use Laravel\Mcp\Server\Middleware\ValidateMcpHeaders;
 use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Server\Transport\StdioTransport;
 use Laravel\Passport\Passport;
@@ -50,6 +51,7 @@ class Registrar
             static fn (): HttpTransport => new HttpTransport(request()),
         ))->middleware([
             ReorderJsonAccept::class,
+            ValidateMcpHeaders::class,
             AddWwwAuthenticateHeader::class,
         ]);
 
