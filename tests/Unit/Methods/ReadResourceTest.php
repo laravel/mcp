@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Container\Container;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
@@ -60,6 +61,7 @@ it('returns a valid resource result for blob resources', function (): void {
 it('throws error when uri is missing', function (): void {
     $this->expectException(JsonRpcException::class);
     $this->expectExceptionMessage('Missing [uri] parameter.');
+    $this->expectExceptionCode(ErrorCode::INVALID_PARAMS->value);
 
     $readResource = new ReadResource;
     $context = $this->getServerContext();
@@ -75,6 +77,7 @@ it('throws error when uri is missing', function (): void {
 
 it('throws exception when resource is not found', function (): void {
     $this->expectException(JsonRpcException::class);
+    $this->expectExceptionCode(ErrorCode::INVALID_PARAMS->value);
 
     $readResource = new ReadResource;
     $context = $this->getServerContext();
