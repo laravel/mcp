@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Client\ClientManager;
@@ -38,6 +39,9 @@ class Client
     protected ?string $name = null;
 
     protected ProtocolEra $era = ProtocolEra::AUTO;
+
+    /** @var array<string, Closure(array<string, mixed>): array<string, mixed>> */
+    protected array $inputHandlers = [];
 
     public function __construct(
         protected Transport $transport,
@@ -122,6 +126,42 @@ class Client
     public function era(): ?ProtocolEra
     {
         return $this->protocol->resolvedEra();
+    }
+
+    /**
+     * @param  Closure(array<string, mixed>): array<string, mixed>  $handler
+     */
+    public function onElicitation(Closure $handler): static
+    {
+        return $this->onInput('elicitation/create', $handler);
+    }
+
+    /**
+     * @param  Closure(array<string, mixed>): array<string, mixed>  $handler
+     */
+    public function onSampling(Closure $handler): static
+    {
+        return $this->onInput('sampling/createMessage', $handler);
+    }
+
+    /**
+     * @param  Closure(array<string, mixed>): array<string, mixed>  $handler
+     */
+    public function onListRoots(Closure $handler): static
+    {
+        return $this->onInput('roots/list', $handler);
+    }
+
+    /**
+     * @param  Closure(array<string, mixed>): array<string, mixed>  $handler
+     */
+    protected function onInput(string $method, Closure $handler): static
+    {
+        $this->inputHandlers[$method] = $handler;
+
+        $this->protocol->onInput($method, $handler);
+
+        return $this;
     }
 
     public function ping(): void
@@ -240,6 +280,10 @@ class Client
         $this->clientInfo ??= $this->defaultClientInfo();
 
         $this->protocol = new Protocol($this->transport, $this->clientInfo, $this->era);
+
+        foreach ($this->inputHandlers as $method => $handler) {
+            $this->protocol->onInput($method, $handler);
+        }
     }
 
     public function __destruct()

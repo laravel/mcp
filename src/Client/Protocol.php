@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client;
 
+use Closure;
 use Illuminate\Support\Arr;
 use JsonException;
 use Laravel\Mcp\Client\Contracts\Method;
@@ -12,15 +13,18 @@ use Laravel\Mcp\Client\Enums\ProtocolEra;
 use Laravel\Mcp\Client\Exceptions\UnexpectedResponseException;
 use Laravel\Mcp\Client\Methods\Discover;
 use Laravel\Mcp\Client\Methods\Initialize;
+use Laravel\Mcp\Client\Methods\RetriedRequest;
 use Laravel\Mcp\Client\Schema\DiscoverResult;
 use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\ProtocolVersion;
+use Laravel\Mcp\Enums\ResultType;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Exceptions\SessionExpiredException;
 use Laravel\Mcp\Schema\Implementation;
+use Laravel\Mcp\Support\InputRequests;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -28,6 +32,11 @@ use Throwable;
 
 class Protocol
 {
+    public const MAX_INPUT_ROUNDS = 5;
+
+    /** @var array<string, Closure(array<string, mixed>): array<string, mixed>> */
+    protected array $inputHandlers = [];
+
     protected bool $connected = false;
 
     protected bool $connecting = false;
@@ -190,12 +199,91 @@ class Protocol
         }
 
         try {
-            return $this->attempt($method);
+            $result = $this->attempt($method);
         } catch (SessionExpiredException) {
             $this->connect();
 
-            return $this->attempt($method);
+            $result = $this->attempt($method);
         }
+
+        return $this->fulfillInputRequests($method, $result);
+    }
+
+    /**
+     * @param  Method<mixed>  $method
+     * @param  array<string, mixed>  $result
+     * @return array<string, mixed>
+     */
+    protected function fulfillInputRequests(Method $method, array $result, int $round = 0): array
+    {
+        if (($result['resultType'] ?? null) !== ResultType::INPUT_REQUIRED->value) {
+            return $result;
+        }
+
+        if ($round >= self::MAX_INPUT_ROUNDS) {
+            throw new ClientException('The server asked for input more than '.self::MAX_INPUT_ROUNDS.' times for the same request.');
+        }
+
+        $inputRequests = is_array($result['inputRequests'] ?? null) ? $result['inputRequests'] : [];
+        $inputResponses = [];
+
+        foreach ($inputRequests as $key => $inputRequest) {
+            $inputResponses[$key] = $this->fulfill(is_array($inputRequest) ? $inputRequest : []);
+        }
+
+        $retry = new RetriedRequest(
+            $method,
+            $inputResponses,
+            is_string($result['requestState'] ?? null) ? $result['requestState'] : null,
+        );
+
+        return $this->fulfillInputRequests($method, $this->attempt($retry), $round + 1);
+    }
+
+    /**
+     * @param  array<string, mixed>  $inputRequest
+     * @return array<string, mixed>
+     */
+    protected function fulfill(array $inputRequest): array
+    {
+        $method = $inputRequest['method'] ?? null;
+        $handler = is_string($method) ? ($this->inputHandlers[$method] ?? null) : null;
+
+        if (! $handler instanceof Closure) {
+            throw new ClientException("The server requested [{$method}], which this client has no handler for.");
+        }
+
+        $response = $handler(is_array($inputRequest['params'] ?? null) ? $inputRequest['params'] : []);
+
+        if (! is_array($response)) {
+            throw new ClientException("The handler for [{$method}] must return an array.");
+        }
+
+        return $response;
+    }
+
+    /**
+     * @param  Closure(array<string, mixed>): array<string, mixed>  $handler
+     */
+    public function onInput(string $method, Closure $handler): void
+    {
+        $this->inputHandlers[$method] = $handler;
+    }
+
+    /**
+     * @return array<string, object>
+     */
+    protected function clientCapabilities(): array
+    {
+        $capabilities = [];
+
+        foreach (array_keys($this->inputHandlers) as $method) {
+            if (isset(InputRequests::CAPABILITIES[$method])) {
+                $capabilities[InputRequests::CAPABILITIES[$method]] = (object) [];
+            }
+        }
+
+        return $capabilities;
     }
 
     /**
@@ -284,7 +372,7 @@ class Protocol
 
         $params['_meta'] = [
             MetaKey::PROTOCOL_VERSION->value => ProtocolVersion::LATEST->value,
-            MetaKey::CLIENT_CAPABILITIES->value => (object) [],
+            MetaKey::CLIENT_CAPABILITIES->value => (object) $this->clientCapabilities(),
             MetaKey::CLIENT_INFO->value => $this->clientInfo->toArray(),
             ...is_array($params['_meta'] ?? null) ? $params['_meta'] : [],
         ];

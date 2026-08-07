@@ -16,6 +16,7 @@ use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\InputRequired;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
 use Laravel\Mcp\Server\Methods\Concerns\ResolvesResources;
 use Laravel\Mcp\Server\Resource;
@@ -48,6 +49,10 @@ class ReadResource implements Method
         }
 
         $response = $this->callHandler(fn (): mixed => $this->invokeResource($resource, $uri), $request);
+
+        if ($response instanceof InputRequired) {
+            return $this->toInputRequiredResponse($request, $response);
+        }
 
         return is_iterable($response)
             ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($resource, $uri))

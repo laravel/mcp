@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\ProtocolVersion;
+use Laravel\Mcp\Enums\ResultType;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Schema\Implementation;
@@ -327,7 +328,7 @@ abstract class Server
     protected function completeResult(JsonRpcResponse $response, ServerContext $context): JsonRpcResponse
     {
         return $response->mergeResult(
-            ['resultType' => 'complete'],
+            ['resultType' => ResultType::COMPLETE->value],
             [MetaKey::SERVER_INFO->value => $context->implementation->toArray()],
         );
     }
