@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Filesystem\Filesystem;
-use Laravel\Mcp\Enums\ProtocolVersion;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
@@ -86,9 +85,16 @@ function expectedDiscoverResponse(): array
         'jsonrpc' => '2.0',
         'id' => 456,
         'result' => [
-            'supportedVersions' => ProtocolVersion::supported(),
+            'resultType' => 'complete',
+            'supportedVersions' => ['2026-07-28'],
             'capabilities' => $capabilities,
             'instructions' => $instructions,
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => [
+                    'name' => 'Laravel MCP Server',
+                    'version' => '0.0.1',
+                ],
+            ],
         ],
     ];
 }
@@ -115,21 +121,6 @@ function pingResponse(int $id): string
     ]);
 }
 
-function expectedInitializeRejection(): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'id' => 456,
-        'error' => [
-            'code' => -32601,
-            'message' => 'The [initialize] handshake was removed in MCP 2026-07-28. Send the protocol version in the request [_meta] instead.',
-            'data' => [
-                'supported' => ['2026-07-28'],
-            ],
-        ],
-    ];
-}
-
 function listToolsMessage(): array
 {
     return [
@@ -148,6 +139,7 @@ function expectedListToolsResponse(): array
         'jsonrpc' => '2.0',
         'id' => 1,
         'result' => [
+            'resultType' => 'complete',
             'tools' => [
                 [
                     'name' => 'say-hi-tool',
@@ -182,6 +174,12 @@ function expectedListToolsResponse(): array
                     'title' => 'Streaming Tool',
                 ],
             ],
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => [
+                    'name' => 'Laravel MCP Server',
+                    'version' => '0.0.1',
+                ],
+            ],
         ],
     ];
 }
@@ -204,6 +202,7 @@ function expectedListResourcesResponse(): array
         'jsonrpc' => '2.0',
         'id' => 1,
         'result' => [
+            'resultType' => 'complete',
             'resources' => [
                 [
                     'name' => 'last-log-line-resource',
@@ -225,6 +224,12 @@ function expectedListResourcesResponse(): array
                     'description' => 'The most recent meeting recording',
                     'uri' => 'file://resources/recent-meeting-recording.mp4',
                     'mimeType' => 'video/mp4',
+                ],
+            ],
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => [
+                    'name' => 'Laravel MCP Server',
+                    'version' => '0.0.1',
                 ],
             ],
         ],
@@ -266,11 +271,18 @@ function expectedReadResourceResponse(): array
         'jsonrpc' => '2.0',
         'id' => 123,
         'result' => [
+            'resultType' => 'complete',
             'contents' => [[
                 'text' => '2025-07-02 12:00:00 Error: Something went wrong.',
                 'uri' => 'file://resources/last-log-line-resource',
                 'mimeType' => 'text/plain',
             ]],
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => [
+                    'name' => 'Laravel MCP Server',
+                    'version' => '0.0.1',
+                ],
+            ],
         ],
     ];
 }
@@ -281,11 +293,18 @@ function expectedCallToolResponse(): array
         'jsonrpc' => '2.0',
         'id' => 1,
         'result' => [
+            'resultType' => 'complete',
             'content' => [[
                 'type' => 'text',
                 'text' => 'Hello, John Doe!',
             ]],
             'isError' => false,
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => [
+                    'name' => 'Laravel MCP Server',
+                    'version' => '0.0.1',
+                ],
+            ],
         ],
     ];
 }
@@ -322,8 +341,15 @@ function expectedStreamingToolResponse(int $count = 2): array
         'jsonrpc' => '2.0',
         'id' => 2,
         'result' => [
+            'resultType' => 'complete',
             'content' => [['type' => 'text', 'text' => "Finished streaming {$count} messages."]],
             'isError' => false,
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => [
+                    'name' => 'Laravel MCP Server',
+                    'version' => '0.0.1',
+                ],
+            ],
         ],
     ];
 
