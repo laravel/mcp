@@ -6,6 +6,7 @@ namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
 use Laravel\Mcp\Enums\ErrorCode;
+use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Schema\Icon;
@@ -203,6 +204,8 @@ abstract class Server
                 );
             }
 
+            $this->validateProtocolMeta($request, $context);
+
             if (! isset($this->methods[$request->method])) {
                 throw new JsonRpcException(
                     "The method [{$request->method}] was not found.",
@@ -262,6 +265,43 @@ abstract class Server
     protected function icons(): array
     {
         return [];
+    }
+
+    /**
+     * @throws JsonRpcException
+     */
+    protected function validateProtocolMeta(JsonRpcRequest $request, ServerContext $context): void
+    {
+        $meta = $request->meta() ?? [];
+
+        $expected = [
+            MetaKey::PROTOCOL_VERSION->value => 'is_string',
+            MetaKey::CLIENT_CAPABILITIES->value => fn (mixed $value): bool => is_array($value) && ($value === [] || ! array_is_list($value)),
+        ];
+
+        foreach ($expected as $metaKey => $isValid) {
+            if (! array_key_exists($metaKey, $meta) || ! $isValid($meta[$metaKey])) {
+                throw new JsonRpcException(
+                    "Invalid params: The request [_meta] is missing the required [{$metaKey}] member.",
+                    ErrorCode::INVALID_PARAMS->value,
+                    $request->id,
+                );
+            }
+        }
+
+        $requestedVersion = $meta[MetaKey::PROTOCOL_VERSION->value];
+
+        if (! in_array($requestedVersion, $context->supportedProtocolVersions, true)) {
+            throw new JsonRpcException(
+                'Unsupported protocol version',
+                ErrorCode::UNSUPPORTED_PROTOCOL_VERSION->value,
+                $request->id,
+                [
+                    'supported' => $context->supportedProtocolVersions,
+                    'requested' => $requestedVersion,
+                ],
+            );
+        }
     }
 
     /**
