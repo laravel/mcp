@@ -216,7 +216,7 @@ abstract class Server
 
             $this->handleMessage($request, $context);
         } catch (JsonRpcException $e) {
-            $this->transport->send($e->toJsonRpcResponse()->toJson());
+            $this->send($e->toJsonRpcResponse(), $context);
         } catch (Throwable $e) {
             report($e);
 
@@ -226,13 +226,11 @@ abstract class Server
                 throw $e;
             }
 
-            $jsonRpcResponse = JsonRpcResponse::error(
+            $this->send(JsonRpcResponse::error(
                 $requestId,
                 ErrorCode::INTERNAL_ERROR->value,
                 'Something went wrong while processing the request.',
-            );
-
-            $this->transport->send($jsonRpcResponse->toJson());
+            ), $context);
         }
     }
 
@@ -312,16 +310,28 @@ abstract class Server
         $response = $this->runMethodHandle($request, $context);
 
         if (! is_iterable($response)) {
-            $this->transport->send($response->toJson());
+            $this->send($response, $context);
 
             return;
         }
 
-        $this->transport->stream(function () use ($response): void {
+        $this->transport->stream(function () use ($response, $context): void {
             foreach ($response as $message) {
-                $this->transport->send($message->toJson());
+                $this->send($message, $context);
             }
         });
+    }
+
+    protected function send(JsonRpcResponse $response, ServerContext $context): void
+    {
+        if (array_key_exists('result', $response->content)) {
+            $result = (array) $response->content['result'];
+            $result['_meta'][MetaKey::SERVER_INFO->value] = $context->implementation->toArray();
+
+            $response->content['result'] = ['resultType' => 'complete', ...$result];
+        }
+
+        $this->transport->send($response->toJson());
     }
 
     /**

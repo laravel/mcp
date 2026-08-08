@@ -8,4 +8,5 @@ enum MetaKey: string
 {
     case PROTOCOL_VERSION = 'io.modelcontextprotocol/protocolVersion';
     case CLIENT_CAPABILITIES = 'io.modelcontextprotocol/clientCapabilities';
+    case SERVER_INFO = 'io.modelcontextprotocol/serverInfo';
 }

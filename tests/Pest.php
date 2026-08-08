@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Filesystem\Filesystem;
-use Laravel\Mcp\Enums\ProtocolVersion;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
@@ -51,6 +50,20 @@ function protocolMeta(): array
     ];
 }
 
+function completeResult(array $result): array
+{
+    return [
+        'resultType' => 'complete',
+        ...$result,
+        '_meta' => [
+            'io.modelcontextprotocol/serverInfo' => [
+                'name' => 'Laravel MCP Server',
+                'version' => '0.0.1',
+            ],
+        ],
+    ];
+}
+
 function initializeMessage(): array
 {
     return [
@@ -85,10 +98,25 @@ function expectedDiscoverResponse(): array
     return [
         'jsonrpc' => '2.0',
         'id' => 456,
-        'result' => [
-            'supportedVersions' => ProtocolVersion::supported(),
+        'result' => completeResult([
+            'supportedVersions' => ['2026-07-28'],
             'capabilities' => $capabilities,
             'instructions' => $instructions,
+        ]),
+    ];
+}
+
+function expectedInitializeRejection(): array
+{
+    return [
+        'jsonrpc' => '2.0',
+        'id' => 456,
+        'error' => [
+            'code' => -32601,
+            'message' => 'The [initialize] handshake was removed in MCP 2026-07-28. Send the protocol version in the request [_meta] instead.',
+            'data' => [
+                'supported' => ['2026-07-28'],
+            ],
         ],
     ];
 }
@@ -115,21 +143,6 @@ function pingResponse(int $id): string
     ]);
 }
 
-function expectedInitializeRejection(): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'id' => 456,
-        'error' => [
-            'code' => -32601,
-            'message' => 'The [initialize] handshake was removed in MCP 2026-07-28. Send the protocol version in the request [_meta] instead.',
-            'data' => [
-                'supported' => ['2026-07-28'],
-            ],
-        ],
-    ];
-}
-
 function listToolsMessage(): array
 {
     return [
@@ -147,7 +160,7 @@ function expectedListToolsResponse(): array
     return [
         'jsonrpc' => '2.0',
         'id' => 1,
-        'result' => [
+        'result' => completeResult([
             'tools' => [
                 [
                     'name' => 'say-hi-tool',
@@ -182,7 +195,7 @@ function expectedListToolsResponse(): array
                     'title' => 'Streaming Tool',
                 ],
             ],
-        ],
+        ]),
     ];
 }
 
@@ -203,7 +216,7 @@ function expectedListResourcesResponse(): array
     return [
         'jsonrpc' => '2.0',
         'id' => 1,
-        'result' => [
+        'result' => completeResult([
             'resources' => [
                 [
                     'name' => 'last-log-line-resource',
@@ -227,7 +240,7 @@ function expectedListResourcesResponse(): array
                     'mimeType' => 'video/mp4',
                 ],
             ],
-        ],
+        ]),
     ];
 }
 
@@ -265,13 +278,13 @@ function expectedReadResourceResponse(): array
     return [
         'jsonrpc' => '2.0',
         'id' => 123,
-        'result' => [
+        'result' => completeResult([
             'contents' => [[
                 'text' => '2025-07-02 12:00:00 Error: Something went wrong.',
                 'uri' => 'file://resources/last-log-line-resource',
                 'mimeType' => 'text/plain',
             ]],
-        ],
+        ]),
     ];
 }
 
@@ -280,13 +293,13 @@ function expectedCallToolResponse(): array
     return [
         'jsonrpc' => '2.0',
         'id' => 1,
-        'result' => [
+        'result' => completeResult([
             'content' => [[
                 'type' => 'text',
                 'text' => 'Hello, John Doe!',
             ]],
             'isError' => false,
-        ],
+        ]),
     ];
 }
 
@@ -321,10 +334,10 @@ function expectedStreamingToolResponse(int $count = 2): array
     $messages[] = [
         'jsonrpc' => '2.0',
         'id' => 2,
-        'result' => [
+        'result' => completeResult([
             'content' => [['type' => 'text', 'text' => "Finished streaming {$count} messages."]],
             'isError' => false,
-        ],
+        ]),
     ];
 
     return $messages;
