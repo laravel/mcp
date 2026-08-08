@@ -8,32 +8,26 @@ use Symfony\Component\Process\Process;
 
 use function Orchestra\Testbench\remote;
 
-it('can initialize a connection over http', function (): void {
+it('rejects the initialize handshake over http', function (): void {
     $response = $this->postJson('test-mcp', initializeMessage());
 
     $response->assertStatus(200);
 
-    expect($response->json())->toEqual(expectedInitializeResponse());
+    expect($response->json())->toEqual(expectedInitializeRejection());
 });
 
-it('receives a session id over http', function (): void {
+it('does not return a session id over http', function (): void {
     /** @var TestResponse $response */
-    $response = $this->postJson('test-mcp', initializeMessage());
+    $response = $this->postJson('test-mcp', discoverMessage());
 
-    $response->assertHeader('MCP-Session-Id');
+    $response->assertStatus(200);
+    $response->assertHeaderMissing('MCP-Session-Id');
 
-    // https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#session-management
-    expect($response->headers->get('MCP-Session-Id'))->toMatch('/^[\x21-\x7E]+$/');
+    expect($response->json())->toEqual(expectedDiscoverResponse());
 });
 
 it('can list resources over http', function (): void {
-    $sessionId = initializeHttpConnection($this);
-
-    $response = $this->postJson(
-        'test-mcp',
-        listResourcesMessage(),
-        ['MCP-Session-Id' => $sessionId],
-    );
+    $response = $this->postJson('test-mcp', listResourcesMessage());
 
     $response->assertStatus(200);
 
@@ -41,13 +35,7 @@ it('can list resources over http', function (): void {
 });
 
 it('can read a resource over http', function (): void {
-    $sessionId = initializeHttpConnection($this);
-
-    $response = $this->postJson(
-        'test-mcp',
-        readResourceMessage(),
-        ['MCP-Session-Id' => $sessionId],
-    );
+    $response = $this->postJson('test-mcp', readResourceMessage());
 
     $response->assertStatus(200);
 
@@ -55,13 +43,7 @@ it('can read a resource over http', function (): void {
 });
 
 it('can list tools over http', function (): void {
-    $sessionId = initializeHttpConnection($this);
-
-    $response = $this->postJson(
-        'test-mcp',
-        listToolsMessage(),
-        ['MCP-Session-Id' => $sessionId],
-    );
+    $response = $this->postJson('test-mcp', listToolsMessage());
 
     $response->assertStatus(200);
 
@@ -69,13 +51,7 @@ it('can list tools over http', function (): void {
 });
 
 it('can call a tool over http', function (): void {
-    $sessionId = initializeHttpConnection($this);
-
-    $response = $this->postJson(
-        'test-mcp',
-        callToolMessage(),
-        ['MCP-Session-Id' => $sessionId],
-    );
+    $response = $this->postJson('test-mcp', callToolMessage());
 
     $response->assertStatus(200);
 
@@ -83,12 +59,10 @@ it('can call a tool over http', function (): void {
 });
 
 it('can stream a tool response over http', function (): void {
-    $sessionId = initializeHttpConnection($this);
-
     $response = $this->postJson(
         'test-mcp',
         callStreamingToolMessage(),
-        ['MCP-Session-Id' => $sessionId, 'Accept' => 'text/event-stream'],
+        ['Accept' => 'text/event-stream'],
     );
 
     $response->assertStatus(200);
@@ -99,17 +73,6 @@ it('can stream a tool response over http', function (): void {
     $messages = parseJsonRpcMessagesFromSseStream($content);
 
     expect($messages)->toEqual(expectedStreamingToolResponse());
-});
-
-it('can initialize a connection over stdio', function (): void {
-    $process = remote(['mcp:start', 'test-mcp']);
-    $process->setInput(json_encode(initializeMessage()));
-
-    $process->run(function (string $type, string $output): void {
-        expect($type)->toEqual(Process::OUT);
-        expect(json_decode($output, true))->toEqual(expectedInitializeResponse());
-    });
-    expect(true)->toBeTrue();
 });
 
 it('can discover a server over stdio', function (): void {
@@ -158,13 +121,7 @@ it('can stream a tool response over stdio', function (): void {
 });
 
 it('can list dynamically added tools', function (): void {
-    $sessionId = initializeHttpConnection($this, 'test-mcp-dynamic-tools');
-
-    $response = $this->postJson(
-        'test-mcp-dynamic-tools',
-        listToolsMessage(),
-        ['MCP-Session-Id' => $sessionId],
-    );
+    $response = $this->postJson('test-mcp-dynamic-tools', listToolsMessage());
 
     $response->assertStatus(200);
 
@@ -236,19 +193,8 @@ it('returns Sanctum WWW-Authenticate header when OAuth routes are not enabled an
 it('does not add WWW-Authenticate header when response is not 401', function (): void {
     app(Registrar::class)->oauthRoutes();
 
-    $response = $this->postJson('test-mcp', initializeMessage());
+    $response = $this->postJson('test-mcp', listToolsMessage());
 
     $response->assertStatus(200);
     $response->assertHeaderMissing('WWW-Authenticate');
 });
-
-function initializeHttpConnection($that, $handle = 'test-mcp')
-{
-    $response = $that->postJson($handle, initializeMessage());
-
-    $sessionId = $response->headers->get('MCP-Session-Id');
-
-    $that->postJson($handle, initializeNotificationMessage(), ['MCP-Session-Id' => $sessionId]);
-
-    return $sessionId;
-}

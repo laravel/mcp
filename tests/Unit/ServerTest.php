@@ -13,7 +13,7 @@ use Tests\Fixtures\CustomMethodHandler;
 use Tests\Fixtures\ExampleServer;
 use Tests\Fixtures\ThrowingMethodHandler;
 
-it('can handle an initialize message', function (): void {
+it('rejects the initialize handshake', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
 
@@ -25,7 +25,7 @@ it('can handle an initialize message', function (): void {
 
     $response = json_decode((string) $transport->sent[0], true);
 
-    expect($response)->toEqual(expectedInitializeResponse());
+    expect($response)->toEqual(expectedInitializeRejection());
 });
 
 it('can handle a discover message', function (): void {
@@ -52,7 +52,7 @@ it('can add a capability', function (): void {
 
     $server->start();
 
-    $payload = json_encode(initializeMessage());
+    $payload = json_encode(discoverMessage());
 
     ($transport->handler)($payload);
 
@@ -247,6 +247,23 @@ it('no longer answers a ping message', function (): void {
     expect($response['error']['code'])->toBe(-32601);
 });
 
+it('lets a dual-era server serve initialize through addMethod', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->addMethod('initialize', CustomMethodHandler::class);
+
+    $this->app->bind(CustomMethodHandler::class, fn (): CustomMethodHandler => new CustomMethodHandler('custom-dependency'));
+
+    $server->start();
+
+    ($transport->handler)(json_encode(initializeMessage()));
+
+    $response = json_decode((string) $transport->sent[0], true);
+
+    expect($response['result']['message'])->toBe('Custom method executed successfully!');
+});
+
 it('discovers an empty capability set as a json object', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
@@ -304,7 +321,7 @@ it('handles capability with non-array existing value', function (): void {
 
     $server->start();
 
-    $payload = json_encode(initializeMessage());
+    $payload = json_encode(discoverMessage());
 
     ($transport->handler)($payload);
 

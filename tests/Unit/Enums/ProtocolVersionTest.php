@@ -16,6 +16,10 @@ it('includes the latest version in supported list', function (): void {
     expect(ProtocolVersion::supported())->toContain(ProtocolVersion::LATEST->value);
 });
 
+it('serves only the latest revision', function (): void {
+    expect(ProtocolVersion::supported())->toBe(['2026-07-28']);
+});
+
 it('returns only string values', function (): void {
     foreach (ProtocolVersion::supported() as $version) {
         expect($version)->toBeString();

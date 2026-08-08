@@ -251,13 +251,7 @@ class ChildToolWithoutAttribute extends ParentToolWithAttribute {}
 class ChildToolWithOverride extends ParentToolWithAttribute {}
 
 #[Name('Parent Server')]
-class ParentServerWithAttribute extends Server
-{
-    protected function generateSessionId(): string
-    {
-        return 'test-session';
-    }
-}
+class ParentServerWithAttribute extends Server {}
 
 class ChildServerWithoutAttribute extends ParentServerWithAttribute {}
 
@@ -436,51 +430,23 @@ class AttributeDescriptionPrompt extends Prompt
 }
 
 #[Name('Attribute Server')]
-class AttributeNameServer extends Server
-{
-    protected function generateSessionId(): string
-    {
-        return 'test-session';
-    }
-}
+class AttributeNameServer extends Server {}
 
 #[Version('2.0.0')]
-class AttributeVersionServer extends Server
-{
-    protected function generateSessionId(): string
-    {
-        return 'test-session';
-    }
-}
+class AttributeVersionServer extends Server {}
 
 #[Instructions('Custom instructions via attribute')]
-class AttributeInstructionsServer extends Server
-{
-    protected function generateSessionId(): string
-    {
-        return 'test-session';
-    }
-}
+class AttributeInstructionsServer extends Server {}
 
 #[Name('Attribute Server Name')]
 class AttributeOverridesPropertyNameServer extends Server
 {
     protected string $name = 'Property Server Name';
-
-    protected function generateSessionId(): string
-    {
-        return 'test-session';
-    }
 }
 
 class PropertyOnlyNameServer extends Server
 {
     protected string $name = 'Property Server';
-
-    protected function generateSessionId(): string
-    {
-        return 'test-session';
-    }
 }
 
 #[Uri('file://ignored/uri')]
