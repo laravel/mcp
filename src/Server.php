@@ -276,7 +276,7 @@ abstract class Server
 
         $expected = [
             MetaKey::PROTOCOL_VERSION->value => 'is_string',
-            MetaKey::CLIENT_CAPABILITIES->value => 'is_array',
+            MetaKey::CLIENT_CAPABILITIES->value => fn (mixed $value): bool => is_array($value) && ($value === [] || ! array_is_list($value)),
         ];
 
         foreach ($expected as $metaKey => $isValid) {

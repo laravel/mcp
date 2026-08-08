@@ -96,6 +96,13 @@ it('rejects a request without the required protocol metadata', function (array $
         ],
         'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/clientCapabilities] member.',
     ],
+    'list capabilities' => [
+        [
+            'io.modelcontextprotocol/protocolVersion' => '2026-07-28',
+            'io.modelcontextprotocol/clientCapabilities' => ['elicitation'],
+        ],
+        'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/clientCapabilities] member.',
+    ],
 ]);
 
 it('rejects an unsupported protocol version', function (): void {
