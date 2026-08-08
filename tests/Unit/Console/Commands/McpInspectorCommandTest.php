@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use Illuminate\Console\View\Components\Factory;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\UrlGenerator;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
 use Laravel\Mcp\Server\Registrar;
+use Tests\Fixtures\ExampleServer;
 
 beforeEach(function (): void {
     $this->registrar = Mockery::mock(Registrar::class);
@@ -241,4 +243,25 @@ it('retrieves php binary path correctly', function (): void {
     // Should return either a path to php or 'php'
     expect($phpBinary)->toBeString();
     expect(strlen((string) $phpBinary))->toBeGreaterThan(0);
+});
+
+it('asks for route parameter values when building the server url', function (): void {
+    $route = (new Registrar)->web('mcp/{organisation:uuid}', ExampleServer::class);
+
+    $components = Mockery::mock(Factory::class);
+    $components->shouldReceive('ask')
+        ->once()
+        ->with('What value should be used for the [organisation] route parameter?')
+        ->andReturn('4f8a1c2e');
+
+    $command = new InspectorCommand;
+    $command->setLaravel($this->app);
+
+    (function () use ($components): void {
+        $this->components = $components;
+    })->call($command);
+
+    $serverUrl = (fn (): string => $this->serverUrl($route))->call($command);
+
+    expect($serverUrl)->toBe('http://localhost/mcp/4f8a1c2e');
 });
