@@ -251,17 +251,36 @@ it('asks for route parameter values when building the server url', function (): 
     $components = Mockery::mock(Factory::class);
     $components->shouldReceive('ask')
         ->once()
-        ->with('What value should be used for the [organisation] route parameter?')
+        ->with('What is the value for the [organisation] route parameter?')
         ->andReturn('4f8a1c2e');
 
     $command = new InspectorCommand;
     $command->setLaravel($this->app);
 
-    (function () use ($components): void {
-        $this->components = $components;
-    })->call($command);
+    (new ReflectionProperty($command, 'components'))->setValue($command, $components);
 
-    $serverUrl = (fn (): string => $this->serverUrl($route))->call($command);
+    $serverUrl = (new ReflectionMethod($command, 'serverUrl'))->invoke($command, $route);
 
     expect($serverUrl)->toBe('http://localhost/mcp/4f8a1c2e');
+});
+
+it('fails when a route parameter is left blank', function (): void {
+    $route = (new Registrar)->web('mcp/{organisation:uuid}', ExampleServer::class);
+
+    $this->registrar
+        ->shouldReceive('getLocalServer')
+        ->with('demo')
+        ->andReturn(null);
+
+    $this->registrar
+        ->shouldReceive('getWebServer')
+        ->with('demo')
+        ->andReturn($route);
+
+    $this->registrar->shouldReceive('servers')->andReturn(['demo' => $route]);
+
+    $this->artisan('mcp:inspector', ['handle' => 'demo'])
+        ->expectsQuestion('What is the value for the [organisation] route parameter?', null)
+        ->expectsOutputToContain('Every route parameter needs a value to inspect this server')
+        ->assertExitCode(1);
 });
