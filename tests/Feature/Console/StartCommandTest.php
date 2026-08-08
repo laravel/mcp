@@ -82,20 +82,6 @@ it('can call a tool over http', function (): void {
     expect($response->json())->toEqual(expectedCallToolResponse());
 });
 
-it('can handle a ping over http', function (): void {
-    $sessionId = initializeHttpConnection($this);
-
-    $response = $this->postJson(
-        'test-mcp',
-        pingMessage(),
-        ['MCP-Session-Id' => $sessionId],
-    );
-
-    $response->assertStatus(200);
-
-    expect($response->json())->toEqual(expectedPingResponse());
-});
-
 it('can stream a tool response over http', function (): void {
     $sessionId = initializeHttpConnection($this);
 
@@ -126,6 +112,17 @@ it('can initialize a connection over stdio', function (): void {
     expect(true)->toBeTrue();
 });
 
+it('can discover a server over stdio', function (): void {
+    $process = remote(['mcp:start', 'test-mcp']);
+    $process->setInput(json_encode(discoverMessage()));
+
+    $process->run(function (string $type, string $output): void {
+        expect($type)->toEqual(Process::OUT);
+        expect(json_decode($output, true))->toEqual(expectedDiscoverResponse());
+    });
+    expect(true)->toBeTrue();
+});
+
 it('can list tools over stdio', function (): void {
     $process = remote(['mcp:start', 'test-mcp']);
     $process->setInput(json_encode(listToolsMessage()));
@@ -146,17 +143,6 @@ it('can call a tool over stdio', function (): void {
     $output = json_decode($process->getOutput(), true);
 
     expect($output)->toEqual(expectedCallToolResponse());
-});
-
-it('can handle a ping over stdio', function (): void {
-    $process = remote(['mcp:start', 'test-mcp']);
-    $process->setInput(json_encode(pingMessage()));
-
-    $process->run();
-
-    $output = json_decode($process->getOutput(), true);
-
-    expect($output)->toEqual(expectedPingResponse());
 });
 
 it('can stream a tool response over stdio', function (): void {
