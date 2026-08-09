@@ -43,6 +43,14 @@ expect()->extend('toBeOne', fn () => $this->toBe(1));
 |
 */
 
+function protocolMeta(): array
+{
+    return [
+        'io.modelcontextprotocol/protocolVersion' => '2026-07-28',
+        'io.modelcontextprotocol/clientCapabilities' => [],
+    ];
+}
+
 function initializeMessage(): array
 {
     return [
@@ -59,6 +67,9 @@ function discoverMessage(): array
         'jsonrpc' => '2.0',
         'id' => 456,
         'method' => 'server/discover',
+        'params' => [
+            '_meta' => protocolMeta(),
+        ],
     ];
 }
 
@@ -125,6 +136,9 @@ function listToolsMessage(): array
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'tools/list',
+        'params' => [
+            '_meta' => protocolMeta(),
+        ],
     ];
 }
 
@@ -178,6 +192,9 @@ function listResourcesMessage(): array
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'resources/list',
+        'params' => [
+            '_meta' => protocolMeta(),
+        ],
     ];
 }
 
@@ -225,6 +242,7 @@ function callToolMessage(): array
             'arguments' => [
                 'name' => 'John Doe',
             ],
+            '_meta' => protocolMeta(),
         ],
     ];
 }
@@ -237,6 +255,7 @@ function readResourceMessage(): array
         'method' => 'resources/read',
         'params' => [
             'uri' => 'file://resources/last-log-line-resource',
+            '_meta' => protocolMeta(),
         ],
     ];
 }
@@ -282,6 +301,7 @@ function callStreamingToolMessage(int $count = 2): array
             'arguments' => [
                 'count' => $count,
             ],
+            '_meta' => protocolMeta(),
         ],
     ];
 }

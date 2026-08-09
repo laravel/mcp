@@ -43,6 +43,102 @@ it('can handle a discover message', function (): void {
     expect($response)->toEqual(expectedDiscoverResponse());
 });
 
+it('rejects a request without the required protocol metadata', function (array $meta, string $message): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/list',
+        'params' => ['_meta' => $meta],
+    ]);
+
+    ($transport->handler)($payload);
+
+    expect(json_decode((string) $transport->sent[0], true))->toEqual([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'error' => [
+            'code' => -32602,
+            'message' => $message,
+        ],
+    ]);
+})->with([
+    'missing version' => [
+        ['io.modelcontextprotocol/clientCapabilities' => []],
+        'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/protocolVersion] member.',
+    ],
+    'missing capabilities' => [
+        ['io.modelcontextprotocol/protocolVersion' => '2026-07-28'],
+        'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/clientCapabilities] member.',
+    ],
+    'null version' => [
+        [
+            'io.modelcontextprotocol/protocolVersion' => null,
+            'io.modelcontextprotocol/clientCapabilities' => [],
+        ],
+        'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/protocolVersion] member.',
+    ],
+    'non-string version' => [
+        [
+            'io.modelcontextprotocol/protocolVersion' => 123,
+            'io.modelcontextprotocol/clientCapabilities' => [],
+        ],
+        'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/protocolVersion] member.',
+    ],
+    'non-array capabilities' => [
+        [
+            'io.modelcontextprotocol/protocolVersion' => '2026-07-28',
+            'io.modelcontextprotocol/clientCapabilities' => 'nope',
+        ],
+        'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/clientCapabilities] member.',
+    ],
+    'list capabilities' => [
+        [
+            'io.modelcontextprotocol/protocolVersion' => '2026-07-28',
+            'io.modelcontextprotocol/clientCapabilities' => ['elicitation'],
+        ],
+        'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/clientCapabilities] member.',
+    ],
+]);
+
+it('rejects an unsupported protocol version', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/list',
+        'params' => [
+            '_meta' => [
+                'io.modelcontextprotocol/protocolVersion' => '2025-11-25',
+                'io.modelcontextprotocol/clientCapabilities' => [],
+            ],
+        ],
+    ]);
+
+    ($transport->handler)($payload);
+
+    expect(json_decode((string) $transport->sent[0], true))->toEqual([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'error' => [
+            'code' => -32022,
+            'message' => 'Unsupported protocol version',
+            'data' => [
+                'supported' => ['2026-07-28'],
+                'requested' => '2025-11-25',
+            ],
+        ],
+    ]);
+});
+
 it('can add a capability', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
@@ -126,7 +222,7 @@ it('can handle an unknown method', function (): void {
         'jsonrpc' => '2.0',
         'id' => 789,
         'method' => 'unknown/method',
-        'params' => [],
+        'params' => ['_meta' => protocolMeta()],
     ]);
 
     ($transport->handler)($payload);
@@ -171,6 +267,10 @@ it('returns protocol errors for invalid parameter shapes', function (mixed $para
     'tool arguments' => [[
         'name' => 'say-hi-tool',
         'arguments' => 'invalid',
+        '_meta' => [
+            'io.modelcontextprotocol/protocolVersion' => '2026-07-28',
+            'io.modelcontextprotocol/clientCapabilities' => [],
+        ],
     ], 'Invalid params: The [arguments] member must be an object.'],
 ]);
 
@@ -211,7 +311,7 @@ it('can handle a custom method message', function (): void {
         'jsonrpc' => '2.0',
         'id' => 12345,
         'method' => 'custom/method',
-        'params' => [],
+        'params' => ['_meta' => protocolMeta()],
     ]);
 
     ($transport->handler)($payload);
@@ -238,6 +338,7 @@ it('no longer answers a ping message', function (): void {
         'jsonrpc' => '2.0',
         'id' => 789,
         'method' => 'ping',
+        'params' => ['_meta' => protocolMeta()],
     ]);
 
     ($transport->handler)($payload);
@@ -257,7 +358,14 @@ it('lets a dual-era server serve initialize through addMethod', function (): voi
 
     $server->start();
 
-    ($transport->handler)(json_encode(initializeMessage()));
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 456,
+        'method' => 'initialize',
+        'params' => ['_meta' => protocolMeta()],
+    ]);
+
+    ($transport->handler)($payload);
 
     $response = json_decode((string) $transport->sent[0], true);
 
@@ -356,7 +464,7 @@ it('handles exceptions in debug mode', function (): void {
         'jsonrpc' => '2.0',
         'id' => 999,
         'method' => 'test/method',
-        'params' => [],
+        'params' => ['_meta' => protocolMeta()],
     ]);
 
     expect(function () use ($transport, $payload): void {
@@ -389,7 +497,7 @@ it('handles exceptions in production mode', function (): void {
         'jsonrpc' => '2.0',
         'id' => 999,
         'method' => 'test/method',
-        'params' => [],
+        'params' => ['_meta' => protocolMeta()],
     ]);
 
     ($transport->handler)($payload);

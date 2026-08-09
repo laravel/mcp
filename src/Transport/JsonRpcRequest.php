@@ -74,7 +74,7 @@ class JsonRpcRequest
      */
     public function meta(): ?array
     {
-        return isset($this->params['_meta']) && is_array($this->params['_meta']) ? $this->params['_meta'] : null;
+        return isset($this->params['_meta']) && self::isObject($this->params['_meta']) ? $this->params['_meta'] : null;
     }
 
     public function toRequest(): Request
