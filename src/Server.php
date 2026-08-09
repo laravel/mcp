@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
-use Illuminate\Support\Str;
+use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\ProtocolVersion;
-use Laravel\Mcp\Events\SessionInitialized;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Schema\Implementation;
@@ -22,7 +21,6 @@ use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\Methods\CompletionComplete;
 use Laravel\Mcp\Server\Methods\Discover;
 use Laravel\Mcp\Server\Methods\GetPrompt;
-use Laravel\Mcp\Server\Methods\Initialize;
 use Laravel\Mcp\Server\Methods\ListPrompts;
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Methods\ListResourceTemplates;
@@ -177,12 +175,13 @@ abstract class Server
     public function handle(string $rawMessage): void
     {
         $context = $this->createContext();
+        $requestId = null;
 
         try {
             $jsonRequest = json_decode($rawMessage, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', -32700);
+                throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', ErrorCode::PARSE_ERROR->value);
             }
 
             $request = isset($jsonRequest['id'])
@@ -193,16 +192,21 @@ abstract class Server
                 return;
             }
 
-            if ($request->method === 'initialize') {
-                $this->handleInitializeMessage($request, $context);
+            $requestId = $request->id;
 
-                return;
+            if ($request->method === 'initialize' && ! isset($this->methods['initialize'])) {
+                throw new JsonRpcException(
+                    'The [initialize] handshake was removed in MCP '.ProtocolVersion::LATEST->value.'. Send the protocol version in the request [_meta] instead.',
+                    ErrorCode::METHOD_NOT_FOUND->value,
+                    $request->id,
+                    ['supported' => $context->supportedProtocolVersions],
+                );
             }
 
             if (! isset($this->methods[$request->method])) {
                 throw new JsonRpcException(
                     "The method [{$request->method}] was not found.",
-                    -32601,
+                    ErrorCode::METHOD_NOT_FOUND->value,
                     $request->id,
                 );
             }
@@ -220,8 +224,8 @@ abstract class Server
             }
 
             $jsonRpcResponse = JsonRpcResponse::error(
-                $request->id ?? null,
-                -32603,
+                $requestId,
+                ErrorCode::INTERNAL_ERROR->value,
                 'Something went wrong while processing the request.',
             );
 
@@ -303,27 +307,6 @@ abstract class Server
         }
 
         return $response;
-    }
-
-    protected function handleInitializeMessage(JsonRpcRequest $request, ServerContext $context): void
-    {
-        $response = (new Initialize)->handle($request, $context);
-
-        $sessionId = $this->generateSessionId();
-
-        Container::getInstance()->make('events')->dispatch(new SessionInitialized(
-            sessionId: $sessionId,
-            clientInfo: $request->params['clientInfo'] ?? null,
-            protocolVersion: $request->params['protocolVersion'] ?? null,
-            clientCapabilities: $request->params['capabilities'] ?? null,
-        ));
-
-        $this->transport->send($response->toJson(), $sessionId);
-    }
-
-    protected function generateSessionId(): string
-    {
-        return Str::uuid()->toString();
     }
 
     protected function detectUiCapability(): void

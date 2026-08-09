@@ -104,33 +104,17 @@ function pingResponse(int $id): string
     ]);
 }
 
-function expectedInitializeResponse(): array
+function expectedInitializeRejection(): array
 {
-    $server = new ExampleServer(new ArrayTransport);
-
-    [
-        $capabilities,
-        $name,
-        $version,
-        $instructions,
-    ] = (fn (): array => [
-        $this->capabilities,
-        $this->name,
-        $this->version,
-        $this->instructions,
-    ])->call($server);
-
     return [
         'jsonrpc' => '2.0',
         'id' => 456,
-        'result' => [
-            'protocolVersion' => '2025-11-25',
-            'capabilities' => $capabilities,
-            'serverInfo' => [
-                'name' => $name,
-                'version' => $version,
+        'error' => [
+            'code' => -32601,
+            'message' => 'The [initialize] handshake was removed in MCP 2026-07-28. Send the protocol version in the request [_meta] instead.',
+            'data' => [
+                'supported' => ['2026-07-28'],
             ],
-            'instructions' => $instructions,
         ],
     ];
 }
@@ -269,14 +253,6 @@ function expectedReadResourceResponse(): array
                 'mimeType' => 'text/plain',
             ]],
         ],
-    ];
-}
-
-function initializeNotificationMessage(): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'method' => 'notifications/initialized',
     ];
 }
 
