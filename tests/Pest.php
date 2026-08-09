@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Filesystem\Filesystem;
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
@@ -49,6 +50,35 @@ function initializeMessage(): array
         'id' => 456,
         'method' => 'initialize',
         'params' => [],
+    ];
+}
+
+function discoverMessage(): array
+{
+    return [
+        'jsonrpc' => '2.0',
+        'id' => 456,
+        'method' => 'server/discover',
+    ];
+}
+
+function expectedDiscoverResponse(): array
+{
+    $server = new ExampleServer(new ArrayTransport);
+
+    [$capabilities, $instructions] = (fn (): array => [
+        $this->capabilities,
+        $this->instructions,
+    ])->call($server);
+
+    return [
+        'jsonrpc' => '2.0',
+        'id' => 456,
+        'result' => [
+            'supportedVersions' => ProtocolVersion::supported(),
+            'capabilities' => $capabilities,
+            'instructions' => $instructions,
+        ],
     ];
 }
 
@@ -262,24 +292,6 @@ function expectedCallToolResponse(): array
             ]],
             'isError' => false,
         ],
-    ];
-}
-
-function pingMessage(): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'id' => 789,
-        'method' => 'ping',
-    ];
-}
-
-function expectedPingResponse(): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'id' => 789,
-        'result' => [],
     ];
 }
 

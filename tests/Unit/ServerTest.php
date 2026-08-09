@@ -28,6 +28,21 @@ it('can handle an initialize message', function (): void {
     expect($response)->toEqual(expectedInitializeResponse());
 });
 
+it('can handle a discover message', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    $payload = json_encode(discoverMessage());
+
+    ($transport->handler)($payload);
+
+    $response = json_decode((string) $transport->sent[0], true);
+
+    expect($response)->toEqual(expectedDiscoverResponse());
+});
+
 it('can add a capability', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
@@ -213,19 +228,38 @@ it('can handle a custom method message', function (): void {
     ]);
 });
 
-it('can handle a ping message', function (): void {
+it('no longer answers a ping message', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
 
     $server->start();
 
-    $payload = json_encode(pingMessage());
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 789,
+        'method' => 'ping',
+    ]);
 
     ($transport->handler)($payload);
 
     $response = json_decode((string) $transport->sent[0], true);
 
-    expect($response)->toEqual(expectedPingResponse());
+    expect($response['error']['code'])->toBe(-32601);
+});
+
+it('discovers an empty capability set as a json object', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    (function (): void {
+        $this->capabilities = [];
+    })->call($server);
+
+    $server->start();
+
+    ($transport->handler)(json_encode(discoverMessage()));
+
+    expect((string) $transport->sent[0])->toContain('"capabilities":{}');
 });
 
 it('calls boot method on connect', function (): void {
