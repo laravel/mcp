@@ -9,7 +9,7 @@ use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Resource;
 use Tests\Fixtures\ArrayTransport;
 
-it('auto-detects ui capability when ui resources are registered', function (): void {
+it('advertises the ui extension when app resources are registered', function (): void {
     $server = new class(new ArrayTransport) extends Server
     {
         protected array $resources = [
@@ -21,10 +21,11 @@ it('auto-detects ui capability when ui resources are registered', function (): v
 
     $context = $server->createContext();
 
-    expect($context->serverCapabilities)->toHaveKey('io.modelcontextprotocol/ui');
+    expect($context->serverCapabilities['extensions'])->toHaveKey('io.modelcontextprotocol/ui');
+    expect($server->hasExtension('io.modelcontextprotocol/ui'))->toBeTrue();
 });
 
-it('does not include ui capability when only regular resources are registered', function (): void {
+it('advertises no extensions when only regular resources are registered', function (): void {
     $server = new class(new ArrayTransport) extends Server
     {
         protected array $resources = [
@@ -36,7 +37,20 @@ it('does not include ui capability when only regular resources are registered', 
 
     $context = $server->createContext();
 
-    expect($context->serverCapabilities)->not->toHaveKey('io.modelcontextprotocol/ui');
+    expect($context->serverCapabilities)->not->toHaveKey('extensions');
+    expect($server->hasExtension('io.modelcontextprotocol/ui'))->toBeFalse();
+});
+
+it('advertises an extension with its settings object', function (): void {
+    $server = new class(new ArrayTransport) extends Server {};
+
+    $server->addExtension('io.modelcontextprotocol/ui', ['mimeTypes' => ['text/html;profile=mcp-app']]);
+    $server->addExtension('com.example/other');
+
+    $extensions = $server->createContext()->serverCapabilities['extensions'];
+
+    expect($extensions['io.modelcontextprotocol/ui'])->toBe(['mimeTypes' => ['text/html;profile=mcp-app']]);
+    expect($extensions['com.example/other'])->toEqual((object) []);
 });
 
 class AutoDetectAppResource extends AppResource

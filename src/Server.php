@@ -58,7 +58,9 @@ abstract class Server
 
     public const CAPABILITY_COMPLETIONS = 'completions';
 
-    public const CAPABILITY_UI = 'io.modelcontextprotocol/ui';
+    public const CAPABILITY_EXTENSIONS = 'extensions';
+
+    public const EXTENSION_UI = 'io.modelcontextprotocol/ui';
 
     public const CACHEABLE_METHODS = [
         'server/discover',
@@ -83,7 +85,7 @@ abstract class Server
     protected array $supportedProtocolVersion = [];
 
     /**
-     * @var array<string, array<string, bool>|stdClass|string>
+     * @var array<string, array<string, array<string, mixed>|bool|stdClass>|stdClass|string>
      */
     protected array $capabilities = [
         self::CAPABILITY_TOOLS => [
@@ -166,6 +168,24 @@ abstract class Server
 
         // Represent empty capability as an object when JSON encoded
         $this->capabilities[$key] = (object) [];
+    }
+
+    /**
+     * Advertise support for an MCP extension.
+     *
+     * @param  array<string, mixed>  $settings
+     */
+    public function addExtension(string $identifier, array $settings = []): void
+    {
+        $extensions = $this->capabilities[self::CAPABILITY_EXTENSIONS] ?? [];
+
+        if (! is_array($extensions)) {
+            $extensions = [];
+        }
+
+        $extensions[$identifier] = $settings === [] ? (object) [] : $settings;
+
+        $this->capabilities[self::CAPABILITY_EXTENSIONS] = $extensions;
     }
 
     /**
@@ -421,17 +441,24 @@ abstract class Server
 
     protected function detectUiCapability(): void
     {
-        if (array_key_exists(self::CAPABILITY_UI, $this->capabilities)) {
+        if ($this->hasExtension(self::EXTENSION_UI)) {
             return;
         }
 
         foreach ($this->resources as $resource) {
             if (is_subclass_of($resource, AppResource::class)) {
-                $this->addCapability(self::CAPABILITY_UI);
+                $this->addExtension(self::EXTENSION_UI);
 
                 return;
             }
         }
+    }
+
+    public function hasExtension(string $identifier): bool
+    {
+        $extensions = $this->capabilities[self::CAPABILITY_EXTENSIONS] ?? [];
+
+        return is_array($extensions) && array_key_exists($identifier, $extensions);
     }
 
     /**
