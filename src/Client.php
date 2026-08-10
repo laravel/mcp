@@ -39,6 +39,9 @@ class Client
 
     protected ?string $name = null;
 
+    /** @var array<string, array<string, mixed>> */
+    protected array $toolSchemas = [];
+
     public function __construct(
         protected Transport $transport,
         public ?Implementation $clientInfo = null,
@@ -168,7 +171,13 @@ class Client
     public function tools(?int $limit = null, ?iterable $default = null): Collection
     {
         try {
-            return (new ListTools(client: $this, limit: $limit))->handle($this->protocol);
+            $tools = (new ListTools(client: $this, limit: $limit))->handle($this->protocol);
+
+            foreach ($tools as $tool) {
+                $this->toolSchemas[$tool->name] = $tool->inputSchema;
+            }
+
+            return $tools;
         } catch (AuthorizationRequiredException $authorizationRequiredException) {
             if ($default === null) {
                 throw $authorizationRequiredException;
@@ -180,10 +189,15 @@ class Client
 
     /**
      * @param  array<string, mixed>  $arguments
+     * @param  array<string, mixed>|null  $inputSchema
      */
-    public function callTool(string $name, array $arguments = []): ToolResult
+    public function callTool(string $name, array $arguments = [], ?array $inputSchema = null): ToolResult
     {
-        return (new CallTool($name, $arguments))->handle($this->protocol);
+        return (new CallTool(
+            $name,
+            $arguments,
+            $inputSchema ?? $this->toolSchemas[$name] ?? [],
+        ))->handle($this->protocol);
     }
 
     /**

@@ -74,6 +74,6 @@ class Tool
             throw new ClientException("Tool [{$this->name}] is not bound to a client.");
         }
 
-        return $this->client->callTool($this->name, $arguments);
+        return $this->client->callTool($this->name, $arguments, $this->inputSchema);
     }
 }

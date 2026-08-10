@@ -18,6 +18,9 @@ class FakeTransport implements Transport, UsesProtocol
     /** @var array<int, string> */
     public array $sent = [];
 
+    /** @var array<int, array<string, string>> */
+    public array $sentHeaders = [];
+
     /** @var array<int, string> */
     public array $responses = [];
 
@@ -43,7 +46,7 @@ class FakeTransport implements Transport, UsesProtocol
         $this->connected = false;
     }
 
-    public function send(string $message): void
+    public function send(string $message, array $headers = []): void
     {
         if ($this->throwOnNextSend instanceof Throwable) {
             $throwable = $this->throwOnNextSend;
@@ -78,6 +81,7 @@ class FakeTransport implements Transport, UsesProtocol
         }
 
         $this->sent[] = $message;
+        $this->sentHeaders[] = $headers;
     }
 
     public function setTimeoutSeconds(float $seconds): void

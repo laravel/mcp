@@ -20,6 +20,7 @@ use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\SessionExpiredException;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 use Psr\Http\Message\StreamInterface;
 use SensitiveParameter;
 use Throwable;
@@ -100,12 +101,15 @@ class HttpTransport implements Transport, UsesProtocol
         ];
     }
 
-    public function send(string $message): void
+    /**
+     * @param  array<string, string>  $headers
+     */
+    public function send(string $message, array $headers = []): void
     {
         $hadSession = $this->sessionId !== null;
 
         try {
-            $response = Http::withHeaders($this->headers())
+            $response = Http::withHeaders($this->headers($message, $headers))
                 ->withBody($message, 'application/json')
                 ->timeout($this->timeoutSeconds)
                 ->withOptions(['stream' => true])
@@ -206,14 +210,19 @@ class HttpTransport implements Transport, UsesProtocol
     }
 
     /**
+     * @param  array<string, string>  $mirrored
      * @return array<string, string>
      */
-    protected function headers(): array
+    protected function headers(string $message = '', array $mirrored = []): array
     {
         $headers = [
             'Accept' => 'application/json, text/event-stream',
             ...$this->eraHeaders(),
         ];
+
+        if ($this->protocolVersion?->handshake() === ProtocolHandshake::Discovery) {
+            $headers = array_merge($headers, $this->mirroredHeaders($message), $mirrored);
+        }
 
         $token = $this->token instanceof Closure ? (string) ($this->token)() : $this->token;
 
@@ -232,6 +241,27 @@ class HttpTransport implements Transport, UsesProtocol
         }
 
         return $headers;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function mirroredHeaders(string $message): array
+    {
+        $body = json_decode($message, true);
+
+        if (! is_array($body) || ! isset($body['id']) || ! is_string(Arr::get($body, 'method'))) {
+            return [];
+        }
+
+        $id = Arr::get($body, 'id');
+        $params = Arr::get($body, 'params');
+
+        return (new JsonRpcRequest(
+            id: is_int($id) || is_string($id) ? $id : 0,
+            method: Arr::get($body, 'method'),
+            params: is_array($params) ? $params : [],
+        ))->mirroredHeaders();
     }
 
     /**

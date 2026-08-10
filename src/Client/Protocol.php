@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Client;
 use Illuminate\Support\Arr;
 use JsonException;
 use Laravel\Mcp\Client\Contracts\Method;
+use Laravel\Mcp\Client\Contracts\MirrorsParameters;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Contracts\UsesProtocol;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
@@ -305,7 +306,10 @@ class Protocol
         );
 
         try {
-            $this->transport->send($request->toJson());
+            $this->transport->send(
+                $request->toJson(),
+                $method instanceof MirrorsParameters ? $method->requestHeaders() : [],
+            );
 
             do {
                 $raw = $this->transport->receive();
