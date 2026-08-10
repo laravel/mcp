@@ -23,7 +23,7 @@ class ValidateMcpHeaders
     {
         $body = json_decode((string) $request->getContent(), true);
 
-        if (! is_array($body) || ! isset($body['id']) || ! is_string($body['method'] ?? null)) {
+        if (! is_array($body) || ! is_string($body['method'] ?? null)) {
             return $next($request);
         }
 
@@ -53,7 +53,7 @@ class ValidateMcpHeaders
             if ($mismatch !== null) {
                 return response()->json([
                     'jsonrpc' => '2.0',
-                    'id' => $body['id'],
+                    'id' => $body['id'] ?? null,
                     'error' => [
                         'code' => ErrorCode::HEADER_MISMATCH->value,
                         'message' => $mismatch,

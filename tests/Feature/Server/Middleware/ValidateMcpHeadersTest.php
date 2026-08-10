@@ -32,6 +32,33 @@ it('rejects a request missing a required header', function (string $header): voi
     ]);
 })->with(['MCP-Protocol-Version', 'Mcp-Method', 'Mcp-Name']);
 
+it('accepts a notification whose headers mirror the body', function (): void {
+    $message = ['jsonrpc' => '2.0', 'method' => 'notifications/initialized'];
+
+    $response = $this->postJson('test-mcp', $message, mcpHeaders($message));
+
+    $response->assertStatus(202);
+});
+
+it('rejects a notification missing a required header', function (): void {
+    $message = ['jsonrpc' => '2.0', 'method' => 'notifications/initialized'];
+    $headers = mcpHeaders($message);
+    unset($headers['Mcp-Method']);
+
+    $response = $this->postJson('test-mcp', $message, $headers);
+
+    $response->assertStatus(400);
+
+    expect($response->json())->toEqual([
+        'jsonrpc' => '2.0',
+        'id' => null,
+        'error' => [
+            'code' => -32001,
+            'message' => 'Header mismatch: The [Mcp-Method] header is required.',
+        ],
+    ]);
+});
+
 it('rejects a request whose header contradicts the body', function (): void {
     $message = callToolMessage();
 
