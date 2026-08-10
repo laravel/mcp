@@ -23,6 +23,7 @@ use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\Methods\CompletionComplete;
 use Laravel\Mcp\Server\Methods\Discover;
 use Laravel\Mcp\Server\Methods\GetPrompt;
+use Laravel\Mcp\Server\Methods\Listen;
 use Laravel\Mcp\Server\Methods\ListPrompts;
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Methods\ListResourceTemplates;
@@ -31,6 +32,7 @@ use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Subscription;
 use Laravel\Mcp\Server\Testing\PendingTestResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
 use Laravel\Mcp\Server\Tool;
@@ -131,6 +133,7 @@ abstract class Server
         'prompts/get' => GetPrompt::class,
         'completion/complete' => CompletionComplete::class,
         'server/discover' => Discover::class,
+        'subscriptions/listen' => Listen::class,
     ];
 
     public function __construct(
@@ -269,6 +272,7 @@ abstract class Server
             tools: $this->tools,
             resources: $this->resources,
             prompts: $this->prompts,
+            notifications: $this->subscriptions(...),
             validateToolHeaders: $this->validateToolHeaders(...),
         );
     }
@@ -282,6 +286,16 @@ abstract class Server
         $inputSchema = $tool->toArray()['inputSchema'] ?? [];
 
         $this->transport->validateToolHeaders($inputSchema, $request->toRequest()->all(), $request->id);
+    }
+
+    /**
+     * The notifications to deliver on an open subscription stream.
+     *
+     * @return iterable<Response>
+     */
+    protected function subscriptions(Subscription $subscription): iterable
+    {
+        return [];
     }
 
     /**
