@@ -26,7 +26,7 @@ it('rejects a request missing a required header', function (string $header): voi
         'jsonrpc' => '2.0',
         'id' => $message['id'],
         'error' => [
-            'code' => -32020,
+            'code' => -32001,
             'message' => "Header mismatch: The [{$header}] header is required.",
         ],
     ]);
@@ -43,7 +43,7 @@ it('rejects a request whose header contradicts the body', function (): void {
     $response->assertStatus(400);
 
     expect($response->json('error'))->toEqual([
-        'code' => -32020,
+        'code' => -32001,
         'message' => "Header mismatch: The [Mcp-Name] header value [some-other-tool] does not match the request body value [{$message['params']['name']}].",
     ]);
 });
@@ -58,7 +58,7 @@ it('rejects a protocol version header that contradicts the body meta', function 
 
     $response->assertStatus(400);
 
-    expect($response->json('error.code'))->toBe(-32020);
+    expect($response->json('error.code'))->toBe(-32001);
 });
 
 it('decodes a base64 sentinel name header before comparing it', function (): void {
@@ -141,7 +141,7 @@ it('requires the protocol version header even when the body omits the meta membe
     $response->assertStatus(400);
 
     expect($response->json('error'))->toEqual([
-        'code' => -32020,
+        'code' => -32001,
         'message' => 'Header mismatch: The [MCP-Protocol-Version] header is required.',
     ]);
 });
@@ -158,7 +158,7 @@ it('requires the name header even when the body carries no usable name', functio
     $response->assertStatus(400);
 
     expect($response->json('error'))->toEqual([
-        'code' => -32020,
+        'code' => -32001,
         'message' => 'Header mismatch: The [Mcp-Name] header is required.',
     ]);
 });
@@ -173,7 +173,7 @@ it('does not decode the base64 sentinel on headers other than the name', functio
 
     $response->assertStatus(400);
 
-    expect($response->json('error.code'))->toBe(-32020);
+    expect($response->json('error.code'))->toBe(-32001);
 });
 
 it('answers an internal error with a 500', function (): void {
