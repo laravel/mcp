@@ -83,7 +83,10 @@ class StdioTransport implements Transport
         ];
     }
 
-    public function send(string $message): void
+    /**
+     * @param  array<string, string>  $headers
+     */
+    public function send(string $message, array $headers = []): void
     {
         if (! $this->input instanceof InputStream || ! $this->process?->isRunning()) {
             throw new ClientException('Transport is not connected.');

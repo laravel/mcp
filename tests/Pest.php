@@ -157,6 +157,19 @@ function methodNotFoundResponse(int $id = 1): string
     ]);
 }
 
+function toolCallResponse(int $id, string $text): string
+{
+    return (string) json_encode([
+        'jsonrpc' => '2.0',
+        'id' => $id,
+        'result' => [
+            'resultType' => 'complete',
+            'content' => [['type' => 'text', 'text' => $text]],
+            'isError' => false,
+        ],
+    ]);
+}
+
 function pingResponse(int $id): string
 {
     return json_encode([

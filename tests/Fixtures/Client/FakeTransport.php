@@ -14,6 +14,9 @@ class FakeTransport implements Transport
     /** @var array<int, string> */
     public array $sent = [];
 
+    /** @var array<int, array<string, string>> */
+    public array $sentHeaders = [];
+
     /** @var array<int, string> */
     public array $responses = [];
 
@@ -33,9 +36,10 @@ class FakeTransport implements Transport
         $this->connected = false;
     }
 
-    public function send(string $message): void
+    public function send(string $message, array $headers = []): void
     {
         $this->sent[] = $message;
+        $this->sentHeaders[] = $headers;
     }
 
     public function setTimeoutSeconds(float $seconds): void

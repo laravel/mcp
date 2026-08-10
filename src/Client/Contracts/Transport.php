@@ -10,7 +10,10 @@ interface Transport
 
     public function disconnect(): void;
 
-    public function send(string $message): void;
+    /**
+     * @param  array<string, string>  $headers
+     */
+    public function send(string $message, array $headers = []): void;
 
     public function receive(): string;
 
