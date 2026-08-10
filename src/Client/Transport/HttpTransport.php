@@ -11,16 +11,21 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
+use Laravel\Mcp\Client\Exceptions\RequestRejectedException;
 use Laravel\Mcp\Client\OAuth\WwwAuthenticateChallenge;
 use Laravel\Mcp\Enums\ProtocolVersion;
+use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\SessionExpiredException;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 use Psr\Http\Message\StreamInterface;
 use SensitiveParameter;
 use Throwable;
 
 class HttpTransport implements Transport
 {
+    protected const REJECTED_STATUSES = [400, 405, 501];
+
     /** @var string|(Closure(): string)|null */
     protected string|Closure|null $token = null;
 
@@ -97,10 +102,13 @@ class HttpTransport implements Transport
 
     public function send(string $message): void
     {
+        $body = json_decode($message, true);
+        $body = is_array($body) ? $body : [];
+
         $hadSession = $this->sessionId !== null;
 
         try {
-            $response = Http::withHeaders($this->headers())
+            $response = Http::withHeaders($this->headers($body))
                 ->withBody($message, 'application/json')
                 ->timeout($this->timeoutSeconds)
                 ->withOptions(['stream' => true])
@@ -129,6 +137,18 @@ class HttpTransport implements Transport
         }
 
         if (! $response->successful()) {
+            if ($this->hasJsonRpcError($response)) {
+                $this->queue[] = trim($response->body());
+
+                return;
+            }
+
+            if (in_array($response->status(), self::REJECTED_STATUSES, true)) {
+                $this->reset();
+
+                throw new RequestRejectedException("The endpoint [{$this->url}] rejected the request with HTTP status [{$response->status()}].");
+            }
+
             $this->failWith("Unexpected HTTP status [{$response->status()}] from endpoint [{$this->url}].");
         }
 
@@ -140,13 +160,13 @@ class HttpTransport implements Transport
             return;
         }
 
-        $body = trim($response->body());
+        $content = trim($response->body());
 
-        if ($response->accepted() || $body === '') {
+        if ($response->accepted() || $content === '') {
             return;
         }
 
-        $this->queue[] = $body;
+        $this->queue[] = $content;
     }
 
     public function setProtocolVersion(string $version): void
@@ -170,21 +190,38 @@ class HttpTransport implements Transport
         $this->disconnect();
     }
 
+    protected function usesDiscovery(): bool
+    {
+        return ProtocolVersion::tryFrom($this->protocolVersion ?? '')?->usesDiscovery() ?? false;
+    }
+
+    protected function hasJsonRpcError(ClientResponse $response): bool
+    {
+        $body = json_decode($response->body(), true);
+
+        return is_array($body) && is_array($body['error'] ?? null);
+    }
+
     /**
+     * @param  array<string, mixed>  $body
      * @return array<string, string>
      */
-    protected function headers(): array
+    protected function headers(array $body = []): array
     {
         $headers = [
             'Accept' => 'application/json, text/event-stream',
         ];
 
-        if ($this->sessionId !== null) {
+        if ($this->sessionId !== null && ! $this->usesDiscovery()) {
             $headers['MCP-Session-Id'] = $this->sessionId;
         }
 
-        if ($this->initialized) {
-            $headers['MCP-Protocol-Version'] = $this->protocolVersion ?? ProtocolVersion::V2025_11_25->value;
+        if (($this->initialized || $this->usesDiscovery()) && ($body['method'] ?? null) !== 'initialize') {
+            $headers[RequestHeader::PROTOCOL_VERSION->value] = $this->protocolVersion ?? ProtocolVersion::V2025_11_25->value;
+        }
+
+        if ($this->usesDiscovery()) {
+            $headers = array_merge($headers, $this->mirroredHeaders($body));
         }
 
         $token = $this->token instanceof Closure ? (string) ($this->token)() : $this->token;
@@ -206,8 +243,29 @@ class HttpTransport implements Transport
         return $headers;
     }
 
+    /**
+     * @param  array<string, mixed>  $body
+     * @return array<string, string>
+     */
+    protected function mirroredHeaders(array $body): array
+    {
+        if (! isset($body['id']) || ! is_string($body['method'] ?? null)) {
+            return [];
+        }
+
+        return (new JsonRpcRequest(
+            id: is_int($body['id']) || is_string($body['id']) ? $body['id'] : 0,
+            method: $body['method'],
+            params: is_array($body['params'] ?? null) ? $body['params'] : [],
+        ))->mirroredHeaders();
+    }
+
     protected function captureSessionId(ClientResponse $response): void
     {
+        if ($this->usesDiscovery()) {
+            return;
+        }
+
         $sessionId = $response->header('MCP-Session-Id');
 
         if ($sessionId !== '') {

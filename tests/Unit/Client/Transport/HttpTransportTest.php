@@ -384,7 +384,7 @@ it('throws when the server negotiates a protocol version the client does not sup
 
     expect(function (): void {
         Client::web('https://mcp.test/mcp')->tools();
-    })->toThrow(ClientException::class, 'The server negotiated an unsupported protocol version.');
+    })->toThrow(ClientException::class, 'The server chose protocol version [2025-03-26]. This client supports [2025-11-25, 2025-06-18].');
 });
 
 it('interoperates with a server negotiated down to 2025-06-18', function (): void {

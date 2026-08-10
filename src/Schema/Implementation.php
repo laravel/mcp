@@ -38,6 +38,16 @@ class Implementation
         ]);
     }
 
+    public static function tryFrom(mixed $data): ?self
+    {
+        if (! is_array($data) || ! is_string($data['name'] ?? null) || ! is_string($data['version'] ?? null)) {
+            return null;
+        }
+
+        /** @var array{name: string, version: string, title?: string, description?: string, icons?: array<int, array{src: string, mimeType?: string, sizes?: array<string>, theme?: string}>, websiteUrl?: string} $data */
+        return self::from($data);
+    }
+
     /**
      * @param  array{
      *     name: string,

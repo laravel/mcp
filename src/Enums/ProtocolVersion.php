@@ -14,6 +14,11 @@ enum ProtocolVersion: string
 
     public const LATEST = self::V2026_07_28;
 
+    public function usesDiscovery(): bool
+    {
+        return $this->value >= self::V2026_07_28->value;
+    }
+
     /**
      * @return array<int, string>
      */

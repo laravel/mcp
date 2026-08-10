@@ -20,6 +20,7 @@ use Laravel\Mcp\Client\Primitives\Prompt;
 use Laravel\Mcp\Client\Primitives\Resource;
 use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Protocol;
+use Laravel\Mcp\Client\Schema\DiscoverResult;
 use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Client\Schema\PromptResult;
 use Laravel\Mcp\Client\Schema\ResourceReadResult;
@@ -27,6 +28,8 @@ use Laravel\Mcp\Client\Schema\ToolResult;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Client\Transport\StdioTransport;
 use Laravel\Mcp\Client\Transport\TransportFactory;
+use Laravel\Mcp\Enums\ProtocolVersion;
+use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Schema\Implementation;
 
 class Client
@@ -35,13 +38,15 @@ class Client
 
     protected ?string $name = null;
 
+    protected ?ProtocolVersion $protocolVersion = null;
+
     public function __construct(
         protected Transport $transport,
         public ?Implementation $clientInfo = null,
     ) {
         $this->clientInfo = $clientInfo ?? $this->defaultClientInfo();
 
-        $this->protocol = new Protocol($this->transport, $this->clientInfo);
+        $this->protocol = new Protocol($this->transport, $this->clientInfo, $this->protocolVersion);
     }
 
     protected function defaultClientInfo(): Implementation
@@ -99,6 +104,33 @@ class Client
     public function initializeResult(): ?InitializeResult
     {
         return $this->protocol->initializeResult();
+    }
+
+    public function discoverResult(): ?DiscoverResult
+    {
+        return $this->protocol->discoverResult();
+    }
+
+    public function withProtocolVersion(?ProtocolVersion $version): static
+    {
+        if ($version instanceof ProtocolVersion && ! $version->usesDiscovery() && ! in_array($version->value, ProtocolVersion::clientSupported(), true)) {
+            throw new ClientException(sprintf(
+                'This client does not support protocol version [%s]. It supports [%s].',
+                $version->value,
+                implode(', ', [...ProtocolVersion::clientSupported(), ProtocolVersion::LATEST->value]),
+            ));
+        }
+
+        $this->protocolVersion = $version;
+
+        $this->protocol->protocolVersion($version);
+
+        return $this;
+    }
+
+    public function protocolVersion(): ?ProtocolVersion
+    {
+        return $this->protocol->resolvedProtocolVersion();
     }
 
     public function ping(): void
@@ -191,6 +223,7 @@ class Client
             'name' => null,
             'clientInfo' => $this->clientInfo,
             'transport' => $this->transport->recipe(),
+            'protocolVersion' => $this->protocolVersion?->value,
         ];
     }
 
@@ -206,14 +239,16 @@ class Client
 
             $this->transport = $resolved->transport;
             $this->clientInfo = $resolved->clientInfo;
+            $this->protocolVersion = $resolved->protocolVersion;
         } else {
             $this->clientInfo = $data['clientInfo'];
             $this->transport = TransportFactory::fromRecipe($data['transport']);
+            $this->protocolVersion = ProtocolVersion::tryFrom($data['protocolVersion'] ?? '');
         }
 
         $this->clientInfo ??= $this->defaultClientInfo();
 
-        $this->protocol = new Protocol($this->transport, $this->clientInfo);
+        $this->protocol = new Protocol($this->transport, $this->clientInfo, $this->protocolVersion);
     }
 
     public function __destruct()

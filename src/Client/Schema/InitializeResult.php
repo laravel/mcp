@@ -30,27 +30,25 @@ class InitializeResult
     {
         $protocolVersion = Arr::get($payload, 'protocolVersion');
         $capabilities = Arr::get($payload, 'capabilities');
-        /** @var array{name: string, version: string, title?: string, description?: string, icons?: array<int, array{src: string, mimeType?: string, sizes?: array<string>, theme?: string}>, websiteUrl?: string} $serverInfo */
-        $serverInfo = Arr::get($payload, 'serverInfo');
-        $serverName = Arr::get($serverInfo, 'name');
-        $serverVersion = Arr::get($serverInfo, 'version');
+        $serverInfo = Implementation::tryFrom(Arr::get($payload, 'serverInfo'));
         $instructions = Arr::get($payload, 'instructions');
 
         if (! is_string($protocolVersion) || ! in_array($protocolVersion, ProtocolVersion::clientSupported(), true)) {
-            throw new ClientException('The server negotiated an unsupported protocol version.');
+            throw new ClientException(sprintf(
+                'The server chose protocol version [%s]. This client supports [%s].',
+                is_string($protocolVersion) ? $protocolVersion : 'none',
+                implode(', ', ProtocolVersion::clientSupported()),
+            ));
         }
 
-        if (! is_array($capabilities)
-            || ! is_array($serverInfo)
-            || ! is_string($serverName)
-            || ! is_string($serverVersion)) {
+        if (! is_array($capabilities) || ! $serverInfo instanceof Implementation) {
             throw new ClientException('Invalid initialize response from server.');
         }
 
         return new self(
             protocolVersion: $protocolVersion,
             capabilities: $capabilities,
-            serverInfo: Implementation::from($serverInfo),
+            serverInfo: $serverInfo,
             instructions: is_string($instructions) ? $instructions : null,
         );
     }

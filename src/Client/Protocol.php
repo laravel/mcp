@@ -8,8 +8,14 @@ use Illuminate\Support\Arr;
 use JsonException;
 use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Contracts\Transport;
+use Laravel\Mcp\Client\Exceptions\RequestRejectedException;
+use Laravel\Mcp\Client\Methods\Discover;
 use Laravel\Mcp\Client\Methods\Initialize;
+use Laravel\Mcp\Client\Schema\DiscoverResult;
 use Laravel\Mcp\Client\Schema\InitializeResult;
+use Laravel\Mcp\Enums\ErrorCode;
+use Laravel\Mcp\Enums\MetaKey;
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Exceptions\SessionExpiredException;
@@ -29,9 +35,14 @@ class Protocol
 
     protected ?InitializeResult $initializeResult = null;
 
+    protected ?DiscoverResult $discoverResult = null;
+
+    protected ?ProtocolVersion $resolvedProtocolVersion = null;
+
     public function __construct(
         protected Transport $transport,
         protected Implementation $clientInfo,
+        protected ?ProtocolVersion $protocolVersion = null,
     ) {
         //
     }
@@ -46,6 +57,26 @@ class Protocol
         return $this->initializeResult;
     }
 
+    public function discoverResult(): ?DiscoverResult
+    {
+        return $this->discoverResult;
+    }
+
+    public function protocolVersion(?ProtocolVersion $protocolVersion): void
+    {
+        $this->protocolVersion = $protocolVersion;
+        $this->resolvedProtocolVersion = null;
+
+        if ($this->connected) {
+            $this->disconnect();
+        }
+    }
+
+    public function resolvedProtocolVersion(): ?ProtocolVersion
+    {
+        return $this->resolvedProtocolVersion;
+    }
+
     public function connect(): void
     {
         if ($this->connected) {
@@ -56,11 +87,7 @@ class Protocol
         $this->connecting = true;
 
         try {
-            $this->initializeResult = (new Initialize($this->clientInfo))->handle($this);
-
-            $this->transport->setProtocolVersion($this->initializeResult->protocolVersion);
-
-            $this->notify('notifications/initialized');
+            $this->handshake();
         } catch (Throwable $throwable) {
             $this->disconnect();
 
@@ -70,6 +97,77 @@ class Protocol
         }
 
         $this->connected = true;
+    }
+
+    protected function handshake(): void
+    {
+        $version = $this->protocolVersion ?? $this->resolvedProtocolVersion;
+
+        if ($version?->usesDiscovery()) {
+            $this->discover();
+
+            return;
+        }
+
+        if ($version instanceof ProtocolVersion) {
+            $this->initialize($version);
+
+            return;
+        }
+
+        try {
+            $this->initialize(ProtocolVersion::V2025_11_25);
+
+            return;
+        } catch (JsonRpcException $jsonRpcException) {
+            if (! $this->suggestsDiscovery($jsonRpcException)) {
+                throw $jsonRpcException;
+            }
+        } catch (RequestRejectedException) {
+            //
+        }
+
+        $this->discover();
+    }
+
+    protected function initialize(ProtocolVersion $version): void
+    {
+        $this->transport->setProtocolVersion($version->value);
+
+        $this->initializeResult = (new Initialize($this->clientInfo, $version))->handle($this);
+
+        $this->resolvedProtocolVersion = ProtocolVersion::from($this->initializeResult->protocolVersion);
+
+        $this->transport->setProtocolVersion($this->initializeResult->protocolVersion);
+
+        $this->notify('notifications/initialized');
+    }
+
+    protected function discover(): void
+    {
+        $this->resolvedProtocolVersion = ProtocolVersion::LATEST;
+
+        $this->transport->setProtocolVersion(ProtocolVersion::LATEST->value);
+
+        $this->discoverResult = (new Discover)->handle($this);
+
+        if (! in_array(ProtocolVersion::LATEST->value, $this->discoverResult->supportedVersions, true)) {
+            throw new ClientException(sprintf(
+                'The server does not support protocol version [%s]. It supports [%s].',
+                ProtocolVersion::LATEST->value,
+                implode(', ', $this->discoverResult->supportedVersions),
+            ));
+        }
+    }
+
+    protected function suggestsDiscovery(JsonRpcException $jsonRpcException): bool
+    {
+        return in_array($jsonRpcException->getCode(), [
+            ErrorCode::METHOD_NOT_FOUND->value,
+            ErrorCode::HEADER_MISMATCH->value,
+            ErrorCode::MISSING_REQUIRED_CLIENT_CAPABILITY->value,
+            ErrorCode::UNSUPPORTED_PROTOCOL_VERSION->value,
+        ], true);
     }
 
     public function disconnect(): void
@@ -107,7 +205,7 @@ class Protocol
         $request = new JsonRpcRequest(
             id: $this->nextRequestId++,
             method: $method->method(),
-            params: $method->params(),
+            params: $this->params($method),
         );
 
         try {
@@ -168,6 +266,28 @@ class Protocol
         $result = Arr::get($response, 'result');
 
         return is_array($result) ? $result : [];
+    }
+
+    /**
+     * @param  Method<mixed>  $method
+     * @return array<string, mixed>
+     */
+    protected function params(Method $method): array
+    {
+        $params = $method->params();
+
+        if (! $this->resolvedProtocolVersion?->usesDiscovery()) {
+            return $params;
+        }
+
+        $params['_meta'] = [
+            MetaKey::PROTOCOL_VERSION->value => ProtocolVersion::LATEST->value,
+            MetaKey::CLIENT_CAPABILITIES->value => (object) [],
+            MetaKey::CLIENT_INFO->value => $this->clientInfo->toArray(),
+            ...is_array($params['_meta'] ?? null) ? $params['_meta'] : [],
+        ];
+
+        return $params;
     }
 
     public function notify(string $method): void

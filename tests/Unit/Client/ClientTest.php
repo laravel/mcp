@@ -53,7 +53,7 @@ it('disconnects when the server negotiates a version the client does not support
 
     expect(function () use ($client): void {
         $client->connect();
-    })->toThrow(ClientException::class, 'The server negotiated an unsupported protocol version.');
+    })->toThrow(ClientException::class, 'The server chose protocol version [2024-11-05]. This client supports [2025-11-25, 2025-06-18].');
 
     expect($transport->connected)->toBeFalse();
 });
