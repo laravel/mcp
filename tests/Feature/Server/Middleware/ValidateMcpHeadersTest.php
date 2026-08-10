@@ -2,10 +2,47 @@
 
 declare(strict_types=1);
 
+use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Laravel\Mcp\Response;
+use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Methods\ListTools;
+use Laravel\Mcp\Server\Registrar;
 use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
+use Tests\Fixtures\ArrayTransport;
+
+function parameterHeaderServer(): string
+{
+    $server = new class(new ArrayTransport) extends Server
+    {
+        public function __construct(Transport $transport)
+        {
+            parent::__construct($transport);
+
+            $this->tools = [new class extends Tool
+            {
+                protected string $name = 'parameter-header-tool';
+
+                protected array $parameterHeaders = ['region' => 'Region'];
+
+                public function schema(JsonSchema $schema): array
+                {
+                    return ['region' => $schema->string()->required()];
+                }
+
+                public function handle(): Response
+                {
+                    return Response::text('ok');
+                }
+            }];
+        }
+    };
+
+    return $server::class;
+}
 
 it('accepts a request whose headers mirror the body', function (): void {
     $response = $this->postJson('test-mcp', $message = callToolMessage(), mcpHeaders($message));
@@ -46,6 +83,40 @@ it('rejects a request whose header contradicts the body', function (): void {
         'code' => -32020,
         'message' => "Header mismatch: The [Mcp-Name] header value [some-other-tool] does not match the request body value [{$message['params']['name']}].",
     ]);
+});
+
+it('rejects a mirrored tool argument without its header', function (): void {
+    app(Registrar::class)->web('parameter-header-mcp', parameterHeaderServer());
+
+    $message = callToolMessage();
+    $message['params']['name'] = 'parameter-header-tool';
+    $message['params']['arguments'] = ['region' => 'us-west1'];
+
+    $response = $this->postJson('parameter-header-mcp', $message, mcpHeaders($message));
+
+    $response->assertStatus(400);
+
+    expect($response->json('error'))->toEqual([
+        'code' => -32020,
+        'message' => 'Header mismatch: The [Mcp-Param-Region] header is required.',
+    ]);
+});
+
+it('rejects a mirrored tool argument whose header contradicts the body', function (): void {
+    app(Registrar::class)->web('parameter-header-mismatch-mcp', parameterHeaderServer());
+
+    $message = callToolMessage();
+    $message['params']['name'] = 'parameter-header-tool';
+    $message['params']['arguments'] = ['region' => 'us-west1'];
+
+    $response = $this->postJson('parameter-header-mismatch-mcp', $message, [
+        ...mcpHeaders($message),
+        'Mcp-Param-Region' => 'eu-west1',
+    ]);
+
+    $response->assertStatus(400);
+
+    expect($response->json('error.code'))->toBe(-32020);
 });
 
 it('rejects a protocol version header that contradicts the body meta', function (): void {

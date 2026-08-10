@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
+use Laravel\Mcp\Enums\CacheScope;
 use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\ProtocolVersion;
@@ -33,6 +34,7 @@ use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Testing\PendingTestResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -55,6 +57,15 @@ abstract class Server
     public const CAPABILITY_COMPLETIONS = 'completions';
 
     public const CAPABILITY_UI = 'io.modelcontextprotocol/ui';
+
+    public const CACHEABLE_METHODS = [
+        'server/discover',
+        'tools/list',
+        'prompts/list',
+        'resources/list',
+        'resources/templates/list',
+        'resources/read',
+    ];
 
     protected string $name = 'Laravel MCP Server';
 
@@ -98,6 +109,10 @@ abstract class Server
      * @var array<int, Prompt|class-string<Prompt>>
      */
     protected array $prompts = [];
+
+    protected int $cacheTtlMs = 0;
+
+    protected CacheScope $cacheScope = CacheScope::PRIVATE;
 
     public int $maxPaginationLength = 50;
 
@@ -254,7 +269,19 @@ abstract class Server
             tools: $this->tools,
             resources: $this->resources,
             prompts: $this->prompts,
+            validateToolHeaders: $this->validateToolHeaders(...),
         );
+    }
+
+    protected function validateToolHeaders(Tool $tool, JsonRpcRequest $request): void
+    {
+        if (! $this->transport instanceof HttpTransport) {
+            return;
+        }
+
+        $inputSchema = $tool->toArray()['inputSchema'] ?? [];
+
+        $this->transport->validateToolHeaders($inputSchema, $request->toRequest()->all(), $request->id);
     }
 
     /**
@@ -310,28 +337,47 @@ abstract class Server
         $response = $this->runMethodHandle($request, $context);
 
         if (! is_iterable($response)) {
-            $this->send($response, $context);
+            $this->send($response, $context, $request);
 
             return;
         }
 
-        $this->transport->stream(function () use ($response, $context): void {
+        $this->transport->stream(function () use ($request, $response, $context): void {
             foreach ($response as $message) {
-                $this->send($message, $context);
+                $this->send($message, $context, $request);
             }
         });
     }
 
-    protected function send(JsonRpcResponse $response, ServerContext $context): void
+    protected function send(JsonRpcResponse $response, ServerContext $context, ?JsonRpcRequest $request = null): void
     {
-        if (array_key_exists('result', $response->content)) {
+        if ($request instanceof JsonRpcRequest && array_key_exists('result', $response->content)) {
             $result = (array) $response->content['result'];
             $result['_meta'][MetaKey::SERVER_INFO->value] = $context->implementation->toArray();
 
-            $response->content['result'] = ['resultType' => 'complete', ...$result];
+            $response->content['result'] = [
+                'resultType' => 'complete',
+                ...$this->cacheHints($request),
+                ...$result,
+            ];
         }
 
         $this->transport->send($response->toJson());
+    }
+
+    /**
+     * @return array<string, int|string>
+     */
+    protected function cacheHints(JsonRpcRequest $request): array
+    {
+        if (! in_array($request->method, self::CACHEABLE_METHODS, true)) {
+            return [];
+        }
+
+        return [
+            'ttlMs' => max(0, $this->cacheTtlMs),
+            'cacheScope' => $this->cacheScope->value,
+        ];
     }
 
     /**

@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 
 class ServerContext
 {
@@ -28,8 +30,16 @@ class ServerContext
         protected array $tools,
         protected array $resources,
         protected array $prompts,
+        protected ?Closure $validateToolHeaders = null,
     ) {
         //
+    }
+
+    public function validateToolHeaders(Tool $tool, JsonRpcRequest $request): void
+    {
+        if ($this->validateToolHeaders instanceof Closure) {
+            ($this->validateToolHeaders)($tool, $request);
+        }
     }
 
     /**

@@ -7,14 +7,24 @@ namespace Laravel\Mcp\Server;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\JsonSchema as JsonSchemaFactory;
+use Illuminate\Support\Arr;
+use InvalidArgumentException;
 use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Concerns\HasAnnotations;
 use Laravel\Mcp\Server\Tools\Annotations\ToolAnnotation;
 use Laravel\Mcp\Server\Ui\Enums\Visibility;
+use Laravel\Mcp\Support\ToolHeaders;
 
 abstract class Tool extends Primitive
 {
     use HasAnnotations;
+
+    /**
+     * Argument paths to mirror into an [Mcp-Param-{name}] HTTP header, keyed by path.
+     *
+     * @var array<string, string>
+     */
+    protected array $parameterHeaders = [];
 
     /**
      * @return array<string, mixed>
@@ -32,6 +42,31 @@ abstract class Tool extends Primitive
     public function outputSchema(JsonSchema $schema): array
     {
         return [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $schema
+     * @return array<string, mixed>
+     */
+    protected function withParameterHeaders(array $schema): array
+    {
+        foreach ($this->parameterHeaders as $path => $header) {
+            $key = 'properties.'.implode('.properties.', explode('.', $path));
+
+            if (! Arr::has($schema, $key)) {
+                throw new InvalidArgumentException("Tool [{$this->name()}] mirrors the unknown argument [{$path}] into a header.");
+            }
+
+            Arr::set($schema, $key.'.'.ToolHeaders::ANNOTATION, $header);
+        }
+
+        $reason = ToolHeaders::invalid($schema);
+
+        if ($reason !== null) {
+            throw new InvalidArgumentException("Tool [{$this->name()}] cannot mirror arguments into headers because {$reason}.");
+        }
+
+        return $schema;
     }
 
     /**
@@ -68,6 +103,7 @@ abstract class Tool extends Primitive
         )->toArray();
 
         $schema['properties'] ??= (object) [];
+        $schema = $this->withParameterHeaders($schema);
 
         $result = [
             'name' => $this->name(),

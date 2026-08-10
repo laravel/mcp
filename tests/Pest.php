@@ -103,6 +103,8 @@ function expectedDiscoverResponse(): array
         'id' => 456,
         'result' => [
             'resultType' => 'complete',
+            'ttlMs' => 0,
+            'cacheScope' => 'private',
             'supportedVersions' => ['2026-07-28'],
             'capabilities' => $capabilities,
             'instructions' => $instructions,
@@ -157,6 +159,8 @@ function expectedListToolsResponse(): array
         'id' => 1,
         'result' => [
             'resultType' => 'complete',
+            'ttlMs' => 0,
+            'cacheScope' => 'private',
             'tools' => [
                 [
                     'name' => 'say-hi-tool',
@@ -220,6 +224,8 @@ function expectedListResourcesResponse(): array
         'id' => 1,
         'result' => [
             'resultType' => 'complete',
+            'ttlMs' => 0,
+            'cacheScope' => 'private',
             'resources' => [
                 [
                     'name' => 'last-log-line-resource',
@@ -289,6 +295,8 @@ function expectedReadResourceResponse(): array
         'id' => 123,
         'result' => [
             'resultType' => 'complete',
+            'ttlMs' => 0,
+            'cacheScope' => 'private',
             'contents' => [[
                 'text' => '2025-07-02 12:00:00 Error: Something went wrong.',
                 'uri' => 'file://resources/last-log-line-resource',

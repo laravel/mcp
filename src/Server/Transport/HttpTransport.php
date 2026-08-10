@@ -8,7 +8,9 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Laravel\Mcp\Enums\ErrorCode;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Contracts\Transport;
+use Laravel\Mcp\Support\ToolHeaders;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HttpTransport implements Transport
@@ -102,6 +104,33 @@ class HttpTransport implements Transport
     public function stream(Closure $stream): void
     {
         $this->stream = $stream;
+    }
+
+    public function validateToolHeaders(mixed $inputSchema, mixed $arguments, int|string $id): void
+    {
+        if (! is_array($inputSchema) || ! is_array($arguments)) {
+            return;
+        }
+
+        foreach (ToolHeaders::extract($inputSchema, $arguments) as $header => $expected) {
+            $actual = $this->request->header($header);
+
+            if (! is_string($actual) || $actual === '') {
+                throw new JsonRpcException(
+                    "Header mismatch: The [{$header}] header is required.",
+                    ErrorCode::HEADER_MISMATCH->value,
+                    $id,
+                );
+            }
+
+            if ($actual !== $expected) {
+                throw new JsonRpcException(
+                    "Header mismatch: The [{$header}] header value [{$actual}] does not match the request body value [{$expected}].",
+                    ErrorCode::HEADER_MISMATCH->value,
+                    $id,
+                );
+            }
+        }
     }
 
     protected function sendStreamMessage(string $message): void
