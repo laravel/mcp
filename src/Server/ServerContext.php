@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Schema\Implementation;
@@ -28,8 +29,21 @@ class ServerContext
         protected array $tools,
         protected array $resources,
         protected array $prompts,
+        protected ?Closure $notifications = null,
     ) {
         //
+    }
+
+    /**
+     * @return iterable<mixed>
+     */
+    public function notificationsFor(Subscription $subscription): iterable
+    {
+        if (! $this->notifications instanceof Closure) {
+            return [];
+        }
+
+        return ($this->notifications)($subscription) ?? [];
     }
 
     /**
@@ -85,7 +99,11 @@ class ServerContext
 
     public function hasCapability(string $capability): bool
     {
-        return array_key_exists($capability, $this->serverCapabilities);
+        if (! str_contains($capability, '.')) {
+            return array_key_exists($capability, $this->serverCapabilities);
+        }
+
+        return data_get($this->serverCapabilities, $capability) === true;
     }
 
     /**
