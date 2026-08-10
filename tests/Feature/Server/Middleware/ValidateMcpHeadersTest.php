@@ -26,38 +26,11 @@ it('rejects a request missing a required header', function (string $header): voi
         'jsonrpc' => '2.0',
         'id' => $message['id'],
         'error' => [
-            'code' => -32001,
+            'code' => -32020,
             'message' => "Header mismatch: The [{$header}] header is required.",
         ],
     ]);
 })->with(['MCP-Protocol-Version', 'Mcp-Method', 'Mcp-Name']);
-
-it('accepts a notification whose headers mirror the body', function (): void {
-    $message = ['jsonrpc' => '2.0', 'method' => 'notifications/initialized'];
-
-    $response = $this->postJson('test-mcp', $message, mcpHeaders($message));
-
-    $response->assertStatus(202);
-});
-
-it('rejects a notification missing a required header', function (): void {
-    $message = ['jsonrpc' => '2.0', 'method' => 'notifications/initialized'];
-    $headers = mcpHeaders($message);
-    unset($headers['Mcp-Method']);
-
-    $response = $this->postJson('test-mcp', $message, $headers);
-
-    $response->assertStatus(400);
-
-    expect($response->json())->toEqual([
-        'jsonrpc' => '2.0',
-        'id' => null,
-        'error' => [
-            'code' => -32001,
-            'message' => 'Header mismatch: The [Mcp-Method] header is required.',
-        ],
-    ]);
-});
 
 it('rejects a request whose header contradicts the body', function (): void {
     $message = callToolMessage();
@@ -70,7 +43,7 @@ it('rejects a request whose header contradicts the body', function (): void {
     $response->assertStatus(400);
 
     expect($response->json('error'))->toEqual([
-        'code' => -32001,
+        'code' => -32020,
         'message' => "Header mismatch: The [Mcp-Name] header value [some-other-tool] does not match the request body value [{$message['params']['name']}].",
     ]);
 });
@@ -85,7 +58,7 @@ it('rejects a protocol version header that contradicts the body meta', function 
 
     $response->assertStatus(400);
 
-    expect($response->json('error.code'))->toBe(-32001);
+    expect($response->json('error.code'))->toBe(-32020);
 });
 
 it('decodes a base64 sentinel name header before comparing it', function (): void {
@@ -168,7 +141,7 @@ it('requires the protocol version header even when the body omits the meta membe
     $response->assertStatus(400);
 
     expect($response->json('error'))->toEqual([
-        'code' => -32001,
+        'code' => -32020,
         'message' => 'Header mismatch: The [MCP-Protocol-Version] header is required.',
     ]);
 });
@@ -185,7 +158,7 @@ it('requires the name header even when the body carries no usable name', functio
     $response->assertStatus(400);
 
     expect($response->json('error'))->toEqual([
-        'code' => -32001,
+        'code' => -32020,
         'message' => 'Header mismatch: The [Mcp-Name] header is required.',
     ]);
 });
@@ -200,7 +173,7 @@ it('does not decode the base64 sentinel on headers other than the name', functio
 
     $response->assertStatus(400);
 
-    expect($response->json('error.code'))->toBe(-32001);
+    expect($response->json('error.code'))->toBe(-32020);
 });
 
 it('answers an internal error with a 500', function (): void {
