@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use Illuminate\Console\View\Components\Factory;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\UrlGenerator;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
 use Laravel\Mcp\Server\Registrar;
+use Tests\Fixtures\ExampleServer;
 
 beforeEach(function (): void {
     $this->registrar = Mockery::mock(Registrar::class);
@@ -241,4 +243,65 @@ it('retrieves php binary path correctly', function (): void {
     // Should return either a path to php or 'php'
     expect($phpBinary)->toBeString();
     expect(strlen((string) $phpBinary))->toBeGreaterThan(0);
+});
+
+it('asks for route parameter values when building the server url', function (): void {
+    $route = (new Registrar)->web('mcp/{organisation:uuid}', ExampleServer::class);
+
+    $components = Mockery::mock(Factory::class);
+    $components->shouldReceive('ask')
+        ->once()
+        ->with('What is the value for the [organisation] route parameter?')
+        ->andReturn('4f8a1c2e');
+
+    $command = new InspectorCommand;
+    $command->setLaravel($this->app);
+
+    (new ReflectionProperty($command, 'components'))->setValue($command, $components);
+
+    $serverUrl = (new ReflectionMethod($command, 'serverUrl'))->invoke($command, $route);
+
+    expect($serverUrl)->toBe('http://localhost/mcp/4f8a1c2e');
+});
+
+it('fails when a route parameter is left blank', function (): void {
+    $route = (new Registrar)->web('mcp/{organisation:uuid}', ExampleServer::class);
+
+    $this->registrar
+        ->shouldReceive('getLocalServer')
+        ->with('demo')
+        ->andReturn(null);
+
+    $this->registrar
+        ->shouldReceive('getWebServer')
+        ->with('demo')
+        ->andReturn($route);
+
+    $this->registrar->shouldReceive('servers')->andReturn(['demo' => $route]);
+
+    $this->artisan('mcp:inspector', ['handle' => 'demo'])
+        ->expectsQuestion('What is the value for the [organisation] route parameter?', null)
+        ->expectsOutputToContain('Every route parameter needs a value to inspect this server')
+        ->assertExitCode(1);
+});
+
+it('fails when a route parameter only contains whitespace', function (): void {
+    $route = (new Registrar)->web('mcp/{organisation:uuid}', ExampleServer::class);
+
+    $this->registrar
+        ->shouldReceive('getLocalServer')
+        ->with('demo')
+        ->andReturn(null);
+
+    $this->registrar
+        ->shouldReceive('getWebServer')
+        ->with('demo')
+        ->andReturn($route);
+
+    $this->registrar->shouldReceive('servers')->andReturn(['demo' => $route]);
+
+    $this->artisan('mcp:inspector', ['handle' => 'demo'])
+        ->expectsQuestion('What is the value for the [organisation] route parameter?', '   ')
+        ->expectsOutputToContain('Every route parameter needs a value to inspect this server')
+        ->assertExitCode(1);
 });

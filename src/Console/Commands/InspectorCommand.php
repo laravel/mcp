@@ -6,7 +6,9 @@ namespace Laravel\Mcp\Console\Commands;
 
 use Exception;
 use Illuminate\Console\Command;
+use Illuminate\Routing\Exceptions\UrlGenerationException;
 use Illuminate\Routing\Route;
+use Illuminate\Routing\UrlGenerator;
 use Illuminate\Support\Arr;
 use Laravel\Mcp\Server\Registrar;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -89,7 +91,14 @@ class InspectorCommand extends Command
                 ]),
             ];
         } else {
-            $serverUrl = url($route->uri());
+            try {
+                $serverUrl = $this->serverUrl($route);
+            } catch (UrlGenerationException) {
+                $this->components->error('Every route parameter needs a value to inspect this server');
+
+                return static::FAILURE;
+            }
+
             if (parse_url($serverUrl, PHP_URL_SCHEME) === 'https') {
                 $env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
             }
@@ -171,6 +180,21 @@ class InspectorCommand extends Command
             ['host', null, InputOption::VALUE_OPTIONAL, 'The host the inspector should bind to'],
             ['port', null, InputOption::VALUE_OPTIONAL, 'The port the inspector should bind to'],
         ];
+    }
+
+    protected function serverUrl(Route $route): string
+    {
+        $parameters = [];
+
+        foreach ($route->parameterNames() as $parameter) {
+            $value = trim((string) $this->components->ask("What is the value for the [{$parameter}] route parameter?"));
+
+            if ($value !== '') {
+                $parameters[$parameter] = $value;
+            }
+        }
+
+        return $this->laravel->make(UrlGenerator::class)->toRoute($route, $parameters, true);
     }
 
     protected function phpBinary(): string
