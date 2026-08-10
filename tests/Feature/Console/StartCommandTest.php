@@ -13,7 +13,17 @@ it('rejects the initialize handshake over http', function (): void {
 
     $response->assertStatus(200);
 
-    expect($response->json())->toEqual(expectedInitializeRejection());
+    expect($response->json())->toEqual([
+        'jsonrpc' => '2.0',
+        'id' => 456,
+        'error' => [
+            'code' => -32601,
+            'message' => 'The [initialize] handshake was removed in MCP 2026-07-28. Send the protocol version in the request [_meta] instead.',
+            'data' => [
+                'supported' => ['2026-07-28'],
+            ],
+        ],
+    ]);
 });
 
 it('does not return a session id over http', function (): void {

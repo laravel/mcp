@@ -25,7 +25,17 @@ it('rejects the initialize handshake', function (): void {
 
     $response = json_decode((string) $transport->sent[0], true);
 
-    expect($response)->toEqual(expectedInitializeRejection());
+    expect($response)->toEqual([
+        'jsonrpc' => '2.0',
+        'id' => 456,
+        'error' => [
+            'code' => -32601,
+            'message' => 'The [initialize] handshake was removed in MCP 2026-07-28. Send the protocol version in the request [_meta] instead.',
+            'data' => [
+                'supported' => ['2026-07-28'],
+            ],
+        ],
+    ]);
 });
 
 it('can handle a discover message', function (): void {
@@ -323,7 +333,43 @@ it('can handle a custom method message', function (): void {
         'jsonrpc' => '2.0',
         'id' => 12345,
         'result' => [
+            'resultType' => 'complete',
             'message' => 'Custom method executed successfully!',
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => [
+                    'name' => 'Laravel MCP Server',
+                    'version' => '0.0.1',
+                ],
+            ],
+        ],
+    ]);
+});
+
+it('keeps the result type and metadata a method supplied itself', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->addMethod('custom/method', OpinionatedMethodHandler::class);
+
+    $server->start();
+
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'custom/method',
+        'params' => ['_meta' => protocolMeta()],
+    ]);
+
+    ($transport->handler)($payload);
+
+    expect(json_decode((string) $transport->sent[0], true)['result'])->toEqual([
+        'resultType' => 'input_required',
+        '_meta' => [
+            'io.modelcontextprotocol/serverInfo' => [
+                'name' => 'Laravel MCP Server',
+                'version' => '0.0.1',
+            ],
+            'app/trace' => 'abc',
         ],
     ]);
 });
@@ -382,7 +428,14 @@ it('discovers an empty capability set as a json object', function (): void {
 
     $server->start();
 
-    ($transport->handler)(json_encode(discoverMessage()));
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 456,
+        'method' => 'server/discover',
+        'params' => ['_meta' => protocolMeta()],
+    ]);
+
+    ($transport->handler)($payload);
 
     expect((string) $transport->sent[0])->toContain('"capabilities":{}');
 });
@@ -564,5 +617,16 @@ class MixedIconServer extends Server
     protected function icons(): array
     {
         return [new Icon('https://example.com/from-method.png')];
+    }
+}
+
+class OpinionatedMethodHandler implements Method
+{
+    public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
+    {
+        return JsonRpcResponse::result($request->id, [
+            'resultType' => 'input_required',
+            '_meta' => ['app/trace' => 'abc'],
+        ]);
     }
 }

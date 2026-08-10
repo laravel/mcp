@@ -14,7 +14,7 @@ class JsonRpcResponse implements Arrayable
     /**
      * @param  array<string, mixed>  $content
      */
-    public function __construct(protected array $content = []) {}
+    public function __construct(public array $content = []) {}
 
     /**
      * @param  array<string, mixed>  $result
