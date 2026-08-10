@@ -75,7 +75,7 @@ class InspectorCommand extends Command
 
             $command = [
                 'npx',
-                '@modelcontextprotocol/inspector',
+                '@modelcontextprotocol/inspector@v1-latest',
                 '--transport',
                 'stdio',
                 $this->phpBinary(),
@@ -101,7 +101,7 @@ class InspectorCommand extends Command
 
             $command = [
                 'npx',
-                '@modelcontextprotocol/inspector',
+                '@modelcontextprotocol/inspector@v1-latest',
                 '--transport',
                 'http',
                 '--server-url',
