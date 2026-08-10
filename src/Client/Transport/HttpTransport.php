@@ -100,7 +100,10 @@ class HttpTransport implements Transport
         ];
     }
 
-    public function send(string $message): void
+    /**
+     * @param  array<string, string>  $headers
+     */
+    public function send(string $message, array $headers = []): void
     {
         $body = json_decode($message, true);
         $body = is_array($body) ? $body : [];
@@ -108,7 +111,7 @@ class HttpTransport implements Transport
         $hadSession = $this->sessionId !== null;
 
         try {
-            $response = Http::withHeaders($this->headers($body))
+            $response = Http::withHeaders($this->headers($body, $headers))
                 ->withBody($message, 'application/json')
                 ->timeout($this->timeoutSeconds)
                 ->withOptions(['stream' => true])
@@ -204,9 +207,10 @@ class HttpTransport implements Transport
 
     /**
      * @param  array<string, mixed>  $body
+     * @param  array<string, string>  $mirrored
      * @return array<string, string>
      */
-    protected function headers(array $body = []): array
+    protected function headers(array $body = [], array $mirrored = []): array
     {
         $headers = [
             'Accept' => 'application/json, text/event-stream',
@@ -221,7 +225,7 @@ class HttpTransport implements Transport
         }
 
         if ($this->usesDiscovery()) {
-            $headers = array_merge($headers, $this->mirroredHeaders($body));
+            $headers = array_merge($headers, $this->mirroredHeaders($body), $mirrored);
         }
 
         $token = $this->token instanceof Closure ? (string) ($this->token)() : $this->token;
