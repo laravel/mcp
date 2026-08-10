@@ -284,3 +284,24 @@ it('fails when a route parameter is left blank', function (): void {
         ->expectsOutputToContain('Every route parameter needs a value to inspect this server')
         ->assertExitCode(1);
 });
+
+it('fails when a route parameter only contains whitespace', function (): void {
+    $route = (new Registrar)->web('mcp/{organisation:uuid}', ExampleServer::class);
+
+    $this->registrar
+        ->shouldReceive('getLocalServer')
+        ->with('demo')
+        ->andReturn(null);
+
+    $this->registrar
+        ->shouldReceive('getWebServer')
+        ->with('demo')
+        ->andReturn($route);
+
+    $this->registrar->shouldReceive('servers')->andReturn(['demo' => $route]);
+
+    $this->artisan('mcp:inspector', ['handle' => 'demo'])
+        ->expectsQuestion('What is the value for the [organisation] route parameter?', '   ')
+        ->expectsOutputToContain('Every route parameter needs a value to inspect this server')
+        ->assertExitCode(1);
+});

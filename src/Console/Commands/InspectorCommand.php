@@ -172,7 +172,11 @@ class InspectorCommand extends Command
         $parameters = [];
 
         foreach ($route->parameterNames() as $parameter) {
-            $parameters[$parameter] = $this->components->ask("What is the value for the [{$parameter}] route parameter?");
+            $value = trim((string) $this->components->ask("What is the value for the [{$parameter}] route parameter?"));
+
+            if ($value !== '') {
+                $parameters[$parameter] = $value;
+            }
         }
 
         return $this->laravel->make(UrlGenerator::class)->toRoute($route, $parameters, true);
