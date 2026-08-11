@@ -13,11 +13,11 @@ use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Client\Exceptions\RequestRejectedException;
 use Laravel\Mcp\Client\OAuth\WwwAuthenticateChallenge;
+use Laravel\Mcp\Client\Transport\Eras\Era;
+use Laravel\Mcp\Client\Transport\Eras\LegacyEra;
 use Laravel\Mcp\Enums\ProtocolVersion;
-use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\SessionExpiredException;
-use Laravel\Mcp\Transport\JsonRpcRequest;
 use Psr\Http\Message\StreamInterface;
 use SensitiveParameter;
 use Throwable;
@@ -29,11 +29,7 @@ class HttpTransport implements Transport
     /** @var string|(Closure(): string)|null */
     protected string|Closure|null $token = null;
 
-    protected ?string $sessionId = null;
-
-    protected bool $initialized = false;
-
-    protected ?string $protocolVersion = null;
+    protected Era $era;
 
     protected float $timeoutSeconds = 30.0;
 
@@ -45,7 +41,7 @@ class HttpTransport implements Transport
 
     public function __construct(protected string $url)
     {
-        //
+        $this->era = new LegacyEra;
     }
 
     public function connect(): void
@@ -105,7 +101,7 @@ class HttpTransport implements Transport
         $body = json_decode($message, true);
         $body = is_array($body) ? $body : [];
 
-        $hadSession = $this->sessionId !== null;
+        $hadSession = $this->era->hasSession();
 
         try {
             $response = Http::withHeaders($this->headers($body))
@@ -117,7 +113,7 @@ class HttpTransport implements Transport
             $this->failWith("HTTP request to [{$this->url}] failed: {$connectionException->getMessage()}");
         }
 
-        $this->captureSessionId($response);
+        $this->era->inspect($response);
 
         if ($response->status() === 401 || $response->status() === 403) {
             $challenge = WwwAuthenticateChallenge::parse($response->header('WWW-Authenticate'));
@@ -137,8 +133,10 @@ class HttpTransport implements Transport
         }
 
         if (! $response->successful()) {
-            if ($this->hasJsonRpcError($response)) {
-                $this->queue[] = trim($response->body());
+            $content = trim($response->body());
+
+            if ($this->hasJsonRpcError($content)) {
+                $this->queue[] = $content;
 
                 return;
             }
@@ -151,8 +149,6 @@ class HttpTransport implements Transport
 
             $this->failWith("Unexpected HTTP status [{$response->status()}] from endpoint [{$this->url}].");
         }
-
-        $this->initialized = true;
 
         if (str_contains($response->header('Content-Type'), 'text/event-stream')) {
             $this->readSseStream($response);
@@ -169,9 +165,9 @@ class HttpTransport implements Transport
         $this->queue[] = $content;
     }
 
-    public function setProtocolVersion(string $version): void
+    public function setProtocolVersion(ProtocolVersion $version): void
     {
-        $this->protocolVersion = $version;
+        $this->era = $this->era->speaking($version);
     }
 
     public function receive(): string
@@ -190,14 +186,9 @@ class HttpTransport implements Transport
         $this->disconnect();
     }
 
-    protected function usesDiscovery(): bool
+    protected function hasJsonRpcError(string $content): bool
     {
-        return ProtocolVersion::tryFrom($this->protocolVersion ?? '')?->usesDiscovery() ?? false;
-    }
-
-    protected function hasJsonRpcError(ClientResponse $response): bool
-    {
-        $body = json_decode($response->body(), true);
+        $body = json_decode($content, true);
 
         return is_array($body) && is_array($body['error'] ?? null);
     }
@@ -210,19 +201,8 @@ class HttpTransport implements Transport
     {
         $headers = [
             'Accept' => 'application/json, text/event-stream',
+            ...$this->era->headers($body),
         ];
-
-        if ($this->sessionId !== null && ! $this->usesDiscovery()) {
-            $headers['MCP-Session-Id'] = $this->sessionId;
-        }
-
-        if (($this->initialized || $this->usesDiscovery()) && ($body['method'] ?? null) !== 'initialize') {
-            $headers[RequestHeader::PROTOCOL_VERSION->value] = $this->protocolVersion ?? ProtocolVersion::V2025_11_25->value;
-        }
-
-        if ($this->usesDiscovery()) {
-            $headers = array_merge($headers, $this->mirroredHeaders($body));
-        }
 
         $token = $this->token instanceof Closure ? (string) ($this->token)() : $this->token;
 
@@ -241,36 +221,6 @@ class HttpTransport implements Transport
         }
 
         return $headers;
-    }
-
-    /**
-     * @param  array<string, mixed>  $body
-     * @return array<string, string>
-     */
-    protected function mirroredHeaders(array $body): array
-    {
-        if (! isset($body['id']) || ! is_string($body['method'] ?? null)) {
-            return [];
-        }
-
-        return (new JsonRpcRequest(
-            id: is_int($body['id']) || is_string($body['id']) ? $body['id'] : 0,
-            method: $body['method'],
-            params: is_array($body['params'] ?? null) ? $body['params'] : [],
-        ))->mirroredHeaders();
-    }
-
-    protected function captureSessionId(ClientResponse $response): void
-    {
-        if ($this->usesDiscovery()) {
-            return;
-        }
-
-        $sessionId = $response->header('MCP-Session-Id');
-
-        if ($sessionId !== '') {
-            $this->sessionId = $sessionId;
-        }
     }
 
     protected function readSseStream(ClientResponse $response): void
@@ -324,7 +274,7 @@ class HttpTransport implements Transport
 
     protected function terminateSession(): void
     {
-        if ($this->sessionId === null) {
+        if (! $this->era->hasSession()) {
             return;
         }
 
@@ -339,9 +289,7 @@ class HttpTransport implements Transport
 
     protected function reset(): void
     {
-        $this->sessionId = null;
-        $this->initialized = false;
-        $this->protocolVersion = null;
+        $this->era = new LegacyEra;
         $this->queue = [];
     }
 

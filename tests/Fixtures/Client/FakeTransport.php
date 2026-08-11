@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Fixtures\Client;
 
 use Laravel\Mcp\Client\Contracts\Transport;
+use Laravel\Mcp\Enums\ProtocolVersion;
 use RuntimeException;
 
 class FakeTransport implements Transport
@@ -21,7 +22,7 @@ class FakeTransport implements Transport
 
     public float $timeoutSeconds = 30.0;
 
-    public ?string $protocolVersion = null;
+    public ?ProtocolVersion $protocolVersion = null;
 
     public bool $negotiates = false;
 
@@ -66,7 +67,7 @@ class FakeTransport implements Transport
         $this->timeoutSeconds = $seconds;
     }
 
-    public function setProtocolVersion(string $version): void
+    public function setProtocolVersion(ProtocolVersion $version): void
     {
         $this->protocolVersion = $version;
     }

@@ -31,7 +31,7 @@ it('probes discovery first and stays modern against a modern server', function (
 
     expect($transport->sent)->toHaveCount(1);
     expect(json_decode($transport->sent[0], true)['method'])->toBe('server/discover');
-    expect($transport->protocolVersion)->toBe(ProtocolVersion::LATEST->value);
+    expect($transport->protocolVersion)->toBe(ProtocolVersion::LATEST);
 });
 
 it('falls back to the handshake when discovery is not implemented', function (): void {
@@ -50,7 +50,7 @@ it('falls back to the handshake when discovery is not implemented', function ():
     expect(json_decode($transport->sent[0], true)['method'])->toBe('server/discover');
     expect(json_decode($transport->sent[1], true)['method'])->toBe('initialize');
     expect(json_decode($transport->sent[2], true)['method'])->toBe('notifications/initialized');
-    expect($transport->protocolVersion)->toBe(ProtocolVersion::V2025_11_25->value);
+    expect($transport->protocolVersion)->toBe(ProtocolVersion::V2025_11_25);
 });
 
 it('never sends a discovery era version or metadata through the handshake', function (): void {

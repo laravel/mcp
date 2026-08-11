@@ -101,6 +101,9 @@ class Protocol
 
     protected function handshake(): void
     {
+        $this->initializeResult = null;
+        $this->discoverResult = null;
+
         $version = $this->protocolVersion ?? $this->resolvedProtocolVersion;
 
         if ($version instanceof ProtocolVersion) {
@@ -144,13 +147,13 @@ class Protocol
     {
         $this->resolvedProtocolVersion = null;
 
-        $this->transport->setProtocolVersion($version->value);
+        $this->transport->setProtocolVersion($version);
 
         $this->initializeResult = (new Initialize($this->clientInfo, $version))->handle($this);
 
         $this->resolvedProtocolVersion = ProtocolVersion::from($this->initializeResult->protocolVersion);
 
-        $this->transport->setProtocolVersion($this->initializeResult->protocolVersion);
+        $this->transport->setProtocolVersion($this->resolvedProtocolVersion);
 
         $this->notify('notifications/initialized');
     }
@@ -159,7 +162,7 @@ class Protocol
     {
         $this->resolvedProtocolVersion = ProtocolVersion::LATEST;
 
-        $this->transport->setProtocolVersion(ProtocolVersion::LATEST->value);
+        $this->transport->setProtocolVersion(ProtocolVersion::LATEST);
 
         try {
             $this->discoverResult = (new Discover)->handle($this);
@@ -187,7 +190,7 @@ class Protocol
 
         $this->resolvedProtocolVersion = $version;
 
-        $this->transport->setProtocolVersion($version->value);
+        $this->transport->setProtocolVersion($version);
     }
 
     protected function retryWithMutualVersion(JsonRpcException $jsonRpcException): void
@@ -319,13 +322,14 @@ class Protocol
     protected function params(Method $method): array
     {
         $params = $method->params();
+        $version = $this->resolvedProtocolVersion;
 
-        if (! $this->resolvedProtocolVersion?->usesDiscovery()) {
+        if (! $version instanceof ProtocolVersion || ! $version->usesDiscovery()) {
             return $params;
         }
 
         $params['_meta'] = [
-            MetaKey::PROTOCOL_VERSION->value => ProtocolVersion::LATEST->value,
+            MetaKey::PROTOCOL_VERSION->value => $version->value,
             MetaKey::CLIENT_CAPABILITIES->value => (object) [],
             MetaKey::CLIENT_INFO->value => $this->clientInfo->toArray(),
             ...is_array($params['_meta'] ?? null) ? $params['_meta'] : [],
