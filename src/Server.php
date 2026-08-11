@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
+use Illuminate\Support\Arr;
 use InvalidArgumentException;
 use Laravel\Mcp\Enums\ErrorCode;
+use Laravel\Mcp\Enums\Extension;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\JsonRpcException;
@@ -58,8 +60,6 @@ abstract class Server
 
     public const CAPABILITY_COMPLETIONS = 'completions';
 
-    public const CAPABILITY_UI = 'io.modelcontextprotocol/ui';
-
     public const CACHEABLE_METHODS = [
         'server/discover',
         'tools/list',
@@ -81,6 +81,11 @@ abstract class Server
      * @var array<int, string>
      */
     protected array $supportedProtocolVersion = [];
+
+    /**
+     * @var array<int, Extension>
+     */
+    protected array $extensions = [];
 
     /**
      * @var array<string, array<string, bool>|stdClass|string>
@@ -255,7 +260,7 @@ abstract class Server
 
         return new ServerContext(
             supportedProtocolVersions: $this->supportedProtocolVersion ?: ProtocolVersion::supported(),
-            serverCapabilities: $this->capabilities,
+            serverCapabilities: $this->resolvedCapabilities(),
             implementation: new Implementation(
                 name: $name !== null ? $name->value : $this->name,
                 version: $version !== null ? $version->value : $this->version,
@@ -418,18 +423,25 @@ abstract class Server
         return $response;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    protected function resolvedCapabilities(): array
+    {
+        $extensions = Arr::mapWithKeys(
+            $this->extensions,
+            fn (Extension $extension): array => [$extension->value => (object) []],
+        );
+
+        return $extensions === []
+            ? $this->capabilities
+            : [...$this->capabilities, 'extensions' => $extensions];
+    }
+
     protected function detectUiCapability(): void
     {
-        if (array_key_exists(self::CAPABILITY_UI, $this->capabilities)) {
-            return;
-        }
-
-        foreach ($this->resources as $resource) {
-            if (is_subclass_of($resource, AppResource::class)) {
-                $this->addCapability(self::CAPABILITY_UI);
-
-                return;
-            }
+        if (collect($this->resources)->contains(fn (Resource|string $resource): bool => is_subclass_of($resource, AppResource::class))) {
+            $this->extensions[] = Extension::Ui;
         }
     }
 
