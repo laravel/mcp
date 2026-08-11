@@ -36,6 +36,7 @@ use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Testing\PendingTestResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -267,7 +268,19 @@ abstract class Server
             tools: $this->tools,
             resources: $this->resources,
             prompts: $this->prompts,
+            validateToolHeaders: $this->validateToolHeaders(...),
         );
+    }
+
+    protected function validateToolHeaders(Tool $tool, JsonRpcRequest $request): void
+    {
+        if (! $this->transport instanceof HttpTransport) {
+            return;
+        }
+
+        $inputSchema = $tool->toArray()['inputSchema'] ?? [];
+
+        $this->transport->validateToolHeaders($inputSchema, $request->toRequest()->all(), $request->id);
     }
 
     /**

@@ -46,6 +46,8 @@ class CallTool implements Errable, Method
                     $request->id,
                 ));
 
+        $context->validateToolHeaders($tool, $request);
+
         // @phpstan-ignore-next-line
         $response = $this->callHandler(fn (): mixed => Container::getInstance()->call([$tool, 'handle']), $request);
 
