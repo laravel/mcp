@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
+use InvalidArgumentException;
 use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\ProtocolVersion;
@@ -12,6 +13,7 @@ use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\AppResource;
+use Laravel\Mcp\Server\Attributes\Cacheable;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Version;
@@ -20,6 +22,7 @@ use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\Methods\CompletionComplete;
+use Laravel\Mcp\Server\Methods\Concerns\ResolvesResources;
 use Laravel\Mcp\Server\Methods\Discover;
 use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\Methods\ListPrompts;
@@ -45,6 +48,7 @@ use Throwable;
 abstract class Server
 {
     use HasIcons;
+    use ResolvesResources;
 
     public const CAPABILITY_TOOLS = 'tools';
 
@@ -55,6 +59,15 @@ abstract class Server
     public const CAPABILITY_COMPLETIONS = 'completions';
 
     public const CAPABILITY_UI = 'io.modelcontextprotocol/ui';
+
+    public const CACHEABLE_METHODS = [
+        'server/discover',
+        'tools/list',
+        'prompts/list',
+        'resources/list',
+        'resources/templates/list',
+        'resources/read',
+    ];
 
     protected string $name = 'Laravel MCP Server';
 
@@ -310,28 +323,74 @@ abstract class Server
         $response = $this->runMethodHandle($request, $context);
 
         if (! is_iterable($response)) {
-            $this->send($response, $context);
+            $this->send($response, $context, $request);
 
             return;
         }
 
-        $this->transport->stream(function () use ($response, $context): void {
+        $this->transport->stream(function () use ($request, $response, $context): void {
             foreach ($response as $message) {
-                $this->send($message, $context);
+                $this->send($message, $context, $request);
             }
         });
     }
 
-    protected function send(JsonRpcResponse $response, ServerContext $context): void
+    protected function send(JsonRpcResponse $response, ServerContext $context, ?JsonRpcRequest $request = null): void
     {
-        if (array_key_exists('result', $response->content)) {
+        if ($request instanceof JsonRpcRequest && array_key_exists('result', $response->content)) {
             $result = (array) $response->content['result'];
             $result['_meta'][MetaKey::SERVER_INFO->value] = $context->implementation->toArray();
 
-            $response->content['result'] = ['resultType' => 'complete', ...$result];
+            $response->content['result'] = [
+                'resultType' => 'complete',
+                ...$this->resolveCacheHints($request, $context),
+                ...$result,
+            ];
         }
 
         $this->transport->send($response->toJson());
+    }
+
+    /**
+     * @return array<string, Cacheable>
+     */
+    protected function cacheHints(): array
+    {
+        return [];
+    }
+
+    /**
+     * @return array<string, int|string>
+     */
+    protected function resolveCacheHints(JsonRpcRequest $request, ServerContext $context): array
+    {
+        if (! in_array($request->method, self::CACHEABLE_METHODS, true)) {
+            return [];
+        }
+
+        if (isset($request->params['inputResponses']) || isset($request->params['requestState'])) {
+            return [];
+        }
+
+        $cacheable = $this->resourceCacheable($request, $context)
+            ?? $this->cacheHints()[$request->method]
+            ?? $this->resolveAttribute(Cacheable::class)
+            ?? new Cacheable;
+
+        return $cacheable->toArray();
+    }
+
+    protected function resourceCacheable(JsonRpcRequest $request, ServerContext $context): ?Cacheable
+    {
+        if ($request->method !== 'resources/read') {
+            return null;
+        }
+
+        try {
+            return $this->resolveResource($request->get('uri'), $context)->cacheable();
+        } catch (InvalidArgumentException) {
+            return null;
+        }
     }
 
     /**
