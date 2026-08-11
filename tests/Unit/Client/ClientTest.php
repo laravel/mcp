@@ -68,7 +68,7 @@ it('pings the server', function (): void {
 
     $ping = json_decode($transport->sent[2], true);
     expect($ping['method'])->toBe('ping');
-    expect($ping['id'])->toBe(2);
+    expect($ping['id'])->toBe(3);
 });
 
 it('lazily connects when ping is called first', function (): void {
@@ -219,6 +219,7 @@ it('throws when the response carries both result and error', function (): void {
 
 it('throws when the response carries neither result nor error', function (): void {
     $transport = new FakeTransport;
+    $transport->negotiates = true;
     $transport->responses[] = json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,

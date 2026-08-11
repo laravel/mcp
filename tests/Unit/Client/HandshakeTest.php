@@ -8,38 +8,17 @@ use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Tests\Fixtures\Client\FakeTransport;
 
-it('opens with the handshake and does not probe a legacy server', function (): void {
+function negotiatingTransport(): FakeTransport
+{
     $transport = new FakeTransport;
-    $transport->responses[] = initializeResponse();
+    $transport->negotiates = true;
 
-    $client = new Client($transport);
-    $client->connect();
+    return $transport;
+}
 
-    expect($client->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
-    expect($client->discoverResult())->toBeNull();
-    expect($client->initializeResult()?->serverInfo->name)->toBe('Test Server');
-
-    expect($transport->sent)->toHaveCount(2);
-    expect(json_decode($transport->sent[0], true)['method'])->toBe('initialize');
-    expect(json_decode($transport->sent[1], true)['method'])->toBe('notifications/initialized');
-});
-
-it('never sends a discovery era version through the handshake', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = initializeResponse();
-
-    (new Client($transport))->connect();
-
-    $initialize = json_decode($transport->sent[0], true);
-
-    expect($initialize['params']['protocolVersion'])->toBe(ProtocolVersion::V2025_11_25->value);
-    expect($initialize['params'])->not->toHaveKey('_meta');
-});
-
-it('falls back to discovery when the handshake is not implemented', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = methodNotFoundResponse();
-    $transport->responses[] = discoverResponse(2);
+it('probes discovery first and stays modern against a modern server', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = discoverResponse();
 
     $client = new Client($transport);
     $client->connect();
@@ -50,59 +29,136 @@ it('falls back to discovery when the handshake is not implemented', function ():
     expect($client->discoverResult()?->serverInfo?->name)->toBe('Test Server');
     expect($client->discoverResult()?->instructions)->toBe('Be nice.');
 
-    expect($transport->sent)->toHaveCount(2);
-    expect(json_decode($transport->sent[0], true)['method'])->toBe('initialize');
-    expect(json_decode($transport->sent[1], true)['method'])->toBe('server/discover');
+    expect($transport->sent)->toHaveCount(1);
+    expect(json_decode($transport->sent[0], true)['method'])->toBe('server/discover');
     expect($transport->protocolVersion)->toBe(ProtocolVersion::LATEST->value);
 });
 
-it('falls back to discovery when the server demands the mirrored headers', function (): void {
-    $transport = new FakeTransport;
+it('falls back to the handshake when discovery is not implemented', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = methodNotFoundResponse();
+    $transport->responses[] = initializeResponse(2);
+
+    $client = new Client($transport);
+    $client->connect();
+
+    expect($client->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
+    expect($client->discoverResult())->toBeNull();
+    expect($client->initializeResult()?->serverInfo->name)->toBe('Test Server');
+
+    expect($transport->sent)->toHaveCount(3);
+    expect(json_decode($transport->sent[0], true)['method'])->toBe('server/discover');
+    expect(json_decode($transport->sent[1], true)['method'])->toBe('initialize');
+    expect(json_decode($transport->sent[2], true)['method'])->toBe('notifications/initialized');
+    expect($transport->protocolVersion)->toBe(ProtocolVersion::V2025_11_25->value);
+});
+
+it('never sends a discovery era version or metadata through the handshake', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = methodNotFoundResponse();
+    $transport->responses[] = initializeResponse(2);
+
+    (new Client($transport))->connect();
+
+    $initialize = json_decode($transport->sent[1], true);
+
+    expect($initialize['params']['protocolVersion'])->toBe(ProtocolVersion::V2025_11_25->value);
+    expect($initialize['params'])->not->toHaveKey('_meta');
+});
+
+it('does not fall back when the error identifies a modern server', function (): void {
+    $transport = negotiatingTransport();
     $transport->responses[] = json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,
         'error' => ['code' => -32020, 'message' => 'Header mismatch: The [Mcp-Method] header is required.'],
     ]);
-    $transport->responses[] = discoverResponse(2);
+
+    expect(fn (): Client => (new Client($transport))->connect())
+        ->toThrow(JsonRpcException::class, 'Header mismatch');
+
+    expect($transport->sent)->toHaveCount(1);
+});
+
+it('retries with a mutually supported version from an unsupported version error', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'error' => [
+            'code' => -32022,
+            'message' => 'Unsupported protocol version',
+            'data' => ['supported' => ['2025-11-25', '2025-06-18'], 'requested' => '2026-07-28'],
+        ],
+    ]);
+    $transport->responses[] = initializeResponse(2);
 
     $client = new Client($transport);
     $client->connect();
 
-    expect($client->protocolVersion())->toBe(ProtocolVersion::LATEST);
-    expect(json_decode($transport->sent[1], true)['method'])->toBe('server/discover');
+    expect($client->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
+    expect(json_decode($transport->sent[1], true)['params']['protocolVersion'])
+        ->toBe(ProtocolVersion::V2025_11_25->value);
 });
 
-it('propagates a handshake error that does not point at discovery', function (): void {
-    $transport = new FakeTransport;
+it('propagates an unsupported version error with no mutually supported version', function (): void {
+    $transport = negotiatingTransport();
     $transport->responses[] = json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,
-        'error' => ['code' => -32602, 'message' => 'Invalid params'],
+        'error' => [
+            'code' => -32022,
+            'message' => 'Unsupported protocol version',
+            'data' => ['supported' => ['2027-01-01'], 'requested' => '2026-07-28'],
+        ],
     ]);
 
     expect(fn (): Client => (new Client($transport))->connect())
-        ->toThrow(JsonRpcException::class, 'Invalid params');
+        ->toThrow(JsonRpcException::class, 'Unsupported protocol version');
 
     expect($transport->sent)->toHaveCount(1);
+});
+
+it('falls back to the handshake when discovery lists only a legacy version', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = discoverResponse(1, ['2025-11-25']);
+    $transport->responses[] = initializeResponse(2);
+
+    $client = new Client($transport);
+    $client->connect();
+
+    expect($client->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
+    expect(json_decode($transport->sent[1], true)['method'])->toBe('initialize');
+    expect(json_decode($transport->sent[1], true)['params'])->not->toHaveKey('_meta');
+});
+
+it('surfaces the handshake failure and not the probe when the fallback fails', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = methodNotFoundResponse();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'error' => ['code' => -32603, 'message' => 'Internal error'],
+    ]);
+
+    expect(fn (): Client => (new Client($transport))->connect())
+        ->toThrow(JsonRpcException::class, 'Internal error');
 });
 
 it('sends the required protocol metadata on every discovery era request', function (): void {
     config(['app.name' => 'Acme MCP App']);
 
-    $transport = new FakeTransport;
-    $transport->responses[] = methodNotFoundResponse();
-    $transport->responses[] = discoverResponse(2);
+    $transport = negotiatingTransport();
+    $transport->responses[] = discoverResponse();
     $transport->responses[] = json_encode([
         'jsonrpc' => '2.0',
-        'id' => 3,
+        'id' => 2,
         'result' => ['tools' => [['name' => 'add', 'description' => 'Adds two numbers']]],
     ]);
 
     (new Client($transport))->tools();
 
-    expect(json_decode($transport->sent[0], true)['params'])->not->toHaveKey('_meta');
-
-    foreach (array_slice($transport->sent, 1) as $raw) {
+    foreach ($transport->sent as $raw) {
         $meta = json_decode($raw, true)['params']['_meta'];
 
         expect($meta['io.modelcontextprotocol/protocolVersion'])->toBe(ProtocolVersion::LATEST->value);
@@ -111,8 +167,8 @@ it('sends the required protocol metadata on every discovery era request', functi
     }
 });
 
-it('skips the handshake when a discovery version is pinned', function (): void {
-    $transport = new FakeTransport;
+it('skips the probe when a discovery version is pinned', function (): void {
+    $transport = negotiatingTransport();
     $transport->responses[] = discoverResponse();
 
     $client = (new Client($transport))->withProtocolVersion(ProtocolVersion::LATEST);
@@ -123,17 +179,24 @@ it('skips the handshake when a discovery version is pinned', function (): void {
     expect(json_decode($transport->sent[0], true)['method'])->toBe('server/discover');
 });
 
-it('offers the pinned version and does not fall back to discovery', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = methodNotFoundResponse();
+it('offers the pinned legacy version and does not probe discovery', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = initializeResponse(1, ProtocolVersion::V2025_06_18->value);
 
     $client = (new Client($transport))->withProtocolVersion(ProtocolVersion::V2025_06_18);
+    $client->connect();
 
-    expect(fn (): Client => $client->connect())->toThrow(JsonRpcException::class);
-
-    expect($transport->sent)->toHaveCount(1);
+    expect($client->protocolVersion())->toBe(ProtocolVersion::V2025_06_18);
+    expect(json_decode($transport->sent[0], true)['method'])->toBe('initialize');
     expect(json_decode($transport->sent[0], true)['params']['protocolVersion'])
         ->toBe(ProtocolVersion::V2025_06_18->value);
+});
+
+it('reports the pinned version before connecting', function (): void {
+    $client = (new Client(negotiatingTransport()))->withProtocolVersion(ProtocolVersion::LATEST);
+
+    expect($client->protocolVersion())->toBe(ProtocolVersion::LATEST);
+    expect($client->connected())->toBeFalse();
 });
 
 it('rejects a protocol version this client does not support', function (): void {
@@ -144,16 +207,15 @@ it('rejects a protocol version this client does not support', function (): void 
 });
 
 it('remembers a discovery era server across reconnects', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = methodNotFoundResponse();
-    $transport->responses[] = discoverResponse(2);
+    $transport = negotiatingTransport();
+    $transport->responses[] = discoverResponse();
 
     $client = new Client($transport);
     $client->connect();
     $client->disconnect();
 
     $transport->sent = [];
-    $transport->responses[] = discoverResponse(3);
+    $transport->responses[] = discoverResponse(2);
 
     $client->connect();
 
@@ -162,13 +224,56 @@ it('remembers a discovery era server across reconnects', function (): void {
     expect(json_decode($transport->sent[0], true)['method'])->toBe('server/discover');
 });
 
+it('remembers a legacy server across reconnects', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = methodNotFoundResponse();
+    $transport->responses[] = initializeResponse(2);
+
+    $client = new Client($transport);
+    $client->connect();
+    $client->disconnect();
+
+    $transport->sent = [];
+    $transport->responses[] = initializeResponse(3);
+
+    $client->connect();
+
+    expect($client->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
+    expect($transport->sent)->toHaveCount(2);
+    expect(json_decode($transport->sent[0], true)['method'])->toBe('initialize');
+});
+
+it('re-probes after a remembered discovery era assumption fails', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = discoverResponse();
+
+    $client = new Client($transport);
+    $client->connect();
+    $client->disconnect();
+
+    $transport->responses[] = methodNotFoundResponse(2);
+
+    expect(fn (): Client => $client->connect())->toThrow(JsonRpcException::class);
+
+    $transport->sent = [];
+    $transport->responses[] = methodNotFoundResponse(3);
+    $transport->responses[] = initializeResponse(4);
+
+    $client->connect();
+
+    expect($client->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
+    expect(json_decode($transport->sent[0], true)['method'])->toBe('server/discover');
+    expect(json_decode($transport->sent[1], true)['method'])->toBe('initialize');
+});
+
 it('reconnects when the protocol version is pinned after connecting', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = initializeResponse();
-    $transport->responses[] = discoverResponse(2);
+    $transport = negotiatingTransport();
+    $transport->responses[] = methodNotFoundResponse();
+    $transport->responses[] = initializeResponse(2);
+    $transport->responses[] = discoverResponse(3);
     $transport->responses[] = json_encode([
         'jsonrpc' => '2.0',
-        'id' => 3,
+        'id' => 4,
         'result' => ['tools' => []],
     ]);
 
@@ -181,16 +286,15 @@ it('reconnects when the protocol version is pinned after connecting', function (
     $client->tools();
 
     expect($client->protocolVersion())->toBe(ProtocolVersion::LATEST);
-    expect(json_decode($transport->sent[2], true)['method'])->toBe('server/discover');
-    expect(json_decode($transport->sent[3], true)['params'])->toHaveKey('_meta');
+    expect(json_decode($transport->sent[3], true)['method'])->toBe('server/discover');
+    expect(json_decode($transport->sent[4], true)['params'])->toHaveKey('_meta');
 });
 
 it('rejects a malformed discover response', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = methodNotFoundResponse();
+    $transport = negotiatingTransport();
     $transport->responses[] = json_encode([
         'jsonrpc' => '2.0',
-        'id' => 2,
+        'id' => 1,
         'result' => ['capabilities' => []],
     ]);
 
@@ -199,21 +303,12 @@ it('rejects a malformed discover response', function (): void {
     })->toThrow(ClientException::class, 'Invalid discover response from server.');
 });
 
-it('rejects a discovery era server that does not support the latest version', function (): void {
-    $transport = new FakeTransport;
-    $transport->responses[] = methodNotFoundResponse();
-    $transport->responses[] = json_encode([
-        'jsonrpc' => '2.0',
-        'id' => 2,
-        'result' => [
-            'supportedVersions' => ['2027-01-01'],
-            'capabilities' => [],
-            'instructions' => null,
-        ],
-    ]);
+it('rejects a server with no protocol version this client can speak', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = discoverResponse(1, ['2027-01-01']);
 
     expect(function () use ($transport): void {
         (new Client($transport))->connect();
     })
-        ->toThrow(ClientException::class, 'The server does not support protocol version [2026-07-28]. It supports [2027-01-01].');
+        ->toThrow(ClientException::class, 'The server supports protocol versions [2027-01-01]. This client supports [2026-07-28, 2025-11-25, 2025-06-18].');
 });

@@ -103,35 +103,47 @@ class Protocol
     {
         $version = $this->protocolVersion ?? $this->resolvedProtocolVersion;
 
-        if ($version?->usesDiscovery()) {
-            $this->discover();
-
-            return;
-        }
-
         if ($version instanceof ProtocolVersion) {
-            $this->initialize($version);
+            $version->usesDiscovery()
+                ? $this->discover()
+                : $this->initialize($version);
 
             return;
         }
 
         try {
-            $this->initialize(ProtocolVersion::V2025_11_25);
+            $this->discover();
 
             return;
         } catch (JsonRpcException $jsonRpcException) {
-            if (! $this->suggestsDiscovery($jsonRpcException)) {
-                throw $jsonRpcException;
+            if ($this->identifiesModernServer($jsonRpcException)) {
+                $this->retryWithMutualVersion($jsonRpcException);
+
+                return;
             }
-        } catch (RequestRejectedException) {
-            //
+
+            $rejection = null;
+        } catch (RequestRejectedException $requestRejectedException) {
+            $rejection = $requestRejectedException;
         }
 
-        $this->discover();
+        try {
+            $this->initialize(ProtocolVersion::V2025_11_25);
+        } catch (Throwable $throwable) {
+            throw $rejection instanceof RequestRejectedException
+                ? new ClientException(sprintf(
+                    '%s The legacy handshake also failed: %s',
+                    $rejection->getMessage(),
+                    $throwable->getMessage(),
+                ), 0, $throwable)
+                : $throwable;
+        }
     }
 
     protected function initialize(ProtocolVersion $version): void
     {
+        $this->resolvedProtocolVersion = null;
+
         $this->transport->setProtocolVersion($version->value);
 
         $this->initializeResult = (new Initialize($this->clientInfo, $version))->handle($this);
@@ -149,21 +161,53 @@ class Protocol
 
         $this->transport->setProtocolVersion(ProtocolVersion::LATEST->value);
 
-        $this->discoverResult = (new Discover)->handle($this);
+        try {
+            $this->discoverResult = (new Discover)->handle($this);
 
-        if (! in_array(ProtocolVersion::LATEST->value, $this->discoverResult->supportedVersions, true)) {
-            throw new ClientException(sprintf(
-                'The server does not support protocol version [%s]. It supports [%s].',
-                ProtocolVersion::LATEST->value,
-                implode(', ', $this->discoverResult->supportedVersions),
-            ));
+            $version = ProtocolVersion::mutual($this->discoverResult->supportedVersions);
+
+            if (! $version instanceof ProtocolVersion) {
+                throw new ClientException(sprintf(
+                    'The server supports protocol versions [%s]. This client supports [%s].',
+                    implode(', ', $this->discoverResult->supportedVersions),
+                    implode(', ', ProtocolVersion::negotiable()),
+                ));
+            }
+        } catch (Throwable $throwable) {
+            $this->resolvedProtocolVersion = null;
+
+            throw $throwable;
         }
+
+        if (! $version->usesDiscovery()) {
+            $this->initialize($version);
+
+            return;
+        }
+
+        $this->resolvedProtocolVersion = $version;
+
+        $this->transport->setProtocolVersion($version->value);
     }
 
-    protected function suggestsDiscovery(JsonRpcException $jsonRpcException): bool
+    protected function retryWithMutualVersion(JsonRpcException $jsonRpcException): void
+    {
+        $supported = $jsonRpcException->data()['supported'] ?? null;
+
+        $version = is_array($supported)
+            ? ProtocolVersion::mutual(array_values(array_filter($supported, is_string(...))))
+            : null;
+
+        if (! $version instanceof ProtocolVersion || $version->usesDiscovery()) {
+            throw $jsonRpcException;
+        }
+
+        $this->initialize($version);
+    }
+
+    protected function identifiesModernServer(JsonRpcException $jsonRpcException): bool
     {
         return in_array($jsonRpcException->getCode(), [
-            ErrorCode::METHOD_NOT_FOUND->value,
             ErrorCode::HEADER_MISMATCH->value,
             ErrorCode::MISSING_REQUIRED_CLIENT_CAPABILITY->value,
             ErrorCode::UNSUPPORTED_PROTOCOL_VERSION->value,

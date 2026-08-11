@@ -196,10 +196,10 @@ it('merges custom headers across multiple withHeaders calls', function (): void 
 });
 
 it('sends custom headers when built via Client::web', function (): void {
-    Http::fakeSequence()
+    legacyEndpoint()
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 1,
+            'id' => 2,
             'result' => [
                 'protocolVersion' => ProtocolVersion::V2025_11_25->value,
                 'capabilities' => new stdClass,
@@ -209,7 +209,7 @@ it('sends custom headers when built via Client::web', function (): void {
         ->push('', 202)
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 2,
+            'id' => 3,
             'result' => ['tools' => [['name' => 'add', 'description' => 'Adds two numbers']]],
         ]), 200, ['Content-Type' => 'application/json'])
         ->whenEmpty(Http::response('', 202));
@@ -339,10 +339,10 @@ it('throws when receiving with no queued message', function (): void {
 });
 
 it('drives a full handshake and tools list over HTTP via Client::web', function (): void {
-    Http::fakeSequence()
+    legacyEndpoint()
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 1,
+            'id' => 2,
             'result' => [
                 'protocolVersion' => ProtocolVersion::V2025_11_25->value,
                 'capabilities' => new stdClass,
@@ -352,7 +352,7 @@ it('drives a full handshake and tools list over HTTP via Client::web', function 
         ->push('', 202)
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 2,
+            'id' => 3,
             'result' => ['tools' => [['name' => 'add', 'description' => 'Adds two numbers']]],
         ]), 200, ['Content-Type' => 'application/json'])
         ->whenEmpty(Http::response('', 202));
@@ -370,10 +370,10 @@ it('drives a full handshake and tools list over HTTP via Client::web', function 
 });
 
 it('throws when the server negotiates a protocol version the client does not support', function (): void {
-    Http::fakeSequence()
+    legacyEndpoint()
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 1,
+            'id' => 2,
             'result' => [
                 'protocolVersion' => ProtocolVersion::V2025_03_26->value,
                 'capabilities' => new stdClass,
@@ -388,10 +388,10 @@ it('throws when the server negotiates a protocol version the client does not sup
 });
 
 it('interoperates with a server negotiated down to 2025-06-18', function (): void {
-    Http::fakeSequence()
+    legacyEndpoint()
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 1,
+            'id' => 2,
             'result' => [
                 'protocolVersion' => ProtocolVersion::V2025_06_18->value,
                 'capabilities' => new stdClass,
@@ -401,7 +401,7 @@ it('interoperates with a server negotiated down to 2025-06-18', function (): voi
         ->push('', 202)
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 2,
+            'id' => 3,
             'result' => [
                 'tools' => [[
                     'name' => 'add',
@@ -421,7 +421,7 @@ it('interoperates with a server negotiated down to 2025-06-18', function (): voi
         ]), 200, ['Content-Type' => 'application/json'])
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 3,
+            'id' => 4,
             'result' => [
                 'content' => [['type' => 'text', 'text' => '3']],
                 'structuredContent' => ['sum' => 3],
@@ -455,21 +455,21 @@ it('builds a WebClient from Client::web', function (): void {
 });
 
 it('re-initializes and retries once after a 404 session expiry', function (): void {
-    Http::fakeSequence()
-        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => [
+    legacyEndpoint()
+        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'result' => [
             'protocolVersion' => ProtocolVersion::V2025_11_25->value,
             'capabilities' => new stdClass,
             'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
         ]]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-1'])
         ->push('', 202)
         ->push('', 404)
-        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 3, 'result' => [
+        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 4, 'result' => [
             'protocolVersion' => ProtocolVersion::V2025_11_25->value,
             'capabilities' => new stdClass,
             'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
         ]]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-2'])
         ->push('', 202)
-        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 4, 'result' => [
+        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 5, 'result' => [
             'tools' => [['name' => 'add', 'description' => 'Adds two numbers']],
         ]]), 200, ['Content-Type' => 'application/json'])
         ->whenEmpty(Http::response('', 202));

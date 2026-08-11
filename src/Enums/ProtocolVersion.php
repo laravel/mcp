@@ -37,4 +37,26 @@ enum ProtocolVersion: string
             self::V2025_06_18->value,
         ];
     }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function negotiable(): array
+    {
+        return [self::LATEST->value, ...self::clientSupported()];
+    }
+
+    /**
+     * @param  array<int, string>  $supported
+     */
+    public static function mutual(array $supported): ?self
+    {
+        foreach (self::negotiable() as $version) {
+            if (in_array($version, $supported, true)) {
+                return self::from($version);
+            }
+        }
+
+        return null;
+    }
 }

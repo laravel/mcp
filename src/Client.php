@@ -46,7 +46,7 @@ class Client
     ) {
         $this->clientInfo = $clientInfo ?? $this->defaultClientInfo();
 
-        $this->protocol = new Protocol($this->transport, $this->clientInfo, $this->protocolVersion);
+        $this->protocol = new Protocol($this->transport, $this->clientInfo);
     }
 
     protected function defaultClientInfo(): Implementation
@@ -113,11 +113,11 @@ class Client
 
     public function withProtocolVersion(?ProtocolVersion $version): static
     {
-        if ($version instanceof ProtocolVersion && ! $version->usesDiscovery() && ! in_array($version->value, ProtocolVersion::clientSupported(), true)) {
+        if ($version instanceof ProtocolVersion && ! in_array($version->value, ProtocolVersion::negotiable(), true)) {
             throw new ClientException(sprintf(
                 'This client does not support protocol version [%s]. It supports [%s].',
                 $version->value,
-                implode(', ', [...ProtocolVersion::clientSupported(), ProtocolVersion::LATEST->value]),
+                implode(', ', ProtocolVersion::negotiable()),
             ));
         }
 
@@ -130,7 +130,7 @@ class Client
 
     public function protocolVersion(): ?ProtocolVersion
     {
-        return $this->protocol->resolvedProtocolVersion();
+        return $this->protocol->resolvedProtocolVersion() ?? $this->protocolVersion;
     }
 
     public function ping(): void

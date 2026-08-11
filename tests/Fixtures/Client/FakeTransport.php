@@ -23,6 +23,10 @@ class FakeTransport implements Transport
 
     public ?string $protocolVersion = null;
 
+    public bool $negotiates = false;
+
+    protected string|int|null $pendingId = null;
+
     public function connect(): void
     {
         $this->connected = true;
@@ -35,6 +39,25 @@ class FakeTransport implements Transport
 
     public function send(string $message): void
     {
+        $frame = json_decode($message, true);
+        $frame = is_array($frame) ? $frame : [];
+
+        $id = $frame['id'] ?? null;
+
+        if (is_string($frame['method'] ?? null) && (is_string($id) || is_int($id))) {
+            $this->pendingId = $id;
+        }
+
+        if (! $this->negotiates && ($frame['method'] ?? null) === 'server/discover') {
+            array_unshift($this->responses, (string) json_encode([
+                'jsonrpc' => '2.0',
+                'id' => $this->pendingId,
+                'error' => ['code' => -32601, 'message' => 'Method not found.'],
+            ]));
+
+            return;
+        }
+
         $this->sent[] = $message;
     }
 
@@ -60,12 +83,27 @@ class FakeTransport implements Transport
     {
         if ($this->responses === []) {
             if ($this->repeatResponse !== null) {
-                return $this->repeatResponse;
+                return $this->answering($this->repeatResponse);
             }
 
             throw new RuntimeException('No queued responses in FakeTransport.');
         }
 
-        return array_shift($this->responses);
+        return $this->answering(array_shift($this->responses));
+    }
+
+    protected function answering(string $raw): string
+    {
+        $frame = json_decode($raw, true);
+
+        if (! is_array($frame) || ! array_key_exists('id', $frame)) {
+            return $raw;
+        }
+
+        if (! array_key_exists('result', $frame) && ! array_key_exists('error', $frame)) {
+            return $raw;
+        }
+
+        return (string) json_encode([...$frame, 'id' => $this->pendingId]);
     }
 }

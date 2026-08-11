@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Http\Client\ResponseSequence;
+use Illuminate\Support\Facades\Http;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
@@ -118,27 +120,30 @@ function expectedDiscoverResponse(): array
     ];
 }
 
-function initializeResponse(int $id = 1): string
+function initializeResponse(int $id = 1, string $version = '2025-11-25'): string
 {
     return json_encode([
         'jsonrpc' => '2.0',
         'id' => $id,
         'result' => [
-            'protocolVersion' => '2025-11-25',
+            'protocolVersion' => $version,
             'capabilities' => new stdClass,
             'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
         ],
     ]);
 }
 
-function discoverResponse(int $id = 1): string
+/**
+ * @param  array<int, string>  $supportedVersions
+ */
+function discoverResponse(int $id = 1, array $supportedVersions = ['2026-07-28']): string
 {
     return json_encode([
         'jsonrpc' => '2.0',
         'id' => $id,
         'result' => [
             'resultType' => 'complete',
-            'supportedVersions' => ['2026-07-28'],
+            'supportedVersions' => $supportedVersions,
             'capabilities' => ['tools' => ['listChanged' => false]],
             'instructions' => 'Be nice.',
             '_meta' => [
@@ -146,6 +151,11 @@ function discoverResponse(int $id = 1): string
             ],
         ],
     ]);
+}
+
+function legacyEndpoint(): ResponseSequence
+{
+    return Http::fakeSequence()->push('Bad Request', 400);
 }
 
 function methodNotFoundResponse(int $id = 1): string
