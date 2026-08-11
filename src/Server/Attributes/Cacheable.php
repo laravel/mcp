@@ -12,7 +12,7 @@ class Cacheable
 {
     public function __construct(
         public int $ttlMs = 0,
-        public CacheScope $scope = CacheScope::PRIVATE,
+        public CacheScope $scope = CacheScope::Private,
     ) {
         //
     }

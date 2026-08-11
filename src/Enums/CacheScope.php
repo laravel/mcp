@@ -6,6 +6,6 @@ namespace Laravel\Mcp\Enums;
 
 enum CacheScope: string
 {
-    case PUBLIC = 'public';
-    case PRIVATE = 'private';
+    case Public = 'public';
+    case Private = 'private';
 }

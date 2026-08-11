@@ -8,7 +8,7 @@ use Laravel\Mcp\Enums\CacheScope;
 use Laravel\Mcp\Server\Attributes\Cacheable;
 use Laravel\Mcp\Server\Resource;
 
-#[Cacheable(ttlMs: 120000, scope: CacheScope::PUBLIC)]
+#[Cacheable(ttlMs: 120000, scope: CacheScope::Public)]
 class CacheableResource extends Resource
 {
     public function description(): string

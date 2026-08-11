@@ -69,14 +69,14 @@ it('leaves caching hints off a request retried with input responses', function (
 ]);
 
 it('uses the hint the server attribute declares', function (): void {
-    $result = resultFor(listToolsMessage(), fn (ArrayTransport $transport): Server => new #[Cacheable(ttlMs: 300000, scope: CacheScope::PUBLIC)] class($transport) extends ExampleServer {})['result'];
+    $result = resultFor(listToolsMessage(), fn (ArrayTransport $transport): Server => new #[Cacheable(ttlMs: 300000, scope: CacheScope::Public)] class($transport) extends ExampleServer {})['result'];
 
     expect($result['ttlMs'])->toBe(300000);
     expect($result['cacheScope'])->toBe('public');
 });
 
 it('prefers the per method hint over the server attribute', function (): void {
-    $server = fn (ArrayTransport $transport): Server => new #[Cacheable(ttlMs: 300000, scope: CacheScope::PUBLIC)] class($transport) extends ExampleServer
+    $server = fn (ArrayTransport $transport): Server => new #[Cacheable(ttlMs: 300000, scope: CacheScope::Public)] class($transport) extends ExampleServer
     {
         protected function cacheHints(): array
         {
