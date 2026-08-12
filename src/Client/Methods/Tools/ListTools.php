@@ -10,7 +10,7 @@ use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Methods\Concerns\PaginatesList;
 use Laravel\Mcp\Client\Primitives\Tool;
-use Laravel\Mcp\Support\ToolHeaders;
+use Laravel\Mcp\Exceptions\MirroredParameterException;
 
 /**
  * @implements Method<Collection<string, Tool>>
@@ -44,19 +44,22 @@ class ListTools implements Method
      */
     protected function hydrate(array $payloads): Collection
     {
-        return collect($payloads)
-            ->map(fn (array $payload): Tool => Tool::from($this->client, $payload))
-            ->reject(function (Tool $tool): bool {
-                $reason = ToolHeaders::invalid($tool->inputSchema);
+        $tools = [];
 
-                if ($reason === null) {
-                    return false;
-                }
+        foreach ($payloads as $payload) {
+            try {
+                $tool = Tool::from($this->client, $payload);
+            } catch (MirroredParameterException $mirroredParameterException) {
+                $name = is_string($payload['name'] ?? null) ? $payload['name'] : 'unknown';
 
-                Log::warning("Excluded the MCP tool [{$tool->name}] from the tool list because {$reason}.");
+                Log::warning("Excluded the MCP tool [{$name}] from the tool list because {$mirroredParameterException->getMessage()}.");
 
-                return true;
-            })
-            ->mapWithKeys(fn (Tool $tool): array => [$tool->name => $tool]);
+                continue;
+            }
+
+            $tools[$tool->name] = $tool;
+        }
+
+        return collect($tools);
     }
 }

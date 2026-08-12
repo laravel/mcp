@@ -29,18 +29,18 @@ use Laravel\Mcp\Client\Schema\ToolResult;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Client\Transport\StdioTransport;
 use Laravel\Mcp\Client\Transport\TransportFactory;
+use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Schema\Implementation;
+use Laravel\Mcp\Support\MirroredParameters;
 
 class Client
 {
     protected Protocol $protocol;
 
     protected ?string $name = null;
-
-    /** @var array<string, array<string, mixed>> */
-    protected array $toolSchemas = [];
 
     public function __construct(
         protected Transport $transport,
@@ -171,13 +171,7 @@ class Client
     public function tools(?int $limit = null, ?iterable $default = null): Collection
     {
         try {
-            $tools = (new ListTools(client: $this, limit: $limit))->handle($this->protocol);
-
-            foreach ($tools as $tool) {
-                $this->toolSchemas[$tool->name] = $tool->inputSchema;
-            }
-
-            return $tools;
+            return (new ListTools(client: $this, limit: $limit))->handle($this->protocol);
         } catch (AuthorizationRequiredException $authorizationRequiredException) {
             if ($default === null) {
                 throw $authorizationRequiredException;
@@ -189,15 +183,28 @@ class Client
 
     /**
      * @param  array<string, mixed>  $arguments
-     * @param  array<string, mixed>|null  $inputSchema
      */
-    public function callTool(string $name, array $arguments = [], ?array $inputSchema = null): ToolResult
+    public function callTool(Tool|string $tool, array $arguments = []): ToolResult
     {
-        return (new CallTool(
-            $name,
-            $arguments,
-            $inputSchema ?? $this->toolSchemas[$name] ?? [],
-        ))->handle($this->protocol);
+        $name = $tool instanceof Tool ? $tool->name : $tool;
+        $mirroredParameters = $tool instanceof Tool ? $tool->mirroredParameters() : null;
+
+        try {
+            return (new CallTool($name, $arguments, $mirroredParameters))->handle($this->protocol);
+        } catch (JsonRpcException $jsonRpcException) {
+            if ($jsonRpcException->getCode() !== ErrorCode::HEADER_MISMATCH->value) {
+                throw $jsonRpcException;
+            }
+
+            $refreshed = $this->tools()->get($name)?->mirroredParameters();
+
+            if (! $refreshed instanceof MirroredParameters
+                || $refreshed->headers($arguments) === ($mirroredParameters?->headers($arguments) ?? [])) {
+                throw $jsonRpcException;
+            }
+
+            return (new CallTool($name, $arguments, $refreshed))->handle($this->protocol);
+        }
     }
 
     /**

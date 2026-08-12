@@ -8,7 +8,7 @@ use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Contracts\MirrorsParameters;
 use Laravel\Mcp\Client\Protocol;
 use Laravel\Mcp\Client\Schema\ToolResult;
-use Laravel\Mcp\Support\ToolHeaders;
+use Laravel\Mcp\Support\MirroredParameters;
 
 /**
  * @implements Method<ToolResult>
@@ -17,12 +17,11 @@ class CallTool implements Method, MirrorsParameters
 {
     /**
      * @param  array<string, mixed>  $arguments
-     * @param  array<string, mixed>  $inputSchema
      */
     public function __construct(
         protected string $name,
         protected array $arguments = [],
-        protected array $inputSchema = [],
+        protected ?MirroredParameters $mirroredParameters = null,
     ) {
         //
     }
@@ -32,11 +31,7 @@ class CallTool implements Method, MirrorsParameters
      */
     public function requestHeaders(): array
     {
-        if ($this->inputSchema === [] || ToolHeaders::invalid($this->inputSchema) !== null) {
-            return [];
-        }
-
-        return ToolHeaders::extract($this->inputSchema, $this->arguments);
+        return $this->mirroredParameters?->headers($this->arguments) ?? [];
     }
 
     public function method(): string

@@ -11,6 +11,7 @@ use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Concerns\HasAnnotations;
 use Laravel\Mcp\Server\Tools\Annotations\ToolAnnotation;
 use Laravel\Mcp\Server\Ui\Enums\Visibility;
+use Laravel\Mcp\Support\MirroredParameters;
 
 abstract class Tool extends Primitive
 {
@@ -32,6 +33,35 @@ abstract class Tool extends Primitive
     public function outputSchema(JsonSchema $schema): array
     {
         return [];
+    }
+
+    /**
+     * Define the arguments mirrored into [Mcp-Param-*] request headers.
+     *
+     * @return array<string, string>
+     */
+    public function parameterHeaders(): array
+    {
+        return [];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function inputSchema(): array
+    {
+        $schema = JsonSchemaFactory::object(
+            $this->schema(...),
+        )->toArray();
+
+        $schema['properties'] ??= (object) [];
+
+        return MirroredParameters::annotate($this->parameterHeaders(), $schema);
+    }
+
+    public function mirroredParameters(): MirroredParameters
+    {
+        return MirroredParameters::fromSchema($this->inputSchema());
     }
 
     /**
@@ -59,15 +89,11 @@ abstract class Tool extends Primitive
     {
         $annotations = $this->annotations();
 
-        $schema = JsonSchemaFactory::object(
-            $this->schema(...),
-        )->toArray();
+        $schema = $this->inputSchema();
 
         $outputSchema = JsonSchemaFactory::object(
             $this->outputSchema(...),
         )->toArray();
-
-        $schema['properties'] ??= (object) [];
 
         $result = [
             'name' => $this->name(),

@@ -14,5 +14,10 @@ interface Transport
 
     public function send(string $message): void;
 
+    /**
+     * @return array<string, string>
+     */
+    public function requestHeaders(): array;
+
     public function stream(Closure $stream): void;
 }

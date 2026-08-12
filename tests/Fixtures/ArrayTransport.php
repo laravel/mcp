@@ -11,6 +11,13 @@ class ArrayTransport implements Transport
 
     public array $sent = [];
 
+    public array $requestHeaders = [];
+
+    public function requestHeaders(): array
+    {
+        return $this->requestHeaders;
+    }
+
     public function onReceive(Closure $handler): void
     {
         $this->handler = $handler;

@@ -30,6 +30,16 @@ class HttpTransport implements Transport
         $this->handler = $handler;
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public function requestHeaders(): array
+    {
+        return collect($this->request->headers->all())
+            ->mapWithKeys(fn (array $values, string $name): array => [$name => (string) ($values[0] ?? '')])
+            ->all();
+    }
+
     public function send(string $message): void
     {
         if ($this->stream instanceof Closure) {

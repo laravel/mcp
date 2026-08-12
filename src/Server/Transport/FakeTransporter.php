@@ -22,6 +22,14 @@ class FakeTransporter implements Transport
         //
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public function requestHeaders(): array
+    {
+        return [];
+    }
+
     public function run(): Response|StreamedResponse
     {
         throw new LogicException('Not implemented.');

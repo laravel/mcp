@@ -308,7 +308,7 @@ class Protocol
         try {
             $this->transport->send(
                 $request->toJson(),
-                $method instanceof MirrorsParameters ? $method->requestHeaders() : [],
+                $this->requestHeaders($method, $request, $protocolVersion),
             );
 
             do {
@@ -366,6 +366,22 @@ class Protocol
         $result = Arr::get($response, 'result');
 
         return is_array($result) ? $result : [];
+    }
+
+    /**
+     * @param  Method<mixed>  $method
+     * @return array<string, string>
+     */
+    protected function requestHeaders(Method $method, JsonRpcRequest $request, ProtocolVersion $protocolVersion): array
+    {
+        if ($protocolVersion->handshake() !== ProtocolHandshake::Discovery) {
+            return [];
+        }
+
+        return [
+            ...$request->mirroredHeaders(),
+            ...$method instanceof MirrorsParameters ? $method->requestHeaders() : [],
+        ];
     }
 
     /**

@@ -206,7 +206,7 @@ abstract class Server
             }
 
             $request = isset($jsonRequest['id'])
-                ? JsonRpcRequest::from($jsonRequest)
+                ? JsonRpcRequest::from($jsonRequest, $this->transport->requestHeaders())
                 : JsonRpcNotification::from($jsonRequest);
 
             if ($request instanceof JsonRpcNotification) {
