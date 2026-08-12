@@ -47,24 +47,54 @@ class Implementation
 
         try {
             return new self(
-                name: Arr::string($data, 'name'),
-                version: Arr::string($data, 'version'),
-                title: Arr::string($data, 'title', '') ?: null,
-                description: Arr::string($data, 'description', '') ?: null,
-                icons: Arr::map(Arr::array($data, 'icons', []), function (mixed $icon): Icon {
+                name: self::stringAt($data, 'name'),
+                version: self::stringAt($data, 'version'),
+                title: self::stringAt($data, 'title', '') ?: null,
+                description: self::stringAt($data, 'description', '') ?: null,
+                icons: Arr::map(self::arrayAt($data, 'icons', []), function (mixed $icon): Icon {
                     $icon = Arr::wrap($icon);
 
                     return Icon::from(
-                        src: Arr::string($icon, 'src'),
-                        mimeType: Arr::string($icon, 'mimeType', '') ?: null,
-                        sizes: array_values(array_filter(Arr::array($icon, 'sizes', []), is_string(...))),
-                        theme: IconTheme::tryFrom(Arr::string($icon, 'theme', '')),
+                        src: self::stringAt($icon, 'src'),
+                        mimeType: self::stringAt($icon, 'mimeType', '') ?: null,
+                        sizes: array_values(array_filter(self::arrayAt($icon, 'sizes', []), is_string(...))),
+                        theme: IconTheme::tryFrom(self::stringAt($icon, 'theme', '')),
                     );
                 }),
-                websiteUrl: Arr::string($data, 'websiteUrl', '') ?: null,
+                websiteUrl: self::stringAt($data, 'websiteUrl', '') ?: null,
             );
         } catch (InvalidArgumentException) {
             return null;
         }
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $array
+     */
+    protected static function stringAt(array $array, string $key, ?string $default = null): string
+    {
+        $value = Arr::get($array, $key, $default);
+
+        if (! is_string($value)) {
+            throw new InvalidArgumentException("The [{$key}] value must be a string.");
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $array
+     * @param  array<array-key, mixed>|null  $default
+     * @return array<array-key, mixed>
+     */
+    protected static function arrayAt(array $array, string $key, ?array $default = null): array
+    {
+        $value = Arr::get($array, $key, $default);
+
+        if (! is_array($value)) {
+            throw new InvalidArgumentException("The [{$key}] value must be an array.");
+        }
+
+        return $value;
     }
 }
