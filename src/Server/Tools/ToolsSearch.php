@@ -88,10 +88,7 @@ class ToolsSearch
      */
     public function search(string $query, int $limit): array
     {
-        $terms = array_values(array_filter(
-            preg_split('/[^\pL\pN]+/u', mb_strtolower($query)) ?: [],
-            fn (string $term): bool => $term !== '',
-        ));
+        $terms = $this->terms($query);
 
         $candidates = $this->resolvedTools()
             ->filter(fn (Tool $tool): bool => $tool->eligibleForRegistration())
@@ -102,7 +99,7 @@ class ToolsSearch
                 $name = mb_strtolower($tool->name());
                 $description = mb_strtolower($tool->description());
                 $schemaText = mb_strtolower(json_encode($schema, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE));
-                $score = $terms === [$name] ? 8 : 0;
+                $score = $terms !== [] && $terms === $this->terms($name) ? 8 : 0;
 
                 foreach ($terms as $term) {
                     $score += str_contains($name, $term) ? 4 : 0;
@@ -155,9 +152,10 @@ class ToolsSearch
     {
         $results = [];
         $responses = [];
+        $tools = $this->resolvedTools();
 
         foreach ($calls as $index => $call) {
-            $invocation = $this->invokeTool($call['name'], $call['arguments'] ?? [], $parentRequest, $index);
+            $invocation = $this->invokeTool($tools, $call['name'], $call['arguments'] ?? [], $parentRequest, $index);
             $result = $invocation['result'];
             array_push($responses, ...$invocation['notifications']);
             $results[] = ['name' => $call['name'], ...$result];
@@ -186,10 +184,11 @@ class ToolsSearch
     }
 
     /**
+     * @param  Collection<int, Tool>  $tools
      * @param  array<string, mixed>  $arguments
      * @return array{notifications: array<int, Response>, result: array<string, mixed>}
      */
-    protected function invokeTool(string $name, array $arguments, Request $parentRequest, int $index): array
+    protected function invokeTool(Collection $tools, string $name, array $arguments, Request $parentRequest, int $index): array
     {
         $params = ['name' => $name, 'arguments' => $arguments];
 
@@ -210,7 +209,7 @@ class ToolsSearch
         $container->instance('mcp.request', $request->toRequest());
 
         try {
-            $tool = $this->resolvedTools()->first(fn (Tool $tool): bool => $tool->name() === $name);
+            $tool = $tools->first(fn (Tool $tool): bool => $tool->name() === $name);
 
             if (! $tool instanceof Tool) {
                 return ['notifications' => [], 'result' => $this->failedResult("Tool [{$name}] was not found in the catalog.")];
@@ -259,17 +258,24 @@ class ToolsSearch
             ? Container::getInstance()->make($tool)
             : $tool);
 
-        $duplicate = $tools->groupBy(fn (Tool $tool): string => $tool->name())->first(fn (Collection $group): bool => $group->count() > 1);
+        $duplicate = $tools->map(fn (Tool $tool): string => $tool->name())->duplicates()->first();
 
-        if ($duplicate instanceof Collection) {
-            $tool = $duplicate->first();
-
-            if ($tool instanceof Tool) {
-                throw new InvalidArgumentException("Duplicate tool name [{$tool->name()}] in ToolsSearch catalog.");
-            }
+        if (is_string($duplicate)) {
+            throw new InvalidArgumentException("Duplicate tool name [{$duplicate}] in ToolsSearch catalog.");
         }
 
         return $tools->values();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function terms(string $text): array
+    {
+        return array_values(array_filter(
+            preg_split('/[^\pL\pN]+/u', mb_strtolower($text)) ?: [],
+            fn (string $term): bool => $term !== '',
+        ));
     }
 
     /**

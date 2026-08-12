@@ -49,10 +49,10 @@ class ServerContext
         $tools = $this->resolvePrimitives($tools);
 
         if ($hasToolsSearch) {
-            $duplicate = $tools->groupBy(fn (Tool $tool): string => $tool->name())->first(fn (Collection $group): bool => $group->count() > 1);
+            $duplicate = $tools->map(fn (Tool $tool): string => $tool->name())->duplicates()->first();
 
-            if ($duplicate instanceof Collection && $duplicate->first() instanceof Tool) {
-                throw new InvalidArgumentException("Duplicate server tool name [{$duplicate->first()->name()}].");
+            if (is_string($duplicate)) {
+                throw new InvalidArgumentException("Duplicate server tool name [{$duplicate}].");
             }
         }
 

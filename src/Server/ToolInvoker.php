@@ -6,7 +6,6 @@ namespace Laravel\Mcp\Server;
 
 use Generator;
 use Illuminate\Container\Container;
-use InvalidArgumentException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Contracts\Errable;
@@ -20,15 +19,8 @@ class ToolInvoker implements Errable
 
     public function invoke(Tool $tool, JsonRpcRequest $request): Generator|JsonRpcResponse
     {
-        $response = $this->callHandler(function () use ($tool): mixed {
-            $handler = [$tool, 'handle'];
-
-            if (! is_callable($handler)) {
-                throw new InvalidArgumentException("Tool [{$tool->name()}] must define a handle method.");
-            }
-
-            return Container::getInstance()->call($handler);
-        }, $request);
+        // @phpstan-ignore-next-line
+        $response = $this->callHandler(fn (): mixed => Container::getInstance()->call([$tool, 'handle']), $request);
 
         return is_iterable($response)
             ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($tool))
