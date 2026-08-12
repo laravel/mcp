@@ -46,28 +46,6 @@ class ToolsSearch
     }
 
     /**
-     * @param  iterable<Tool|string>  $tools
-     */
-    public static function for(iterable $tools): static
-    {
-        return new static($tools);
-    }
-
-    public function maxToolCalls(int $maxToolCalls): static
-    {
-        $this->maxToolCalls = max(1, $maxToolCalls);
-
-        return $this;
-    }
-
-    public function maxOutputBytes(int $maxOutputBytes): static
-    {
-        $this->maxOutputBytes = max(256, $maxOutputBytes);
-
-        return $this;
-    }
-
-    /**
      * @return array{SearchTools, ExecuteTools}
      */
     public function tools(): array
