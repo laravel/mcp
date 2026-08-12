@@ -6,15 +6,17 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
+use Laravel\Mcp\Server\Tools\ToolsSearch;
 
 class ServerContext
 {
     /**
      * @param  array<int, string>  $supportedProtocolVersions
      * @param  array<string, mixed>  $serverCapabilities
-     * @param  array<int, Tool|string>  $tools
+     * @param  array<int, Tool|ToolsSearch|string>  $tools
      * @param  array<int, Resource|string>  $resources
      * @param  array<int, Prompt|string>  $prompts
      */
@@ -37,10 +39,24 @@ class ServerContext
      */
     public function tools(): Collection
     {
-        /** @var Collection<int,Tool> $tools */
-        $tools = collect($this->tools);
+        $hasToolsSearch = collect($this->tools)->contains(fn (Tool|ToolsSearch|string $tool): bool => $tool instanceof ToolsSearch);
 
-        return $this->resolvePrimitives($tools);
+        /** @var Collection<int, Tool|string> $tools */
+        $tools = collect($this->tools)->flatMap(fn (Tool|ToolsSearch|string $tool): array => $tool instanceof ToolsSearch
+            ? $tool->tools()
+            : [$tool]);
+
+        $tools = $this->resolvePrimitives($tools);
+
+        if ($hasToolsSearch) {
+            $duplicate = $tools->groupBy(fn (Tool $tool): string => $tool->name())->first(fn (Collection $group): bool => $group->count() > 1);
+
+            if ($duplicate instanceof Collection && $duplicate->first() instanceof Tool) {
+                throw new InvalidArgumentException("Duplicate server tool name [{$duplicate->first()->name()}].");
+            }
+        }
+
+        return $tools;
     }
 
     /**
