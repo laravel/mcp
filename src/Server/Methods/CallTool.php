@@ -5,16 +5,22 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
+use Illuminate\Container\Container;
 use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\Response;
+use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Contracts\Method;
+use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
 use Laravel\Mcp\Server\ServerContext;
-use Laravel\Mcp\Server\ToolInvoker;
+use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 
 class CallTool implements Errable, Method
 {
+    use InteractsWithResponses;
+
     /**
      * @return JsonRpcResponse|Generator<JsonRpcResponse>
      *
@@ -40,6 +46,24 @@ class CallTool implements Errable, Method
                     $request->id,
                 ));
 
-        return (new ToolInvoker)->invoke($tool, $request);
+        // @phpstan-ignore-next-line
+        $response = $this->callHandler(fn (): mixed => Container::getInstance()->call([$tool, 'handle']), $request);
+
+        return is_iterable($response)
+            ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($tool))
+            : $this->toJsonRpcResponse($request, $response, $this->serializable($tool));
+    }
+
+    /**
+     * @return callable(ResponseFactory): array<string, mixed>
+     */
+    protected function serializable(Tool $tool): callable
+    {
+        return fn (ResponseFactory $factory): array => $factory->mergeStructuredContent(
+            $factory->mergeMeta([
+                'content' => $factory->responses()->map(fn (Response $response): array => $response->content()->toTool($tool))->all(),
+                'isError' => $factory->responses()->contains(fn (Response $response): bool => $response->isError()),
+            ])
+        );
     }
 }

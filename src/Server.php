@@ -34,7 +34,6 @@ use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Testing\PendingTestResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Server\Tools\ToolsSearch;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -87,7 +86,7 @@ abstract class Server
     ];
 
     /**
-     * @var array<int, Tool|ToolsSearch|class-string<Tool>>
+     * @var array<int, Tool|class-string<Tool>>
      */
     protected array $tools = [];
 
