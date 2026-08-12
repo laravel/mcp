@@ -57,42 +57,16 @@ The `Laravel\Mcp\Client\Contracts\Transport` contract now requires a `setProtoco
 If your application implements this contract, add the method to your transport:
 
 ```php
-public function setProtocolVersion(ProtocolVersion $version): void
+public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
+
+
+
 ```
-
-The method receives a `Laravel\Mcp\Enums\ProtocolVersion` instance rather than a string. Transports that do not send per-request headers may implement the method as a no-op, as the first-party `StdioTransport` does.
-
-<a name="client-protocol-eras"></a>
-
-#### Client Protocol Eras
-
-**Likelihood Of Impact: Low**
-
-The client now speaks both protocol eras: `2026-07-28`, which carries version, identity, and capabilities as per-request metadata, and `2025-11-25` and earlier, which establish a session with an `initialize` handshake.
-
-Connections negotiate automatically. The client opens with `server/discover` and only falls back to the `initialize` handshake when the server's answer shows it is not a modern server, so no change is required to keep talking to existing servers.
-
-You may inspect or select the version explicitly:
-
-```php
-use Laravel\Mcp\Enums\ProtocolVersion;
-use Laravel\Mcp\Facades\Mcp;
-
-$client = Mcp::client('everything');
-
-$client->tools();
-
-$client->protocolVersion();   // the negotiated version
-$client->discoverResult();    // null on a legacy server
-$client->initializeResult();  // null on a modern server
-
-Mcp::client('everything')->withProtocolVersion(ProtocolVersion::V2025_11_25)->tools();
-```
-
-Selecting a version skips negotiation, and the connection fails if the server does not settle on that exact version.
+Transports that do not send per-request headers may implement the method as a no-op, as the first-party `StdioTransport` does.
 
 <a name="client-protocol-version-negotiation"></a>
 

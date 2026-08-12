@@ -8,7 +8,7 @@ use Laravel\Mcp\Client\Schema\DiscoverResult;
 use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Enums\ProtocolVersion;
 
-final readonly class NegotiatedConnection
+class NegotiatedConnection
 {
     public function __construct(
         public ProtocolVersion $protocolVersion,
