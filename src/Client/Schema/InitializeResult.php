@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client\Schema;
 
 use Illuminate\Support\Arr;
-use Laravel\Mcp\Enums\ProtocolHandshake;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Schema\Implementation;
@@ -36,11 +35,11 @@ class InitializeResult
 
         $version = is_string($protocolVersion) ? ProtocolVersion::tryFrom($protocolVersion) : null;
 
-        if (! $version instanceof ProtocolVersion || ! $version->isSupportedByClient() || $version->handshake() !== ProtocolHandshake::Initialize) {
+        if (! $version instanceof ProtocolVersion || ! in_array($version->value, ProtocolVersion::initializeSupported(), true)) {
             throw new ClientException(sprintf(
                 'The server chose protocol version [%s]. This client supports [%s].',
                 is_string($protocolVersion) ? $protocolVersion : 'none',
-                ProtocolVersion::initializeSupportDescription(),
+                implode(', ', ProtocolVersion::initializeSupported()),
             ));
         }
 

@@ -197,7 +197,7 @@ class Protocol
             throw new ClientException(sprintf(
                 'The server supports protocol versions [%s]. This client supports [%s].',
                 implode(', ', $result->supportedVersions),
-                ProtocolVersion::clientSupportDescription(),
+                implode(', ', ProtocolVersion::clientSupported()),
             ));
         }
 

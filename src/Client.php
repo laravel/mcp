@@ -111,11 +111,11 @@ class Client
 
     public function withProtocolVersion(?ProtocolVersion $version): static
     {
-        if ($version instanceof ProtocolVersion && ! $version->isSupportedByClient()) {
+        if ($version instanceof ProtocolVersion && ! in_array($version->value, ProtocolVersion::clientSupported(), true)) {
             throw new ClientException(sprintf(
                 'This client does not support protocol version [%s]. It supports [%s].',
                 $version->value,
-                ProtocolVersion::clientSupportDescription(),
+                implode(', ', ProtocolVersion::clientSupported()),
             ));
         }
 

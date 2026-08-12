@@ -22,38 +22,39 @@ enum ProtocolVersion: string
         };
     }
 
-    public function isSupportedByClient(): bool
+    /** @return list<string> */
+    public static function serverSupported(): array
     {
-        return match ($this) {
-            self::V2026_07_28, self::V2025_11_25, self::V2025_06_18 => true,
-            default => false,
-        };
+        return [self::LATEST->value];
+    }
+
+    /** @return list<string> */
+    public static function clientSupported(): array
+    {
+        return [
+            self::V2026_07_28->value,
+            self::V2025_11_25->value,
+            self::V2025_06_18->value,
+        ];
+    }
+
+    /** @return list<string> */
+    public static function initializeSupported(): array
+    {
+        return [
+            self::V2025_11_25->value,
+            self::V2025_06_18->value,
+        ];
     }
 
     public static function preferredFrom(string ...$versions): ?self
     {
         foreach (self::cases() as $version) {
-            if ($version->isSupportedByClient() && in_array($version->value, $versions, true)) {
+            if (in_array($version->value, self::clientSupported(), true) && in_array($version->value, $versions, true)) {
                 return $version;
             }
         }
 
         return null;
-    }
-
-    public static function clientSupportDescription(): string
-    {
-        return implode(', ', array_map(
-            fn (self $version): string => $version->value,
-            array_filter(self::cases(), fn (self $version): bool => $version->isSupportedByClient()),
-        ));
-    }
-
-    public static function initializeSupportDescription(): string
-    {
-        return implode(', ', array_map(
-            fn (self $version): string => $version->value,
-            array_filter(self::cases(), fn (self $version): bool => $version->isSupportedByClient() && $version->handshake() === ProtocolHandshake::Initialize),
-        ));
     }
 }
