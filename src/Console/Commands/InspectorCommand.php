@@ -73,15 +73,10 @@ class InspectorCommand extends Command
         if ($localServer !== null) {
             $artisanPath = base_path('artisan');
 
-            $command = [
-                'npx',
-                '@modelcontextprotocol/inspector',
-                '--transport',
-                'stdio',
-                $this->phpBinary(),
-                $artisanPath,
-                'mcp:start',
-                $handle,
+            $serverConfig = [
+                'type' => 'stdio',
+                'command' => $this->phpBinary(),
+                'args' => [$artisanPath, 'mcp:start', $handle],
             ];
 
             $guidance = [
@@ -99,13 +94,9 @@ class InspectorCommand extends Command
                 $env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
             }
 
-            $command = [
-                'npx',
-                '@modelcontextprotocol/inspector',
-                '--transport',
-                'http',
-                '--server-url',
-                $serverUrl,
+            $serverConfig = [
+                'type' => 'http',
+                'url' => $serverUrl,
             ];
 
             $guidance = [
@@ -114,6 +105,30 @@ class InspectorCommand extends Command
                 'Secure' => 'Your project must be accessible on HTTP for this to work due to how node manages SSL trust',
             ];
         }
+
+        $serverConfig['protocolEra'] = 'modern';
+
+        $configPath = tempnam(sys_get_temp_dir(), 'mcp-inspector-');
+
+        if ($configPath === false) {
+            $this->components->error('Unable to write the MCP Inspector configuration file.');
+
+            return static::FAILURE;
+        }
+
+        file_put_contents($configPath, (string) json_encode([
+            'mcpServers' => [$handle => $serverConfig],
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        $command = [
+            'npx',
+            '@modelcontextprotocol/inspector',
+            '--config',
+            $configPath,
+        ];
+
+        $guidance['Protocol Era'] = 'modern';
+        $guidance['Config'] = $configPath;
 
         $process = new Process($command, null, $env);
         $process->setTimeout(null);
