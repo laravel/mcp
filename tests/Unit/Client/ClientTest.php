@@ -396,6 +396,14 @@ it('preserves its shape across a serialize round-trip and wakes disconnected', f
         ->not->toContain('Symfony\Component\Process');
 });
 
+it('restores the pinned protocol version across a serialize round-trip', function (): void {
+    $client = Client::web('https://mcp.test/mcp')->withProtocolVersion(ProtocolVersion::V2025_11_25);
+
+    $restored = unserialize(serialize($client));
+
+    expect($restored->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
+});
+
 it('restores a web client transport across a serialize round-trip', function (): void {
     $client = Client::web('https://mcp.test/mcp')->withToken('tok');
 

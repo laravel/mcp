@@ -32,3 +32,12 @@ it('supports only the versions that define the protocol version header as a clie
         ProtocolVersion::V2025_06_18->value,
     ]);
 });
+
+it('picks the version this client prefers regardless of the order the server lists', function (): void {
+    expect(ProtocolVersion::mutual(['2025-06-18', '2025-11-25']))->toBe(ProtocolVersion::V2025_11_25);
+    expect(ProtocolVersion::mutual(['2025-06-18', '2026-07-28']))->toBe(ProtocolVersion::LATEST);
+});
+
+it('has no mutual version when the server shares none', function (): void {
+    expect(ProtocolVersion::mutual(['2024-11-05', '2027-01-01']))->toBeNull();
+});

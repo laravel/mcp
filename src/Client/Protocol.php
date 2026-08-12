@@ -8,7 +8,9 @@ use Illuminate\Support\Arr;
 use JsonException;
 use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Contracts\Transport;
+use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\Exceptions\RequestRejectedException;
+use Laravel\Mcp\Client\Exceptions\TimeoutException;
 use Laravel\Mcp\Client\Methods\Discover;
 use Laravel\Mcp\Client\Methods\Initialize;
 use Laravel\Mcp\Client\Schema\DiscoverResult;
@@ -39,6 +41,8 @@ class Protocol
 
     protected ?ProtocolVersion $resolvedProtocolVersion = null;
 
+    protected ?ProtocolVersion $speakingVersion = null;
+
     public function __construct(
         protected Transport $transport,
         protected Implementation $clientInfo,
@@ -66,6 +70,7 @@ class Protocol
     {
         $this->protocolVersion = $protocolVersion;
         $this->resolvedProtocolVersion = null;
+        $this->speakingVersion = null;
 
         if ($this->connected) {
             $this->disconnect();
@@ -75,6 +80,11 @@ class Protocol
     public function resolvedProtocolVersion(): ?ProtocolVersion
     {
         return $this->resolvedProtocolVersion;
+    }
+
+    public function pinnedProtocolVersion(): ?ProtocolVersion
+    {
+        return $this->protocolVersion;
     }
 
     public function connect(): void
@@ -104,16 +114,45 @@ class Protocol
         $this->initializeResult = null;
         $this->discoverResult = null;
 
-        $version = $this->protocolVersion ?? $this->resolvedProtocolVersion;
+        $pinned = $this->protocolVersion;
 
-        if ($version instanceof ProtocolVersion) {
-            $version->usesDiscovery()
+        if ($pinned instanceof ProtocolVersion) {
+            $pinned->usesDiscovery()
                 ? $this->discover()
-                : $this->initialize($version);
+                : $this->initialize($pinned);
+
+            $settled = $this->resolvedProtocolVersion;
+
+            if ($settled !== $pinned) {
+                throw new ClientException(sprintf(
+                    'The server settled on protocol version [%s] while [%s] was requested.',
+                    $settled instanceof ProtocolVersion ? $settled->value : 'none',
+                    $pinned->value,
+                ));
+            }
 
             return;
         }
 
+        $remembered = $this->resolvedProtocolVersion;
+
+        if ($remembered instanceof ProtocolVersion && ! $remembered->usesDiscovery()) {
+            try {
+                $this->initialize($remembered);
+
+                return;
+            } catch (Throwable) {
+                $this->resolvedProtocolVersion = null;
+
+                $this->transport->connect();
+            }
+        }
+
+        $this->probe();
+    }
+
+    protected function probe(): void
+    {
         try {
             $this->discover();
 
@@ -125,15 +164,25 @@ class Protocol
                 return;
             }
 
+            if (! $this->identifiesLegacyServer($jsonRpcException)) {
+                throw $jsonRpcException;
+            }
+
             $rejection = null;
         } catch (RequestRejectedException $requestRejectedException) {
             $rejection = $requestRejectedException;
+        } catch (TimeoutException $timeoutException) {
+            $rejection = $timeoutException;
         }
 
         try {
+            $this->transport->connect();
+
             $this->initialize(ProtocolVersion::V2025_11_25);
+        } catch (OAuthException $oAuthException) {
+            throw $oAuthException;
         } catch (Throwable $throwable) {
-            throw $rejection instanceof RequestRejectedException
+            throw $rejection instanceof ClientException
                 ? new ClientException(sprintf(
                     '%s The legacy handshake also failed: %s',
                     $rejection->getMessage(),
@@ -147,40 +196,36 @@ class Protocol
     {
         $this->resolvedProtocolVersion = null;
 
-        $this->transport->setProtocolVersion($version);
+        $this->speak($version);
 
         $this->initializeResult = (new Initialize($this->clientInfo, $version))->handle($this);
 
         $this->resolvedProtocolVersion = ProtocolVersion::from($this->initializeResult->protocolVersion);
 
-        $this->transport->setProtocolVersion($this->resolvedProtocolVersion);
+        $this->speak($this->resolvedProtocolVersion);
 
         $this->notify('notifications/initialized');
     }
 
     protected function discover(): void
     {
-        $this->resolvedProtocolVersion = ProtocolVersion::LATEST;
+        $this->resolvedProtocolVersion = null;
 
-        $this->transport->setProtocolVersion(ProtocolVersion::LATEST);
+        $this->speak(ProtocolVersion::LATEST);
 
-        try {
-            $this->discoverResult = (new Discover)->handle($this);
+        $discoverResult = (new Discover)->handle($this);
 
-            $version = ProtocolVersion::mutual($this->discoverResult->supportedVersions);
+        $version = ProtocolVersion::mutual($discoverResult->supportedVersions);
 
-            if (! $version instanceof ProtocolVersion) {
-                throw new ClientException(sprintf(
-                    'The server supports protocol versions [%s]. This client supports [%s].',
-                    implode(', ', $this->discoverResult->supportedVersions),
-                    implode(', ', ProtocolVersion::negotiable()),
-                ));
-            }
-        } catch (Throwable $throwable) {
-            $this->resolvedProtocolVersion = null;
-
-            throw $throwable;
+        if (! $version instanceof ProtocolVersion) {
+            throw new ClientException(sprintf(
+                'The server supports protocol versions [%s]. This client supports [%s].',
+                implode(', ', $discoverResult->supportedVersions),
+                implode(', ', ProtocolVersion::negotiable()),
+            ));
         }
+
+        $this->discoverResult = $discoverResult;
 
         if (! $version->usesDiscovery()) {
             $this->initialize($version);
@@ -189,6 +234,13 @@ class Protocol
         }
 
         $this->resolvedProtocolVersion = $version;
+
+        $this->speak($version);
+    }
+
+    protected function speak(ProtocolVersion $version): void
+    {
+        $this->speakingVersion = $version;
 
         $this->transport->setProtocolVersion($version);
     }
@@ -214,6 +266,16 @@ class Protocol
             ErrorCode::HEADER_MISMATCH->value,
             ErrorCode::MISSING_REQUIRED_CLIENT_CAPABILITY->value,
             ErrorCode::UNSUPPORTED_PROTOCOL_VERSION->value,
+        ], true);
+    }
+
+    protected function identifiesLegacyServer(JsonRpcException $jsonRpcException): bool
+    {
+        return in_array($jsonRpcException->getCode(), [
+            ErrorCode::PARSE_ERROR->value,
+            ErrorCode::INVALID_REQUEST->value,
+            ErrorCode::METHOD_NOT_FOUND->value,
+            ErrorCode::INVALID_PARAMS->value,
         ], true);
     }
 
@@ -322,7 +384,7 @@ class Protocol
     protected function params(Method $method): array
     {
         $params = $method->params();
-        $version = $this->resolvedProtocolVersion;
+        $version = $this->speakingVersion;
 
         if (! $version instanceof ProtocolVersion || ! $version->usesDiscovery()) {
             return $params;

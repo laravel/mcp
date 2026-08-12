@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Fixtures\Client;
 
 use Laravel\Mcp\Client\Contracts\Transport;
+use Laravel\Mcp\Client\Exceptions\TimeoutException;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use RuntimeException;
 
@@ -18,13 +19,13 @@ class FakeTransport implements Transport
     /** @var array<int, string> */
     public array $responses = [];
 
-    public ?string $repeatResponse = null;
-
     public float $timeoutSeconds = 30.0;
 
     public ?ProtocolVersion $protocolVersion = null;
 
     public bool $negotiates = false;
+
+    public bool $timesOutOnDiscover = false;
 
     protected string|int|null $pendingId = null;
 
@@ -47,6 +48,12 @@ class FakeTransport implements Transport
 
         if (is_string($frame['method'] ?? null) && (is_string($id) || is_int($id))) {
             $this->pendingId = $id;
+        }
+
+        if ($this->timesOutOnDiscover && ($frame['method'] ?? null) === 'server/discover') {
+            $this->connected = false;
+
+            throw new TimeoutException('Timed out while waiting for server response.');
         }
 
         if (! $this->negotiates && ($frame['method'] ?? null) === 'server/discover') {
@@ -83,10 +90,6 @@ class FakeTransport implements Transport
     public function receive(): string
     {
         if ($this->responses === []) {
-            if ($this->repeatResponse !== null) {
-                return $this->answering($this->repeatResponse);
-            }
-
             throw new RuntimeException('No queued responses in FakeTransport.');
         }
 

@@ -38,8 +38,6 @@ class Client
 
     protected ?string $name = null;
 
-    protected ?ProtocolVersion $protocolVersion = null;
-
     public function __construct(
         protected Transport $transport,
         public ?Implementation $clientInfo = null,
@@ -121,8 +119,6 @@ class Client
             ));
         }
 
-        $this->protocolVersion = $version;
-
         $this->protocol->protocolVersion($version);
 
         return $this;
@@ -130,7 +126,7 @@ class Client
 
     public function protocolVersion(): ?ProtocolVersion
     {
-        return $this->protocol->resolvedProtocolVersion() ?? $this->protocolVersion;
+        return $this->protocol->resolvedProtocolVersion() ?? $this->protocol->pinnedProtocolVersion();
     }
 
     public function ping(): void
@@ -223,7 +219,7 @@ class Client
             'name' => null,
             'clientInfo' => $this->clientInfo,
             'transport' => $this->transport->recipe(),
-            'protocolVersion' => $this->protocolVersion?->value,
+            'protocolVersion' => $this->protocol->pinnedProtocolVersion()?->value,
         ];
     }
 
@@ -239,16 +235,16 @@ class Client
 
             $this->transport = $resolved->transport;
             $this->clientInfo = $resolved->clientInfo;
-            $this->protocolVersion = $resolved->protocolVersion;
+            $pinned = $resolved->protocol->pinnedProtocolVersion();
         } else {
             $this->clientInfo = $data['clientInfo'];
             $this->transport = TransportFactory::fromRecipe($data['transport']);
-            $this->protocolVersion = ProtocolVersion::tryFrom($data['protocolVersion'] ?? '');
+            $pinned = ProtocolVersion::tryFrom($data['protocolVersion'] ?? '');
         }
 
         $this->clientInfo ??= $this->defaultClientInfo();
 
-        $this->protocol = new Protocol($this->transport, $this->clientInfo, $this->protocolVersion);
+        $this->protocol = new Protocol($this->transport, $this->clientInfo, $pinned);
     }
 
     public function __destruct()

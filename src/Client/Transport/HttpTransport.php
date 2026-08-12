@@ -190,7 +190,7 @@ class HttpTransport implements Transport
     {
         $body = json_decode($content, true);
 
-        return is_array($body) && is_array($body['error'] ?? null);
+        return is_array($body) && ($body['jsonrpc'] ?? null) === '2.0' && is_array($body['error'] ?? null);
     }
 
     /**

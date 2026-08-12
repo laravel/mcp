@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client;
+use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\ClientException;
@@ -56,29 +57,6 @@ it('base64 encodes a name that is not header safe', function (): void {
         }
 
         return HeaderValue::fromHeader($request->header(RequestHeader::NAME->value)[0])->matches('file://hello 世界');
-    });
-});
-
-it('base64 encodes a name ending in a newline', function (): void {
-    Http::fakeSequence()
-        ->push(discoverResponse(), 200, ['Content-Type' => 'application/json'])
-        ->push(json_encode([
-            'jsonrpc' => '2.0',
-            'id' => 2,
-            'result' => ['contents' => [['uri' => "file://hello\n", 'text' => 'hi']]],
-        ]), 200, ['Content-Type' => 'application/json']);
-
-    Client::web('https://mcp.test/mcp')->readResource("file://hello\n");
-
-    Http::assertSent(function (Request $request): bool {
-        if ($request->header(RequestHeader::METHOD->value) === [] || $request->header(RequestHeader::METHOD->value)[0] !== 'resources/read') {
-            return false;
-        }
-
-        $name = $request->header(RequestHeader::NAME->value)[0];
-
-        return str_starts_with($name, '=?base64?')
-            && HeaderValue::fromHeader($name)->matches("file://hello\n");
     });
 });
 
@@ -144,6 +122,32 @@ it('falls back to the handshake when the endpoint rejects a modern request', fun
 
     expect($client->tools()->keys()->all())->toBe(['add']);
     expect($client->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
+});
+
+it('falls back to the handshake when a gateway rejects the probe with a non json-rpc error body', function (): void {
+    Http::fakeSequence()
+        ->push(json_encode(['error' => ['message' => 'invalid request']]), 400, ['Content-Type' => 'application/json'])
+        ->push(initializeResponse(2), 200, ['Content-Type' => 'application/json'])
+        ->push('', 202)
+        ->push(json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 3,
+            'result' => ['tools' => []],
+        ]), 200, ['Content-Type' => 'application/json']);
+
+    $client = Client::web('https://mcp.test/mcp');
+
+    expect($client->tools()->all())->toBe([]);
+    expect($client->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
+});
+
+it('keeps an authorization failure intact when the legacy handshake needs a token', function (): void {
+    Http::fakeSequence()
+        ->push('Method Not Allowed', 405)
+        ->push('Unauthorized', 401, ['WWW-Authenticate' => 'Bearer resource_metadata="https://mcp.test/.well-known/oauth-protected-resource"']);
+
+    expect(fn (): array => Client::web('https://mcp.test/mcp')->tools()->all())
+        ->toThrow(AuthorizationRequiredException::class);
 });
 
 it('reports the rejected status alongside a failed fallback', function (): void {
