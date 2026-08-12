@@ -10,4 +10,5 @@ enum MetaKey: string
     case CLIENT_CAPABILITIES = 'io.modelcontextprotocol/clientCapabilities';
     case CLIENT_INFO = 'io.modelcontextprotocol/clientInfo';
     case SERVER_INFO = 'io.modelcontextprotocol/serverInfo';
+    case SUBSCRIPTION_ID = 'io.modelcontextprotocol/subscriptionId';
 }

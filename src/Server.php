@@ -27,6 +27,7 @@ use Laravel\Mcp\Server\Methods\CompletionComplete;
 use Laravel\Mcp\Server\Methods\Concerns\ResolvesResources;
 use Laravel\Mcp\Server\Methods\Discover;
 use Laravel\Mcp\Server\Methods\GetPrompt;
+use Laravel\Mcp\Server\Methods\Listen;
 use Laravel\Mcp\Server\Methods\ListPrompts;
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Methods\ListResourceTemplates;
@@ -134,6 +135,7 @@ abstract class Server
         'prompts/get' => GetPrompt::class,
         'completion/complete' => CompletionComplete::class,
         'server/discover' => Discover::class,
+        'subscriptions/listen' => Listen::class,
     ];
 
     public function __construct(
