@@ -10,8 +10,7 @@ use Laravel\Mcp\Client\Contracts\Method;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Contracts\UsesProtocol;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
-use Laravel\Mcp\Client\Exceptions\RequestRejectedException;
-use Laravel\Mcp\Client\Exceptions\TimeoutException;
+use Laravel\Mcp\Client\Exceptions\TransportException;
 use Laravel\Mcp\Client\Methods\Discover;
 use Laravel\Mcp\Client\Methods\Initialize;
 use Laravel\Mcp\Client\Schema\DiscoverResult;
@@ -62,7 +61,25 @@ class Protocol
         return $this->connection?->discoverResult();
     }
 
-    public function protocolVersion(?ProtocolVersion $protocolVersion): void
+    /**
+     * @return array<string, mixed>
+     */
+    public function capabilities(): array
+    {
+        return $this->connection?->capabilities() ?? [];
+    }
+
+    public function serverInfo(): ?Implementation
+    {
+        return $this->connection?->serverInfo();
+    }
+
+    public function instructions(): ?string
+    {
+        return $this->connection?->instructions();
+    }
+
+    public function pinProtocolVersion(?ProtocolVersion $protocolVersion): void
     {
         $this->protocolVersion = $protocolVersion;
         $this->connection = null;
@@ -123,6 +140,8 @@ class Protocol
                 $this->connection = $this->initialize($remembered);
 
                 return;
+            } catch (OAuthException $oAuthException) {
+                throw $oAuthException;
             } catch (Throwable) {
                 $this->connection = null;
 
@@ -147,10 +166,8 @@ class Protocol
             }
 
             $rejection = null;
-        } catch (RequestRejectedException $requestRejectedException) {
-            $rejection = $requestRejectedException;
-        } catch (TimeoutException $timeoutException) {
-            $rejection = $timeoutException;
+        } catch (TransportException $transportException) {
+            $rejection = $transportException;
         }
 
         try {
@@ -249,7 +266,6 @@ class Protocol
             ErrorCode::PARSE_ERROR->value,
             ErrorCode::INVALID_REQUEST->value,
             ErrorCode::METHOD_NOT_FOUND->value,
-            ErrorCode::INVALID_PARAMS->value,
         ], true);
     }
 

@@ -178,3 +178,16 @@ it('does not send a protocol version header through the handshake', function ():
         return $request->header(RequestHeader::PROTOCOL_VERSION->value) === [];
     });
 });
+
+it('falls back to the handshake for any client error the probe is refused with', function (): void {
+    Http::fakeSequence()
+        ->push('Conflict', 409)
+        ->push(initializeResponse(2), 200, ['Content-Type' => 'application/json'])
+        ->push('', 202)
+        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 3, 'result' => ['tools' => []]]), 200, ['Content-Type' => 'application/json']);
+
+    $client = Client::web('https://mcp.test/mcp');
+
+    expect($client->tools()->all())->toBe([]);
+    expect($client->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
+});

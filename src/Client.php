@@ -109,6 +109,30 @@ class Client
         return $this->protocol->discoverResult();
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function capabilities(): array
+    {
+        $this->protocol->connect();
+
+        return $this->protocol->capabilities();
+    }
+
+    public function serverInfo(): ?Implementation
+    {
+        $this->protocol->connect();
+
+        return $this->protocol->serverInfo();
+    }
+
+    public function instructions(): ?string
+    {
+        $this->protocol->connect();
+
+        return $this->protocol->instructions();
+    }
+
     public function withProtocolVersion(?ProtocolVersion $version): static
     {
         if ($version instanceof ProtocolVersion && ! in_array($version->value, ProtocolVersion::clientSupported(), true)) {
@@ -119,14 +143,19 @@ class Client
             ));
         }
 
-        $this->protocol->protocolVersion($version);
+        $this->protocol->pinProtocolVersion($version);
 
         return $this;
     }
 
     public function protocolVersion(): ?ProtocolVersion
     {
-        return $this->protocol->resolvedProtocolVersion() ?? $this->protocol->pinnedProtocolVersion();
+        return $this->protocol->resolvedProtocolVersion();
+    }
+
+    public function pinnedProtocolVersion(): ?ProtocolVersion
+    {
+        return $this->protocol->pinnedProtocolVersion();
     }
 
     public function ping(): void

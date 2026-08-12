@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Laravel\Mcp\Client;
+use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
@@ -237,10 +238,11 @@ it('offers the pinned legacy version and does not probe discovery', function ():
         ->toBe(ProtocolVersion::V2025_06_18->value);
 });
 
-it('reports the pinned version before connecting', function (): void {
+it('reports the pinned version before connecting and no resolved version yet', function (): void {
     $client = (new Client(negotiatingTransport()))->withProtocolVersion(ProtocolVersion::LATEST);
 
-    expect($client->protocolVersion())->toBe(ProtocolVersion::LATEST);
+    expect($client->pinnedProtocolVersion())->toBe(ProtocolVersion::LATEST);
+    expect($client->protocolVersion())->toBeNull();
     expect($client->connected())->toBeFalse();
 });
 
@@ -376,4 +378,55 @@ it('rejects a server with no protocol version this client can speak', function (
         (new Client($transport))->connect();
     })
         ->toThrow(ClientException::class, 'The server supports protocol versions [2027-01-01]. This client supports [2026-07-28, 2025-11-25, 2025-06-18].');
+});
+
+it('surfaces an invalid params error instead of guessing the server is legacy', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'error' => ['code' => -32602, 'message' => 'Invalid params: the request [_meta] is malformed.'],
+    ]);
+
+    expect(function () use ($transport): void {
+        (new Client($transport))->connect();
+    })->toThrow(JsonRpcException::class, 'Invalid params: the request [_meta] is malformed.');
+
+    expect($transport->sent)->toHaveCount(1);
+});
+
+it('rethrows an authorization failure when re-initializing a remembered legacy server', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = methodNotFoundResponse();
+    $transport->responses[] = initializeResponse(2);
+
+    $client = new Client($transport);
+    $client->connect();
+    $client->disconnect();
+
+    $transport->sent = [];
+    $transport->throwOnNextSend = new AuthorizationRequiredException;
+
+    expect(fn (): mixed => $client->connect())->toThrow(AuthorizationRequiredException::class);
+
+    expect($transport->sent)->toBeEmpty();
+});
+
+it('exposes the server details without knowing which era was negotiated', function (): void {
+    $modern = negotiatingTransport();
+    $modern->responses[] = discoverResponse();
+
+    $legacy = negotiatingTransport();
+    $legacy->responses[] = methodNotFoundResponse();
+    $legacy->responses[] = initializeResponse(2);
+
+    expect((new Client($modern))->serverInfo()?->name)->toBe('Test Server');
+    expect((new Client($legacy))->serverInfo()?->name)->toBe('Test Server');
+
+    $another = negotiatingTransport();
+    $another->responses[] = discoverResponse();
+    $client = new Client($another);
+
+    expect($client->instructions())->toBe('Be nice.');
+    expect($client->capabilities())->toBeArray();
 });

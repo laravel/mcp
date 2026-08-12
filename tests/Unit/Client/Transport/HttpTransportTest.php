@@ -99,6 +99,7 @@ it('captures the MCP-Session-Id and resends it on later requests', function (): 
     ]);
 
     $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'ping', 'params' => []]));
@@ -117,6 +118,7 @@ it('keeps the session across a legacy version change and drops it on an era swit
     ]);
 
     $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
     $transport->useProtocol(ProtocolVersion::V2025_06_18);
@@ -148,6 +150,7 @@ it('omits the protocol version header on initialize and includes the negotiated 
     Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
 
     $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
     $transport->useProtocol(ProtocolVersion::V2025_06_18);
@@ -155,17 +158,6 @@ it('omits the protocol version header on initialize and includes the negotiated 
 
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'initialize' && ! $request->hasHeader('MCP-Protocol-Version'));
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::V2025_06_18->value));
-});
-
-it('falls back to the latest protocol version when initialized without a negotiated version', function (): void {
-    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
-
-    $transport = new HttpTransport('https://mcp.test/mcp');
-    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
-    $transport->receive();
-    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list']));
-
-    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::V2025_11_25->value));
 });
 
 it('sends a bearer Authorization header when a token is set', function (): void {
@@ -268,6 +260,7 @@ it('throws a ClientException and resets the session on a 404 response', function
         ->push('', 404);
 
     $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
 
@@ -304,6 +297,7 @@ it('sends a DELETE with the session id on disconnect', function (): void {
     )]);
 
     $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
     $transport->disconnect();
@@ -320,6 +314,7 @@ it('includes the authorization header on the terminating DELETE', function (): v
 
     $transport = new HttpTransport('https://mcp.test/mcp');
     $transport->withToken('del-token');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
     $transport->disconnect();
@@ -350,6 +345,7 @@ it('swallows errors raised while terminating the session on disconnect', functio
     });
 
     $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
     $transport->disconnect();

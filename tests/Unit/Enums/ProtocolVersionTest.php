@@ -25,3 +25,13 @@ it('picks the version this client prefers regardless of the order the server lis
 it('has no mutual version when the server shares none', function (): void {
     expect(ProtocolVersion::preferredFrom('2024-11-05', '2027-01-01'))->toBeNull();
 });
+
+it('declares the cases newest first, which is the preference order', function (): void {
+    $values = array_column(ProtocolVersion::cases(), 'value');
+    $sorted = $values;
+
+    rsort($sorted);
+
+    expect($values)->toBe($sorted)
+        ->and(ProtocolVersion::cases()[0])->toBe(ProtocolVersion::LATEST);
+});

@@ -9,6 +9,7 @@ use Laravel\Mcp\Client\Contracts\UsesProtocol;
 use Laravel\Mcp\Client\Exceptions\TimeoutException;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use RuntimeException;
+use Throwable;
 
 class FakeTransport implements Transport, UsesProtocol
 {
@@ -28,6 +29,8 @@ class FakeTransport implements Transport, UsesProtocol
 
     public bool $timesOutOnDiscover = false;
 
+    public ?Throwable $throwOnNextSend = null;
+
     protected string|int|null $pendingId = null;
 
     public function connect(): void
@@ -42,6 +45,13 @@ class FakeTransport implements Transport, UsesProtocol
 
     public function send(string $message): void
     {
+        if ($this->throwOnNextSend instanceof Throwable) {
+            $throwable = $this->throwOnNextSend;
+            $this->throwOnNextSend = null;
+
+            throw $throwable;
+        }
+
         $frame = json_decode($message, true);
         $frame = is_array($frame) ? $frame : [];
 

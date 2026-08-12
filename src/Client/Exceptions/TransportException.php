@@ -6,7 +6,7 @@ namespace Laravel\Mcp\Client\Exceptions;
 
 use Laravel\Mcp\Exceptions\ClientException;
 
-class RequestRejectedException extends ClientException
+class TransportException extends ClientException
 {
     //
 }

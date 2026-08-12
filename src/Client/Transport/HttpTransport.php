@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Contracts\UsesProtocol;
 use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
-use Laravel\Mcp\Client\Exceptions\RequestRejectedException;
+use Laravel\Mcp\Client\Exceptions\TransportException;
 use Laravel\Mcp\Client\OAuth\WwwAuthenticateChallenge;
 use Laravel\Mcp\Enums\ProtocolHandshake;
 use Laravel\Mcp\Enums\ProtocolVersion;
@@ -25,8 +25,6 @@ use Throwable;
 
 class HttpTransport implements Transport, UsesProtocol
 {
-    protected const REJECTED_STATUSES = [400, 405, 501];
-
     /** @var string|(Closure(): string)|null */
     protected string|Closure|null $token = null;
 
@@ -103,21 +101,10 @@ class HttpTransport implements Transport, UsesProtocol
 
     public function send(string $message): void
     {
-        $body = json_decode($message, true);
-        $body = is_array($body) ? $body : [];
-
-        if (! $this->protocolVersion instanceof ProtocolVersion && ($body['method'] ?? null) === 'initialize') {
-            $requested = is_array($body['params'] ?? null) ? ($body['params']['protocolVersion'] ?? null) : null;
-            $version = is_string($requested) ? ProtocolVersion::tryFrom($requested) : null;
-            $this->protocolVersion = $version?->handshake() === ProtocolHandshake::Initialize
-                ? $version
-                : ProtocolVersion::V2025_11_25;
-        }
-
         $hadSession = $this->sessionId !== null;
 
         try {
-            $response = Http::withHeaders($this->headers($body))
+            $response = Http::withHeaders($this->headers())
                 ->withBody($message, 'application/json')
                 ->timeout($this->timeoutSeconds)
                 ->withOptions(['stream' => true])
@@ -154,16 +141,16 @@ class HttpTransport implements Transport, UsesProtocol
                 return;
             }
 
-            if (in_array($response->status(), self::REJECTED_STATUSES, true)) {
-                $this->reset();
-
-                throw new RequestRejectedException("The endpoint [{$this->url}] rejected the request with HTTP status [{$response->status()}].");
+            if ($response->notFound() || ($response->serverError() && $response->status() !== 501)) {
+                $this->failWith("Unexpected HTTP status [{$response->status()}] from endpoint [{$this->url}].");
             }
 
-            $this->failWith("Unexpected HTTP status [{$response->status()}] from endpoint [{$this->url}].");
+            $this->reset();
+
+            throw new TransportException("The endpoint [{$this->url}] rejected the request with HTTP status [{$response->status()}].");
         }
 
-        if (($body['method'] ?? null) === 'initialize') {
+        if ($this->protocolVersion?->handshake() === ProtocolHandshake::Initialize) {
             $this->initialized = true;
         }
 
@@ -218,14 +205,13 @@ class HttpTransport implements Transport, UsesProtocol
     }
 
     /**
-     * @param  array<string, mixed>  $body
      * @return array<string, string>
      */
-    protected function headers(array $body = []): array
+    protected function headers(): array
     {
         $headers = [
             'Accept' => 'application/json, text/event-stream',
-            ...$this->eraHeaders($body),
+            ...$this->eraHeaders(),
         ];
 
         $token = $this->token instanceof Closure ? (string) ($this->token)() : $this->token;
@@ -248,10 +234,9 @@ class HttpTransport implements Transport, UsesProtocol
     }
 
     /**
-     * @param  array<string, mixed>  $body
      * @return array<string, string>
      */
-    protected function eraHeaders(array $body): array
+    protected function eraHeaders(): array
     {
         $version = $this->protocolVersion;
 
@@ -267,8 +252,8 @@ class HttpTransport implements Transport, UsesProtocol
             $headers['MCP-Session-Id'] = $this->sessionId;
         }
 
-        if ($this->initialized && ($body['method'] ?? null) !== 'initialize') {
-            $headers[RequestHeader::PROTOCOL_VERSION->value] = ($version ?? ProtocolVersion::V2025_11_25)->value;
+        if ($this->initialized && $version instanceof ProtocolVersion) {
+            $headers[RequestHeader::PROTOCOL_VERSION->value] = $version->value;
         }
 
         return $headers;

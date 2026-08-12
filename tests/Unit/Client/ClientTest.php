@@ -401,7 +401,7 @@ it('restores the pinned protocol version across a serialize round-trip', functio
 
     $restored = unserialize(serialize($client));
 
-    expect($restored->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
+    expect($restored->pinnedProtocolVersion())->toBe(ProtocolVersion::V2025_11_25);
 });
 
 it('restores a web client transport across a serialize round-trip', function (): void {
