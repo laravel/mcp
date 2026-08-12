@@ -133,7 +133,7 @@ class MirroredParameters implements Countable
 
     public function count(): int
     {
-        return count($this->parameters);
+        return count($this->parameters->all());
     }
 
     protected function matches(MirroredParameter $parameter, string $value, string $expected): bool
