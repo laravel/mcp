@@ -18,7 +18,7 @@ class ExecuteTools extends Tool
 
     protected string $title = 'Execute Tools';
 
-    public function __construct(protected ToolsSearch $catalog) {}
+    public function __construct(protected ToolsSearch $catalog, protected int $maxToolCalls) {}
 
     public function description(): string
     {
@@ -34,7 +34,7 @@ class ExecuteTools extends Tool
                     'arguments' => $schema->object()->description('Arguments matching the tool input schema.'),
                 ])->withoutAdditionalProperties())
                 ->min(1)
-                ->max($this->catalog->maxToolCallsValue())
+                ->max($this->maxToolCalls)
                 ->description('Independent tool calls to execute synchronously in order.')
                 ->required(),
         ];
@@ -46,7 +46,7 @@ class ExecuteTools extends Tool
     public function handle(Request $request): array
     {
         $request->validate([
-            'calls' => ['required', 'array', 'min:1', 'max:'.$this->catalog->maxToolCallsValue()],
+            'calls' => ['required', 'array', 'min:1', 'max:'.$this->maxToolCalls],
             'calls.*' => ['array:name,arguments'],
             'calls.*.name' => ['required', 'string', 'max:255'],
             'calls.*.arguments' => ['array'],

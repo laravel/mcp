@@ -16,7 +16,7 @@ class ServerContext
     /**
      * @param  array<int, string>  $supportedProtocolVersions
      * @param  array<string, mixed>  $serverCapabilities
-     * @param  array<int, Tool|ToolsSearch|string>  $tools
+     * @param  array<int|string, Tool|string|array<int, Tool|string>>  $tools
      * @param  array<int, Resource|string>  $resources
      * @param  array<int, Prompt|string>  $prompts
      */
@@ -39,10 +39,26 @@ class ServerContext
      */
     public function tools(): Collection
     {
-        $hasToolsSearch = collect($this->tools)->contains(fn (Tool|ToolsSearch|string $tool): bool => $tool instanceof ToolsSearch);
+        $configuredTools = collect($this->tools)->map(function (Tool|string|array $tool, int|string $key): Tool|ToolsSearch|string {
+            if ($key !== ToolsSearch::class) {
+                if (is_array($tool)) {
+                    throw new InvalidArgumentException('Tool groups must use ToolsSearch::class as their key.');
+                }
+
+                return $tool;
+            }
+
+            if (! is_array($tool)) {
+                throw new InvalidArgumentException('The ToolsSearch::class entry must contain an array of tools.');
+            }
+
+            return new ToolsSearch($tool);
+        });
+
+        $hasToolsSearch = $configuredTools->contains(fn (Tool|ToolsSearch|string $tool): bool => $tool instanceof ToolsSearch);
 
         /** @var Collection<int, Tool|string> $tools */
-        $tools = collect($this->tools)->flatMap(fn (Tool|ToolsSearch|string $tool): array => $tool instanceof ToolsSearch
+        $tools = $configuredTools->flatMap(fn (Tool|ToolsSearch|string $tool): array => $tool instanceof ToolsSearch
             ? $tool->tools()
             : [$tool]);
 

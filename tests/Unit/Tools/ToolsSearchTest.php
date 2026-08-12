@@ -5,26 +5,58 @@ use Illuminate\Support\Collection;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Schema\Implementation;
+use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\ExecuteTools;
 use Laravel\Mcp\Server\Tools\SearchTools;
 use Laravel\Mcp\Server\Tools\ToolsSearch;
+use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Tests\Fixtures\SayHiTool;
 use Tests\Fixtures\StreamingTool;
 use Tests\Fixtures\StructuredContentTool;
 
+it('supports declaring a searchable tool group on the server', function (): void {
+    $server = new class(new FakeTransporter) extends Server
+    {
+        protected array $tools = [
+            StructuredContentTool::class,
+            ToolsSearch::class => [
+                SayHiTool::class,
+            ],
+        ];
+    };
+
+    $context = $server->createContext();
+    $tools = $context->tools();
+    $searchTools = $tools->first(fn (Tool $tool): bool => $tool->name() === 'search_tools');
+
+    expect($tools->map(fn (Tool $tool): string => $tool->name())->all())->toBe([
+        'structured-content-tool',
+        'search_tools',
+        'execute_tools',
+    ])->and($searchTools)->toBeInstanceOf(SearchTools::class);
+
+    if (! $searchTools instanceof Tool) {
+        throw new LogicException('The search tool was not registered.');
+    }
+
+    $result = callContextTool($context, $searchTools, ['query' => 'person name']);
+
+    expect($result['payload']['tools'][0]['name'])->toBe('say-hi-tool');
+});
+
 it('searches hidden tools and returns their complete schemas', function (): void {
-    $catalog = ToolsSearch::for([
+    $context = toolSearchContext([
         SayHiTool::class,
         StructuredContentTool::class,
     ]);
-    [$searchTools] = $catalog->tools();
+    $searchTools = toolFromContext($context, 'search_tools');
 
-    $result = callCatalogTool($catalog, $searchTools, [
+    $result = callContextTool($context, $searchTools, [
         'query' => 'person name',
     ]);
 
@@ -52,13 +84,13 @@ it('searches hidden tools and returns their complete schemas', function (): void
 });
 
 it('executes multiple independent tools synchronously', function (): void {
-    $catalog = ToolsSearch::for([
+    $context = toolSearchContext([
         SayHiTool::class,
         StructuredContentTool::class,
     ]);
-    [, $executeTools] = $catalog->tools();
+    $executeTools = toolFromContext($context, 'execute_tools');
 
-    $result = callCatalogTool($catalog, $executeTools, [
+    $result = callContextTool($context, $executeTools, [
         'calls' => [
             ['name' => 'say-hi-tool', 'arguments' => ['name' => 'Taylor']],
             ['name' => 'structured-content-tool', 'arguments' => []],
@@ -110,13 +142,13 @@ it('stops executing after the first tool error', function (): void {
         }
     };
 
-    $catalog = ToolsSearch::for([
+    $context = toolSearchContext([
         SayHiTool::class,
         $recordingTool,
     ]);
-    [, $executeTools] = $catalog->tools();
+    $executeTools = toolFromContext($context, 'execute_tools');
 
-    $result = callCatalogTool($catalog, $executeTools, [
+    $result = callContextTool($context, $executeTools, [
         'calls' => [
             ['name' => 'say-hi-tool', 'arguments' => []],
             ['name' => $recordingTool->name(), 'arguments' => ['value' => 'not-run']],
@@ -131,9 +163,9 @@ it('stops executing after the first tool error', function (): void {
 });
 
 it('forwards nested tool notifications', function (): void {
-    $catalog = ToolsSearch::for([StreamingTool::class]);
-    [, $executeTools] = $catalog->tools();
-    $responses = callCatalogToolResponses($catalog, $executeTools, [
+    $context = toolSearchContext([StreamingTool::class]);
+    $executeTools = toolFromContext($context, 'execute_tools');
+    $responses = callContextToolResponses($context, $executeTools, [
         'calls' => [[
             'name' => 'streaming-tool',
             'arguments' => ['count' => 2],
@@ -147,19 +179,20 @@ it('forwards nested tool notifications', function (): void {
 });
 
 it('enforces the configured call and output limits', function (): void {
-    $catalog = ToolsSearch::for([SayHiTool::class])
-        ->maxToolCalls(1)
-        ->maxOutputBytes(256);
-    [, $executeTools] = $catalog->tools();
+    config()->set('mcp.tool_search.max_tool_calls', 1);
+    config()->set('mcp.tool_search.max_output_bytes', 256);
 
-    $callLimit = callCatalogTool($catalog, $executeTools, [
+    $context = toolSearchContext([SayHiTool::class]);
+    $executeTools = toolFromContext($context, 'execute_tools');
+
+    $callLimit = callContextTool($context, $executeTools, [
         'calls' => [
             ['name' => 'say-hi-tool', 'arguments' => ['name' => 'One']],
             ['name' => 'say-hi-tool', 'arguments' => ['name' => 'Two']],
         ],
     ]);
 
-    $outputLimit = callCatalogTool($catalog, $executeTools, [
+    $outputLimit = callContextTool($context, $executeTools, [
         'calls' => [[
             'name' => 'say-hi-tool',
             'arguments' => ['name' => str_repeat('x', 256)],
@@ -180,13 +213,14 @@ it('enforces the configured call and output limits', function (): void {
 });
 
 it('expands into two tools and rejects duplicate catalog names', function (): void {
-    $catalog = ToolsSearch::for([
+    $context = toolSearchContext([
         SayHiTool::class,
         new SayHiTool,
     ]);
-    [$searchTools, $executeTools] = $catalog->tools();
+    $searchTools = toolFromContext($context, 'search_tools');
+    $executeTools = toolFromContext($context, 'execute_tools');
 
-    $result = callCatalogTool($catalog, $searchTools);
+    $result = callContextTool($context, $searchTools);
 
     expect([$searchTools->name(), $executeTools->name()])->toBe(['search_tools', 'execute_tools'])
         ->and($result['isError'])->toBeTrue()
@@ -202,7 +236,7 @@ it('rejects generated tool name collisions', function (): void {
         maxPaginationLength: 50,
         defaultPaginationLength: 10,
         tools: [
-            ToolsSearch::for([SayHiTool::class]),
+            ToolsSearch::class => [SayHiTool::class],
             new class extends Tool
             {
                 protected string $name = 'search_tools';
@@ -221,9 +255,35 @@ it('rejects generated tool name collisions', function (): void {
         ->toThrow(InvalidArgumentException::class, 'Duplicate server tool name [search_tools].');
 });
 
-function callCatalogTool(ToolsSearch $catalog, Tool $tool, array $arguments = []): array
+function toolSearchContext(array $tools): ServerContext
 {
-    $responses = callCatalogToolResponses($catalog, $tool, $arguments);
+    return new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        implementation: new Implementation('Test Server', '1.0.0'),
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [ToolsSearch::class => $tools],
+        resources: [],
+        prompts: [],
+    );
+}
+
+function toolFromContext(ServerContext $context, string $name): Tool
+{
+    $tool = $context->tools()->first(fn (Tool $tool): bool => $tool->name() === $name);
+
+    if (! $tool instanceof Tool) {
+        throw new LogicException("Tool [{$name}] was not registered.");
+    }
+
+    return $tool;
+}
+
+function callContextTool(ServerContext $context, Tool $tool, array $arguments = []): array
+{
+    $responses = callContextToolResponses($context, $tool, $arguments);
     $result = $responses[array_key_last($responses)]['result'];
 
     if (isset($result['content'][0]['text'])) {
@@ -237,7 +297,7 @@ function callCatalogTool(ToolsSearch $catalog, Tool $tool, array $arguments = []
     return $result;
 }
 
-function callCatalogToolResponses(ToolsSearch $catalog, Tool $tool, array $arguments = []): array
+function callContextToolResponses(ServerContext $context, Tool $tool, array $arguments = []): array
 {
     $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
@@ -248,18 +308,6 @@ function callCatalogToolResponses(ToolsSearch $catalog, Tool $tool, array $argum
             'arguments' => $arguments,
         ],
     ]);
-
-    $context = new ServerContext(
-        supportedProtocolVersions: ['2025-03-26'],
-        serverCapabilities: [],
-        implementation: new Implementation('Test Server', '1.0.0'),
-        instructions: 'Test instructions',
-        maxPaginationLength: 50,
-        defaultPaginationLength: 10,
-        tools: [$catalog],
-        resources: [],
-        prompts: [],
-    );
 
     app()->instance('mcp.request', $request->toRequest());
     $response = (new CallTool)->handle($request, $context);

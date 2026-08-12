@@ -17,20 +17,35 @@ use Laravel\Mcp\Transport\JsonRpcResponse;
 
 class ToolsSearch
 {
-    protected int $maxToolCalls = 25;
+    protected int $maxToolCalls;
 
-    protected int $maxOutputBytes = 65_536;
+    protected int $maxOutputBytes;
 
     /**
-     * @var array<int, Tool|class-string<Tool>>
+     * @var array<int, Tool|string>
      */
     protected array $tools = [];
 
     /**
-     * @param  iterable<Tool|class-string<Tool>>  $tools
+     * @param  iterable<Tool|string>  $tools
      */
     public function __construct(iterable $tools)
     {
+        $config = Container::getInstance()->make('config');
+        $maxToolCalls = $config->get('mcp.tool_search.max_tool_calls', 25);
+        $maxOutputBytes = $config->get('mcp.tool_search.max_output_bytes', 65_536);
+
+        if (! is_int($maxToolCalls) || $maxToolCalls < 1) {
+            throw new InvalidArgumentException('The tool search maximum tool calls must be an integer of at least 1.');
+        }
+
+        if (! is_int($maxOutputBytes) || $maxOutputBytes < 256) {
+            throw new InvalidArgumentException('The tool search maximum output bytes must be an integer of at least 256.');
+        }
+
+        $this->maxToolCalls = $maxToolCalls;
+        $this->maxOutputBytes = $maxOutputBytes;
+
         foreach ($tools as $tool) {
             if (! $tool instanceof Tool && (! is_string($tool) || ! is_subclass_of($tool, Tool::class))) {
                 throw new InvalidArgumentException('ToolsSearch entries must be tool instances or tool class names.');
@@ -41,46 +56,11 @@ class ToolsSearch
     }
 
     /**
-     * @param  iterable<Tool|class-string<Tool>>  $tools
-     */
-    public static function for(iterable $tools): static
-    {
-        return new static($tools);
-    }
-
-    public function maxToolCalls(int $calls): static
-    {
-        if ($calls < 1) {
-            throw new InvalidArgumentException('The maximum tool calls must be at least 1.');
-        }
-
-        $this->maxToolCalls = $calls;
-
-        return $this;
-    }
-
-    public function maxOutputBytes(int $bytes): static
-    {
-        if ($bytes < 256) {
-            throw new InvalidArgumentException('The maximum output bytes must be at least 256.');
-        }
-
-        $this->maxOutputBytes = $bytes;
-
-        return $this;
-    }
-
-    /**
      * @return array{SearchTools, ExecuteTools}
      */
     public function tools(): array
     {
-        return [new SearchTools($this), new ExecuteTools($this)];
-    }
-
-    public function maxToolCallsValue(): int
-    {
-        return $this->maxToolCalls;
+        return [new SearchTools($this), new ExecuteTools($this, $this->maxToolCalls)];
     }
 
     /**
