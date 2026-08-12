@@ -238,12 +238,16 @@ it('offers the pinned legacy version and does not probe discovery', function ():
         ->toBe(ProtocolVersion::V2025_06_18->value);
 });
 
-it('reports the pinned version before connecting and no resolved version yet', function (): void {
-    $client = (new Client(negotiatingTransport()))->withProtocolVersion(ProtocolVersion::LATEST);
+it('negotiates on demand rather than guessing a protocol version', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = methodNotFoundResponse();
+    $transport->responses[] = initializeResponse(2);
 
-    expect($client->pinnedProtocolVersion())->toBe(ProtocolVersion::LATEST);
-    expect($client->protocolVersion())->toBeNull();
+    $client = new Client($transport);
+
     expect($client->connected())->toBeFalse();
+    expect($client->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
+    expect($client->connected())->toBeTrue();
 });
 
 it('rejects a protocol version this client does not support', function (): void {

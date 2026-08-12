@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Client\Transport;
 use Closure;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response as ClientResponse;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Client\Contracts\Transport;
@@ -201,7 +202,7 @@ class HttpTransport implements Transport, UsesProtocol
     {
         $body = json_decode($content, true);
 
-        return is_array($body) && ($body['jsonrpc'] ?? null) === '2.0' && is_array($body['error'] ?? null);
+        return is_array($body) && Arr::get($body, 'jsonrpc') === '2.0' && is_array(Arr::get($body, 'error'));
     }
 
     /**

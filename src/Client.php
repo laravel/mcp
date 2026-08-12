@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Client\Contracts\Transport;
@@ -148,14 +149,11 @@ class Client
         return $this;
     }
 
-    public function protocolVersion(): ?ProtocolVersion
+    public function protocolVersion(): ProtocolVersion
     {
-        return $this->protocol->resolvedProtocolVersion();
-    }
+        $this->protocol->connect();
 
-    public function pinnedProtocolVersion(): ?ProtocolVersion
-    {
-        return $this->protocol->pinnedProtocolVersion();
+        return $this->protocol->connectionProtocol();
     }
 
     public function ping(): void
@@ -257,7 +255,7 @@ class Client
      */
     public function __unserialize(array $data): void
     {
-        $this->name = $data['name'] ?? null;
+        $this->name = Arr::get($data, 'name');
 
         if ($this->name !== null) {
             $resolved = Container::getInstance()->make(ClientManager::class)->build($this->name);
@@ -266,9 +264,9 @@ class Client
             $this->clientInfo = $resolved->clientInfo;
             $pinned = $resolved->protocol->pinnedProtocolVersion();
         } else {
-            $this->clientInfo = $data['clientInfo'];
-            $this->transport = TransportFactory::fromRecipe($data['transport']);
-            $pinned = ProtocolVersion::tryFrom($data['protocolVersion'] ?? '');
+            $this->clientInfo = Arr::get($data, 'clientInfo');
+            $this->transport = TransportFactory::fromRecipe(Arr::get($data, 'transport'));
+            $pinned = ProtocolVersion::tryFrom((string) Arr::get($data, 'protocolVersion'));
         }
 
         $this->clientInfo ??= $this->defaultClientInfo();

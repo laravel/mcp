@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Schema;
 
 use Illuminate\Support\Arr;
+use InvalidArgumentException;
 use Laravel\Mcp\Enums\IconTheme;
 
 class Implementation
@@ -38,40 +39,32 @@ class Implementation
         ]);
     }
 
-    public static function tryFrom(mixed $data): ?self
+    public static function from(mixed $data): ?self
     {
-        if (! is_array($data) || ! is_string($data['name'] ?? null) || ! is_string($data['version'] ?? null)) {
+        if (! is_array($data)) {
             return null;
         }
 
-        /** @var array{name: string, version: string, title?: string, description?: string, icons?: array<int, array{src: string, mimeType?: string, sizes?: array<string>, theme?: string}>, websiteUrl?: string} $data */
-        return self::from($data);
-    }
+        try {
+            return new self(
+                name: Arr::string($data, 'name'),
+                version: Arr::string($data, 'version'),
+                title: Arr::string($data, 'title', '') ?: null,
+                description: Arr::string($data, 'description', '') ?: null,
+                icons: Arr::map(Arr::array($data, 'icons', []), function (mixed $icon): Icon {
+                    $icon = Arr::wrap($icon);
 
-    /**
-     * @param  array{
-     *     name: string,
-     *     version: string,
-     *     title?: string,
-     *     description?: string,
-     *     icons?: array<int, array{src: string, mimeType?: string, sizes?: array<string>, theme?: string}>,
-     *     websiteUrl?: string,
-     * }  $data
-     */
-    public static function from(array $data): self
-    {
-        return new self(
-            name: Arr::get($data, 'name'),
-            version: Arr::get($data, 'version'),
-            title: Arr::get($data, 'title'),
-            description: Arr::get($data, 'description'),
-            icons: Arr::map(Arr::get($data, 'icons', []), fn (array $icon): Icon => Icon::from(
-                src: Arr::get($icon, 'src'),
-                mimeType: Arr::get($icon, 'mimeType'),
-                sizes: Arr::get($icon, 'sizes', []),
-                theme: IconTheme::tryFrom(Arr::get($icon, 'theme', '')),
-            )),
-            websiteUrl: Arr::get($data, 'websiteUrl'),
-        );
+                    return Icon::from(
+                        src: Arr::string($icon, 'src'),
+                        mimeType: Arr::string($icon, 'mimeType', '') ?: null,
+                        sizes: array_values(array_filter(Arr::array($icon, 'sizes', []), is_string(...))),
+                        theme: IconTheme::tryFrom(Arr::string($icon, 'theme', '')),
+                    );
+                }),
+                websiteUrl: Arr::string($data, 'websiteUrl', '') ?: null,
+            );
+        } catch (InvalidArgumentException) {
+            return null;
+        }
     }
 }

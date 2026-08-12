@@ -41,7 +41,7 @@ class DiscoverResult
         return new self(
             supportedVersions: array_values(array_filter($supportedVersions, is_string(...))),
             capabilities: $capabilities,
-            serverInfo: Implementation::tryFrom(Arr::get($meta, MetaKey::SERVER_INFO->value)),
+            serverInfo: Implementation::from(Arr::get($meta, MetaKey::SERVER_INFO->value)),
             instructions: is_string($instructions) ? $instructions : null,
         );
     }

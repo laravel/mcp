@@ -30,7 +30,7 @@ class InitializeResult
     {
         $protocolVersion = Arr::get($payload, 'protocolVersion');
         $capabilities = Arr::get($payload, 'capabilities');
-        $serverInfo = Implementation::tryFrom(Arr::get($payload, 'serverInfo'));
+        $serverInfo = Implementation::from(Arr::get($payload, 'serverInfo'));
         $instructions = Arr::get($payload, 'instructions');
 
         $version = is_string($protocolVersion) ? ProtocolVersion::tryFrom($protocolVersion) : null;

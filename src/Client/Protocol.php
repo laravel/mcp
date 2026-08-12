@@ -41,7 +41,7 @@ class Protocol
     public function __construct(
         protected Transport $transport,
         protected Implementation $clientInfo,
-        protected ?ProtocolVersion $protocolVersion = null,
+        protected ?ProtocolVersion $pinnedProtocolVersion = null,
     ) {
         //
     }
@@ -81,7 +81,7 @@ class Protocol
 
     public function pinProtocolVersion(?ProtocolVersion $protocolVersion): void
     {
-        $this->protocolVersion = $protocolVersion;
+        $this->pinnedProtocolVersion = $protocolVersion;
         $this->connection = null;
 
         if ($this->connected) {
@@ -89,14 +89,9 @@ class Protocol
         }
     }
 
-    public function resolvedProtocolVersion(): ?ProtocolVersion
-    {
-        return $this->connection?->protocolVersion;
-    }
-
     public function pinnedProtocolVersion(): ?ProtocolVersion
     {
-        return $this->protocolVersion;
+        return $this->pinnedProtocolVersion;
     }
 
     public function connect(): void
@@ -123,7 +118,7 @@ class Protocol
 
     protected function handshake(): void
     {
-        $pinned = $this->protocolVersion;
+        $pinned = $this->pinnedProtocolVersion;
 
         if ($pinned instanceof ProtocolVersion) {
             $this->connection = $pinned->handshake() === ProtocolHandshake::Discovery
@@ -400,7 +395,7 @@ class Protocol
         $this->transport->send($notification->toJson());
     }
 
-    protected function connectionProtocol(): ProtocolVersion
+    public function connectionProtocol(): ProtocolVersion
     {
         if (! $this->connection instanceof NegotiatedConnection) {
             throw new ClientException('The client has not negotiated a protocol version.');
