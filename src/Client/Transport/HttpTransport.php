@@ -10,9 +10,11 @@ use Illuminate\Http\Client\Response as ClientResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Client\Contracts\Transport;
+use Laravel\Mcp\Client\Contracts\UsesProtocol;
 use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Client\Exceptions\RequestRejectedException;
 use Laravel\Mcp\Client\OAuth\WwwAuthenticateChallenge;
+use Laravel\Mcp\Enums\ProtocolHandshake;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\ClientException;
@@ -22,7 +24,7 @@ use Psr\Http\Message\StreamInterface;
 use SensitiveParameter;
 use Throwable;
 
-class HttpTransport implements Transport
+class HttpTransport implements Transport, UsesProtocol
 {
     protected const REJECTED_STATUSES = [400, 405, 501];
 
@@ -105,6 +107,14 @@ class HttpTransport implements Transport
         $body = json_decode($message, true);
         $body = is_array($body) ? $body : [];
 
+        if (! $this->protocolVersion instanceof ProtocolVersion && ($body['method'] ?? null) === 'initialize') {
+            $requested = is_array($body['params'] ?? null) ? ($body['params']['protocolVersion'] ?? null) : null;
+            $version = is_string($requested) ? ProtocolVersion::tryFrom($requested) : null;
+            $this->protocolVersion = $version?->handshake() === ProtocolHandshake::Initialize
+                ? $version
+                : ProtocolVersion::V2025_11_25;
+        }
+
         $hadSession = $this->sessionId !== null;
 
         try {
@@ -154,7 +164,9 @@ class HttpTransport implements Transport
             $this->failWith("Unexpected HTTP status [{$response->status()}] from endpoint [{$this->url}].");
         }
 
-        $this->initialized = true;
+        if (($body['method'] ?? null) === 'initialize') {
+            $this->initialized = true;
+        }
 
         if (str_contains($response->header('Content-Type'), 'text/event-stream')) {
             $this->readSseStream($response);
@@ -171,16 +183,16 @@ class HttpTransport implements Transport
         $this->queue[] = $content;
     }
 
-    public function setProtocolVersion(ProtocolVersion $version): void
+    public function useProtocol(ProtocolVersion $protocolVersion): void
     {
         $previous = $this->protocolVersion;
 
-        if ($previous instanceof ProtocolVersion && $previous->usesDiscovery() !== $version->usesDiscovery()) {
+        if ($previous instanceof ProtocolVersion && $previous->handshake() !== $protocolVersion->handshake()) {
             $this->sessionId = null;
             $this->initialized = false;
         }
 
-        $this->protocolVersion = $version;
+        $this->protocolVersion = $protocolVersion;
     }
 
     public function receive(): string
@@ -244,7 +256,7 @@ class HttpTransport implements Transport
     {
         $version = $this->protocolVersion;
 
-        if ($version instanceof ProtocolVersion && $version->usesDiscovery()) {
+        if ($version?->handshake() === ProtocolHandshake::Discovery) {
             return [
                 RequestHeader::PROTOCOL_VERSION->value => $version->value,
                 ...$this->mirroredHeaders($body),
@@ -283,6 +295,10 @@ class HttpTransport implements Transport
 
     protected function captureSessionId(ClientResponse $response): void
     {
+        if ($this->protocolVersion?->handshake() !== ProtocolHandshake::Initialize) {
+            return;
+        }
+
         $sessionId = $response->header('MCP-Session-Id');
 
         if ($sessionId !== '') {

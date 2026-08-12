@@ -6,7 +6,6 @@ namespace Laravel\Mcp\Client\Transport;
 
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Exceptions\TimeoutException;
-use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
 use Symfony\Component\Process\Exception\ExceptionInterface;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
@@ -65,11 +64,6 @@ class StdioTransport implements Transport
     public function setTimeoutSeconds(float $seconds): void
     {
         $this->timeoutSeconds = $seconds;
-    }
-
-    public function setProtocolVersion(ProtocolVersion $version): void
-    {
-        //
     }
 
     /**

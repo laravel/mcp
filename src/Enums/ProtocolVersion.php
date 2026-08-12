@@ -14,49 +14,46 @@ enum ProtocolVersion: string
 
     public const LATEST = self::V2026_07_28;
 
-    public function usesDiscovery(): bool
+    public function handshake(): ProtocolHandshake
     {
-        return $this->value >= self::V2026_07_28->value;
+        return match ($this) {
+            self::V2026_07_28 => ProtocolHandshake::Discovery,
+            self::V2025_11_25, self::V2025_06_18, self::V2025_03_26, self::V2024_11_05 => ProtocolHandshake::Initialize,
+        };
     }
 
-    /**
-     * @return array<int, string>
-     */
-    public static function supported(): array
+    public function isSupportedByClient(): bool
     {
-        return [self::LATEST->value];
+        return match ($this) {
+            self::V2026_07_28, self::V2025_11_25, self::V2025_06_18 => true,
+            default => false,
+        };
     }
 
-    /**
-     * @return array<int, string>
-     */
-    public static function clientSupported(): array
+    public static function preferredFrom(string ...$versions): ?self
     {
-        return [
-            self::V2025_11_25->value,
-            self::V2025_06_18->value,
-        ];
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public static function negotiable(): array
-    {
-        return [self::LATEST->value, ...self::clientSupported()];
-    }
-
-    /**
-     * @param  array<int, string>  $supported
-     */
-    public static function mutual(array $supported): ?self
-    {
-        foreach (self::negotiable() as $version) {
-            if (in_array($version, $supported, true)) {
-                return self::from($version);
+        foreach (self::cases() as $version) {
+            if ($version->isSupportedByClient() && in_array($version->value, $versions, true)) {
+                return $version;
             }
         }
 
         return null;
+    }
+
+    public static function clientSupportDescription(): string
+    {
+        return implode(', ', array_map(
+            fn (self $version): string => $version->value,
+            array_filter(self::cases(), fn (self $version): bool => $version->isSupportedByClient()),
+        ));
+    }
+
+    public static function initializeSupportDescription(): string
+    {
+        return implode(', ', array_map(
+            fn (self $version): string => $version->value,
+            array_filter(self::cases(), fn (self $version): bool => $version->isSupportedByClient() && $version->handshake() === ProtocolHandshake::Initialize),
+        ));
     }
 }

@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Tests\Fixtures\Client;
 
 use Laravel\Mcp\Client\Contracts\Transport;
+use Laravel\Mcp\Client\Contracts\UsesProtocol;
 use Laravel\Mcp\Client\Exceptions\TimeoutException;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use RuntimeException;
 
-class FakeTransport implements Transport
+class FakeTransport implements Transport, UsesProtocol
 {
     public bool $connected = false;
 
@@ -74,9 +75,9 @@ class FakeTransport implements Transport
         $this->timeoutSeconds = $seconds;
     }
 
-    public function setProtocolVersion(ProtocolVersion $version): void
+    public function useProtocol(ProtocolVersion $protocolVersion): void
     {
-        $this->protocolVersion = $version;
+        $this->protocolVersion = $protocolVersion;
     }
 
     /**

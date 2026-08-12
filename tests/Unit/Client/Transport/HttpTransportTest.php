@@ -119,14 +119,29 @@ it('keeps the session across a legacy version change and drops it on an era swit
     $transport = new HttpTransport('https://mcp.test/mcp');
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
-    $transport->setProtocolVersion(ProtocolVersion::V2025_06_18);
+    $transport->useProtocol(ProtocolVersion::V2025_06_18);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'ping', 'params' => []]));
     $transport->receive();
-    $transport->setProtocolVersion(ProtocolVersion::LATEST);
+    $transport->useProtocol(ProtocolVersion::LATEST);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 3, 'method' => 'tools/list', 'params' => []]));
 
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'ping' && $request->hasHeader('MCP-Session-Id', 'session-abc'));
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && ! $request->hasHeader('MCP-Session-Id'));
+});
+
+it('ignores session ids returned by discovery protocols', function (): void {
+    Http::fake(['*' => Http::response(
+        json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]),
+        200,
+        ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'stale-session'],
+    )]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::LATEST);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'server/discover', 'params' => []]));
+    $transport->disconnect();
+
+    Http::assertNotSent(fn ($request): bool => $request->method() === 'DELETE');
 });
 
 it('omits the protocol version header on initialize and includes the negotiated version afterwards', function (): void {
@@ -135,7 +150,7 @@ it('omits the protocol version header on initialize and includes the negotiated 
     $transport = new HttpTransport('https://mcp.test/mcp');
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
-    $transport->setProtocolVersion(ProtocolVersion::V2025_06_18);
+    $transport->useProtocol(ProtocolVersion::V2025_06_18);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list']));
 
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'initialize' && ! $request->hasHeader('MCP-Protocol-Version'));

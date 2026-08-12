@@ -106,6 +106,8 @@ it('rejects a server that will not settle on the requested version', function ()
 
     expect(fn (): Client => $client->connect())
         ->toThrow(ClientException::class, 'The server settled on protocol version [2025-11-25] while [2026-07-28] was requested.');
+
+    expect($transport->sent)->toHaveCount(1);
 });
 
 it('does not fall back when the error identifies a modern server', function (): void {
@@ -170,6 +172,7 @@ it('falls back to the handshake when discovery lists only a legacy version', fun
     $client->connect();
 
     expect($client->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
+    expect($client->discoverResult())->toBeNull();
     expect(json_decode($transport->sent[1], true)['method'])->toBe('initialize');
     expect(json_decode($transport->sent[1], true)['params'])->not->toHaveKey('_meta');
 });
