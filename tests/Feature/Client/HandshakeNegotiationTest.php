@@ -10,9 +10,8 @@ use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\Transport\HeaderValue;
 
-it('mirrors the method and name into headers on a discovery era call', function (): void {
+it('sends the protocol version without a session on a discovery era call', function (): void {
     Http::fakeSequence()
         ->push(discoverResponse(), 200, ['Content-Type' => 'application/json'])
         ->push(json_encode([
@@ -26,38 +25,17 @@ it('mirrors the method and name into headers on a discovery era call', function 
     Http::assertSentInOrder([
         function (Request $request): bool {
             expect($request->header(RequestHeader::PROTOCOL_VERSION->value)[0])->toBe('2026-07-28');
-            expect($request->header(RequestHeader::METHOD->value)[0])->toBe('server/discover');
             expect($request->hasHeader('MCP-Session-Id'))->toBeFalse();
 
             return true;
         },
         function (Request $request): bool {
-            expect($request->header(RequestHeader::METHOD->value)[0])->toBe('tools/call');
-            expect($request->header(RequestHeader::NAME->value)[0])->toBe('say-hi');
+            expect($request->header(RequestHeader::PROTOCOL_VERSION->value)[0])->toBe('2026-07-28');
+            expect($request->hasHeader('MCP-Session-Id'))->toBeFalse();
 
             return true;
         },
     ]);
-});
-
-it('base64 encodes a name that is not header safe', function (): void {
-    Http::fakeSequence()
-        ->push(discoverResponse(), 200, ['Content-Type' => 'application/json'])
-        ->push(json_encode([
-            'jsonrpc' => '2.0',
-            'id' => 2,
-            'result' => ['contents' => [['uri' => 'file://hello 世界', 'text' => 'hi']]],
-        ]), 200, ['Content-Type' => 'application/json']);
-
-    Client::web('https://mcp.test/mcp')->readResource('file://hello 世界');
-
-    Http::assertSent(function (Request $request): bool {
-        if ($request->header(RequestHeader::METHOD->value) === [] || $request->header(RequestHeader::METHOD->value)[0] !== 'resources/read') {
-            return false;
-        }
-
-        return HeaderValue::fromHeader($request->header(RequestHeader::NAME->value)[0])->matches('file://hello 世界');
-    });
 });
 
 it('reads a protocol error out of a 400 response', function (): void {

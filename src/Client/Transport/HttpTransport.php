@@ -19,7 +19,6 @@ use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\SessionExpiredException;
-use Laravel\Mcp\Transport\JsonRpcRequest;
 use Psr\Http\Message\StreamInterface;
 use SensitiveParameter;
 use Throwable;
@@ -259,7 +258,6 @@ class HttpTransport implements Transport, UsesProtocol
         if ($version?->handshake() === ProtocolHandshake::Discovery) {
             return [
                 RequestHeader::PROTOCOL_VERSION->value => $version->value,
-                ...$this->mirroredHeaders($body),
             ];
         }
 
@@ -274,23 +272,6 @@ class HttpTransport implements Transport, UsesProtocol
         }
 
         return $headers;
-    }
-
-    /**
-     * @param  array<string, mixed>  $body
-     * @return array<string, string>
-     */
-    protected function mirroredHeaders(array $body): array
-    {
-        if (! isset($body['id']) || ! is_string($body['method'] ?? null)) {
-            return [];
-        }
-
-        return (new JsonRpcRequest(
-            id: is_int($body['id']) || is_string($body['id']) ? $body['id'] : 0,
-            method: $body['method'],
-            params: is_array($body['params'] ?? null) ? $body['params'] : [],
-        ))->mirroredHeaders();
     }
 
     protected function captureSessionId(ClientResponse $response): void
