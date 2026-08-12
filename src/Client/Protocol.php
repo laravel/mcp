@@ -229,7 +229,7 @@ class Protocol
 
     protected function retryWithMutualVersion(JsonRpcException $jsonRpcException): NegotiatedConnection
     {
-        $supported = $jsonRpcException->data()['supported'] ?? null;
+        $supported = Arr::get($jsonRpcException->data() ?? [], 'supported');
 
         $protocolVersion = is_array($supported)
             ? ProtocolVersion::preferredFrom(...array_values(array_filter($supported, is_string(...))))
@@ -385,7 +385,7 @@ class Protocol
             MetaKey::PROTOCOL_VERSION->value => $protocolVersion->value,
             MetaKey::CLIENT_CAPABILITIES->value => (object) [],
             MetaKey::CLIENT_INFO->value => $this->clientInfo->toArray(),
-            ...is_array($params['_meta'] ?? null) ? $params['_meta'] : [],
+            ...Arr::wrap(Arr::get($params, '_meta')),
         ];
 
         return $params;

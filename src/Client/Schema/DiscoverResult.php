@@ -32,7 +32,7 @@ class DiscoverResult
         $supportedVersions = Arr::get($payload, 'supportedVersions');
         $capabilities = Arr::get($payload, 'capabilities');
         $instructions = Arr::get($payload, 'instructions');
-        $meta = Arr::get($payload, '_meta');
+        $meta = Arr::wrap(Arr::get($payload, '_meta'));
 
         if (! is_array($supportedVersions) || ! is_array($capabilities)) {
             throw new ClientException('Invalid discover response from server.');
@@ -41,7 +41,7 @@ class DiscoverResult
         return new self(
             supportedVersions: array_values(array_filter($supportedVersions, is_string(...))),
             capabilities: $capabilities,
-            serverInfo: Implementation::tryFrom(is_array($meta) ? ($meta[MetaKey::SERVER_INFO->value] ?? null) : null),
+            serverInfo: Implementation::tryFrom(Arr::get($meta, MetaKey::SERVER_INFO->value)),
             instructions: is_string($instructions) ? $instructions : null,
         );
     }
