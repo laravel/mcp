@@ -16,8 +16,6 @@ interface Transport
 
     public function setTimeoutSeconds(float $seconds): void;
 
-    public function setProtocolVersion(string $version): void;
-
     /**
      * @return array<string, mixed>
      */

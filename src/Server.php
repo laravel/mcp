@@ -259,7 +259,7 @@ abstract class Server
         $instructions = $this->resolveAttribute(Instructions::class);
 
         return new ServerContext(
-            supportedProtocolVersions: $this->supportedProtocolVersion ?: ProtocolVersion::supported(),
+            supportedProtocolVersions: $this->supportedProtocolVersion ?: ProtocolVersion::serverSupported(),
             serverCapabilities: $this->resolvedCapabilities(),
             implementation: new Implementation(
                 name: $name !== null ? $name->value : $this->name,

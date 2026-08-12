@@ -2,33 +2,36 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Enums\ProtocolHandshake;
 use Laravel\Mcp\Enums\ProtocolVersion;
 
-it('exposes a non-empty list of supported versions', function (): void {
-    expect(ProtocolVersion::supported())->not->toBeEmpty();
+it('defines the handshake for each protocol version explicitly', function (): void {
+    expect(ProtocolVersion::V2026_07_28->handshake())->toBe(ProtocolHandshake::Discovery)
+        ->and(ProtocolVersion::V2025_11_25->handshake())->toBe(ProtocolHandshake::Initialize)
+        ->and(ProtocolVersion::V2025_06_18->handshake())->toBe(ProtocolHandshake::Initialize);
 });
 
-it('lists the latest version first', function (): void {
-    expect(ProtocolVersion::supported()[0])->toBe(ProtocolVersion::LATEST->value);
+it('lists versions supported by each protocol flow', function (): void {
+    expect(ProtocolVersion::serverSupported())->toBe(['2026-07-28'])
+        ->and(ProtocolVersion::clientSupported())->toBe(['2026-07-28', '2025-11-25', '2025-06-18'])
+        ->and(ProtocolVersion::initializeSupported())->toBe(['2025-11-25', '2025-06-18']);
 });
 
-it('includes the latest version in supported list', function (): void {
-    expect(ProtocolVersion::supported())->toContain(ProtocolVersion::LATEST->value);
+it('picks the version this client prefers regardless of the order the server lists', function (): void {
+    expect(ProtocolVersion::preferredFrom('2025-06-18', '2025-11-25'))->toBe(ProtocolVersion::V2025_11_25);
+    expect(ProtocolVersion::preferredFrom('2025-06-18', '2026-07-28'))->toBe(ProtocolVersion::LATEST);
 });
 
-it('serves only the latest revision', function (): void {
-    expect(ProtocolVersion::supported())->toBe(['2026-07-28']);
+it('has no mutual version when the server shares none', function (): void {
+    expect(ProtocolVersion::preferredFrom('2024-11-05', '2027-01-01'))->toBeNull();
 });
 
-it('returns only string values', function (): void {
-    foreach (ProtocolVersion::supported() as $version) {
-        expect($version)->toBeString();
-    }
-});
+it('declares the cases newest first, which is the preference order', function (): void {
+    $values = array_column(ProtocolVersion::cases(), 'value');
+    $sorted = $values;
 
-it('supports only the versions that define the protocol version header as a client', function (): void {
-    expect(ProtocolVersion::clientSupported())->toBe([
-        ProtocolVersion::V2025_11_25->value,
-        ProtocolVersion::V2025_06_18->value,
-    ]);
+    rsort($sorted);
+
+    expect($values)->toBe($sorted)
+        ->and(ProtocolVersion::cases()[0])->toBe(ProtocolVersion::LATEST);
 });

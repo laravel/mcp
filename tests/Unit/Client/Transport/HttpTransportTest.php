@@ -99,6 +99,7 @@ it('captures the MCP-Session-Id and resends it on later requests', function (): 
     ]);
 
     $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'ping', 'params' => []]));
@@ -107,28 +108,56 @@ it('captures the MCP-Session-Id and resends it on later requests', function (): 
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'ping' && $request->hasHeader('MCP-Session-Id', 'session-abc'));
 });
 
+it('keeps the session across a legacy version change and drops it on an era switch', function (): void {
+    Http::fake([
+        '*' => Http::response(
+            json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]),
+            200,
+            ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-abc'],
+        ),
+    ]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
+    $transport->receive();
+    $transport->useProtocol(ProtocolVersion::V2025_06_18);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'ping', 'params' => []]));
+    $transport->receive();
+    $transport->useProtocol(ProtocolVersion::LATEST);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 3, 'method' => 'tools/list', 'params' => []]));
+
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'ping' && $request->hasHeader('MCP-Session-Id', 'session-abc'));
+    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && ! $request->hasHeader('MCP-Session-Id'));
+});
+
+it('ignores session ids returned by discovery protocols', function (): void {
+    Http::fake(['*' => Http::response(
+        json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]),
+        200,
+        ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'stale-session'],
+    )]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::LATEST);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'server/discover', 'params' => []]));
+    $transport->disconnect();
+
+    Http::assertNotSent(fn ($request): bool => $request->method() === 'DELETE');
+});
+
 it('omits the protocol version header on initialize and includes the negotiated version afterwards', function (): void {
     Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
 
     $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
-    $transport->setProtocolVersion(ProtocolVersion::V2025_06_18->value);
+    $transport->useProtocol(ProtocolVersion::V2025_06_18);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list']));
 
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'initialize' && ! $request->hasHeader('MCP-Protocol-Version'));
     Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::V2025_06_18->value));
-});
-
-it('falls back to the latest protocol version when initialized without a negotiated version', function (): void {
-    Http::fake(['*' => Http::response(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json'])]);
-
-    $transport = new HttpTransport('https://mcp.test/mcp');
-    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
-    $transport->receive();
-    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list']));
-
-    Http::assertSent(fn ($request): bool => ($request['method'] ?? null) === 'tools/list' && $request->hasHeader('MCP-Protocol-Version', ProtocolVersion::V2025_11_25->value));
 });
 
 it('sends a bearer Authorization header when a token is set', function (): void {
@@ -196,10 +225,10 @@ it('merges custom headers across multiple withHeaders calls', function (): void 
 });
 
 it('sends custom headers when built via Client::web', function (): void {
-    Http::fakeSequence()
+    legacyEndpoint()
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 1,
+            'id' => 2,
             'result' => [
                 'protocolVersion' => ProtocolVersion::V2025_11_25->value,
                 'capabilities' => new stdClass,
@@ -209,7 +238,7 @@ it('sends custom headers when built via Client::web', function (): void {
         ->push('', 202)
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 2,
+            'id' => 3,
             'result' => ['tools' => [['name' => 'add', 'description' => 'Adds two numbers']]],
         ]), 200, ['Content-Type' => 'application/json'])
         ->whenEmpty(Http::response('', 202));
@@ -231,6 +260,7 @@ it('throws a ClientException and resets the session on a 404 response', function
         ->push('', 404);
 
     $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
 
@@ -267,6 +297,7 @@ it('sends a DELETE with the session id on disconnect', function (): void {
     )]);
 
     $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
     $transport->disconnect();
@@ -283,6 +314,7 @@ it('includes the authorization header on the terminating DELETE', function (): v
 
     $transport = new HttpTransport('https://mcp.test/mcp');
     $transport->withToken('del-token');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
     $transport->disconnect();
@@ -313,6 +345,7 @@ it('swallows errors raised while terminating the session on disconnect', functio
     });
 
     $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
     $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
     $transport->receive();
     $transport->disconnect();
@@ -339,10 +372,10 @@ it('throws when receiving with no queued message', function (): void {
 });
 
 it('drives a full handshake and tools list over HTTP via Client::web', function (): void {
-    Http::fakeSequence()
+    legacyEndpoint()
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 1,
+            'id' => 2,
             'result' => [
                 'protocolVersion' => ProtocolVersion::V2025_11_25->value,
                 'capabilities' => new stdClass,
@@ -352,7 +385,7 @@ it('drives a full handshake and tools list over HTTP via Client::web', function 
         ->push('', 202)
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 2,
+            'id' => 3,
             'result' => ['tools' => [['name' => 'add', 'description' => 'Adds two numbers']]],
         ]), 200, ['Content-Type' => 'application/json'])
         ->whenEmpty(Http::response('', 202));
@@ -370,10 +403,10 @@ it('drives a full handshake and tools list over HTTP via Client::web', function 
 });
 
 it('throws when the server negotiates a protocol version the client does not support', function (): void {
-    Http::fakeSequence()
+    legacyEndpoint()
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 1,
+            'id' => 2,
             'result' => [
                 'protocolVersion' => ProtocolVersion::V2025_03_26->value,
                 'capabilities' => new stdClass,
@@ -384,14 +417,14 @@ it('throws when the server negotiates a protocol version the client does not sup
 
     expect(function (): void {
         Client::web('https://mcp.test/mcp')->tools();
-    })->toThrow(ClientException::class, 'The server negotiated an unsupported protocol version.');
+    })->toThrow(ClientException::class, 'The server chose protocol version [2025-03-26]. This client supports [2025-11-25, 2025-06-18].');
 });
 
 it('interoperates with a server negotiated down to 2025-06-18', function (): void {
-    Http::fakeSequence()
+    legacyEndpoint()
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 1,
+            'id' => 2,
             'result' => [
                 'protocolVersion' => ProtocolVersion::V2025_06_18->value,
                 'capabilities' => new stdClass,
@@ -401,7 +434,7 @@ it('interoperates with a server negotiated down to 2025-06-18', function (): voi
         ->push('', 202)
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 2,
+            'id' => 3,
             'result' => [
                 'tools' => [[
                     'name' => 'add',
@@ -421,7 +454,7 @@ it('interoperates with a server negotiated down to 2025-06-18', function (): voi
         ]), 200, ['Content-Type' => 'application/json'])
         ->push(json_encode([
             'jsonrpc' => '2.0',
-            'id' => 3,
+            'id' => 4,
             'result' => [
                 'content' => [['type' => 'text', 'text' => '3']],
                 'structuredContent' => ['sum' => 3],
@@ -455,21 +488,21 @@ it('builds a WebClient from Client::web', function (): void {
 });
 
 it('re-initializes and retries once after a 404 session expiry', function (): void {
-    Http::fakeSequence()
-        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => [
+    legacyEndpoint()
+        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'result' => [
             'protocolVersion' => ProtocolVersion::V2025_11_25->value,
             'capabilities' => new stdClass,
             'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
         ]]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-1'])
         ->push('', 202)
         ->push('', 404)
-        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 3, 'result' => [
+        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 4, 'result' => [
             'protocolVersion' => ProtocolVersion::V2025_11_25->value,
             'capabilities' => new stdClass,
             'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
         ]]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-2'])
         ->push('', 202)
-        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 4, 'result' => [
+        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 5, 'result' => [
             'tools' => [['name' => 'add', 'description' => 'Adds two numbers']],
         ]]), 200, ['Content-Type' => 'application/json'])
         ->whenEmpty(Http::response('', 202));
