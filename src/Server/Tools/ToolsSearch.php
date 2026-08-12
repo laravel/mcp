@@ -32,19 +32,9 @@ class ToolsSearch
     public function __construct(iterable $tools)
     {
         $config = Container::getInstance()->make('config');
-        $maxToolCalls = $config->get('mcp.tool_search.max_tool_calls', 25);
-        $maxOutputBytes = $config->get('mcp.tool_search.max_output_bytes', 65_536);
 
-        if (! is_int($maxToolCalls) || $maxToolCalls < 1) {
-            throw new InvalidArgumentException('The tool search maximum tool calls must be an integer of at least 1.');
-        }
-
-        if (! is_int($maxOutputBytes) || $maxOutputBytes < 256) {
-            throw new InvalidArgumentException('The tool search maximum output bytes must be an integer of at least 256.');
-        }
-
-        $this->maxToolCalls = $maxToolCalls;
-        $this->maxOutputBytes = $maxOutputBytes;
+        $this->maxToolCalls = max(1, (int) $config->get('mcp.tool_search.max_tool_calls', 25));
+        $this->maxOutputBytes = max(256, (int) $config->get('mcp.tool_search.max_output_bytes', 65_536));
 
         foreach ($tools as $tool) {
             if (! $tool instanceof Tool && (! is_string($tool) || ! is_subclass_of($tool, Tool::class))) {
@@ -53,6 +43,28 @@ class ToolsSearch
 
             $this->tools[] = $tool;
         }
+    }
+
+    /**
+     * @param  iterable<Tool|string>  $tools
+     */
+    public static function for(iterable $tools): static
+    {
+        return new static($tools);
+    }
+
+    public function maxToolCalls(int $maxToolCalls): static
+    {
+        $this->maxToolCalls = max(1, $maxToolCalls);
+
+        return $this;
+    }
+
+    public function maxOutputBytes(int $maxOutputBytes): static
+    {
+        $this->maxOutputBytes = max(256, $maxOutputBytes);
+
+        return $this;
     }
 
     /**
@@ -87,6 +99,8 @@ class ToolsSearch
                     $score += str_contains($schemaText, $term) ? 1 : 0;
                 }
 
+                $annotations = $definition['annotations'] ?? [];
+
                 return [
                     'index' => $index,
                     'score' => $score,
@@ -94,6 +108,7 @@ class ToolsSearch
                         'name' => $tool->name(),
                         'description' => $tool->description(),
                         'inputSchema' => $schema,
+                        ...is_array($annotations) && $annotations !== [] ? ['annotations' => $annotations] : [],
                     ],
                 ];
             })
@@ -103,12 +118,12 @@ class ToolsSearch
 
         $tools = [];
         $hasMore = $candidates->count() > $limit;
+        $size = $this->outputSize(['ok' => true, 'tools' => [], 'hasMore' => false]);
 
         foreach ($candidates->take($limit) as $candidate) {
-            $next = [...$tools, $candidate['tool']];
-            $result = ['ok' => true, 'tools' => $next, 'hasMore' => $hasMore];
+            $size += $this->outputSize($candidate['tool']) + 1;
 
-            if ($this->outputSize($result) > $this->maxOutputBytes) {
+            if ($size > $this->maxOutputBytes) {
                 if ($tools === []) {
                     return $this->outputLimitExceeded();
                 }
@@ -118,7 +133,7 @@ class ToolsSearch
                 break;
             }
 
-            $tools = $next;
+            $tools[] = $candidate['tool'];
         }
 
         return ['ok' => true, 'tools' => $tools, 'hasMore' => $hasMore];
@@ -133,20 +148,21 @@ class ToolsSearch
         $results = [];
         $responses = [];
         $tools = $this->resolvedTools();
+        $size = $this->outputSize(['ok' => true, 'results' => []]);
 
         foreach ($calls as $index => $call) {
             $invocation = $this->invokeTool($tools, $call['name'], $call['arguments'] ?? [], $parentRequest, $index);
             $result = $invocation['result'];
             array_push($responses, ...$invocation['notifications']);
-            $results[] = ['name' => $call['name'], ...$result];
-            $output = ['ok' => ! $result['isError'], 'results' => $results];
+            $results[] = $entry = ['name' => $call['name'], ...$result];
+            $size += $this->outputSize($entry) + 1;
 
-            if ($this->outputSize($output) > $this->maxOutputBytes) {
+            if ($size > $this->maxOutputBytes) {
                 return [...$responses, $this->response($this->outputLimitExceeded(count($results), $index + 1), true)];
             }
 
             if ($result['isError']) {
-                return [...$responses, $this->response($output, true)];
+                return [...$responses, $this->response(['ok' => false, 'results' => $results], true)];
             }
         }
 

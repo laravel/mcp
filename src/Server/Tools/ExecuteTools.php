@@ -22,7 +22,7 @@ class ExecuteTools extends Tool
 
     public function description(): string
     {
-        return 'Execute multiple independent catalog tools synchronously in order and stop on the first error. Use names and arguments returned by search_tools. When a call depends on a previous result, call execute_tools multiple times.';
+        return 'Execute one or more independent catalog tools synchronously in order. Pass {"calls":[{"name":"tool_name","arguments":{"key":"value"}}]} using exact names and arguments returned by search_tools. Execution stops on the first error. If a call depends on a previous result, invoke execute_tools again with a new calls array.';
     }
 
     public function schema(JsonSchema $schema): array

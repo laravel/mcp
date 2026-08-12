@@ -9,6 +9,7 @@ use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\ExecuteTools;
 use Laravel\Mcp\Server\Tools\SearchTools;
 use Laravel\Mcp\Server\Tools\ToolsSearch;
@@ -24,11 +25,17 @@ it('supports declaring a searchable tool group on the server', function (): void
     {
         protected array $tools = [
             StructuredContentTool::class,
-            ToolsSearch::class => [
-                SayHiTool::class,
-            ],
         ];
+
+        protected function boot(): void
+        {
+            $this->tools[] = ToolsSearch::for([
+                SayHiTool::class,
+            ]);
+        }
     };
+
+    $server->start();
 
     $context = $server->createContext();
     $tools = $context->tools();
@@ -81,6 +88,60 @@ it('searches hidden tools and returns their complete schemas', function (): void
             ]],
             'hasMore' => false,
         ]);
+});
+
+it('includes tool annotations in search results', function (): void {
+    $annotatedTool = new #[IsDestructive] class extends Tool
+    {
+        protected string $name = 'delete-thing-tool';
+
+        protected string $description = 'Deletes a thing';
+
+        public function handle(): Response
+        {
+            return Response::text('deleted');
+        }
+    };
+
+    $context = toolSearchContext([$annotatedTool]);
+    $searchTools = toolFromContext($context, 'search_tools');
+
+    $result = callContextTool($context, $searchTools, ['query' => 'delete']);
+
+    expect($result['payload']['tools'][0]['annotations'])->toBe(['destructiveHint' => true]);
+});
+
+it('supports fluent per-catalog limits', function (): void {
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        implementation: new Implementation('Test Server', '1.0.0'),
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [ToolsSearch::for([SayHiTool::class])->maxToolCalls(1)->maxOutputBytes(256)],
+        resources: [],
+        prompts: [],
+    );
+    $executeTools = toolFromContext($context, 'execute_tools');
+
+    $callLimit = callContextTool($context, $executeTools, [
+        'calls' => [
+            ['name' => 'say-hi-tool', 'arguments' => ['name' => 'One']],
+            ['name' => 'say-hi-tool', 'arguments' => ['name' => 'Two']],
+        ],
+    ]);
+
+    $outputLimit = callContextTool($context, $executeTools, [
+        'calls' => [[
+            'name' => 'say-hi-tool',
+            'arguments' => ['name' => str_repeat('x', 256)],
+        ]],
+    ]);
+
+    expect($callLimit['isError'])->toBeTrue()
+        ->and($callLimit['content'][0]['text'])->toContain('The calls field must not have more than 1 items.')
+        ->and($outputLimit['payload']['error']['kind'])->toBe('OutputLimitExceeded');
 });
 
 it('executes multiple independent tools synchronously', function (): void {
@@ -236,7 +297,7 @@ it('rejects generated tool name collisions', function (): void {
         maxPaginationLength: 50,
         defaultPaginationLength: 10,
         tools: [
-            ToolsSearch::class => [SayHiTool::class],
+            ToolsSearch::for([SayHiTool::class]),
             new class extends Tool
             {
                 protected string $name = 'search_tools';
@@ -264,7 +325,7 @@ function toolSearchContext(array $tools): ServerContext
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,
-        tools: [ToolsSearch::class => $tools],
+        tools: [ToolsSearch::for($tools)],
         resources: [],
         prompts: [],
     );
