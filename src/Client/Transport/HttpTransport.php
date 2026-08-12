@@ -242,9 +242,7 @@ class HttpTransport implements Transport, UsesProtocol
         $version = $this->protocolVersion;
 
         if ($version?->handshake() === ProtocolHandshake::Discovery) {
-            return [
-                RequestHeader::PROTOCOL_VERSION->value => $version->value,
-            ];
+            return [RequestHeader::PROTOCOL_VERSION->value => $version->value];
         }
 
         $headers = [];
