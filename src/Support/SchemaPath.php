@@ -21,20 +21,6 @@ class SchemaPath implements Stringable
         return new self;
     }
 
-    public static function fromPointer(string $pointer): self
-    {
-        if (! str_starts_with($pointer, '/')) {
-            return new self([$pointer]);
-        }
-
-        $segments = array_map(
-            fn (string $segment): string => str_replace(['~1', '~0'], ['/', '~'], $segment),
-            explode('/', substr($pointer, 1)),
-        );
-
-        return new self(array_values($segments));
-    }
-
     public function child(string $segment): self
     {
         return new self([...$this->segments, $segment]);
@@ -56,31 +42,6 @@ class SchemaPath implements Stringable
         }
 
         return $value;
-    }
-
-    /**
-     * @param  array<string, mixed>  $schema
-     * @return array<string, mixed>
-     */
-    public function annotate(array $schema, string $key, string $value): array
-    {
-        if ($this->segments === []) {
-            return $schema;
-        }
-
-        [$segment, $remaining] = [$this->segments[0], new self(array_slice($this->segments, 1))];
-
-        $property = $schema['properties'][$segment] ?? null;
-
-        if (! is_array($property)) {
-            return $schema;
-        }
-
-        $schema['properties'][$segment] = $remaining->segments === []
-            ? [...$property, $key => $value]
-            : $remaining->annotate($property, $key, $value);
-
-        return $schema;
     }
 
     public function __toString(): string

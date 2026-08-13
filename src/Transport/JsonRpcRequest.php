@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Transport;
 
-use Laravel\Mcp\Enums\MetaKey;
-use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
@@ -14,24 +12,21 @@ class JsonRpcRequest
 {
     /**
      * @param  array<string, mixed>  $params
-     * @param  array<string, string>  $headers
      */
     public function __construct(
         public int|string $id,
         public string $method,
         public array $params,
-        public array $headers = [],
     ) {
         //
     }
 
     /**
      * @param  array{id: mixed, jsonrpc?: mixed, method?: mixed, params?: mixed}  $jsonRequest
-     * @param  array<string, string>  $headers
      *
      * @throws JsonRpcException
      */
-    public static function from(array $jsonRequest, array $headers = []): static
+    public static function from(array $jsonRequest): static
     {
         $requestId = $jsonRequest['id'];
 
@@ -55,7 +50,6 @@ class JsonRpcRequest
             id: $requestId,
             method: $jsonRequest['method'],
             params: $jsonRequest['params'] ?? [],
-            headers: $headers,
         );
     }
 
@@ -94,23 +88,6 @@ class JsonRpcRequest
         }
 
         return $headers;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public function arguments(): array
-    {
-        $arguments = $this->get('arguments');
-
-        return is_array($arguments) ? $arguments : [];
-    }
-
-    public function protocolVersion(): ?ProtocolVersion
-    {
-        $version = ($this->meta() ?? [])[MetaKey::PROTOCOL_VERSION->value] ?? null;
-
-        return is_string($version) ? ProtocolVersion::tryFrom($version) : null;
     }
 
     public function name(): ?string

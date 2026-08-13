@@ -6,8 +6,6 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
 use Illuminate\Container\Container;
-use Laravel\Mcp\Enums\ErrorCode;
-use Laravel\Mcp\Enums\ProtocolHandshake;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
@@ -48,40 +46,12 @@ class CallTool implements Errable, Method
                     $request->id,
                 ));
 
-        $this->validateParameterHeaders($request, $tool);
-
         // @phpstan-ignore-next-line
         $response = $this->callHandler(fn (): mixed => Container::getInstance()->call([$tool, 'handle']), $request);
 
         return is_iterable($response)
             ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($tool))
             : $this->toJsonRpcResponse($request, $response, $this->serializable($tool));
-    }
-
-    /**
-     * @throws JsonRpcException
-     */
-    protected function validateParameterHeaders(JsonRpcRequest $request, Tool $tool): void
-    {
-        if ($request->headers === []) {
-            return;
-        }
-
-        $mismatch = $tool->mirroredParameters()->mismatch(
-            $request->headers,
-            $request->arguments(),
-            $request->protocolVersion()?->handshake() === ProtocolHandshake::Discovery,
-        );
-
-        if ($mismatch === null) {
-            return;
-        }
-
-        throw new JsonRpcException(
-            "Header mismatch: {$mismatch}.",
-            ErrorCode::HEADER_MISMATCH->value,
-            $request->id,
-        );
     }
 
     /**

@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use Laravel\Mcp\Exceptions\MirroredParameterException;
-use Laravel\Mcp\Support\MirroredParameter;
 use Laravel\Mcp\Support\MirroredParameters;
 use Laravel\Mcp\Support\MirroredParameterType;
 use Laravel\Mcp\Support\SchemaPath;
@@ -137,54 +136,6 @@ it('mirrors a property whose name contains a dot', function (): void {
     ]);
 });
 
-it('stamps declared annotations onto a schema', function (): void {
-    $schema = MirroredParameters::annotate(
-        ['region' => 'Region', '/target/zone' => 'Zone'],
-        schemaWith([
-            'region' => ['type' => 'string'],
-            'target' => ['type' => 'object', 'properties' => ['zone' => ['type' => 'string']]],
-        ]),
-    );
-
-    expect($schema)
-        ->toHaveKey('properties.region.x-mcp-header', 'Region')
-        ->toHaveKey('properties.target.properties.zone.x-mcp-header', 'Zone')
-        ->and(MirroredParameters::fromSchema($schema)->all())
-        ->toHaveCount(2)
-        ->each->toBeInstanceOf(MirroredParameter::class);
-});
-
 it('renders paths as json pointers', function (): void {
-    expect((string) SchemaPath::root()->child('a.b')->child('c'))->toBe('/a.b/c')
-        ->and(SchemaPath::fromPointer('/a~1b')->segments)->toBe(['a/b']);
-});
-
-it('reports missing, extra, and contradicting headers', function (array $headers, array $arguments, ?string $reason): void {
-    $parameters = MirroredParameters::fromSchema(schemaWith([
-        'region' => ['type' => 'string', 'x-mcp-header' => 'Region'],
-        'limit' => ['type' => 'integer', 'x-mcp-header' => 'Limit'],
-    ]));
-
-    expect($parameters->mismatch($headers, $arguments, true))
-        ->when($reason === null, fn (Expectation $mismatch): Expectation => $mismatch->toBeNull())
-        ->unless($reason === null, fn (Expectation $mismatch): Expectation => $mismatch
-            ->toBeString()
-            ->toContain((string) $reason));
-})->with([
-    'matching' => [['Mcp-Param-Region' => 'us-west1'], ['region' => 'us-west1'], null],
-    'case insensitive header' => [['mcp-param-region' => 'us-west1'], ['region' => 'us-west1'], null],
-    'numeric integer' => [['Mcp-Param-Limit' => '42.0'], ['limit' => 42], null],
-    'base64' => [['Mcp-Param-Region' => '=?base64?SGVsbG8sIOS4lueVjA==?='], ['region' => 'Hello, 世界'], null],
-    'contradicting' => [['Mcp-Param-Region' => 'us-east4'], ['region' => 'us-west1'], 'does not match'],
-    'missing' => [[], ['region' => 'us-west1'], 'is required'],
-    'null argument' => [[], ['region' => null], null],
-    'extra' => [['Mcp-Param-Region' => 'us-west1'], [], 'missing'],
-]);
-
-it('does not require headers outside the mirroring era', function (): void {
-    $parameters = MirroredParameters::fromSchema(schemaWith([
-        'region' => ['type' => 'string', 'x-mcp-header' => 'Region'],
-    ]));
-
-    expect($parameters->mismatch([], ['region' => 'us-west1'], false))->toBeNull();
+    expect((string) SchemaPath::root()->child('a.b')->child('c'))->toBe('/a.b/c');
 });

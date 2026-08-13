@@ -28,14 +28,6 @@ class StdioTransport implements Transport
         fwrite(STDOUT, $message.PHP_EOL);
     }
 
-    /**
-     * @return array<string, string>
-     */
-    public function requestHeaders(): array
-    {
-        return [];
-    }
-
     public function run(): void
     {
         stream_set_blocking(STDIN, false);

@@ -53,20 +53,6 @@ class MirroredParameters implements Countable
     }
 
     /**
-     * @param  array<string, string>  $declarations
-     * @param  array<string, mixed>  $inputSchema
-     * @return array<string, mixed>
-     */
-    public static function annotate(array $declarations, array $inputSchema): array
-    {
-        foreach ($declarations as $pointer => $name) {
-            $inputSchema = SchemaPath::fromPointer($pointer)->annotate($inputSchema, self::ANNOTATION, $name);
-        }
-
-        return $inputSchema;
-    }
-
-    /**
      * @param  array<string, mixed>  $arguments
      * @return array<string, string>
      *
@@ -88,42 +74,6 @@ class MirroredParameters implements Countable
     }
 
     /**
-     * @param  array<string, string>  $headers
-     * @param  array<string, mixed>  $arguments
-     */
-    public function mismatch(array $headers, array $arguments, bool $required): ?string
-    {
-        $received = collect($headers)->mapWithKeys(
-            fn (string $value, string $name): array => [strtolower($name) => $value],
-        );
-
-        foreach ($this->parameters as $parameter) {
-            $header = $received->get(strtolower($parameter->header()));
-            $expected = $parameter->stringify($parameter->raw($arguments));
-
-            if ($header === null) {
-                if ($expected !== null && $required) {
-                    return "the [{$parameter->header()}] header is required for the [{$parameter->path}] argument";
-                }
-
-                continue;
-            }
-
-            $value = HeaderValue::fromHeader($header)->value;
-
-            if ($expected === null) {
-                return "the [{$parameter->header()}] header was sent for the missing [{$parameter->path}] argument";
-            }
-
-            if (! $this->matches($parameter, $value, $expected)) {
-                return "the [{$parameter->header()}] header value [{$value}] does not match the [{$parameter->path}] argument [{$expected}]";
-            }
-        }
-
-        return null;
-    }
-
-    /**
      * @return Collection<int, MirroredParameter>
      */
     public function all(): Collection
@@ -134,15 +84,6 @@ class MirroredParameters implements Countable
     public function count(): int
     {
         return count($this->parameters->all());
-    }
-
-    protected function matches(MirroredParameter $parameter, string $value, string $expected): bool
-    {
-        if ($parameter->type === MirroredParameterType::Integer && is_numeric($value)) {
-            return (float) $value === (float) $expected;
-        }
-
-        return $value === $expected;
     }
 
     /**

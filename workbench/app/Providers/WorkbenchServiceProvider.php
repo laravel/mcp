@@ -6,7 +6,6 @@ use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Facades\Mcp;
 use Tests\Fixtures\ExampleServer;
 use Tests\Fixtures\ServerWithDynamicTools;
-use Tests\Fixtures\ServerWithMirroredParameters;
 
 class WorkbenchServiceProvider extends ServiceProvider
 {
@@ -32,6 +31,5 @@ class WorkbenchServiceProvider extends ServiceProvider
         Mcp::local('test-mcp', ExampleServer::class);
         Mcp::web('test-mcp', ExampleServer::class);
         Mcp::web('test-mcp-dynamic-tools', ServerWithDynamicTools::class);
-        Mcp::web('test-mcp-mirrored', ServerWithMirroredParameters::class);
     }
 }
