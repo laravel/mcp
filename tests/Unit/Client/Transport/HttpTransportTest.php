@@ -520,3 +520,48 @@ it('surfaces a 404 during the initialize handshake as a normal error', function 
     expect(fn (): WebClient => Client::web('https://mcp.test/mcp')->connect())
         ->toThrow(ClientException::class, 'Unexpected HTTP status [404]');
 });
+
+it('sends the standard and mirrored parameter headers on a real request', function (): void {
+    Http::fake(['*' => Http::response(
+        json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => ['resultType' => 'complete', 'content' => []]]),
+        200,
+        ['Content-Type' => 'application/json'],
+    )]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::LATEST);
+    $transport->send(
+        (string) json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'tools/call',
+            'params' => ['name' => 'execute_sql', 'arguments' => ['region' => 'us-west1']],
+        ]),
+        ['Mcp-Method' => 'tools/call', 'Mcp-Name' => 'execute_sql', 'Mcp-Param-Region' => 'us-west1'],
+    );
+
+    Http::assertSent(fn ($request): bool => $request->hasHeaders([
+        'MCP-Protocol-Version' => ProtocolVersion::LATEST->value,
+        'Mcp-Method' => 'tools/call',
+        'Mcp-Name' => 'execute_sql',
+        'Mcp-Param-Region' => 'us-west1',
+    ]));
+});
+
+it('never lets custom headers override the mcp owned headers', function (): void {
+    Http::fake(['*' => Http::response('', 202)]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::LATEST);
+    $transport->withHeaders(['mcp-param-region' => 'us-east4', 'Mcp-Name' => 'other', 'X-Tenant-Id' => 'acme']);
+    $transport->send(
+        (string) json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/call', 'params' => []]),
+        ['Mcp-Name' => 'execute_sql', 'Mcp-Param-Region' => 'us-west1'],
+    );
+
+    Http::assertSent(fn ($request): bool => $request->hasHeaders([
+        'Mcp-Name' => 'execute_sql',
+        'Mcp-Param-Region' => 'us-west1',
+        'X-Tenant-Id' => 'acme',
+    ]));
+});

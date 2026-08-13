@@ -100,12 +100,15 @@ class HttpTransport implements Transport, UsesProtocol
         ];
     }
 
-    public function send(string $message): void
+    /**
+     * @param  array<string, string>  $headers
+     */
+    public function send(string $message, array $headers = []): void
     {
         $hadSession = $this->sessionId !== null;
 
         try {
-            $response = Http::withHeaders($this->headers())
+            $response = Http::withHeaders($this->headers($headers))
                 ->withBody($message, 'application/json')
                 ->timeout($this->timeoutSeconds)
                 ->withOptions(['stream' => true])
@@ -206,13 +209,15 @@ class HttpTransport implements Transport, UsesProtocol
     }
 
     /**
+     * @param  array<string, string>  $mirrored
      * @return array<string, string>
      */
-    protected function headers(): array
+    protected function headers(array $mirrored = []): array
     {
         $headers = [
             'Accept' => 'application/json, text/event-stream',
             ...$this->eraHeaders(),
+            ...$mirrored,
         ];
 
         $token = $this->token instanceof Closure ? (string) ($this->token)() : $this->token;
@@ -222,6 +227,10 @@ class HttpTransport implements Transport, UsesProtocol
         }
 
         foreach ($this->customHeaders as $name => $value) {
+            if ($this->reserved($name)) {
+                continue;
+            }
+
             foreach (array_keys($headers) as $existing) {
                 if (strcasecmp($existing, $name) === 0) {
                     unset($headers[$existing]);
@@ -232,6 +241,11 @@ class HttpTransport implements Transport, UsesProtocol
         }
 
         return $headers;
+    }
+
+    protected function reserved(string $name): bool
+    {
+        return str_starts_with(strtolower($name), 'mcp-');
     }
 
     /**
