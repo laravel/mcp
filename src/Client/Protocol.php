@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Client;
 use Illuminate\Support\Arr;
 use JsonException;
 use Laravel\Mcp\Client\Contracts\Method;
+use Laravel\Mcp\Client\Contracts\MirrorsParameters;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Contracts\UsesProtocol;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
@@ -305,7 +306,10 @@ class Protocol
         );
 
         try {
-            $this->transport->send($request->toJson());
+            $this->transport->send(
+                $request->toJson(),
+                $this->requestHeaders($method, $request, $protocolVersion),
+            );
 
             do {
                 $raw = $this->transport->receive();
@@ -362,6 +366,22 @@ class Protocol
         $result = Arr::get($response, 'result');
 
         return is_array($result) ? $result : [];
+    }
+
+    /**
+     * @param  Method<mixed>  $method
+     * @return array<string, string>
+     */
+    protected function requestHeaders(Method $method, JsonRpcRequest $request, ProtocolVersion $protocolVersion): array
+    {
+        if ($protocolVersion->handshake() !== ProtocolHandshake::Discovery) {
+            return [];
+        }
+
+        return [
+            ...$request->mirroredHeaders(),
+            ...$method instanceof MirrorsParameters ? $method->requestHeaders() : [],
+        ];
     }
 
     /**

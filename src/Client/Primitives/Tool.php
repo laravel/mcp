@@ -8,14 +8,20 @@ use Illuminate\Support\Arr;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Schema\ToolResult;
 use Laravel\Mcp\Exceptions\ClientException;
+use Laravel\Mcp\Exceptions\MirroredParameterException;
+use Laravel\Mcp\Support\MirroredParameters;
 
 class Tool
 {
+    protected MirroredParameters $mirroredParameters;
+
     /**
      * @param  array<string, mixed>  $inputSchema
      * @param  array<string, mixed>|null  $outputSchema
      * @param  array<string, mixed>  $annotations
      * @param  array<string, mixed>|null  $meta
+     *
+     * @throws MirroredParameterException
      */
     public function __construct(
         protected ?Client $client,
@@ -27,7 +33,12 @@ class Tool
         public readonly array $annotations,
         public readonly ?array $meta,
     ) {
-        //
+        $this->mirroredParameters = MirroredParameters::fromSchema($inputSchema);
+    }
+
+    public function mirroredParameters(): MirroredParameters
+    {
+        return $this->mirroredParameters;
     }
 
     /**
@@ -74,6 +85,6 @@ class Tool
             throw new ClientException("Tool [{$this->name}] is not bound to a client.");
         }
 
-        return $this->client->callTool($this->name, $arguments);
+        return $this->client->callTool($this, $arguments);
     }
 }

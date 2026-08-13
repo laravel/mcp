@@ -29,9 +29,12 @@ use Laravel\Mcp\Client\Schema\ToolResult;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Client\Transport\StdioTransport;
 use Laravel\Mcp\Client\Transport\TransportFactory;
+use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Schema\Implementation;
+use Laravel\Mcp\Support\MirroredParameters;
 
 class Client
 {
@@ -181,9 +184,27 @@ class Client
     /**
      * @param  array<string, mixed>  $arguments
      */
-    public function callTool(string $name, array $arguments = []): ToolResult
+    public function callTool(Tool|string $tool, array $arguments = []): ToolResult
     {
-        return (new CallTool($name, $arguments))->handle($this->protocol);
+        $name = $tool instanceof Tool ? $tool->name : $tool;
+        $mirroredParameters = $tool instanceof Tool ? $tool->mirroredParameters() : null;
+
+        try {
+            return (new CallTool($name, $arguments, $mirroredParameters))->handle($this->protocol);
+        } catch (JsonRpcException $jsonRpcException) {
+            if ($jsonRpcException->getCode() !== ErrorCode::HEADER_MISMATCH->value) {
+                throw $jsonRpcException;
+            }
+
+            $refreshed = $this->tools()->get($name)?->mirroredParameters();
+
+            if (! $refreshed instanceof MirroredParameters
+                || $refreshed->headers($arguments) === ($mirroredParameters?->headers($arguments) ?? [])) {
+                throw $jsonRpcException;
+            }
+
+            return (new CallTool($name, $arguments, $refreshed))->handle($this->protocol);
+        }
     }
 
     /**
