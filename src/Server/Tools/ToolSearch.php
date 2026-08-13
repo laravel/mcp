@@ -15,7 +15,7 @@ use Laravel\Mcp\Server\ToolInvoker;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 
-class ToolsSearch
+class ToolSearch
 {
     protected int $maxToolCalls;
 
@@ -38,7 +38,7 @@ class ToolsSearch
 
         foreach ($tools as $tool) {
             if (! $tool instanceof Tool && (! is_string($tool) || ! is_subclass_of($tool, Tool::class))) {
-                throw new InvalidArgumentException('ToolsSearch entries must be tool instances or tool class names.');
+                throw new InvalidArgumentException('ToolSearch entries must be tool instances or tool class names.');
             }
 
             $this->tools[] = $tool;
@@ -235,7 +235,7 @@ class ToolsSearch
         $duplicate = $tools->map(fn (Tool $tool): string => $tool->name())->duplicates()->first();
 
         if (is_string($duplicate)) {
-            throw new InvalidArgumentException("Duplicate tool name [{$duplicate}] in ToolsSearch catalog.");
+            throw new InvalidArgumentException("Duplicate tool name [{$duplicate}] in ToolSearch catalog.");
         }
 
         return $tools->values();

@@ -18,7 +18,7 @@ class ExecuteTools extends Tool
 
     protected string $title = 'Execute Tools';
 
-    public function __construct(protected ToolsSearch $catalog, protected int $maxToolCalls) {}
+    public function __construct(protected ToolSearch $catalog, protected int $maxToolCalls) {}
 
     public function description(): string
     {

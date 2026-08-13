@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
-use Laravel\Mcp\Server\Tools\ToolsSearch;
+use Laravel\Mcp\Server\Tools\ToolSearch;
 
 class ServerContext
 {
@@ -39,32 +39,32 @@ class ServerContext
      */
     public function tools(): Collection
     {
-        $configuredTools = collect($this->tools)->map(function (Tool|string|array $tool, int|string $key): Tool|ToolsSearch|string {
-            if ($key !== ToolsSearch::class) {
+        $configuredTools = collect($this->tools)->map(function (Tool|string|array $tool, int|string $key): Tool|ToolSearch|string {
+            if ($key !== ToolSearch::class) {
                 if (is_array($tool)) {
-                    throw new InvalidArgumentException('Tool groups must use ToolsSearch::class as their key.');
+                    throw new InvalidArgumentException('Tool groups must use ToolSearch::class as their key.');
                 }
 
                 return $tool;
             }
 
             if (! is_array($tool)) {
-                throw new InvalidArgumentException('The ToolsSearch::class entry must contain an array of tools.');
+                throw new InvalidArgumentException('The ToolSearch::class entry must contain an array of tools.');
             }
 
-            return new ToolsSearch($tool);
+            return new ToolSearch($tool);
         });
 
-        $hasToolsSearch = $configuredTools->contains(fn (Tool|ToolsSearch|string $tool): bool => $tool instanceof ToolsSearch);
+        $hasToolSearch = $configuredTools->contains(fn (Tool|ToolSearch|string $tool): bool => $tool instanceof ToolSearch);
 
         /** @var Collection<int, Tool|string> $tools */
-        $tools = $configuredTools->flatMap(fn (Tool|ToolsSearch|string $tool): array => $tool instanceof ToolsSearch
+        $tools = $configuredTools->flatMap(fn (Tool|ToolSearch|string $tool): array => $tool instanceof ToolSearch
             ? $tool->tools()
             : [$tool]);
 
         $tools = $this->resolvePrimitives($tools);
 
-        if ($hasToolsSearch) {
+        if ($hasToolSearch) {
             $duplicate = $tools->map(fn (Tool $tool): string => $tool->name())->duplicates()->first();
 
             if (is_string($duplicate)) {

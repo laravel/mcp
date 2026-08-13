@@ -12,7 +12,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\ExecuteTools;
 use Laravel\Mcp\Server\Tools\SearchTools;
-use Laravel\Mcp\Server\Tools\ToolsSearch;
+use Laravel\Mcp\Server\Tools\ToolSearch;
 use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -25,7 +25,7 @@ it('supports declaring a searchable tool group on the server', function (): void
     {
         protected array $tools = [
             StructuredContentTool::class,
-            ToolsSearch::class => [
+            ToolSearch::class => [
                 SayHiTool::class,
             ],
         ];
@@ -246,7 +246,7 @@ it('expands into two tools and rejects duplicate catalog names', function (): vo
 
     expect([$searchTools->name(), $executeTools->name()])->toBe(['search_tools', 'execute_tools'])
         ->and($result['isError'])->toBeTrue()
-        ->and($result['content'][0]['text'])->toBe('Duplicate tool name [say-hi-tool] in ToolsSearch catalog.');
+        ->and($result['content'][0]['text'])->toBe('Duplicate tool name [say-hi-tool] in ToolSearch catalog.');
 });
 
 it('rejects generated tool name collisions', function (): void {
@@ -258,7 +258,7 @@ it('rejects generated tool name collisions', function (): void {
         maxPaginationLength: 50,
         defaultPaginationLength: 10,
         tools: [
-            ToolsSearch::class => [SayHiTool::class],
+            ToolSearch::class => [SayHiTool::class],
             new class extends Tool
             {
                 protected string $name = 'search_tools';
@@ -286,7 +286,7 @@ function toolSearchContext(array $tools): ServerContext
         instructions: 'Test instructions',
         maxPaginationLength: 50,
         defaultPaginationLength: 10,
-        tools: [ToolsSearch::class => $tools],
+        tools: [ToolSearch::class => $tools],
         resources: [],
         prompts: [],
     );

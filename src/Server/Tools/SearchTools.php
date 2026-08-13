@@ -17,7 +17,7 @@ class SearchTools extends Tool
 
     protected string $title = 'Search Tools';
 
-    public function __construct(protected ToolsSearch $catalog) {}
+    public function __construct(protected ToolSearch $catalog) {}
 
     public function description(): string
     {
