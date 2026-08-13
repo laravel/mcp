@@ -938,3 +938,74 @@ it('returns json validation errors even without Accept application/json header',
     $response->assertHeader('Content-Type', 'application/json');
     $response->assertJsonStructure(['error', 'error_description']);
 });
+
+it('rejects more than five redirect URIs', function (): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => array_map(
+            fn (int $port): string => "http://localhost:{$port}/callback",
+            range(3000, 3005),
+        ),
+    ]);
+
+    $response->assertStatus(400);
+    $response->assertJson(['error' => 'invalid_redirect_uri']);
+});
+
+it('rejects a redirect URI longer than 2048 characters', function (): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['http://localhost:3000/'.str_repeat('a', 2048)],
+    ]);
+
+    $response->assertStatus(400);
+    $response->assertJson(['error' => 'invalid_redirect_uri']);
+});
+
+it('throttles the registration endpoint', function (): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    foreach (range(1, 10) as $ignored) {
+        $this->postJson('/oauth/register', [
+            'client_name' => 'Test Client',
+            'redirect_uris' => ['http://localhost:3000/callback'],
+        ])->assertStatus(201);
+    }
+
+    $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['http://localhost:3000/callback'],
+    ])->assertStatus(429);
+});
+
+it('does not throttle the registration endpoint when the throttle is disabled', function (): void {
+    config()->set('mcp.limiters.register');
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    $route = collect(Route::getRoutes())->first(
+        fn ($route): bool => $route->uri() === 'oauth/register'
+    );
+
+    expect($route->gatherMiddleware())->not->toContain('throttle:mcp-register');
+});

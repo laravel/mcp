@@ -151,7 +151,11 @@ class Registrar
             ->where('path', '.*')
             ->name('mcp.oauth.authorization-server.nested');
 
-        Router::post($oauthPrefix.'/register', OAuthRegisterController::class);
+        $route = Router::post($oauthPrefix.'/register', OAuthRegisterController::class);
+
+        if (is_string($limiter = config('mcp.limiters.register'))) {
+            $route->middleware("throttle:{$limiter}");
+        }
     }
 
     /**

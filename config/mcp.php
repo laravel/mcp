@@ -53,6 +53,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Rate Limiting
+    |--------------------------------------------------------------------------
+    |
+    | By default, the OAuth dynamic client registration endpoint is rate limited
+    | to prevent unbounded client creation. You may name your own limiter to
+    | replace it, or set the value to null to remove the limit entirely.
+    |
+    */
+
+    'limiters' => [
+        'register' => 'mcp-register',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Tool Search
     |--------------------------------------------------------------------------
     |

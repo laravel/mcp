@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request as HttpRequest;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Client\ClientManager;
@@ -32,6 +35,7 @@ class McpServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerMcpScope();
+        $this->registerRateLimiter();
         $this->registerRoutes();
         $this->registerContainerCallbacks();
         $this->registerClientDisconnect();
@@ -66,6 +70,17 @@ class McpServiceProvider extends ServiceProvider
         $this->publishes([
             __DIR__.'/../../config/mcp.php' => config_path('mcp.php'),
         ], 'mcp-config');
+    }
+
+    protected function registerRateLimiter(): void
+    {
+        $this->app->booted(function (): void {
+            if (RateLimiter::limiter('mcp-register') !== null) {
+                return;
+            }
+
+            RateLimiter::for('mcp-register', fn (HttpRequest $request): Limit => Limit::perMinute(10)->by((string) $request->ip()));
+        });
     }
 
     protected function registerRoutes(): void
