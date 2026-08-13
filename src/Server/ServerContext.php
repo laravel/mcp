@@ -6,15 +6,17 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
+use Laravel\Mcp\Server\Tools\ToolSearch;
 
 class ServerContext
 {
     /**
      * @param  array<int, string>  $supportedProtocolVersions
      * @param  array<string, mixed>  $serverCapabilities
-     * @param  array<int, Tool|string>  $tools
+     * @param  array<int|string, Tool|string|array<int, Tool|string>>  $tools
      * @param  array<int, Resource|string>  $resources
      * @param  array<int, Prompt|string>  $prompts
      */
@@ -37,10 +39,40 @@ class ServerContext
      */
     public function tools(): Collection
     {
-        /** @var Collection<int,Tool> $tools */
-        $tools = collect($this->tools);
+        $configuredTools = collect($this->tools)->map(function (Tool|string|array $tool, int|string $key): Tool|ToolSearch|string {
+            if ($key !== ToolSearch::class) {
+                if (is_array($tool)) {
+                    throw new InvalidArgumentException('Tool groups must use ToolSearch::class as their key.');
+                }
 
-        return $this->resolvePrimitives($tools);
+                return $tool;
+            }
+
+            if (! is_array($tool)) {
+                throw new InvalidArgumentException('The ToolSearch::class entry must contain an array of tools.');
+            }
+
+            return new ToolSearch($tool);
+        });
+
+        $hasToolSearch = $configuredTools->contains(fn (Tool|ToolSearch|string $tool): bool => $tool instanceof ToolSearch);
+
+        /** @var Collection<int, Tool|string> $tools */
+        $tools = $configuredTools->flatMap(fn (Tool|ToolSearch|string $tool): array => $tool instanceof ToolSearch
+            ? $tool->tools()
+            : [$tool]);
+
+        $tools = $this->resolvePrimitives($tools);
+
+        if ($hasToolSearch) {
+            $duplicate = $tools->map(fn (Tool $tool): string => $tool->name())->duplicates()->first();
+
+            if (is_string($duplicate)) {
+                throw new InvalidArgumentException("Duplicate server tool name [{$duplicate}].");
+            }
+        }
+
+        return $tools;
     }
 
     /**

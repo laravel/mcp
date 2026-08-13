@@ -51,4 +51,20 @@ return [
 
     'authorization_server' => null,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Tool Search
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure the limits enforced during tool search. The maximum
+    | number of tool calls limits how many tools each search request can run
+    | while the maximum output bytes value caps the size of every result.
+    |
+    */
+
+    'tool_search' => [
+        'max_tool_calls' => 10,
+        'max_output_bytes' => 65_536,
+    ],
+
 ];
