@@ -136,6 +136,67 @@ match (ErrorCode::tryFrom($e->getCode())) {
 
 This only matters if your code inspects `JsonRpcException::getCode()`, or a raw `error.code`, numerically. Prefer matching on `ErrorCode` going forward.
 
+### The OAuth Client Refuses Authorization Servers That Do Not Advertise PKCE
+
+**Likelihood Of Impact: Medium**
+
+`OAuthClient::redirect()` now throws an `OAuthException` when the authorization server's metadata omits `code_challenge_methods_supported` entirely. Previously only a server that advertised the field *without* `S256` was rejected, so a server that omitted it altogether passed straight through and the flow continued with no PKCE guarantee. The MCP authorization spec is explicit: if `code_challenge_methods_supported` is absent, the authorization server does not support PKCE and clients must refuse to proceed.
+
+```php
+// Before (0.x): a server with no code_challenge_methods_supported was accepted.
+// {"issuer":"https://auth.example.com","authorization_endpoint":"...","token_endpoint":"..."}
+return Mcp::client('github')->oAuthClient()->redirect(); // redirected fine, no PKCE
+
+// After (1.0): the same server is rejected before any redirect happens.
+// OAuthException: The authorization server metadata does not advertise
+// [code_challenge_methods_supported], so it does not support the required PKCE.
+```
+
+There is no opt-out, and that is deliberate. If you hit this against a server you control, publish `"code_challenge_methods_supported": ["S256"]` in its `/.well-known/oauth-authorization-server` document. If you hit it against a third-party server, that server cannot be used safely for an authorization-code flow and you will need a pre-issued `client_id`/`client_secret` with `clientCredentials()` instead. You are unaffected if every server you connect to already advertises `S256`, which includes any server built with this package.
+
+### The OAuth Client Prefers A Client ID Metadata Document Over Dynamic Registration
+
+**Likelihood Of Impact: Medium**
+
+MCP 2026-07-28 deprecates Dynamic Client Registration in favour of Client ID Metadata Documents, where the `client_id` is an HTTPS URL pointing at a JSON document describing your client. When no `client_id` is configured, the client now resolves one in this order: a `clientId` passed to `withOAuth()`, then the metadata document your application publishes if the server advertises `client_id_metadata_document_supported`, then dynamic registration, and only then an exception.
+
+The practical consequence is the shape of what reaches your callback handler. On the metadata-document path your client is a *public* client: the `client_id` handed to you is a URL and there is no client secret at all.
+
+```php
+Mcp::oAuthRoutesFor('github', function (string $client, TokenSet $token) {
+    // Before (0.x): always a dynamically registered pair.
+    // $token->clientId     === 'a1b2c3d4-...'          (opaque, new on every connect)
+    // $token->clientSecret === 'sk_live_...'            (a string)
+
+    // After (1.0), when the server supports metadata documents:
+    // $token->clientId     === 'https://acme.com/mcp/oauth/github/client-metadata.json'
+    // $token->clientSecret === null
+
+    Auth::user()->update([
+        'mcp_client_id' => $token->clientId,
+        'mcp_client_secret' => $token->clientSecret, // must be nullable
+    ]);
+});
+```
+
+Audit any column you persist `clientSecret` into for a `NOT NULL` constraint, and any code that passes it back to `refreshCredentials()` — a null secret is now expected and the token request is sent with `token_endpoint_auth_method` of `none`. This is also a fix worth having: previously every call to `redirect()` performed a fresh dynamic registration, so connecting three times created three separate client records on the authorization server. You are unaffected if you pass an explicit `clientId` to `withOAuth()`, or if the servers you talk to do not advertise `client_id_metadata_document_supported`, in which case dynamic registration still runs exactly as before.
+
+### `Mcp::oAuthRoutesFor()` Now Registers A Third, Publicly Readable Route
+
+**Likelihood Of Impact: Low**
+
+Alongside the connect and callback routes, `Mcp::oAuthRoutesFor()` publishes the client ID metadata document at `GET /mcp/oauth/{client}/client-metadata.json`, named `mcp.oauth.{client}.client-metadata`. It deliberately does **not** receive the `middleware` argument you pass, because the authorization server has to fetch it unauthenticated; it is served with `Cache-Control: max-age=3600, public`. The document exposes your `APP_NAME` and `APP_URL` as `client_name` and `client_uri`.
+
+```php
+// Customise the document, or move it off the default path:
+Mcp::oAuthRoutesFor('github', $handler, clientMetadataUri: 'oauth/github/metadata.json', clientMetadata: [
+    'client_name' => 'Acme Dashboard',
+    'logo_uri' => 'https://acme.com/logo.png',
+]);
+```
+
+`client_id`, `redirect_uris`, and `token_endpoint_auth_method` are always computed from your `APP_URL` and route table and cannot be overridden — `client_id` must match the document's own URL exactly or the authorization server rejects it. Extra `redirect_uris` you supply are appended to the published callback route rather than replacing it. `client_secret`, `client_secret_expires_at`, and `registration_access_token` are stripped, since a public metadata document must never carry credentials. Check for a route collision if your application already serves that path, and set `APP_URL` correctly in production: the document is built from it, not from the incoming request's host.
+
 ### The Server No Longer Answers Bare `ping` Requests
 
 **Likelihood Of Impact: Low**
