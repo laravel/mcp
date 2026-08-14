@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
+use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Client\ClientManager;
@@ -15,6 +17,7 @@ use Laravel\Mcp\Console\Commands\MakeServerCommand;
 use Laravel\Mcp\Console\Commands\MakeToolCommand;
 use Laravel\Mcp\Console\Commands\StartCommand;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
 
 class McpServiceProvider extends ServiceProvider
 {
@@ -32,6 +35,7 @@ class McpServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerMcpScope();
+        $this->registerMiddlewarePriority();
         $this->registerRoutes();
         $this->registerContainerCallbacks();
         $this->registerClientDisconnect();
@@ -41,6 +45,15 @@ class McpServiceProvider extends ServiceProvider
             $this->registerCommands();
             $this->registerPublishing();
         }
+    }
+
+    protected function registerMiddlewarePriority(): void
+    {
+        $this->callAfterResolving(HttpKernelContract::class, function (mixed $kernel): void {
+            if ($kernel instanceof HttpKernel) {
+                $kernel->prependToMiddlewarePriority(AddWwwAuthenticateHeader::class);
+            }
+        });
     }
 
     protected function registerPublishing(): void
