@@ -16,9 +16,9 @@ In your application's `composer.json` file, update the `laravel/mcp` dependency:
 
 **Likelihood Of Impact: High**
 
-The server now speaks a single protocol revision, `2026-07-28`. The protocol versions `2025-11-25`, `2025-06-18`, `2025-03-26`, and `2024-11-05` are no longer accepted.
+The server now supports only protocol revision `2026-07-28`. The protocol versions `2025-11-25`, `2025-06-18`, `2025-03-26`, and `2024-11-05` are no longer accepted.
 
-The `initialize` handshake has been removed in favor of a new `server/discover` method. Since there is no handshake, every request must carry the protocol version and client capabilities in its own `params._meta`:
+The `initialize` handshake has been replaced by the `server/discover` method. Without a handshake, every request must include the protocol version and client capabilities in its own `params._meta`:
 
 ```
 // Before...
@@ -26,22 +26,22 @@ The `initialize` handshake has been removed in favor of a new `server/discover` 
 --> {"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}
 
 // After...
---> {"jsonrpc":"2.0","id":1,"method":"server/discover","params":{}}
+--> {"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}
 <-- {"jsonrpc":"2.0","id":1,"result":{"supportedVersions":["2026-07-28"],"capabilities":{...},"instructions":null}}
 --> {"jsonrpc":"2.0","id":2,"method":"tools/list","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{}}}}
 ```
 
-If you only write `Tool`, `Resource`, `Prompt`, and `Server` classes, no changes are needed as long as your MCP client supports the `2026-07-28` revision. `Laravel\Mcp\Client` and the MCP Inspector both do.
+If your application only defines `Tool`, `Resource`, `Prompt`, and `Server` classes, no changes are required as long as your MCP client supports the `2026-07-28` revision. Both `Laravel\Mcp\Client` and the MCP Inspector support this revision.
 
-Clients that only know the `initialize` flow can no longer connect and will receive a `-32601` error. Re-registering `initialize` via `addMethod()` will not help, since every request still passes through the protocol metadata check.
+Clients that support only the `initialize` flow can no longer connect and will receive a `-32601` error. Re-registering `initialize` via `addMethod()` will not restore compatibility because every request must still pass the protocol metadata check.
 
 ## MCP HTTP Headers
 
 **Likelihood Of Impact: High**
 
-A new `ValidateMcpHeaders` middleware is applied to every route registered via `Mcp::web(...)`. Each POST request must include `MCP-Protocol-Version` and `Mcp-Method` headers that match the request body. Requests for `tools/call`, `prompts/get`, and `resources/read` must also include an `Mcp-Name` header matching the call's `name` or, for `resources/read`, its `uri`.
+The new `ValidateMcpHeaders` middleware is applied to every route registered via `Mcp::web(...)`. Each POST request must include `MCP-Protocol-Version` and `Mcp-Method` headers whose values match the request body. Requests for `tools/call`, `prompts/get`, and `resources/read` must also include an `Mcp-Name` header matching `params.name` or, for `resources/read`, `params.uri`.
 
-This applies to any HTTP client hitting the endpoint, including your own tests:
+This requirement applies to every HTTP client that calls the endpoint, including your application's tests:
 
 ```php
 // Before...
@@ -51,6 +51,18 @@ $this->postJson('mcp-endpoint', [
 ]);
 
 // After...
+$message = [
+    'jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/call',
+    'params' => [
+        'name' => 'say-hi',
+        'arguments' => [],
+        '_meta' => [
+            'io.modelcontextprotocol/protocolVersion' => '2026-07-28',
+            'io.modelcontextprotocol/clientCapabilities' => [],
+        ],
+    ],
+];
+
 $this->postJson('mcp-endpoint', $message, [
     'MCP-Protocol-Version' => '2026-07-28',
     'Mcp-Method' => 'tools/call',
@@ -58,13 +70,13 @@ $this->postJson('mcp-endpoint', $message, [
 ]);
 ```
 
-A mismatch returns an HTTP 400 response with the JSON-RPC error code `-32020`. The `initialize` method is exempt from validation. The `Mcp-Name` header may be encoded as `=?base64?<b64>?=` for names containing characters that are not valid in a raw header value.
+A mismatch returns an HTTP 400 response containing the JSON-RPC error code `-32020`. Requests to the removed `initialize` method are exempt from header validation, but still receive a `-32601` method-not-found error. The `Mcp-Name` header may be encoded as `=?base64?<b64>?=` when a name contains characters that are not valid in a raw header value.
 
 ## Session IDs
 
 **Likelihood Of Impact: Medium**
 
-The `Request::sessionId()` and `Request::setSessionId()` methods have been removed, along with the `MCP-Session-Id` header. Every HTTP request and stdio line is now processed independently:
+The `Request::sessionId()` and `Request::setSessionId()` methods have been removed, along with the `MCP-Session-Id` header. Every HTTP request and stdio message is now processed independently:
 
 ```php
 // Before...
@@ -82,7 +94,7 @@ There is no replacement. If you need to correlate calls, pass your own identifie
 
 **Likelihood Of Impact: Medium**
 
-The `Laravel\Mcp\Events\SessionInitialized` event has been removed along with the `initialize` handshake that dispatched it. There is no replacement event, so you should remove any listeners referencing it:
+The `Laravel\Mcp\Events\SessionInitialized` event and the `initialize` handshake that dispatched it have been removed. There is no replacement event, so you should remove any listeners that reference it:
 
 ```php
 // Before...
@@ -95,20 +107,20 @@ Event::listen(SessionInitialized::class, function (SessionInitialized $event): v
 
 **Likelihood Of Impact: Medium**
 
-A `resources/read` request for an unresolvable URI now returns `-32602` (Invalid params) instead of `-32002`. In addition, a new `Laravel\Mcp\Enums\ErrorCode` enum introduces `-32020` for a header mismatch and `-32022` for an unsupported protocol version, which was previously reported as `-32602`:
+A `resources/read` request for a URI that cannot be resolved now returns `-32602` (Invalid params) instead of `-32002`. The new `Laravel\Mcp\Enums\ErrorCode` enum also defines `-32020` for a header mismatch and `-32022` for an unsupported protocol version. Unsupported protocol versions were previously reported as `-32602`:
 
 ```php
 // Before...
 match ($e->getCode()) {
     -32002 => /* resource URI could not be resolved */,
-    -32602 => /* unsupported protocol version, or invalid params */,
+    -32602 => /* unsupported protocol version or invalid params */,
 };
 
 // After...
 use Laravel\Mcp\Enums\ErrorCode;
 
 match (ErrorCode::tryFrom($e->getCode())) {
-    ErrorCode::INVALID_PARAMS => /* invalid params, or unresolvable resource URI */,
+    ErrorCode::INVALID_PARAMS => /* invalid params or unresolvable resource URI */,
     ErrorCode::UNSUPPORTED_PROTOCOL_VERSION => /* unsupported protocol version */,
     ErrorCode::HEADER_MISMATCH => /* an MCP header did not match the request body */,
 };
@@ -120,26 +132,26 @@ This change only affects code that inspects error codes numerically.
 
 **Likelihood Of Impact: Medium**
 
-The `OAuthClient::redirect()` method now throws an `OAuthException` when the authorization server's metadata omits `code_challenge_methods_supported`. Previously, only servers that advertised the field without `S256` were rejected, so servers omitting it entirely continued with no PKCE guarantee:
+The `OAuthClient::redirect()` method now throws an `OAuthException` when the authorization server's metadata omits `code_challenge_methods_supported`. Previously, only servers that advertised the field without `S256` were rejected; servers that omitted it entirely could proceed without guaranteeing PKCE support:
 
 ```php
-// Before... redirected without PKCE:
+// Before... redirects without guaranteed PKCE support:
 return Mcp::client('github')->oAuthClient()->redirect();
 
-// After... an OAuthException is thrown before redirecting.
+// After... throws an OAuthException before redirecting.
 ```
 
-There is no opt-out. For servers you control, publish `"code_challenge_methods_supported": ["S256"]` in the `/.well-known/oauth-authorization-server` document. For third-party servers, use a pre-issued `client_id` and `client_secret` with `clientCredentials()` instead.
+There is no opt-out. For servers you control, publish `"code_challenge_methods_supported": ["S256"]` in the `/.well-known/oauth-authorization-server` document. For third-party servers, use a pre-issued `client_id` and `client_secret` with `clientCredentials()` if the client credentials grant is appropriate for your integration.
 
 ## Client ID Metadata Documents
 
 **Likelihood Of Impact: Medium**
 
-MCP 2026-07-28 deprecates Dynamic Client Registration in favor of Client ID Metadata Documents, where the `client_id` is an HTTPS URL pointing at a JSON document describing your client.
+MCP 2026-07-28 deprecates Dynamic Client Registration in favor of Client ID Metadata Documents. With this mechanism, the `client_id` is an HTTPS URL that points to a JSON document describing your client.
 
-When no `client_id` is configured, the client resolves one in this order: the `clientId` passed to `withOAuth()`, then your application's metadata document if the server advertises `client_id_metadata_document_supported`, then dynamic registration.
+The client determines its `client_id` in the following order: the `clientId` passed to `withOAuth()`, your application's metadata document when the server advertises `client_id_metadata_document_supported`, and finally dynamic registration.
 
-On the metadata document path your client is a public client, so the `client_id` given to your callback is a URL and there is no client secret:
+When a metadata document is used, your application is treated as a public client. Therefore, the `client_id` passed to your callback is a URL and there is no client secret:
 
 ```php
 Mcp::oAuthRoutesFor('github', function (string $client, TokenSet $token) {
@@ -158,15 +170,15 @@ Mcp::oAuthRoutesFor('github', function (string $client, TokenSet $token) {
 });
 ```
 
-Any column storing `clientSecret` must be nullable, and code passing the secret to `refreshCredentials()` must tolerate `null`, in which case the token request uses a `token_endpoint_auth_method` of `none`.
+Any database column that stores `clientSecret` must be nullable. Code that passes the secret to `refreshCredentials()` must also accept `null`; in that case, the token request uses a `token_endpoint_auth_method` of `none`.
 
-This change also fixes a bug where every call to `redirect()` performed a fresh dynamic registration, creating a new client record on the authorization server for each connection.
+This change also fixes a bug that caused every call to `redirect()` to perform a fresh dynamic registration, creating a new client record on the authorization server for each connection.
 
 ## The Client Metadata Route
 
 **Likelihood Of Impact: Low**
 
-In addition to the connect and callback routes, `Mcp::oAuthRoutesFor()` now registers the client ID metadata document at `GET /mcp/oauth/{client}/client-metadata.json`, named `mcp.oauth.{client}.client-metadata`. The route does not receive the `middleware` argument you provide, since the authorization server must fetch it unauthenticated.
+In addition to the connect and callback routes, `Mcp::oAuthRoutesFor()` now registers a client ID metadata document at `GET /mcp/oauth/{client}/client-metadata.json`. The route is named `mcp.oauth.{client}.client-metadata`. The supplied `middleware` is not applied to this route because the authorization server must be able to fetch it without authentication.
 
 You may customize the document or move it to another path:
 
@@ -177,15 +189,15 @@ Mcp::oAuthRoutesFor('github', $handler, clientMetadataUri: 'oauth/github/metadat
 ]);
 ```
 
-The `client_id`, `redirect_uris`, and `token_endpoint_auth_method` values are computed from your `APP_URL` and route table and may not be overridden. Additional `redirect_uris` are appended to the published callback route. The `client_secret`, `client_secret_expires_at`, and `registration_access_token` keys are stripped from the document.
+The `client_id` and default `redirect_uris` values are computed from your `APP_URL` and route table, while `token_endpoint_auth_method` is always `none`; these values may not be overridden. Any additional `redirect_uris` are included alongside the generated callback URL. The `client_secret`, `client_secret_expires_at`, and `registration_access_token` keys are stripped from the document.
 
-You should check for route collisions on that path and ensure `APP_URL` is correct in production, since the document is built from it rather than from the incoming request.
+You should check for route collisions at this path and ensure `APP_URL` is correct in production because the document is built from that value rather than from the incoming request.
 
 ## The `ping` Method
 
 **Likelihood Of Impact: Low**
 
-The `ping` method has been removed in favor of `server/discover` and now returns a `-32601` error. Update any health checks or tooling that sends a bare `ping` request.
+The `ping` method has been removed in favor of `server/discover`. Requests to `ping` now return a `-32601` error. Update any health checks or tooling that send a bare `ping` request.
 
 ## The MCP Apps Capability
 
@@ -210,13 +222,13 @@ class MyServer extends Server
 }
 ```
 
-MCP Apps itself is unchanged. Extending `AppResource` still advertises the capability automatically.
+MCP Apps behavior is otherwise unchanged. Extending `AppResource` still advertises the capability automatically.
 
 ## Custom Client Transports
 
 **Likelihood Of Impact: Low**
 
-The `Laravel\Mcp\Client\Contracts\Transport` contract no longer declares a `setProtocolVersion` method. Protocol version awareness has moved to the `Laravel\Mcp\Client\Contracts\UsesProtocol` interface:
+The `Laravel\Mcp\Client\Contracts\Transport` contract no longer declares a `setProtocolVersion()` method. Protocol version handling has moved to the `Laravel\Mcp\Client\Contracts\UsesProtocol` interface:
 
 ```php
 // Before...
@@ -247,7 +259,7 @@ Applications using the bundled `HttpTransport` and `StdioTransport` need no chan
 
 **Likelihood Of Impact: Low**
 
-Two exceptions have been added under `Laravel\Mcp\Client\Exceptions`: `TransportException`, which extends `ClientException`, and `TimeoutException`, which extends `TransportException`. A stdio timeout now throws a `TimeoutException`, and some HTTP transport failures throw a `TransportException`.
+Two exceptions have been added under `Laravel\Mcp\Client\Exceptions`: `TransportException`, which extends `ClientException`, and `TimeoutException`, which extends `TransportException`. A stdio timeout now throws a `TimeoutException`. Some HTTP transport failures now throw a `TransportException`.
 
 Both still extend `ClientException`, so existing broad catch blocks continue to work:
 
@@ -261,4 +273,4 @@ try {
 }
 ```
 
-Note that `JsonRpcException` is a sibling of `ClientException` rather than a child of it, so structured server errors still require their own catch block.
+The `JsonRpcException` class is a sibling of `ClientException`, not a child, so structured server errors still require a separate catch block.
