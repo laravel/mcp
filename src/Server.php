@@ -104,7 +104,7 @@ abstract class Server
     ];
 
     /**
-     * @var array<int, Tool|class-string<Tool>>
+     * @var array<int|string, Tool|class-string<Tool>|array<int, Tool|class-string<Tool>>>
      */
     protected array $tools = [];
 

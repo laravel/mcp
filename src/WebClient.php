@@ -8,6 +8,7 @@ use Closure;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\OAuthClient;
 use Laravel\Mcp\Client\OAuth\OAuthConfig;
+use Laravel\Mcp\Client\OAuth\OAuthRouteRegistrar;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Schema\Implementation;
 use SensitiveParameter;
@@ -68,16 +69,30 @@ class WebClient extends Client
 
         $config = $this->oAuthConfig;
 
-        if ($config->redirectUri === null && $this->name !== null) {
+        if ($this->name !== null && $config->redirectUri === null) {
             $config = clone $config;
 
-            try {
-                $config->redirectUri = route("mcp.oauth.{$this->name}.callback");
-            } catch (RouteNotFoundException) {
-            }
+            $config->redirectUri = $this->canonicalRouteUrl("mcp.oauth.{$this->name}.callback");
         }
 
-        return new OAuthClient($config, $this->httpTransport->url(), $resourceMetadataUrl, $challengeScope);
+        return new OAuthClient(
+            $config,
+            $this->httpTransport->url(),
+            $resourceMetadataUrl,
+            $challengeScope,
+            clientIdMetadataUrl: $this->name === null
+                ? null
+                : $this->canonicalRouteUrl("mcp.oauth.{$this->name}.client-metadata"),
+        );
+    }
+
+    protected function canonicalRouteUrl(string $name): ?string
+    {
+        try {
+            return OAuthRouteRegistrar::url($name);
+        } catch (RouteNotFoundException) {
+            return null;
+        }
     }
 
     /**
