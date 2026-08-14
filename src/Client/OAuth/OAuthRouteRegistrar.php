@@ -80,7 +80,10 @@ class OAuthRouteRegistrar
             'response_types' => ['code'],
             ...Arr::except($clientMetadata, ['client_secret', 'client_secret_expires_at', 'registration_access_token']),
             'client_id' => self::url("mcp.oauth.{$client}.client-metadata"),
-            'redirect_uris' => [self::url("mcp.oauth.{$client}.callback")],
+            'redirect_uris' => array_values(array_unique([
+                self::url("mcp.oauth.{$client}.callback"),
+                ...array_map(strval(...), (array) ($clientMetadata['redirect_uris'] ?? [])),
+            ])),
             'token_endpoint_auth_method' => 'none',
         ]))->setPublic()->setMaxAge(3600));
 

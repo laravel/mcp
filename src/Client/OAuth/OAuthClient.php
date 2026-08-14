@@ -222,17 +222,11 @@ class OAuthClient
 
         $url = parse_url($this->clientIdMetadataUrl);
 
-        if (! is_array($url) || ($url['scheme'] ?? null) !== 'https') {
+        if (! is_array($url) || ($url['scheme'] ?? null) !== 'https' || ($url['path'] ?? '/') === '/') {
             return false;
         }
 
-        if (isset($url['fragment']) || isset($url['query']) || isset($url['user']) || isset($url['pass'])) {
-            return false;
-        }
-
-        $segments = explode('/', trim((string) ($url['path'] ?? ''), '/'));
-
-        if (in_array('', $segments, true) || in_array('.', $segments, true) || in_array('..', $segments, true)) {
+        if (isset($url['fragment']) || isset($url['query'])) {
             return false;
         }
 

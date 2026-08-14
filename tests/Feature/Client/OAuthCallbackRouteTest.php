@@ -222,9 +222,7 @@ it('serves a client id metadata document matching its own url', function (): voi
 it('defaults the client id metadata url to the published route', function (): void {
     config()->set('app.url', 'https://app.example.com');
 
-    Mcp::registerClient('github', fn (): WebClient => Client::web('https://mcp.test/mcp')->withOAuth(
-        redirectUri: 'https://app.example.com/callback',
-    ));
+    Mcp::registerClient('github', fn (): WebClient => Client::web('https://mcp.test/mcp')->withOAuth());
 
     Mcp::oAuthRoutesFor('github', fn (string $provider, TokenSet $token): null => null);
 
@@ -243,7 +241,21 @@ it('defaults the client id metadata url to the published route', function (): vo
 
     $this->withSession([])
         ->get('http://localhost/mcp/github/connect')
-        ->assertRedirectContains(urlencode('https://app.example.com/mcp/oauth/github/client-metadata.json'));
+        ->assertRedirectContains(urlencode('https://app.example.com/mcp/oauth/github/client-metadata.json'))
+        ->assertRedirectContains(urlencode('https://app.example.com/mcp/oauth/github/callback'));
+});
+
+it('declares a custom redirect uri alongside the published callback route', function (): void {
+    config()->set('app.url', 'https://app.example.com');
+
+    Mcp::oAuthRoutesFor('github', fn (string $provider, TokenSet $token): null => null, clientMetadata: [
+        'redirect_uris' => ['https://app.example.com/callback'],
+    ]);
+
+    expect($this->get('/mcp/oauth/github/client-metadata.json')->json('redirect_uris'))->toBe([
+        'https://app.example.com/mcp/oauth/github/callback',
+        'https://app.example.com/callback',
+    ]);
 });
 
 it('builds the client id metadata document from the configured application url', function (): void {
@@ -267,7 +279,6 @@ it('allows the published client metadata to be customised without weakening it',
         'client_name' => 'Acme Dashboard',
         'logo_uri' => 'https://app.example.com/logo.png',
         'client_id' => 'https://evil.example.net/impostor.json',
-        'redirect_uris' => ['https://evil.example.net/callback'],
         'token_endpoint_auth_method' => 'client_secret_post',
         'client_secret' => 'nope',
     ]);
