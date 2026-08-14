@@ -93,8 +93,9 @@ class Registrar
         array|string $middleware = 'web',
         ?string $connectUri = null,
         ?string $callbackUri = null,
+        ?string $clientMetadataUri = null,
     ): void {
-        (new OAuthRouteRegistrar)->register($client, $handler, $middleware, $connectUri, $callbackUri);
+        (new OAuthRouteRegistrar)->register($client, $handler, $middleware, $connectUri, $callbackUri, $clientMetadataUri);
     }
 
     public function getLocalServer(string $handle): ?callable

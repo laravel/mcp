@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Client\OAuth;
 
 use Closure;
 use Illuminate\Container\Container;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
 use Laravel\Mcp\Client\ClientManager;
@@ -24,6 +25,7 @@ class OAuthRouteRegistrar
         array|string $middleware = 'web',
         ?string $connectUri = null,
         ?string $callbackUri = null,
+        ?string $clientMetadataUri = null,
     ): void {
         if (is_array($handler)) {
             $handler = $handler[0].'@'.$handler[1];
@@ -60,6 +62,19 @@ class OAuthRouteRegistrar
         assert($callback instanceof Route);
 
         $callback->name("mcp.oauth.{$client}.callback")->middleware($middleware);
+
+        $clientMetadata = Router::get($clientMetadataUri ?? "mcp/oauth/{$client}/client-metadata.json", fn (): JsonResponse => (new JsonResponse([
+            'client_id' => route("mcp.oauth.{$client}.client-metadata"),
+            'client_name' => (string) config('app.name'),
+            'redirect_uris' => [route("mcp.oauth.{$client}.callback")],
+            'grant_types' => ['authorization_code', 'refresh_token'],
+            'response_types' => ['code'],
+            'token_endpoint_auth_method' => 'none',
+        ]))->setPublic()->setMaxAge(3600));
+
+        assert($clientMetadata instanceof Route);
+
+        $clientMetadata->name("mcp.oauth.{$client}.client-metadata");
 
         Router::getRoutes()->refreshNameLookups();
     }

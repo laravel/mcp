@@ -49,12 +49,14 @@ class WebClient extends Client
         ?string $clientSecret = null,
         ?string $scope = null,
         ?string $redirectUri = null,
+        ?string $clientIdMetadataUrl = null,
     ): static {
         $this->oAuthConfig = new OAuthConfig(
             clientId: $clientId,
             clientSecret: $clientSecret,
             scope: $scope,
             redirectUri: $redirectUri,
+            clientIdMetadataUrl: $clientIdMetadataUrl,
         );
 
         return $this;
@@ -68,16 +70,23 @@ class WebClient extends Client
 
         $config = $this->oAuthConfig;
 
-        if ($config->redirectUri === null && $this->name !== null) {
+        if ($this->name !== null && ($config->redirectUri === null || $config->clientIdMetadataUrl === null)) {
             $config = clone $config;
 
-            try {
-                $config->redirectUri = route("mcp.oauth.{$this->name}.callback");
-            } catch (RouteNotFoundException) {
-            }
+            $config->redirectUri ??= $this->routeUrl("mcp.oauth.{$this->name}.callback");
+            $config->clientIdMetadataUrl ??= $this->routeUrl("mcp.oauth.{$this->name}.client-metadata");
         }
 
         return new OAuthClient($config, $this->httpTransport->url(), $resourceMetadataUrl, $challengeScope);
+    }
+
+    protected function routeUrl(string $name): ?string
+    {
+        try {
+            return route($name);
+        } catch (RouteNotFoundException) {
+            return null;
+        }
     }
 
     /**
