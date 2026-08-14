@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Session;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\OAuthClient;
+use Laravel\Mcp\Client\OAuth\OAuthConfig;
 use Laravel\Mcp\Client\OAuth\TokenSet;
 
 function fakeDiscovery(): void
@@ -70,6 +71,7 @@ it('merges query params onto an authorization endpoint that already has a query 
         'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://auth.test',
             'authorization_endpoint' => 'https://auth.test/authorize?audience=api',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://auth.test/token',
         ]),
     ]);
@@ -261,6 +263,7 @@ it('falls back to the resource origin when protected resource metadata is unavai
         'https://mcp.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://mcp.test',
             'authorization_endpoint' => 'https://mcp.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://mcp.test/token',
         ]),
     ]);
@@ -311,6 +314,7 @@ it('throws when dynamic registration is needed but unsupported', function (): vo
         'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://auth.test',
             'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://auth.test/token',
         ]),
     ]);
@@ -345,6 +349,7 @@ it('uses the server advertised resource metadata url when provided', function ()
         'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://auth.test',
             'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://auth.test/token',
         ]),
     ]);
@@ -366,6 +371,7 @@ it('throws instead of falling back to the origin when an explicit resource metad
         'https://mcp.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://mcp.test',
             'authorization_endpoint' => 'https://mcp.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://mcp.test/token',
         ]),
     ]);
@@ -415,6 +421,7 @@ it('rejects an authorization server whose issuer does not match', function (): v
         'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://evil.test',
             'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://auth.test/token',
         ]),
     ]);
@@ -448,6 +455,7 @@ it('rejects authorization server metadata that omits the issuer', function (): v
         ]),
         'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
             'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://auth.test/token',
         ]),
     ]);
@@ -502,6 +510,7 @@ it('falls back to openid connect discovery when oauth metadata is absent', funct
         'https://auth.test/.well-known/openid-configuration' => Http::response([
             'issuer' => 'https://auth.test',
             'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://auth.test/token',
         ]),
     ]);
@@ -617,6 +626,7 @@ it('records the issuer in the session for callback validation', function (): voi
         'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://auth.test',
             'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://auth.test/token',
             'authorization_response_iss_parameter_supported' => true,
         ]),
@@ -656,6 +666,7 @@ it('does not request every supported scope from protected resource metadata', fu
         'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://auth.test',
             'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://auth.test/token',
         ]),
     ]);
@@ -680,6 +691,7 @@ it('prefers the challenge scope over the configured scope', function (): void {
         'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://auth.test',
             'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://auth.test/token',
         ]),
     ]);
@@ -735,6 +747,7 @@ it('strips fragments but preserves trailing slashes in the resource identifier',
         'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://auth.test',
             'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://auth.test/token',
         ]),
     ]);
@@ -758,6 +771,7 @@ it('strips the fragment but preserves the query string in the resource identifie
         'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://auth.test',
             'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://auth.test/token',
         ]),
     ]);
@@ -781,6 +795,7 @@ it('leaves a resource identifier without a fragment unchanged', function (): voi
         'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://auth.test',
             'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://auth.test/token',
         ]),
     ]);
@@ -925,6 +940,7 @@ it('uses client_secret_basic when the server only supports it', function (): voi
         'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://auth.test',
             'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
             'token_endpoint' => 'https://auth.test/token',
             'token_endpoint_auth_methods_supported' => ['client_secret_basic'],
         ]),
@@ -943,4 +959,151 @@ it('uses client_secret_basic when the server only supports it', function (): voi
             && $authorization === 'Basic '.base64_encode('svc:secret')
             && ! array_key_exists('client_secret', $request->data());
     });
+});
+
+function fakeCimdDiscovery(): void
+{
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'resource' => 'https://mcp.test/mcp',
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'token_endpoint' => 'https://auth.test/token',
+            'registration_endpoint' => 'https://auth.test/register',
+            'client_id_metadata_document_supported' => true,
+            'code_challenge_methods_supported' => ['S256'],
+        ]),
+        'https://auth.test/register' => Http::response(['client_id' => 'dcr-999', 'client_secret' => 'shh']),
+    ]);
+}
+
+function cimdClient(string $clientIdMetadataUrl, ?string $clientId = null, ?string $clientSecret = null): OAuthClient
+{
+    return new OAuthClient(
+        new OAuthConfig(
+            clientId: $clientId,
+            clientSecret: $clientSecret,
+            redirectUri: 'https://app.example.com/callback',
+        ),
+        'https://mcp.test/mcp',
+        clientIdMetadataUrl: $clientIdMetadataUrl,
+    );
+}
+
+it('uses the client id metadata document instead of dynamic registration', function (): void {
+    fakeCimdDiscovery();
+
+    $target = cimdClient('https://app.example.com/mcp/oauth/github/client-metadata.json')
+        ->redirect()
+        ->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($query['client_id'])->toBe('https://app.example.com/mcp/oauth/github/client-metadata.json');
+
+    $stored = Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'));
+
+    expect($stored['client_id'])->toBe('https://app.example.com/mcp/oauth/github/client-metadata.json')
+        ->and($stored['client_secret'])->toBeNull()
+        ->and($stored['token_auth_method'])->toBe('none');
+
+    Http::assertNotSent(fn ($request): bool => $request->url() === 'https://auth.test/register');
+});
+
+it('prefers a pre-registered client id over the client id metadata document', function (): void {
+    fakeCimdDiscovery();
+
+    $target = cimdClient('https://app.example.com/mcp/oauth/github/client-metadata.json', clientId: 'client-123')
+        ->redirect()
+        ->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($query['client_id'])->toBe('client-123');
+});
+
+it('falls back to dynamic registration when the authorization server does not support metadata documents', function (): void {
+    fakeDiscovery();
+
+    Http::fake([
+        'https://auth.test/register' => Http::response(['client_id' => 'dcr-999']),
+    ]);
+
+    cimdClient('https://app.example.com/mcp/oauth/github/client-metadata.json')->redirect();
+
+    expect(Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'))['client_id'])->toBe('dcr-999');
+
+    Http::assertSent(fn ($request): bool => $request->url() === 'https://auth.test/register');
+});
+
+it('falls back to dynamic registration when the metadata document url is not a valid client id', function (string $url): void {
+    fakeCimdDiscovery();
+
+    cimdClient($url)->redirect();
+
+    expect(Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'))['client_id'])->toBe('dcr-999');
+
+    Http::assertSent(fn ($request): bool => $request->url() === 'https://auth.test/register');
+})->with([
+    'http scheme' => 'http://app.example.com/client-metadata.json',
+    'no path component' => 'https://app.example.com',
+    'empty path component' => 'https://app.example.com/',
+    'fragment component' => 'https://app.example.com/client-metadata.json#part',
+    'query component' => 'https://app.example.com/client-metadata.json?tenant=1',
+    'unparsable url' => 'https:///client-metadata.json',
+    'localhost host' => 'https://localhost/client-metadata.json',
+    'herd or valet test domain' => 'https://app.test/client-metadata.json',
+    'local domain' => 'https://app.local/client-metadata.json',
+    'loopback address' => 'https://127.0.0.1/client-metadata.json',
+    'private network address' => 'https://192.168.1.40/client-metadata.json',
+    'link local address' => 'https://169.254.10.1/client-metadata.json',
+    'ipv6 loopback' => 'https://[::1]/client-metadata.json',
+]);
+
+it('accepts a client id metadata document url with a port', function (): void {
+    fakeCimdDiscovery();
+
+    $target = cimdClient('https://app.example.com:8443/client-metadata.json')
+        ->redirect()
+        ->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($query['client_id'])->toBe('https://app.example.com:8443/client-metadata.json');
+});
+
+it('never sends a client secret alongside a client id metadata document', function (): void {
+    fakeCimdDiscovery();
+
+    cimdClient('https://app.example.com/client-metadata.json', clientSecret: 'leaked-secret')->redirect();
+
+    $stored = Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'));
+
+    expect($stored['client_secret'])->toBeNull()
+        ->and($stored['token_auth_method'])->toBe('none');
+});
+
+it('refuses to proceed when the authorization server does not advertise PKCE support', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'token_endpoint' => 'https://auth.test/token',
+            'registration_endpoint' => 'https://auth.test/register',
+        ]),
+    ]);
+
+    expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.example.com/callback')
+        ->oAuthClient()
+        ->redirect())
+        ->toThrow(OAuthException::class, 'code_challenge_methods_supported');
+
+    Http::assertNotSent(fn ($request): bool => $request->url() === 'https://auth.test/register');
 });
