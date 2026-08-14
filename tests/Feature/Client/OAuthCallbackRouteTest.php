@@ -220,8 +220,10 @@ it('serves a client id metadata document matching its own url', function (): voi
 });
 
 it('defaults the client id metadata url to the published route', function (): void {
+    config()->set('app.url', 'https://app.example.com');
+
     Mcp::registerClient('github', fn (): WebClient => Client::web('https://mcp.test/mcp')->withOAuth(
-        redirectUri: 'https://app.test/callback',
+        redirectUri: 'https://app.example.com/callback',
     ));
 
     Mcp::oAuthRoutesFor('github', fn (string $provider, TokenSet $token): null => null);
@@ -240,6 +242,42 @@ it('defaults the client id metadata url to the published route', function (): vo
     ]);
 
     $this->withSession([])
-        ->get('https://app.test/mcp/github/connect')
-        ->assertRedirectContains(urlencode('https://app.test/mcp/oauth/github/client-metadata.json'));
+        ->get('http://localhost/mcp/github/connect')
+        ->assertRedirectContains(urlencode('https://app.example.com/mcp/oauth/github/client-metadata.json'));
+});
+
+it('builds the client id metadata document from the configured application url', function (): void {
+    config()->set('app.url', 'https://app.example.com/');
+    config()->set('app.name', 'Acme');
+
+    Mcp::oAuthRoutesFor('github', fn (string $provider, TokenSet $token): null => null);
+
+    $document = $this->get('http://spoofed.example.net/mcp/oauth/github/client-metadata.json')->json();
+
+    expect($document['client_id'])->toBe('https://app.example.com/mcp/oauth/github/client-metadata.json')
+        ->and($document['redirect_uris'])->toBe(['https://app.example.com/mcp/oauth/github/callback'])
+        ->and($document['client_uri'])->toBe('https://app.example.com')
+        ->and($document['client_name'])->toBe('Acme MCP Client');
+});
+
+it('allows the published client metadata to be customised without weakening it', function (): void {
+    config()->set('app.url', 'https://app.example.com');
+
+    Mcp::oAuthRoutesFor('github', fn (string $provider, TokenSet $token): null => null, clientMetadata: [
+        'client_name' => 'Acme Dashboard',
+        'logo_uri' => 'https://app.example.com/logo.png',
+        'client_id' => 'https://evil.example.net/impostor.json',
+        'redirect_uris' => ['https://evil.example.net/callback'],
+        'token_endpoint_auth_method' => 'client_secret_post',
+        'client_secret' => 'nope',
+    ]);
+
+    $document = $this->get('/mcp/oauth/github/client-metadata.json')->json();
+
+    expect($document['client_name'])->toBe('Acme Dashboard')
+        ->and($document['logo_uri'])->toBe('https://app.example.com/logo.png')
+        ->and($document['client_id'])->toBe('https://app.example.com/mcp/oauth/github/client-metadata.json')
+        ->and($document['redirect_uris'])->toBe(['https://app.example.com/mcp/oauth/github/callback'])
+        ->and($document['token_endpoint_auth_method'])->toBe('none')
+        ->and($document)->toHaveKey('client_secret');
 });

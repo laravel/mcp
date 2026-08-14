@@ -8,6 +8,7 @@ use Closure;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\OAuthClient;
 use Laravel\Mcp\Client\OAuth\OAuthConfig;
+use Laravel\Mcp\Client\OAuth\OAuthRouteRegistrar;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Schema\Implementation;
 use SensitiveParameter;
@@ -49,14 +50,12 @@ class WebClient extends Client
         ?string $clientSecret = null,
         ?string $scope = null,
         ?string $redirectUri = null,
-        ?string $clientIdMetadataUrl = null,
     ): static {
         $this->oAuthConfig = new OAuthConfig(
             clientId: $clientId,
             clientSecret: $clientSecret,
             scope: $scope,
             redirectUri: $redirectUri,
-            clientIdMetadataUrl: $clientIdMetadataUrl,
         );
 
         return $this;
@@ -70,20 +69,27 @@ class WebClient extends Client
 
         $config = $this->oAuthConfig;
 
-        if ($this->name !== null && ($config->redirectUri === null || $config->clientIdMetadataUrl === null)) {
+        if ($this->name !== null && $config->redirectUri === null) {
             $config = clone $config;
 
-            $config->redirectUri ??= $this->routeUrl("mcp.oauth.{$this->name}.callback");
-            $config->clientIdMetadataUrl ??= $this->routeUrl("mcp.oauth.{$this->name}.client-metadata");
+            $config->redirectUri = $this->canonicalRouteUrl("mcp.oauth.{$this->name}.callback");
         }
 
-        return new OAuthClient($config, $this->httpTransport->url(), $resourceMetadataUrl, $challengeScope);
+        return new OAuthClient(
+            $config,
+            $this->httpTransport->url(),
+            $resourceMetadataUrl,
+            $challengeScope,
+            clientIdMetadataUrl: $this->name === null
+                ? null
+                : $this->canonicalRouteUrl("mcp.oauth.{$this->name}.client-metadata"),
+        );
     }
 
-    protected function routeUrl(string $name): ?string
+    protected function canonicalRouteUrl(string $name): ?string
     {
         try {
-            return route($name);
+            return OAuthRouteRegistrar::url($name);
         } catch (RouteNotFoundException) {
             return null;
         }

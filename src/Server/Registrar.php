@@ -86,6 +86,7 @@ class Registrar
     /**
      * @param  Closure(string, TokenSet): mixed|array{0: class-string, 1: string}  $handler
      * @param  array<int, string>|string  $middleware
+     * @param  array<string, mixed>  $clientMetadata
      */
     public function oAuthRoutesFor(
         string $client,
@@ -94,8 +95,9 @@ class Registrar
         ?string $connectUri = null,
         ?string $callbackUri = null,
         ?string $clientMetadataUri = null,
+        array $clientMetadata = [],
     ): void {
-        (new OAuthRouteRegistrar)->register($client, $handler, $middleware, $connectUri, $callbackUri, $clientMetadataUri);
+        (new OAuthRouteRegistrar)->register($client, $handler, $middleware, $connectUri, $callbackUri, $clientMetadataUri, $clientMetadata);
     }
 
     public function getLocalServer(string $handle): ?callable

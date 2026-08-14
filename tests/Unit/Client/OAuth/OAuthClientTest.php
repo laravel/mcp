@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Session;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\OAuthClient;
+use Laravel\Mcp\Client\OAuth\OAuthConfig;
 use Laravel\Mcp\Client\OAuth\TokenSet;
 
 function fakeDiscovery(): void
@@ -979,25 +980,33 @@ function fakeCimdDiscovery(): void
     ]);
 }
 
+function cimdClient(string $clientIdMetadataUrl, ?string $clientId = null, ?string $clientSecret = null): OAuthClient
+{
+    return new OAuthClient(
+        new OAuthConfig(
+            clientId: $clientId,
+            clientSecret: $clientSecret,
+            redirectUri: 'https://app.example.com/callback',
+        ),
+        'https://mcp.test/mcp',
+        clientIdMetadataUrl: $clientIdMetadataUrl,
+    );
+}
+
 it('uses the client id metadata document instead of dynamic registration', function (): void {
     fakeCimdDiscovery();
 
-    $target = Client::web('https://mcp.test/mcp')
-        ->withOAuth(
-            redirectUri: 'https://app.test/callback',
-            clientIdMetadataUrl: 'https://app.test/mcp/oauth/github/client-metadata.json',
-        )
-        ->oAuthClient()
+    $target = cimdClient('https://app.example.com/mcp/oauth/github/client-metadata.json')
         ->redirect()
         ->getTargetUrl();
 
     parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
 
-    expect($query['client_id'])->toBe('https://app.test/mcp/oauth/github/client-metadata.json');
+    expect($query['client_id'])->toBe('https://app.example.com/mcp/oauth/github/client-metadata.json');
 
     $stored = Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'));
 
-    expect($stored['client_id'])->toBe('https://app.test/mcp/oauth/github/client-metadata.json')
+    expect($stored['client_id'])->toBe('https://app.example.com/mcp/oauth/github/client-metadata.json')
         ->and($stored['client_secret'])->toBeNull()
         ->and($stored['token_auth_method'])->toBe('none');
 
@@ -1007,13 +1016,7 @@ it('uses the client id metadata document instead of dynamic registration', funct
 it('prefers a pre-registered client id over the client id metadata document', function (): void {
     fakeCimdDiscovery();
 
-    $target = Client::web('https://mcp.test/mcp')
-        ->withOAuth(
-            clientId: 'client-123',
-            redirectUri: 'https://app.test/callback',
-            clientIdMetadataUrl: 'https://app.test/mcp/oauth/github/client-metadata.json',
-        )
-        ->oAuthClient()
+    $target = cimdClient('https://app.example.com/mcp/oauth/github/client-metadata.json', clientId: 'client-123')
         ->redirect()
         ->getTargetUrl();
 
@@ -1029,13 +1032,7 @@ it('falls back to dynamic registration when the authorization server does not su
         'https://auth.test/register' => Http::response(['client_id' => 'dcr-999']),
     ]);
 
-    Client::web('https://mcp.test/mcp')
-        ->withOAuth(
-            redirectUri: 'https://app.test/callback',
-            clientIdMetadataUrl: 'https://app.test/mcp/oauth/github/client-metadata.json',
-        )
-        ->oAuthClient()
-        ->redirect();
+    cimdClient('https://app.example.com/mcp/oauth/github/client-metadata.json')->redirect();
 
     expect(Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'))['client_id'])->toBe('dcr-999');
 
@@ -1045,55 +1042,47 @@ it('falls back to dynamic registration when the authorization server does not su
 it('falls back to dynamic registration when the metadata document url is not a valid client id', function (string $url): void {
     fakeCimdDiscovery();
 
-    Client::web('https://mcp.test/mcp')
-        ->withOAuth(redirectUri: 'https://app.test/callback', clientIdMetadataUrl: $url)
-        ->oAuthClient()
-        ->redirect();
+    cimdClient($url)->redirect();
 
     expect(Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'))['client_id'])->toBe('dcr-999');
 
     Http::assertSent(fn ($request): bool => $request->url() === 'https://auth.test/register');
 })->with([
-    'http scheme' => 'http://app.test/mcp/oauth/github/client-metadata.json',
-    'no path component' => 'https://app.test',
-    'empty path component' => 'https://app.test/',
-    'fragment component' => 'https://app.test/client-metadata.json#part',
-    'query component' => 'https://app.test/client-metadata.json?tenant=1',
-    'userinfo component' => 'https://user:secret@app.test/client-metadata.json',
-    'single dot path segment' => 'https://app.test/./client-metadata.json',
-    'double dot path segment' => 'https://app.test/oauth/../client-metadata.json',
-    'empty interior path segment' => 'https://app.test/oauth//client-metadata.json',
+    'http scheme' => 'http://app.example.com/client-metadata.json',
+    'no path component' => 'https://app.example.com',
+    'empty path component' => 'https://app.example.com/',
+    'fragment component' => 'https://app.example.com/client-metadata.json#part',
+    'query component' => 'https://app.example.com/client-metadata.json?tenant=1',
+    'userinfo component' => 'https://user:secret@app.example.com/client-metadata.json',
+    'single dot path segment' => 'https://app.example.com/./client-metadata.json',
+    'double dot path segment' => 'https://app.example.com/oauth/../client-metadata.json',
+    'empty interior path segment' => 'https://app.example.com/oauth//client-metadata.json',
     'unparsable url' => 'https:///client-metadata.json',
+    'localhost host' => 'https://localhost/client-metadata.json',
+    'herd or valet test domain' => 'https://app.test/client-metadata.json',
+    'local domain' => 'https://app.local/client-metadata.json',
+    'loopback address' => 'https://127.0.0.1/client-metadata.json',
+    'private network address' => 'https://192.168.1.40/client-metadata.json',
+    'link local address' => 'https://169.254.10.1/client-metadata.json',
+    'ipv6 loopback' => 'https://[::1]/client-metadata.json',
 ]);
 
 it('accepts a client id metadata document url with a port', function (): void {
     fakeCimdDiscovery();
 
-    $target = Client::web('https://mcp.test/mcp')
-        ->withOAuth(
-            redirectUri: 'https://app.test/callback',
-            clientIdMetadataUrl: 'https://app.test:8443/client-metadata.json',
-        )
-        ->oAuthClient()
+    $target = cimdClient('https://app.example.com:8443/client-metadata.json')
         ->redirect()
         ->getTargetUrl();
 
     parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
 
-    expect($query['client_id'])->toBe('https://app.test:8443/client-metadata.json');
+    expect($query['client_id'])->toBe('https://app.example.com:8443/client-metadata.json');
 });
 
 it('never sends a client secret alongside a client id metadata document', function (): void {
     fakeCimdDiscovery();
 
-    Client::web('https://mcp.test/mcp')
-        ->withOAuth(
-            clientSecret: 'leaked-secret',
-            redirectUri: 'https://app.test/callback',
-            clientIdMetadataUrl: 'https://app.test/client-metadata.json',
-        )
-        ->oAuthClient()
-        ->redirect();
+    cimdClient('https://app.example.com/client-metadata.json', clientSecret: 'leaked-secret')->redirect();
 
     $stored = Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'));
 
@@ -1115,7 +1104,7 @@ it('refuses to proceed when the authorization server does not advertise PKCE sup
     ]);
 
     expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
-        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.example.com/callback')
         ->oAuthClient()
         ->redirect())
         ->toThrow(OAuthException::class, 'code_challenge_methods_supported');

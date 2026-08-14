@@ -28,6 +28,7 @@ class OAuthClient
         protected ?string $resourceMetadataUrl = null,
         protected ?string $challengeScope = null,
         protected AuthServerDiscovery $discovery = new AuthServerDiscovery,
+        protected ?string $clientIdMetadataUrl = null,
     ) {
         $this->resourceUrl = Str::before($this->resourceUrl, '#');
     }
@@ -51,7 +52,7 @@ class OAuthClient
 
         if ($clientId === null) {
             $registration = $this->usesClientIdMetadataDocument($metadata)
-                ? new ClientRegistration(clientId: (string) $this->config->clientIdMetadataUrl)
+                ? new ClientRegistration(clientId: (string) $this->clientIdMetadataUrl)
                 : $this->register($metadata, $redirectUri);
 
             $clientId = $registration->clientId;
@@ -215,11 +216,11 @@ class OAuthClient
 
     protected function usesClientIdMetadataDocument(AuthServerMetadata $metadata): bool
     {
-        if (! $metadata->clientIdMetadataDocumentSupported || $this->config->clientIdMetadataUrl === null) {
+        if (! $metadata->clientIdMetadataDocumentSupported || $this->clientIdMetadataUrl === null) {
             return false;
         }
 
-        $url = parse_url($this->config->clientIdMetadataUrl);
+        $url = parse_url($this->clientIdMetadataUrl);
 
         if (! is_array($url) || ($url['scheme'] ?? null) !== 'https') {
             return false;
@@ -231,9 +232,26 @@ class OAuthClient
 
         $segments = explode('/', trim((string) ($url['path'] ?? ''), '/'));
 
-        return ! in_array('', $segments, true)
-            && ! in_array('.', $segments, true)
-            && ! in_array('..', $segments, true);
+        if (in_array('', $segments, true) || in_array('.', $segments, true) || in_array('..', $segments, true)) {
+            return false;
+        }
+
+        return $this->isPubliclyResolvable((string) ($url['host'] ?? ''));
+    }
+
+    protected function isPubliclyResolvable(string $host): bool
+    {
+        $host = strtolower(trim($host, '[]'));
+
+        if ($host === '' || $host === 'localhost' || preg_match('/\.(test|local|localhost|internal|invalid|example)$/', $host) === 1) {
+            return false;
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP) === false) {
+            return true;
+        }
+
+        return filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false;
     }
 
     protected function register(AuthServerMetadata $metadata, string $redirectUri): ClientRegistration

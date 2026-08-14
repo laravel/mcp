@@ -15,9 +15,17 @@ use Laravel\Mcp\WebClient;
 
 class OAuthRouteRegistrar
 {
+    public static function url(string $name): string
+    {
+        $root = rtrim((string) config('app.url'), '/');
+
+        return $root === '' ? route($name) : $root.route($name, [], false);
+    }
+
     /**
      * @param  Closure(string, TokenSet): mixed|array{0: class-string, 1: string}  $handler
      * @param  array<int, string>|string  $middleware
+     * @param  array<string, mixed>  $clientMetadata
      */
     public function register(
         string $client,
@@ -26,6 +34,7 @@ class OAuthRouteRegistrar
         ?string $connectUri = null,
         ?string $callbackUri = null,
         ?string $clientMetadataUri = null,
+        array $clientMetadata = [],
     ): void {
         if (is_array($handler)) {
             $handler = $handler[0].'@'.$handler[1];
@@ -63,18 +72,20 @@ class OAuthRouteRegistrar
 
         $callback->name("mcp.oauth.{$client}.callback")->middleware($middleware);
 
-        $clientMetadata = Router::get($clientMetadataUri ?? "mcp/oauth/{$client}/client-metadata.json", fn (): JsonResponse => (new JsonResponse([
-            'client_id' => route("mcp.oauth.{$client}.client-metadata"),
-            'client_name' => (string) config('app.name'),
-            'redirect_uris' => [route("mcp.oauth.{$client}.callback")],
+        $document = Router::get($clientMetadataUri ?? "mcp/oauth/{$client}/client-metadata.json", fn (): JsonResponse => (new JsonResponse([
+            'client_name' => trim(config('app.name').' MCP Client'),
+            'client_uri' => rtrim((string) config('app.url'), '/'),
             'grant_types' => ['authorization_code', 'refresh_token'],
             'response_types' => ['code'],
+            ...$clientMetadata,
+            'client_id' => self::url("mcp.oauth.{$client}.client-metadata"),
+            'redirect_uris' => [self::url("mcp.oauth.{$client}.callback")],
             'token_endpoint_auth_method' => 'none',
         ]))->setPublic()->setMaxAge(3600));
 
-        assert($clientMetadata instanceof Route);
+        assert($document instanceof Route);
 
-        $clientMetadata->name("mcp.oauth.{$client}.client-metadata");
+        $document->name("mcp.oauth.{$client}.client-metadata");
 
         Router::getRoutes()->refreshNameLookups();
     }
