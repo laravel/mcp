@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Route;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Route as Router;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Exceptions\ClientException;
@@ -77,7 +78,7 @@ class OAuthRouteRegistrar
             'client_uri' => rtrim((string) config('app.url'), '/'),
             'grant_types' => ['authorization_code', 'refresh_token'],
             'response_types' => ['code'],
-            ...$clientMetadata,
+            ...Arr::except($clientMetadata, ['client_secret', 'client_secret_expires_at', 'registration_access_token']),
             'client_id' => self::url("mcp.oauth.{$client}.client-metadata"),
             'redirect_uris' => [self::url("mcp.oauth.{$client}.callback")],
             'token_endpoint_auth_method' => 'none',

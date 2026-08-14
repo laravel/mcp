@@ -279,5 +279,5 @@ it('allows the published client metadata to be customised without weakening it',
         ->and($document['client_id'])->toBe('https://app.example.com/mcp/oauth/github/client-metadata.json')
         ->and($document['redirect_uris'])->toBe(['https://app.example.com/mcp/oauth/github/callback'])
         ->and($document['token_endpoint_auth_method'])->toBe('none')
-        ->and($document)->toHaveKey('client_secret');
+        ->and($document)->not->toHaveKey('client_secret');
 });
