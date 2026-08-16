@@ -1,6 +1,15 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.9.3...0.x)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.9.4...0.x)
+
+## [v0.9.4](https://github.com/laravel/mcp/compare/v0.9.3...v0.9.4) - 2026-08-13
+
+### What's Changed
+
+* [0.x] Update .gitattributes by [@jackbayliss](https://github.com/jackbayliss) in https://github.com/laravel/mcp/pull/309
+* Add searchable tool catalogs by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/317
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.9.3...v0.9.4
 
 ## [v0.9.3](https://github.com/laravel/mcp/compare/v0.9.1...v0.9.3) - 2026-08-10
 
@@ -57,6 +66,7 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
 
 
 
@@ -376,6 +386,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -386,6 +397,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
