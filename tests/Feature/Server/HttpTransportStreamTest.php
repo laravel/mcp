@@ -4,7 +4,7 @@ use Illuminate\Testing\TestResponse;
 use Laravel\Mcp\Server\Transport\HttpTransport;
 
 it('streams iterable responses returned from the stream callback', function (): void {
-    $transport = new HttpTransport(request(), 'test-session');
+    $transport = new HttpTransport(request());
 
     $transport->stream(fn (): iterable => [
         '{"jsonrpc":"2.0","id":1,"result":[]}',
@@ -21,7 +21,7 @@ it('streams iterable responses returned from the stream callback', function (): 
 });
 
 it('streams generator responses returned from the stream callback', function (): void {
-    $transport = new HttpTransport(request(), 'test-session');
+    $transport = new HttpTransport(request());
 
     $transport->stream(function (): Generator {
         yield '{"jsonrpc":"2.0","id":3,"result":[]}';
@@ -40,7 +40,7 @@ it('streams generator responses returned from the stream callback', function ():
 it('streams generator responses when Octane is flagged', function (): void {
     $_SERVER['LARAVEL_OCTANE'] = '1';
 
-    $transport = new HttpTransport(request(), 'test-session');
+    $transport = new HttpTransport(request());
 
     $transport->stream(function (): Generator {
         yield '{"jsonrpc":"2.0","id":5,"result":[]}';
@@ -57,7 +57,7 @@ it('streams generator responses when Octane is flagged', function (): void {
 });
 
 it('does not double emit when stream callback echoes directly', function (): void {
-    $transport = new HttpTransport(request(), 'test-session');
+    $transport = new HttpTransport(request());
 
     $transport->stream(function (): void {
         echo 'data: {"jsonrpc":"2.0","id":99,"result":[]}';

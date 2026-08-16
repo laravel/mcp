@@ -15,8 +15,10 @@ use Laravel\Mcp\Schema\Implementation;
  */
 class Initialize implements Method
 {
-    public function __construct(protected Implementation $clientInfo)
-    {
+    public function __construct(
+        protected Implementation $clientInfo,
+        protected ProtocolVersion $protocolVersion = ProtocolVersion::V2025_11_25,
+    ) {
         //
     }
 
@@ -31,7 +33,7 @@ class Initialize implements Method
     public function params(): array
     {
         return [
-            'protocolVersion' => ProtocolVersion::LATEST->value,
+            'protocolVersion' => $this->protocolVersion->value,
             'capabilities' => (object) [],
             'clientInfo' => $this->clientInfo->toArray(),
         ];

@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Filesystem\Filesystem;
+use Illuminate\Http\Client\ResponseSequence;
+use Illuminate\Support\Facades\Http;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
@@ -42,6 +44,31 @@ expect()->extend('toBeOne', fn () => $this->toBe(1));
 |
 */
 
+function protocolMeta(): array
+{
+    return [
+        'io.modelcontextprotocol/protocolVersion' => '2026-07-28',
+        'io.modelcontextprotocol/clientCapabilities' => [],
+    ];
+}
+
+function mcpHeaders(array $message): array
+{
+    $params = $message['params'] ?? [];
+
+    $name = match ($message['method']) {
+        'tools/call', 'prompts/get' => $params['name'] ?? null,
+        'resources/read' => $params['uri'] ?? null,
+        default => null,
+    };
+
+    return array_filter([
+        'MCP-Protocol-Version' => '2026-07-28',
+        'Mcp-Method' => $message['method'],
+        'Mcp-Name' => $name,
+    ], fn (?string $value): bool => $value !== null);
+}
+
 function initializeMessage(): array
 {
     return [
@@ -52,15 +79,103 @@ function initializeMessage(): array
     ];
 }
 
-function initializeResponse(): string
+function discoverMessage(): array
+{
+    return [
+        'jsonrpc' => '2.0',
+        'id' => 456,
+        'method' => 'server/discover',
+        'params' => [
+            '_meta' => protocolMeta(),
+        ],
+    ];
+}
+
+function expectedDiscoverResponse(): array
+{
+    $server = new ExampleServer(new ArrayTransport);
+
+    [$capabilities, $instructions] = (fn (): array => [
+        $this->capabilities,
+        $this->instructions,
+    ])->call($server);
+
+    return [
+        'jsonrpc' => '2.0',
+        'id' => 456,
+        'result' => [
+            'resultType' => 'complete',
+            'ttlMs' => 0,
+            'cacheScope' => 'private',
+            'supportedVersions' => ['2026-07-28'],
+            'capabilities' => $capabilities,
+            'instructions' => $instructions,
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => [
+                    'name' => 'Laravel MCP Server',
+                    'version' => '0.0.1',
+                ],
+            ],
+        ],
+    ];
+}
+
+function initializeResponse(int $id = 1, string $version = '2025-11-25'): string
 {
     return json_encode([
         'jsonrpc' => '2.0',
-        'id' => 1,
+        'id' => $id,
         'result' => [
-            'protocolVersion' => '2025-11-25',
+            'protocolVersion' => $version,
             'capabilities' => new stdClass,
             'serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
+        ],
+    ]);
+}
+
+/**
+ * @param  array<int, string>  $supportedVersions
+ */
+function discoverResponse(int $id = 1, array $supportedVersions = ['2026-07-28']): string
+{
+    return json_encode([
+        'jsonrpc' => '2.0',
+        'id' => $id,
+        'result' => [
+            'resultType' => 'complete',
+            'supportedVersions' => $supportedVersions,
+            'capabilities' => ['tools' => ['listChanged' => false]],
+            'instructions' => 'Be nice.',
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => ['name' => 'Test Server', 'version' => '1.0.0'],
+            ],
+        ],
+    ]);
+}
+
+function legacyEndpoint(): ResponseSequence
+{
+    return Http::fakeSequence()->push('Bad Request', 400);
+}
+
+function methodNotFoundResponse(int $id = 1): string
+{
+    return json_encode([
+        'jsonrpc' => '2.0',
+        'id' => $id,
+        'error' => ['code' => -32601, 'message' => 'Method not found.'],
+    ]);
+}
+
+function toolCallResponse(int $id, string $text): string
+{
+    return (string) json_encode([
+        'jsonrpc' => '2.0',
+        'id' => $id,
+        'result' => [
+            'resultType' => 'complete',
+            'content' => [['type' => 'text', 'text' => $text]],
+            'isError' => false,
         ],
     ]);
 }
@@ -74,43 +189,15 @@ function pingResponse(int $id): string
     ]);
 }
 
-function expectedInitializeResponse(): array
-{
-    $server = new ExampleServer(new ArrayTransport);
-
-    [
-        $capabilities,
-        $name,
-        $version,
-        $instructions,
-    ] = (fn (): array => [
-        $this->capabilities,
-        $this->name,
-        $this->version,
-        $this->instructions,
-    ])->call($server);
-
-    return [
-        'jsonrpc' => '2.0',
-        'id' => 456,
-        'result' => [
-            'protocolVersion' => '2025-11-25',
-            'capabilities' => $capabilities,
-            'serverInfo' => [
-                'name' => $name,
-                'version' => $version,
-            ],
-            'instructions' => $instructions,
-        ],
-    ];
-}
-
 function listToolsMessage(): array
 {
     return [
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'tools/list',
+        'params' => [
+            '_meta' => protocolMeta(),
+        ],
     ];
 }
 
@@ -120,6 +207,9 @@ function expectedListToolsResponse(): array
         'jsonrpc' => '2.0',
         'id' => 1,
         'result' => [
+            'resultType' => 'complete',
+            'ttlMs' => 0,
+            'cacheScope' => 'private',
             'tools' => [
                 [
                     'name' => 'say-hi-tool',
@@ -154,6 +244,12 @@ function expectedListToolsResponse(): array
                     'title' => 'Streaming Tool',
                 ],
             ],
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => [
+                    'name' => 'Laravel MCP Server',
+                    'version' => '0.0.1',
+                ],
+            ],
         ],
     ];
 }
@@ -164,6 +260,9 @@ function listResourcesMessage(): array
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'resources/list',
+        'params' => [
+            '_meta' => protocolMeta(),
+        ],
     ];
 }
 
@@ -173,6 +272,9 @@ function expectedListResourcesResponse(): array
         'jsonrpc' => '2.0',
         'id' => 1,
         'result' => [
+            'resultType' => 'complete',
+            'ttlMs' => 0,
+            'cacheScope' => 'private',
             'resources' => [
                 [
                     'name' => 'last-log-line-resource',
@@ -196,6 +298,12 @@ function expectedListResourcesResponse(): array
                     'mimeType' => 'video/mp4',
                 ],
             ],
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => [
+                    'name' => 'Laravel MCP Server',
+                    'version' => '0.0.1',
+                ],
+            ],
         ],
     ];
 }
@@ -211,18 +319,20 @@ function callToolMessage(): array
             'arguments' => [
                 'name' => 'John Doe',
             ],
+            '_meta' => protocolMeta(),
         ],
     ];
 }
 
-function readResourceMessage(): array
+function readResourceMessage(string $uri = 'file://resources/last-log-line-resource'): array
 {
     return [
         'jsonrpc' => '2.0',
         'id' => 123,
         'method' => 'resources/read',
         'params' => [
-            'uri' => 'file://resources/last-log-line-resource',
+            'uri' => $uri,
+            '_meta' => protocolMeta(),
         ],
     ];
 }
@@ -233,20 +343,21 @@ function expectedReadResourceResponse(): array
         'jsonrpc' => '2.0',
         'id' => 123,
         'result' => [
+            'resultType' => 'complete',
+            'ttlMs' => 0,
+            'cacheScope' => 'private',
             'contents' => [[
                 'text' => '2025-07-02 12:00:00 Error: Something went wrong.',
                 'uri' => 'file://resources/last-log-line-resource',
                 'mimeType' => 'text/plain',
             ]],
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => [
+                    'name' => 'Laravel MCP Server',
+                    'version' => '0.0.1',
+                ],
+            ],
         ],
-    ];
-}
-
-function initializeNotificationMessage(): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'method' => 'notifications/initialized',
     ];
 }
 
@@ -256,30 +367,19 @@ function expectedCallToolResponse(): array
         'jsonrpc' => '2.0',
         'id' => 1,
         'result' => [
+            'resultType' => 'complete',
             'content' => [[
                 'type' => 'text',
                 'text' => 'Hello, John Doe!',
             ]],
             'isError' => false,
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => [
+                    'name' => 'Laravel MCP Server',
+                    'version' => '0.0.1',
+                ],
+            ],
         ],
-    ];
-}
-
-function pingMessage(): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'id' => 789,
-        'method' => 'ping',
-    ];
-}
-
-function expectedPingResponse(): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'id' => 789,
-        'result' => [],
     ];
 }
 
@@ -294,6 +394,7 @@ function callStreamingToolMessage(int $count = 2): array
             'arguments' => [
                 'count' => $count,
             ],
+            '_meta' => protocolMeta(),
         ],
     ];
 }
@@ -314,8 +415,15 @@ function expectedStreamingToolResponse(int $count = 2): array
         'jsonrpc' => '2.0',
         'id' => 2,
         'result' => [
+            'resultType' => 'complete',
             'content' => [['type' => 'text', 'text' => "Finished streaming {$count} messages."]],
             'isError' => false,
+            '_meta' => [
+                'io.modelcontextprotocol/serverInfo' => [
+                    'name' => 'Laravel MCP Server',
+                    'version' => '0.0.1',
+                ],
+            ],
         ],
     ];
 

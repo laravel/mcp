@@ -523,3 +523,56 @@ it('excludes outputSchema for default object type only', function (): void {
         ->and($payload['result']['tools'])->toHaveCount(1)
         ->and($payload['result']['tools'][0])->not->toHaveKey('outputSchema');
 });
+
+it('lists tools in a deterministic order matching declaration order', function (): void {
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        implementation: new Implementation('Test Server', '1.0.0'),
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 2,
+        tools: [
+            ToolWithOutputSchema::class,
+            SayHiTool::class,
+            ToolWithoutOutputSchema::class,
+            SayHiWithMetaTool::class,
+        ],
+        resources: [],
+        prompts: [],
+    );
+
+    $declarationOrder = [
+        'tool-with-output-schema',
+        'say-hi-tool',
+        'tool-without-output-schema',
+        'say-hi-with-meta-tool',
+    ];
+
+    $listTools = new ListTools;
+
+    $names = function (array $params) use ($listTools, $context): array {
+        $payload = $listTools->handle(JsonRpcRequest::from([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'list-tools',
+            'params' => $params,
+        ]), $context)->toArray();
+
+        return [
+            array_column($payload['result']['tools'], 'name'),
+            $payload['result']['nextCursor'] ?? null,
+        ];
+    };
+
+    [$first] = $names(['per_page' => 50]);
+    [$second] = $names(['per_page' => 50]);
+
+    expect($first)->toEqual($declarationOrder)
+        ->and($second)->toEqual($first);
+
+    [$pageOne, $cursor] = $names([]);
+    [$pageTwo] = $names(['cursor' => $cursor]);
+
+    expect([...$pageOne, ...$pageTwo])->toEqual($declarationOrder);
+});

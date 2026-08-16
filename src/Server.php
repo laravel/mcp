@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
-use Illuminate\Support\Str;
+use Illuminate\Support\Arr;
+use InvalidArgumentException;
+use Laravel\Mcp\Enums\ErrorCode;
+use Laravel\Mcp\Enums\Extension;
+use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\ProtocolVersion;
-use Laravel\Mcp\Events\SessionInitialized;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\AppResource;
+use Laravel\Mcp\Server\Attributes\Cacheable;
 use Laravel\Mcp\Server\Attributes\Instructions;
 use Laravel\Mcp\Server\Attributes\Name;
 use Laravel\Mcp\Server\Attributes\Version;
@@ -20,13 +24,14 @@ use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Methods\CallTool;
 use Laravel\Mcp\Server\Methods\CompletionComplete;
+use Laravel\Mcp\Server\Methods\Concerns\ResolvesResources;
+use Laravel\Mcp\Server\Methods\Discover;
 use Laravel\Mcp\Server\Methods\GetPrompt;
-use Laravel\Mcp\Server\Methods\Initialize;
+use Laravel\Mcp\Server\Methods\Listen;
 use Laravel\Mcp\Server\Methods\ListPrompts;
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Methods\ListResourceTemplates;
 use Laravel\Mcp\Server\Methods\ListTools;
-use Laravel\Mcp\Server\Methods\Ping;
 use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -46,6 +51,7 @@ use Throwable;
 abstract class Server
 {
     use HasIcons;
+    use ResolvesResources;
 
     public const CAPABILITY_TOOLS = 'tools';
 
@@ -55,7 +61,14 @@ abstract class Server
 
     public const CAPABILITY_COMPLETIONS = 'completions';
 
-    public const CAPABILITY_UI = 'io.modelcontextprotocol/ui';
+    public const CACHEABLE_METHODS = [
+        'server/discover',
+        'tools/list',
+        'prompts/list',
+        'resources/list',
+        'resources/templates/list',
+        'resources/read',
+    ];
 
     protected string $name = 'Laravel MCP Server';
 
@@ -69,6 +82,11 @@ abstract class Server
      * @var array<int, string>
      */
     protected array $supportedProtocolVersion = [];
+
+    /**
+     * @var array<int, Extension>
+     */
+    protected array $extensions = [];
 
     /**
      * @var array<string, array<string, bool>|stdClass|string>
@@ -86,7 +104,7 @@ abstract class Server
     ];
 
     /**
-     * @var array<int, Tool|class-string<Tool>>
+     * @var array<int|string, Tool|class-string<Tool>|array<int, Tool|class-string<Tool>>>
      */
     protected array $tools = [];
 
@@ -116,7 +134,8 @@ abstract class Server
         'prompts/list' => ListPrompts::class,
         'prompts/get' => GetPrompt::class,
         'completion/complete' => CompletionComplete::class,
-        'ping' => Ping::class,
+        'server/discover' => Discover::class,
+        'subscriptions/listen' => Listen::class,
     ];
 
     public function __construct(
@@ -177,39 +196,47 @@ abstract class Server
     public function handle(string $rawMessage): void
     {
         $context = $this->createContext();
+        $requestId = null;
 
         try {
             $jsonRequest = json_decode($rawMessage, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
-                throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', -32700);
+                throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', ErrorCode::PARSE_ERROR->value);
             }
 
             $request = isset($jsonRequest['id'])
-                ? JsonRpcRequest::from($jsonRequest, $this->transport->sessionId())
+                ? JsonRpcRequest::from($jsonRequest)
                 : JsonRpcNotification::from($jsonRequest);
 
             if ($request instanceof JsonRpcNotification) {
                 return;
             }
 
-            if ($request->method === 'initialize') {
-                $this->handleInitializeMessage($request, $context);
+            $requestId = $request->id;
 
-                return;
+            if ($request->method === 'initialize' && ! isset($this->methods['initialize'])) {
+                throw new JsonRpcException(
+                    'The [initialize] handshake was removed in MCP '.ProtocolVersion::LATEST->value.'. Send the protocol version in the request [_meta] instead.',
+                    ErrorCode::METHOD_NOT_FOUND->value,
+                    $request->id,
+                    ['supported' => $context->supportedProtocolVersions],
+                );
             }
+
+            $this->validateProtocolMeta($request, $context);
 
             if (! isset($this->methods[$request->method])) {
                 throw new JsonRpcException(
                     "The method [{$request->method}] was not found.",
-                    -32601,
+                    ErrorCode::METHOD_NOT_FOUND->value,
                     $request->id,
                 );
             }
 
             $this->handleMessage($request, $context);
         } catch (JsonRpcException $e) {
-            $this->transport->send($e->toJsonRpcResponse()->toJson());
+            $this->send($e->toJsonRpcResponse(), $context);
         } catch (Throwable $e) {
             report($e);
 
@@ -219,13 +246,11 @@ abstract class Server
                 throw $e;
             }
 
-            $jsonRpcResponse = JsonRpcResponse::error(
-                $request->id ?? null,
-                -32603,
+            $this->send(JsonRpcResponse::error(
+                $requestId,
+                ErrorCode::INTERNAL_ERROR->value,
                 'Something went wrong while processing the request.',
-            );
-
-            $this->transport->send($jsonRpcResponse->toJson());
+            ), $context);
         }
     }
 
@@ -236,8 +261,8 @@ abstract class Server
         $instructions = $this->resolveAttribute(Instructions::class);
 
         return new ServerContext(
-            supportedProtocolVersions: $this->supportedProtocolVersion ?: ProtocolVersion::supported(),
-            serverCapabilities: $this->capabilities,
+            supportedProtocolVersions: $this->supportedProtocolVersion ?: ProtocolVersion::serverSupported(),
+            serverCapabilities: $this->resolvedCapabilities(),
             implementation: new Implementation(
                 name: $name !== null ? $name->value : $this->name,
                 version: $version !== null ? $version->value : $this->version,
@@ -263,21 +288,116 @@ abstract class Server
     /**
      * @throws JsonRpcException
      */
+    protected function validateProtocolMeta(JsonRpcRequest $request, ServerContext $context): void
+    {
+        $meta = $request->meta() ?? [];
+
+        $expected = [
+            MetaKey::PROTOCOL_VERSION->value => 'is_string',
+            MetaKey::CLIENT_CAPABILITIES->value => fn (mixed $value): bool => is_array($value) && ($value === [] || ! array_is_list($value)),
+        ];
+
+        foreach ($expected as $metaKey => $isValid) {
+            if (! array_key_exists($metaKey, $meta) || ! $isValid($meta[$metaKey])) {
+                throw new JsonRpcException(
+                    "Invalid params: The request [_meta] is missing the required [{$metaKey}] member.",
+                    ErrorCode::INVALID_PARAMS->value,
+                    $request->id,
+                );
+            }
+        }
+
+        $requestedVersion = $meta[MetaKey::PROTOCOL_VERSION->value];
+
+        if (! in_array($requestedVersion, $context->supportedProtocolVersions, true)) {
+            throw new JsonRpcException(
+                'Unsupported protocol version',
+                ErrorCode::UNSUPPORTED_PROTOCOL_VERSION->value,
+                $request->id,
+                [
+                    'supported' => $context->supportedProtocolVersions,
+                    'requested' => $requestedVersion,
+                ],
+            );
+        }
+    }
+
+    /**
+     * @throws JsonRpcException
+     */
     protected function handleMessage(JsonRpcRequest $request, ServerContext $context): void
     {
         $response = $this->runMethodHandle($request, $context);
 
         if (! is_iterable($response)) {
-            $this->transport->send($response->toJson());
+            $this->send($response, $context, $request);
 
             return;
         }
 
-        $this->transport->stream(function () use ($response): void {
+        $this->transport->stream(function () use ($request, $response, $context): void {
             foreach ($response as $message) {
-                $this->transport->send($message->toJson());
+                $this->send($message, $context, $request);
             }
         });
+    }
+
+    protected function send(JsonRpcResponse $response, ServerContext $context, ?JsonRpcRequest $request = null): void
+    {
+        if ($request instanceof JsonRpcRequest && array_key_exists('result', $response->content)) {
+            $result = (array) $response->content['result'];
+            $result['_meta'][MetaKey::SERVER_INFO->value] = $context->implementation->toArray();
+
+            $response->content['result'] = [
+                'resultType' => 'complete',
+                ...$this->resolveCacheHints($request, $context),
+                ...$result,
+            ];
+        }
+
+        $this->transport->send($response->toJson());
+    }
+
+    /**
+     * @return array<string, Cacheable>
+     */
+    protected function cacheHints(): array
+    {
+        return [];
+    }
+
+    /**
+     * @return array<string, int|string>
+     */
+    protected function resolveCacheHints(JsonRpcRequest $request, ServerContext $context): array
+    {
+        if (! in_array($request->method, self::CACHEABLE_METHODS, true)) {
+            return [];
+        }
+
+        if (isset($request->params['inputResponses']) || isset($request->params['requestState'])) {
+            return [];
+        }
+
+        $cacheable = $this->resourceCacheable($request, $context)
+            ?? $this->cacheHints()[$request->method]
+            ?? $this->resolveAttribute(Cacheable::class)
+            ?? new Cacheable;
+
+        return $cacheable->toArray();
+    }
+
+    protected function resourceCacheable(JsonRpcRequest $request, ServerContext $context): ?Cacheable
+    {
+        if ($request->method !== 'resources/read') {
+            return null;
+        }
+
+        try {
+            return $this->resolveResource($request->get('uri'), $context)->cacheable();
+        } catch (InvalidArgumentException) {
+            return null;
+        }
     }
 
     /**
@@ -305,39 +425,25 @@ abstract class Server
         return $response;
     }
 
-    protected function handleInitializeMessage(JsonRpcRequest $request, ServerContext $context): void
+    /**
+     * @return array<string, mixed>
+     */
+    protected function resolvedCapabilities(): array
     {
-        $response = (new Initialize)->handle($request, $context);
+        $extensions = Arr::mapWithKeys(
+            $this->extensions,
+            fn (Extension $extension): array => [$extension->value => (object) []],
+        );
 
-        $sessionId = $this->generateSessionId();
-
-        Container::getInstance()->make('events')->dispatch(new SessionInitialized(
-            sessionId: $sessionId,
-            clientInfo: $request->params['clientInfo'] ?? null,
-            protocolVersion: $request->params['protocolVersion'] ?? null,
-            clientCapabilities: $request->params['capabilities'] ?? null,
-        ));
-
-        $this->transport->send($response->toJson(), $sessionId);
-    }
-
-    protected function generateSessionId(): string
-    {
-        return Str::uuid()->toString();
+        return $extensions === []
+            ? $this->capabilities
+            : [...$this->capabilities, 'extensions' => $extensions];
     }
 
     protected function detectUiCapability(): void
     {
-        if (array_key_exists(self::CAPABILITY_UI, $this->capabilities)) {
-            return;
-        }
-
-        foreach ($this->resources as $resource) {
-            if (is_subclass_of($resource, AppResource::class)) {
-                $this->addCapability(self::CAPABILITY_UI);
-
-                return;
-            }
+        if (collect($this->resources)->contains(fn (Resource|string $resource): bool => is_subclass_of($resource, AppResource::class))) {
+            $this->extensions[] = Extension::Ui;
         }
     }
 

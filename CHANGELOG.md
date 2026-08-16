@@ -1,6 +1,19 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.9.1...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.9.2...main)
+
+## [v0.9.2](https://github.com/laravel/mcp/compare/v0.9.1...v0.9.2) - 2026-08-06
+
+### What's Changed
+
+* Bump actions/checkout from 7.0.0 to 7.0.1 in the github-actions group by [@dependabot](https://github.com/dependabot)[bot] in https://github.com/laravel/mcp/pull/274
+* Fix mcp:inspector passing mcp:start {handle} as one argument instead of two by [@johankrijt](https://github.com/johankrijt) in https://github.com/laravel/mcp/pull/281
+
+### New Contributors
+
+* [@johankrijt](https://github.com/johankrijt) made their first contribution in https://github.com/laravel/mcp/pull/281
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.9.1...v0.9.2
 
 ## [v0.9.1](https://github.com/laravel/mcp/compare/v0.9.0...v0.9.1) - 2026-07-21
 
@@ -48,6 +61,7 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
 
 
 
@@ -365,6 +379,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -375,6 +390,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 

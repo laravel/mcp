@@ -25,17 +25,6 @@ it('can create a message from valid json', function (): void {
         ->and($request->params)->toEqual(['name' => 'echo', 'arguments' => ['message' => 'Hello, world!']]);
 });
 
-it('stores session id when provided', function (): void {
-    $sessionId = 'i-am-your-session-luke';
-    $request = JsonRpcRequest::from([
-        'jsonrpc' => '2.0',
-        'id' => 1,
-        'method' => 'tools/call',
-    ], $sessionId);
-
-    expect($request->sessionId)->toBe($sessionId);
-});
-
 it('throws exception for missing jsonrpc version', function (): void {
     $this->expectException(JsonRpcException::class);
     $this->expectExceptionMessage('Invalid Request: The [jsonrpc] member must be exactly [2.0].');
@@ -233,4 +222,41 @@ it('serializes to json', function (): void {
     $request = new JsonRpcRequest(3, 'ping', []);
 
     expect($request->toJson())->toEqual('{"jsonrpc":"2.0","id":3,"method":"ping"}');
+});
+
+it('mirrors the method into a header', function (): void {
+    $request = new JsonRpcRequest(1, 'tools/list', []);
+
+    expect($request->mirroredHeaders())->toEqual(['Mcp-Method' => 'tools/list'])
+        ->and($request->requiresName())->toBeFalse()
+        ->and($request->name())->toBeNull();
+});
+
+it('mirrors the named target into a header', function (string $method, string $key, string $value): void {
+    $request = new JsonRpcRequest(1, $method, [$key => $value]);
+
+    expect($request->mirroredHeaders())->toEqual([
+        'Mcp-Method' => $method,
+        'Mcp-Name' => $value,
+    ])
+        ->and($request->requiresName())->toBeTrue()
+        ->and($request->name())->toBe($value);
+})->with([
+    ['tools/call', 'name', 'get_weather'],
+    ['prompts/get', 'name', 'summarize'],
+    ['resources/read', 'uri', 'file:///projects/myapp/config.json'],
+]);
+
+it('encodes a mirrored name that is not header safe', function (): void {
+    $request = new JsonRpcRequest(1, 'tools/call', ['name' => 'Hello, 世界']);
+
+    expect($request->mirroredHeaders()['Mcp-Name'])->toBe('=?base64?SGVsbG8sIOS4lueVjA==?=');
+});
+
+it('omits the name header when the body carries no usable name', function (): void {
+    $request = new JsonRpcRequest(1, 'tools/call', ['name' => 123]);
+
+    expect($request->mirroredHeaders())->toEqual(['Mcp-Method' => 'tools/call'])
+        ->and($request->requiresName())->toBeTrue()
+        ->and($request->name())->toBeNull();
 });

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Laravel\Mcp\Enums\Extension;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
@@ -9,7 +10,7 @@ use Laravel\Mcp\Server\AppResource;
 use Laravel\Mcp\Server\Resource;
 use Tests\Fixtures\ArrayTransport;
 
-it('auto-detects ui capability when ui resources are registered', function (): void {
+it('advertises the ui extension when app resources are registered', function (): void {
     $server = new class(new ArrayTransport) extends Server
     {
         protected array $resources = [
@@ -19,12 +20,13 @@ it('auto-detects ui capability when ui resources are registered', function (): v
 
     $server->start();
 
-    $context = $server->createContext();
+    $extensions = $server->createContext()->serverCapabilities['extensions'];
 
-    expect($context->serverCapabilities)->toHaveKey('io.modelcontextprotocol/ui');
+    expect($extensions)->toHaveKey('io.modelcontextprotocol/ui');
+    expect($extensions['io.modelcontextprotocol/ui'])->toEqual((object) []);
 });
 
-it('does not include ui capability when only regular resources are registered', function (): void {
+it('advertises no extensions when only regular resources are registered', function (): void {
     $server = new class(new ArrayTransport) extends Server
     {
         protected array $resources = [
@@ -34,9 +36,20 @@ it('does not include ui capability when only regular resources are registered', 
 
     $server->start();
 
-    $context = $server->createContext();
+    expect($server->createContext()->serverCapabilities)->not->toHaveKey('extensions');
+});
 
-    expect($context->serverCapabilities)->not->toHaveKey('io.modelcontextprotocol/ui');
+it('advertises the extensions declared on the server', function (): void {
+    $server = new class(new ArrayTransport) extends Server
+    {
+        protected array $extensions = [
+            Extension::Ui,
+        ];
+    };
+
+    $extensions = $server->createContext()->serverCapabilities['extensions'];
+
+    expect($extensions)->toHaveKey('io.modelcontextprotocol/ui');
 });
 
 class AutoDetectAppResource extends AppResource

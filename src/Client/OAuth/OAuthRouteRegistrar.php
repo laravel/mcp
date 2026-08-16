@@ -6,7 +6,9 @@ namespace Laravel\Mcp\Client\OAuth;
 
 use Closure;
 use Illuminate\Container\Container;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Route;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Route as Router;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Exceptions\ClientException;
@@ -14,9 +16,17 @@ use Laravel\Mcp\WebClient;
 
 class OAuthRouteRegistrar
 {
+    public static function url(string $name): string
+    {
+        $root = rtrim((string) config('app.url'), '/');
+
+        return $root === '' ? route($name) : $root.route($name, [], false);
+    }
+
     /**
      * @param  Closure(string, TokenSet): mixed|array{0: class-string, 1: string}  $handler
      * @param  array<int, string>|string  $middleware
+     * @param  array<string, mixed>  $clientMetadata
      */
     public function register(
         string $client,
@@ -24,6 +34,8 @@ class OAuthRouteRegistrar
         array|string $middleware = 'web',
         ?string $connectUri = null,
         ?string $callbackUri = null,
+        ?string $clientMetadataUri = null,
+        array $clientMetadata = [],
     ): void {
         if (is_array($handler)) {
             $handler = $handler[0].'@'.$handler[1];
@@ -60,6 +72,24 @@ class OAuthRouteRegistrar
         assert($callback instanceof Route);
 
         $callback->name("mcp.oauth.{$client}.callback")->middleware($middleware);
+
+        $document = Router::get($clientMetadataUri ?? "mcp/oauth/{$client}/client-metadata.json", fn (): JsonResponse => (new JsonResponse([
+            'client_name' => trim(config('app.name').' MCP Client'),
+            'client_uri' => rtrim((string) config('app.url'), '/'),
+            'grant_types' => ['authorization_code', 'refresh_token'],
+            'response_types' => ['code'],
+            ...Arr::except($clientMetadata, ['client_secret', 'client_secret_expires_at', 'registration_access_token']),
+            'client_id' => self::url("mcp.oauth.{$client}.client-metadata"),
+            'redirect_uris' => array_values(array_unique([
+                self::url("mcp.oauth.{$client}.callback"),
+                ...array_map(strval(...), (array) ($clientMetadata['redirect_uris'] ?? [])),
+            ])),
+            'token_endpoint_auth_method' => 'none',
+        ]))->setPublic()->setMaxAge(3600));
+
+        assert($document instanceof Route);
+
+        $document->name("mcp.oauth.{$client}.client-metadata");
 
         Router::getRoutes()->refreshNameLookups();
     }

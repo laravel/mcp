@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Client\Contracts\Transport;
@@ -20,6 +21,7 @@ use Laravel\Mcp\Client\Primitives\Prompt;
 use Laravel\Mcp\Client\Primitives\Resource;
 use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Protocol;
+use Laravel\Mcp\Client\Schema\DiscoverResult;
 use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Client\Schema\PromptResult;
 use Laravel\Mcp\Client\Schema\ResourceReadResult;
@@ -27,7 +29,12 @@ use Laravel\Mcp\Client\Schema\ToolResult;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Client\Transport\StdioTransport;
 use Laravel\Mcp\Client\Transport\TransportFactory;
+use Laravel\Mcp\Enums\ErrorCode;
+use Laravel\Mcp\Enums\ProtocolVersion;
+use Laravel\Mcp\Exceptions\ClientException;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Schema\Implementation;
+use Laravel\Mcp\Support\MirroredParameters;
 
 class Client
 {
@@ -101,6 +108,57 @@ class Client
         return $this->protocol->initializeResult();
     }
 
+    public function discoverResult(): ?DiscoverResult
+    {
+        return $this->protocol->discoverResult();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function capabilities(): array
+    {
+        $this->protocol->connect();
+
+        return $this->protocol->capabilities();
+    }
+
+    public function serverInfo(): ?Implementation
+    {
+        $this->protocol->connect();
+
+        return $this->protocol->serverInfo();
+    }
+
+    public function instructions(): ?string
+    {
+        $this->protocol->connect();
+
+        return $this->protocol->instructions();
+    }
+
+    public function withProtocolVersion(?ProtocolVersion $version): static
+    {
+        if ($version instanceof ProtocolVersion && ! in_array($version->value, ProtocolVersion::clientSupported(), true)) {
+            throw new ClientException(sprintf(
+                'This client does not support protocol version [%s]. It supports [%s].',
+                $version->value,
+                implode(', ', ProtocolVersion::clientSupported()),
+            ));
+        }
+
+        $this->protocol->pinProtocolVersion($version);
+
+        return $this;
+    }
+
+    public function protocolVersion(): ProtocolVersion
+    {
+        $this->protocol->connect();
+
+        return $this->protocol->connectionProtocol();
+    }
+
     public function ping(): void
     {
         (new Ping)->handle($this->protocol);
@@ -126,9 +184,27 @@ class Client
     /**
      * @param  array<string, mixed>  $arguments
      */
-    public function callTool(string $name, array $arguments = []): ToolResult
+    public function callTool(Tool|string $tool, array $arguments = []): ToolResult
     {
-        return (new CallTool($name, $arguments))->handle($this->protocol);
+        $name = $tool instanceof Tool ? $tool->name : $tool;
+        $mirroredParameters = $tool instanceof Tool ? $tool->mirroredParameters() : null;
+
+        try {
+            return (new CallTool($name, $arguments, $mirroredParameters))->handle($this->protocol);
+        } catch (JsonRpcException $jsonRpcException) {
+            if ($jsonRpcException->getCode() !== ErrorCode::HEADER_MISMATCH->value) {
+                throw $jsonRpcException;
+            }
+
+            $refreshed = $this->tools()->get($name)?->mirroredParameters();
+
+            if (! $refreshed instanceof MirroredParameters
+                || $refreshed->headers($arguments) === ($mirroredParameters?->headers($arguments) ?? [])) {
+                throw $jsonRpcException;
+            }
+
+            return (new CallTool($name, $arguments, $refreshed))->handle($this->protocol);
+        }
     }
 
     /**
@@ -191,6 +267,7 @@ class Client
             'name' => null,
             'clientInfo' => $this->clientInfo,
             'transport' => $this->transport->recipe(),
+            'protocolVersion' => $this->protocol->pinnedProtocolVersion()?->value,
         ];
     }
 
@@ -199,21 +276,23 @@ class Client
      */
     public function __unserialize(array $data): void
     {
-        $this->name = $data['name'] ?? null;
+        $this->name = Arr::get($data, 'name');
 
         if ($this->name !== null) {
             $resolved = Container::getInstance()->make(ClientManager::class)->build($this->name);
 
             $this->transport = $resolved->transport;
             $this->clientInfo = $resolved->clientInfo;
+            $pinned = $resolved->protocol->pinnedProtocolVersion();
         } else {
-            $this->clientInfo = $data['clientInfo'];
-            $this->transport = TransportFactory::fromRecipe($data['transport']);
+            $this->clientInfo = Arr::get($data, 'clientInfo');
+            $this->transport = TransportFactory::fromRecipe(Arr::get($data, 'transport'));
+            $pinned = ProtocolVersion::tryFrom((string) Arr::get($data, 'protocolVersion'));
         }
 
         $this->clientInfo ??= $this->defaultClientInfo();
 
-        $this->protocol = new Protocol($this->transport, $this->clientInfo);
+        $this->protocol = new Protocol($this->transport, $this->clientInfo, $pinned);
     }
 
     public function __destruct()

@@ -7,9 +7,19 @@ namespace Laravel\Mcp\Client;
 use Illuminate\Support\Arr;
 use JsonException;
 use Laravel\Mcp\Client\Contracts\Method;
+use Laravel\Mcp\Client\Contracts\MirrorsParameters;
 use Laravel\Mcp\Client\Contracts\Transport;
+use Laravel\Mcp\Client\Contracts\UsesProtocol;
+use Laravel\Mcp\Client\Exceptions\OAuthException;
+use Laravel\Mcp\Client\Exceptions\TransportException;
+use Laravel\Mcp\Client\Methods\Discover;
 use Laravel\Mcp\Client\Methods\Initialize;
+use Laravel\Mcp\Client\Schema\DiscoverResult;
 use Laravel\Mcp\Client\Schema\InitializeResult;
+use Laravel\Mcp\Enums\ErrorCode;
+use Laravel\Mcp\Enums\MetaKey;
+use Laravel\Mcp\Enums\ProtocolHandshake;
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Exceptions\SessionExpiredException;
@@ -27,11 +37,12 @@ class Protocol
 
     protected int $nextRequestId = 1;
 
-    protected ?InitializeResult $initializeResult = null;
+    protected ?NegotiatedConnection $connection = null;
 
     public function __construct(
         protected Transport $transport,
         protected Implementation $clientInfo,
+        protected ?ProtocolVersion $pinnedProtocolVersion = null,
     ) {
         //
     }
@@ -43,7 +54,45 @@ class Protocol
 
     public function initializeResult(): ?InitializeResult
     {
-        return $this->initializeResult;
+        return $this->connection?->initializeResult();
+    }
+
+    public function discoverResult(): ?DiscoverResult
+    {
+        return $this->connection?->discoverResult();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function capabilities(): array
+    {
+        return $this->connection?->capabilities() ?? [];
+    }
+
+    public function serverInfo(): ?Implementation
+    {
+        return $this->connection?->serverInfo();
+    }
+
+    public function instructions(): ?string
+    {
+        return $this->connection?->instructions();
+    }
+
+    public function pinProtocolVersion(?ProtocolVersion $protocolVersion): void
+    {
+        $this->pinnedProtocolVersion = $protocolVersion;
+        $this->connection = null;
+
+        if ($this->connected) {
+            $this->disconnect();
+        }
+    }
+
+    public function pinnedProtocolVersion(): ?ProtocolVersion
+    {
+        return $this->pinnedProtocolVersion;
     }
 
     public function connect(): void
@@ -56,11 +105,7 @@ class Protocol
         $this->connecting = true;
 
         try {
-            $this->initializeResult = (new Initialize($this->clientInfo))->handle($this);
-
-            $this->transport->setProtocolVersion($this->initializeResult->protocolVersion);
-
-            $this->notify('notifications/initialized');
+            $this->handshake();
         } catch (Throwable $throwable) {
             $this->disconnect();
 
@@ -70,6 +115,154 @@ class Protocol
         }
 
         $this->connected = true;
+    }
+
+    protected function handshake(): void
+    {
+        $pinned = $this->pinnedProtocolVersion;
+
+        if ($pinned instanceof ProtocolVersion) {
+            $this->connection = $pinned->handshake() === ProtocolHandshake::Discovery
+                ? $this->discover($pinned)
+                : $this->initialize($pinned, true);
+
+            return;
+        }
+
+        $remembered = $this->connection?->protocolVersion;
+
+        if ($remembered?->handshake() === ProtocolHandshake::Initialize) {
+            try {
+                $this->connection = $this->initialize($remembered);
+
+                return;
+            } catch (OAuthException $oAuthException) {
+                throw $oAuthException;
+            } catch (Throwable) {
+                $this->connection = null;
+
+                $this->transport->connect();
+            }
+        }
+
+        $this->connection = $this->probe();
+    }
+
+    protected function probe(): NegotiatedConnection
+    {
+        try {
+            return $this->discover();
+        } catch (JsonRpcException $jsonRpcException) {
+            if ($this->identifiesModernServer($jsonRpcException)) {
+                return $this->retryWithMutualVersion($jsonRpcException);
+            }
+
+            if (! $this->identifiesLegacyServer($jsonRpcException)) {
+                throw $jsonRpcException;
+            }
+
+            $rejection = null;
+        } catch (TransportException $transportException) {
+            $rejection = $transportException;
+        }
+
+        try {
+            $this->transport->connect();
+
+            return $this->initialize(ProtocolVersion::V2025_11_25);
+        } catch (OAuthException $oAuthException) {
+            throw $oAuthException;
+        } catch (Throwable $throwable) {
+            throw $rejection instanceof ClientException
+                ? new ClientException(sprintf(
+                    '%s The legacy handshake also failed: %s',
+                    $rejection->getMessage(),
+                    $throwable->getMessage(),
+                ), 0, $throwable)
+                : $throwable;
+        }
+    }
+
+    protected function initialize(ProtocolVersion $protocolVersion, bool $pinned = false): NegotiatedConnection
+    {
+        $result = InitializeResult::from($this->attempt(
+            new Initialize($this->clientInfo, $protocolVersion),
+            $protocolVersion,
+        ));
+        $settled = ProtocolVersion::from($result->protocolVersion);
+
+        if ($pinned && $settled !== $protocolVersion) {
+            throw $this->versionMismatch($settled, $protocolVersion);
+        }
+
+        $this->notify('notifications/initialized', $settled);
+
+        return new NegotiatedConnection($settled, $result);
+    }
+
+    protected function discover(?ProtocolVersion $pinned = null): NegotiatedConnection
+    {
+        $offered = $pinned ?? ProtocolVersion::LATEST;
+        $result = DiscoverResult::from($this->attempt(new Discover, $offered));
+        $settled = ProtocolVersion::preferredFrom(...$result->supportedVersions);
+
+        if (! $settled instanceof ProtocolVersion) {
+            throw new ClientException(sprintf(
+                'The server supports protocol versions [%s]. This client supports [%s].',
+                implode(', ', $result->supportedVersions),
+                implode(', ', ProtocolVersion::clientSupported()),
+            ));
+        }
+
+        if ($pinned instanceof ProtocolVersion && $settled !== $pinned) {
+            throw $this->versionMismatch($settled, $pinned);
+        }
+
+        return $settled->handshake() === ProtocolHandshake::Initialize
+            ? $this->initialize($settled)
+            : new NegotiatedConnection($settled, $result);
+    }
+
+    protected function retryWithMutualVersion(JsonRpcException $jsonRpcException): NegotiatedConnection
+    {
+        $supported = Arr::get($jsonRpcException->data() ?? [], 'supported');
+
+        $protocolVersion = is_array($supported)
+            ? ProtocolVersion::preferredFrom(...array_values(array_filter($supported, is_string(...))))
+            : null;
+
+        if (! $protocolVersion instanceof ProtocolVersion || $protocolVersion->handshake() !== ProtocolHandshake::Initialize) {
+            throw $jsonRpcException;
+        }
+
+        return $this->initialize($protocolVersion);
+    }
+
+    protected function versionMismatch(ProtocolVersion $settled, ProtocolVersion $pinned): ClientException
+    {
+        return new ClientException(sprintf(
+            'The server settled on protocol version [%s] while [%s] was requested.',
+            $settled->value,
+            $pinned->value,
+        ));
+    }
+
+    protected function identifiesModernServer(JsonRpcException $jsonRpcException): bool
+    {
+        return in_array($jsonRpcException->getCode(), [
+            ErrorCode::HEADER_MISMATCH->value,
+            ErrorCode::MISSING_REQUIRED_CLIENT_CAPABILITY->value,
+            ErrorCode::UNSUPPORTED_PROTOCOL_VERSION->value,
+        ], true);
+    }
+
+    protected function identifiesLegacyServer(JsonRpcException $jsonRpcException): bool
+    {
+        return in_array($jsonRpcException->getCode(), [
+            ErrorCode::PARSE_ERROR->value,
+            ErrorCode::INVALID_REQUEST->value,
+            ErrorCode::METHOD_NOT_FOUND->value,
+        ], true);
     }
 
     public function disconnect(): void
@@ -90,11 +283,11 @@ class Protocol
         }
 
         try {
-            return $this->attempt($method);
+            return $this->attempt($method, $this->connectionProtocol());
         } catch (SessionExpiredException) {
             $this->connect();
 
-            return $this->attempt($method);
+            return $this->attempt($method, $this->connectionProtocol());
         }
     }
 
@@ -102,16 +295,21 @@ class Protocol
      * @param  Method<mixed>  $method
      * @return array<string, mixed>
      */
-    protected function attempt(Method $method): array
+    protected function attempt(Method $method, ProtocolVersion $protocolVersion): array
     {
+        $this->configureTransport($protocolVersion);
+
         $request = new JsonRpcRequest(
             id: $this->nextRequestId++,
             method: $method->method(),
-            params: $method->params(),
+            params: $this->params($method, $protocolVersion),
         );
 
         try {
-            $this->transport->send($request->toJson());
+            $this->transport->send(
+                $request->toJson(),
+                $this->requestHeaders($method, $request, $protocolVersion),
+            );
 
             do {
                 $raw = $this->transport->receive();
@@ -170,11 +368,67 @@ class Protocol
         return is_array($result) ? $result : [];
     }
 
-    public function notify(string $method): void
+    /**
+     * @param  Method<mixed>  $method
+     * @return array<string, string>
+     */
+    protected function requestHeaders(Method $method, JsonRpcRequest $request, ProtocolVersion $protocolVersion): array
     {
+        if ($protocolVersion->handshake() !== ProtocolHandshake::Discovery) {
+            return [];
+        }
+
+        return [
+            ...$request->mirroredHeaders(),
+            ...$method instanceof MirrorsParameters ? $method->requestHeaders() : [],
+        ];
+    }
+
+    /**
+     * @param  Method<mixed>  $method
+     * @return array<string, mixed>
+     */
+    protected function params(Method $method, ProtocolVersion $protocolVersion): array
+    {
+        $params = $method->params();
+
+        if ($protocolVersion->handshake() !== ProtocolHandshake::Discovery) {
+            return $params;
+        }
+
+        $params['_meta'] = [
+            MetaKey::PROTOCOL_VERSION->value => $protocolVersion->value,
+            MetaKey::CLIENT_CAPABILITIES->value => (object) [],
+            MetaKey::CLIENT_INFO->value => $this->clientInfo->toArray(),
+            ...Arr::wrap(Arr::get($params, '_meta')),
+        ];
+
+        return $params;
+    }
+
+    public function notify(string $method, ?ProtocolVersion $protocolVersion = null): void
+    {
+        $this->configureTransport($protocolVersion ?? $this->connectionProtocol());
+
         $notification = new JsonRpcNotification($method, []);
 
         $this->transport->send($notification->toJson());
+    }
+
+    public function connectionProtocol(): ProtocolVersion
+    {
+        if (! $this->connection instanceof NegotiatedConnection) {
+            throw new ClientException('The client has not negotiated a protocol version.');
+        }
+
+        return $this->connection->protocolVersion;
+    }
+
+    protected function configureTransport(ProtocolVersion $protocolVersion): void
+    {
+        if ($this->transport instanceof UsesProtocol) {
+            $this->transport->useProtocol($protocolVersion);
+        }
     }
 
     /**

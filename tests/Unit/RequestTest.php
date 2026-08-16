@@ -118,7 +118,6 @@ it('throws ValidationException with custom messages and attributes', function ()
 it('can get uri when set via constructor', function (): void {
     $request = new Request(
         arguments: ['name' => 'Alice'],
-        sessionId: 'session-123',
         meta: ['key' => 'value'],
         uri: 'file://resources/example'
     );
@@ -129,7 +128,6 @@ it('can get uri when set via constructor', function (): void {
 it('returns null for uri when not set via constructor', function (): void {
     $request = new Request(
         arguments: ['name' => 'Alice'],
-        sessionId: 'session-123',
         meta: ['key' => 'value']
     );
 

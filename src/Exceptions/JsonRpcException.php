@@ -21,6 +21,14 @@ class JsonRpcException extends Exception
         parent::__construct($message, $code);
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function data(): ?array
+    {
+        return $this->data;
+    }
+
     public function toJsonRpcResponse(): JsonRpcResponse
     {
         $id = is_string($this->requestId) || is_int($this->requestId)

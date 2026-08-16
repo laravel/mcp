@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client\Transport;
 
 use Laravel\Mcp\Client\Contracts\Transport;
+use Laravel\Mcp\Client\Exceptions\TimeoutException;
 use Laravel\Mcp\Exceptions\ClientException;
 use Symfony\Component\Process\Exception\ExceptionInterface;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
@@ -65,11 +66,6 @@ class StdioTransport implements Transport
         $this->timeoutSeconds = $seconds;
     }
 
-    public function setProtocolVersion(string $version): void
-    {
-        //
-    }
-
     /**
      * @return array<string, mixed>
      */
@@ -83,7 +79,10 @@ class StdioTransport implements Transport
         ];
     }
 
-    public function send(string $message): void
+    /**
+     * @param  array<string, string>  $headers
+     */
+    public function send(string $message, array $headers = []): void
     {
         if (! $this->input instanceof InputStream || ! $this->process?->isRunning()) {
             throw new ClientException('Transport is not connected.');
@@ -108,7 +107,9 @@ class StdioTransport implements Transport
         try {
             $found = $process->waitUntil($this->bufferUntilNewline(...));
         } catch (ProcessTimedOutException) {
-            $this->failWith('Timed out while waiting for server response.');
+            $this->disconnect();
+
+            throw new TimeoutException('Timed out while waiting for server response.');
         }
 
         if (! $found) {

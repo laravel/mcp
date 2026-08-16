@@ -10,13 +10,14 @@ interface Transport
 
     public function disconnect(): void;
 
-    public function send(string $message): void;
+    /**
+     * @param  array<string, string>  $headers
+     */
+    public function send(string $message, array $headers = []): void;
 
     public function receive(): string;
 
     public function setTimeoutSeconds(float $seconds): void;
-
-    public function setProtocolVersion(string $version): void;
 
     /**
      * @return array<string, mixed>
