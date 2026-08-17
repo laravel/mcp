@@ -286,7 +286,7 @@ class Protocol
 
         return $this->cache->remember(
             $method,
-            $this->transport->recipe(),
+            fn (): array => $this->transport->recipe(),
             fn (): array => $this->roundTrip($method),
         );
     }

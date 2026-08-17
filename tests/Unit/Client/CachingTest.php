@@ -93,6 +93,31 @@ it('shares public results across authorization contexts', function (): void {
         ->and($second->sent)->toBeEmpty();
 });
 
+it('never resolves the transport recipe for an uncacheable method', function (): void {
+    $transport = new class extends FakeTransport
+    {
+        public int $recipes = 0;
+
+        public function recipe(): array
+        {
+            $this->recipes++;
+
+            return parent::recipe();
+        }
+    };
+
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = (string) json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'result' => ['content' => [['type' => 'text', 'text' => 'hi']], 'isError' => false],
+    ]);
+
+    (new Client($transport))->withCache()->callTool('say-hi');
+
+    expect($transport->recipes)->toBe(0);
+});
+
 it('leaves the transport uncached until asked', function (): void {
     $transport = cacheableTransport();
     $client = new Client($transport);

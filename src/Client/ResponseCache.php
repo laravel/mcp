@@ -22,11 +22,11 @@ class ResponseCache
 
     /**
      * @param  Method<mixed>  $method
-     * @param  array<string, mixed>  $recipe
+     * @param  Closure(): array<string, mixed>  $recipe
      * @param  Closure(): array<string, mixed>  $fetch
      * @return array<string, mixed>
      */
-    public function remember(Method $method, array $recipe, Closure $fetch): array
+    public function remember(Method $method, Closure $recipe, Closure $fetch): array
     {
         $params = $method->params();
 
@@ -34,9 +34,10 @@ class ResponseCache
             return $fetch();
         }
 
+        $resolved = $recipe();
         $repository = Cache::store($this->store);
-        $shared = $this->key($recipe, $method->method(), $params, CacheScope::Public);
-        $private = $this->key($recipe, $method->method(), $params, CacheScope::Private);
+        $shared = $this->key($resolved, $method->method(), $params, CacheScope::Public);
+        $private = $this->key($resolved, $method->method(), $params, CacheScope::Private);
 
         $cached = $repository->get($private) ?? $repository->get($shared);
 
@@ -76,8 +77,8 @@ class ResponseCache
     {
         return implode(':', [
             'mcp',
-            $this->hash(Arr::only($recipe, ['driver', 'url', 'command', 'args'])),
-            $scope === CacheScope::Public ? 'public' : ($this->context ?? $this->hash($recipe)),
+            $this->hash(Arr::only($recipe, ['driver', 'url', 'command', 'args', 'headers'])),
+            $scope === CacheScope::Public ? 'public' : ($this->context ?? $this->hash(Arr::except($recipe, ['timeoutSeconds']))),
             $method,
             $this->hash($params),
         ]);
