@@ -42,6 +42,18 @@ it('challenges when authentication is not part of the middleware priority list',
         ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="'.url('/.well-known/oauth-protected-resource/custom-auth-mcp').'"');
 });
 
+it('challenges when authentication is applied through the auth alias', function (): void {
+    config()->set('auth.guards.api', ['driver' => 'session', 'provider' => 'users']);
+
+    Route::middleware(SubstituteBindings::class)->group(function (): void {
+        Mcp::web('aliased-mcp', ExampleServer::class)->middleware('auth:api');
+    });
+
+    $this->postJson('aliased-mcp', [])
+        ->assertStatus(401)
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="'.url('/.well-known/oauth-protected-resource/aliased-mcp').'"');
+});
+
 it('does not challenge on routes that are not mcp servers', function (): void {
     Route::middleware(Authenticate::class)->post('not-mcp', fn () => response()->json([]));
 
