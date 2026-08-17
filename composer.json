@@ -84,6 +84,18 @@
         ],
         "test:unit": "pest --ci --coverage --min=92.5",
         "test:types": "phpstan --no-progress",
+        "test:conformance": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash tests/Conformance/run.sh all"
+        ],
+        "test:conformance:server": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash tests/Conformance/run.sh server"
+        ],
+        "test:conformance:client": [
+            "Composer\\Config::disableProcessTimeout",
+            "bash tests/Conformance/run.sh client"
+        ],
         "test": [
             "@test:lint",
             "@test:unit",
