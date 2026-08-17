@@ -35,7 +35,7 @@ class McpServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerMcpScope();
-        $this->registerMiddlewarePriority();
+        $this->registerGlobalMiddleware();
         $this->registerRoutes();
         $this->registerContainerCallbacks();
         $this->registerClientDisconnect();
@@ -47,11 +47,11 @@ class McpServiceProvider extends ServiceProvider
         }
     }
 
-    protected function registerMiddlewarePriority(): void
+    protected function registerGlobalMiddleware(): void
     {
         $this->callAfterResolving(HttpKernelContract::class, function (mixed $kernel): void {
             if ($kernel instanceof HttpKernel) {
-                $kernel->prependToMiddlewarePriority(AddWwwAuthenticateHeader::class);
+                $kernel->pushMiddleware(AddWwwAuthenticateHeader::class);
             }
         });
     }

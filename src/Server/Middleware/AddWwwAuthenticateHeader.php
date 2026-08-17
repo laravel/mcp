@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Symfony\Component\HttpFoundation\Response;
 
 class AddWwwAuthenticateHeader
@@ -19,6 +20,11 @@ class AddWwwAuthenticateHeader
     {
         $response = $next($request);
         if ($response->getStatusCode() !== 401) {
+            return $response;
+        }
+
+        $route = $request->route();
+        if (! $route instanceof Route || ! in_array(self::class, app('router')->gatherRouteMiddleware($route), true)) {
             return $response;
         }
 
