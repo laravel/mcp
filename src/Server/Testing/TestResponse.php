@@ -10,10 +10,13 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
 use Illuminate\Testing\Fluent\AssertableJson;
+use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use PHPUnit\Framework\Assert;
 use RuntimeException;
@@ -36,6 +39,8 @@ class TestResponse
     public function __construct(
         protected Primitive $primitive,
         iterable|JsonRpcResponse $response,
+        protected ?Server $server = null,
+        protected ?JsonRpcRequest $request = null,
     ) {
         $responses = is_iterable($response)
             ? iterator_to_array($response)
@@ -50,6 +55,61 @@ class TestResponse
                 $this->notifications[] = $response;
             }
         }
+    }
+
+    public function assertInputRequired(): static
+    {
+        Assert::assertSame(
+            'input_required',
+            $this->response->toArray()['result']['resultType'] ?? null,
+            'The response does not require additional input.',
+        );
+
+        return $this;
+    }
+
+    public function assertElicits(string $message): static
+    {
+        $requests = $this->response->toArray()['result']['inputRequests'] ?? [];
+
+        foreach ($requests as $request) {
+            if (($request['method'] ?? null) === 'elicitation/create' && ($request['params']['message'] ?? null) === $message) {
+                return $this;
+            }
+        }
+
+        Assert::fail("The response does not elicit [{$message}].");
+    }
+
+    public function respond(mixed $content, string $action = 'accept'): static
+    {
+        if (! $this->server instanceof Server || ! $this->request instanceof JsonRpcRequest) {
+            throw new RuntimeException('This response cannot be retried.');
+        }
+
+        $inputRequests = $this->response->toArray()['result']['inputRequests'] ?? [];
+        $key = array_key_first($inputRequests);
+
+        if ($key === null) {
+            throw new RuntimeException('The response does not contain an input request.');
+        }
+
+        $inputResponse = ['action' => $action];
+
+        if ($content !== null) {
+            $inputResponse['content'] = $content;
+        }
+
+        $this->request->params['inputResponses'] = [$key => $inputResponse];
+        $request = $this->request;
+
+        try {
+            $response = (fn (): iterable|JsonRpcResponse => $this->runMethodHandle($request, $this->createContext()))->call($this->server);
+        } catch (JsonRpcException $jsonRpcException) {
+            $response = $jsonRpcException->toJsonRpcResponse();
+        }
+
+        return new static($this->primitive, $response, $this->server, $this->request);
     }
 
     /**

@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Testing;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use InvalidArgumentException;
+use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
@@ -89,7 +90,7 @@ class PendingTestResponse
 
         $response = $this->executeRequest($server, $request);
 
-        return new TestResponse($primitive, $response);
+        return new TestResponse($primitive, $response, $server, $request);
     }
 
     /**
@@ -165,6 +166,14 @@ class PendingTestResponse
         $params = [
             ...$primitive->toMethodCall(),
             'arguments' => $arguments,
+            '_meta' => [
+                MetaKey::CLIENT_CAPABILITIES->value => [
+                    'elicitation' => [
+                        'form' => [],
+                        'url' => [],
+                    ],
+                ],
+            ],
         ];
 
         if ($method === 'resources/read' && $primitive instanceof HasUriTemplate) {
@@ -175,7 +184,7 @@ class PendingTestResponse
 
         $response = $this->executeRequest($server, $request);
 
-        return new TestResponse($primitive, $response);
+        return new TestResponse($primitive, $response, $server, $request);
     }
 
     /**

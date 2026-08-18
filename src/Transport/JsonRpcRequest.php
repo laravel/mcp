@@ -129,7 +129,11 @@ class JsonRpcRequest
             $arguments = [];
         }
 
-        return new Request($arguments, $this->meta());
+        return new Request(
+            arguments: $arguments,
+            meta: $this->meta(),
+            inputResponses: is_array($this->get('inputResponses')) ? $this->get('inputResponses') : [],
+        );
     }
 
     /**

@@ -11,6 +11,7 @@ use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\Extension;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\ProtocolVersion;
+use Laravel\Mcp\Exceptions\InputRequiredException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Schema\Implementation;
@@ -417,12 +418,16 @@ abstract class Server
         $container->instance('mcp.request', $request->toRequest());
 
         try {
-            $response = $methodClass->handle($request, $context);
+            return $methodClass->handle($request, $context);
+        } catch (Throwable $throwable) {
+            if ($throwable instanceof InputRequiredException) {
+                return $throwable->toJsonRpcResponse($request->id);
+            }
+
+            throw $throwable;
         } finally {
             $container->forgetInstance('mcp.request');
         }
-
-        return $response;
     }
 
     /**
