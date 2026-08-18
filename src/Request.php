@@ -132,7 +132,7 @@ class Request implements Arrayable
     /**
      * @param  Closure(JsonSchema): array<string, mixed>|array<string, mixed>  $schema
      */
-    public function elicit(string $message, Closure|array $schema, ?string $key = null): ElicitResponse
+    public function ask(string $message, Closure|array $schema, ?string $key = null): ElicitResponse
     {
         if (! $this->clientSupports('elicitation.form')) {
             throw new ElicitationNotSupportedException('form');

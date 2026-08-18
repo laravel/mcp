@@ -17,7 +17,7 @@ class InputRequiredElicitationPrompt extends Prompt
 
     public function handle(Request $request): Response
     {
-        $response = $request->elicit('What context should the prompt use?', fn (JsonSchema $schema): array => [
+        $response = $request->ask('What context should the prompt use?', fn (JsonSchema $schema): array => [
             'context' => $schema->string()->required(),
         ], 'user_context');
 

@@ -17,7 +17,7 @@ class InputRequiredElicitationTool extends Tool
 
     public function handle(Request $request): Response
     {
-        $response = $request->elicit('What is your name?', fn (JsonSchema $schema): array => [
+        $response = $request->ask('What is your name?', fn (JsonSchema $schema): array => [
             'name' => $schema->string()->required(),
         ], 'user_name');
 

@@ -32,7 +32,7 @@ class ElicitationTool extends Tool
 {
     public function handle(Request $request): Response
     {
-        $response = $request->elicit('Your GitHub username', fn (JsonSchema $schema): array => [
+        $response = $request->ask('Your GitHub username', fn (JsonSchema $schema): array => [
             'name' => $schema->string()->required(),
         ]);
 
@@ -52,7 +52,7 @@ class StreamingElicitationTool extends Tool
 {
     public function handle(Request $request): Generator
     {
-        $response = $request->elicit('Choose a release', [
+        $response = $request->ask('Choose a release', [
             'type' => 'object',
             'properties' => ['release' => ['type' => 'string']],
             'required' => ['release'],
@@ -76,7 +76,7 @@ class ElicitationPrompt extends Prompt
 {
     public function handle(Request $request): Response
     {
-        $response = $request->elicit('Pick a topic', [
+        $response = $request->ask('Pick a topic', [
             'type' => 'object',
             'properties' => ['topic' => ['type' => 'string']],
         ]);
@@ -89,7 +89,7 @@ class ElicitationResource extends Resource
 {
     public function handle(Request $request): Response
     {
-        $response = $request->elicit('Pick a locale', [
+        $response = $request->ask('Pick a locale', [
             'type' => 'object',
             'properties' => ['locale' => ['type' => 'string']],
         ]);
@@ -157,7 +157,7 @@ it('uses stable default keys and honors explicit keys', function (): void {
     $schema = fn (JsonSchema $schema): array => ['name' => $schema->string()->required()];
     $capture = function (?string $key = null) use ($request, $schema): InputRequiredException {
         try {
-            $request->elicit('Name', $schema, $key);
+            $request->ask('Name', $schema, $key);
         } catch (InputRequiredException $inputRequiredException) {
             return $inputRequiredException;
         }
