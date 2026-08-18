@@ -258,11 +258,13 @@ class Protocol
 
     protected function identifiesLegacyServer(JsonRpcException $jsonRpcException): bool
     {
-        return in_array($jsonRpcException->getCode(), [
+        $code = $jsonRpcException->getCode();
+
+        return in_array($code, [
             ErrorCode::PARSE_ERROR->value,
             ErrorCode::INVALID_REQUEST->value,
             ErrorCode::METHOD_NOT_FOUND->value,
-        ], true);
+        ], true) || ($code <= -32000 && $code >= -32099);
     }
 
     public function disconnect(): void
@@ -329,7 +331,9 @@ class Protocol
                 }
 
                 $this->handleServerRequest($response);
-            } while (Arr::get($response, 'id') !== $request->id);
+
+                $responseId = Arr::get($response, 'id');
+            } while ($responseId !== $request->id && ($responseId !== null || ! Arr::has($response, 'error')));
 
             $hasResult = Arr::has($response, 'result');
             $hasError = Arr::has($response, 'error');

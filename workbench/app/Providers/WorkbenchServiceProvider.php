@@ -4,6 +4,7 @@ namespace Workbench\App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Facades\Mcp;
+use Tests\Conformance\ConformanceServer;
 use Tests\Fixtures\ExampleServer;
 use Tests\Fixtures\ServerWithDynamicTools;
 
@@ -31,5 +32,7 @@ class WorkbenchServiceProvider extends ServiceProvider
         Mcp::local('test-mcp', ExampleServer::class);
         Mcp::web('test-mcp', ExampleServer::class);
         Mcp::web('test-mcp-dynamic-tools', ServerWithDynamicTools::class);
+
+        Mcp::web('conformance', ConformanceServer::class);
     }
 }
