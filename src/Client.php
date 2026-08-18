@@ -21,6 +21,7 @@ use Laravel\Mcp\Client\Primitives\Prompt;
 use Laravel\Mcp\Client\Primitives\Resource;
 use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Protocol;
+use Laravel\Mcp\Client\ResponseCache;
 use Laravel\Mcp\Client\Schema\DiscoverResult;
 use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Client\Schema\PromptResult;
@@ -41,6 +42,8 @@ class Client
     protected Protocol $protocol;
 
     protected ?string $name = null;
+
+    protected ?ResponseCache $cache = null;
 
     public function __construct(
         protected Transport $transport,
@@ -77,6 +80,24 @@ class Client
     public static function web(string $url): WebClient
     {
         return new WebClient(new HttpTransport($url));
+    }
+
+    public function withCache(?string $store = null, ?string $context = null): static
+    {
+        $this->cache = new ResponseCache($store, $context);
+
+        $this->protocol->cacheWith($this->cache);
+
+        return $this;
+    }
+
+    public function withoutCache(): static
+    {
+        $this->cache = null;
+
+        $this->protocol->cacheWith(null);
+
+        return $this;
     }
 
     public function withTimeout(float $seconds): static
@@ -268,6 +289,7 @@ class Client
             'clientInfo' => $this->clientInfo,
             'transport' => $this->transport->recipe(),
             'protocolVersion' => $this->protocol->pinnedProtocolVersion()?->value,
+            'cache' => $this->cache,
         ];
     }
 
@@ -284,15 +306,19 @@ class Client
             $this->transport = $resolved->transport;
             $this->clientInfo = $resolved->clientInfo;
             $pinned = $resolved->protocol->pinnedProtocolVersion();
+            $cache = $resolved->cache;
         } else {
             $this->clientInfo = Arr::get($data, 'clientInfo');
             $this->transport = TransportFactory::fromRecipe(Arr::get($data, 'transport'));
             $pinned = ProtocolVersion::tryFrom((string) Arr::get($data, 'protocolVersion'));
+            $cache = Arr::get($data, 'cache');
         }
 
         $this->clientInfo ??= $this->defaultClientInfo();
+        $this->cache = $cache instanceof ResponseCache ? $cache : null;
 
         $this->protocol = new Protocol($this->transport, $this->clientInfo, $pinned);
+        $this->protocol->cacheWith($this->cache);
     }
 
     public function __destruct()
