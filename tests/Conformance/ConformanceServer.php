@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Conformance;
 
 use Laravel\Mcp\Server;
+use Tests\Conformance\Prompts\InputRequiredElicitationPrompt;
 use Tests\Conformance\Prompts\PromptWithArguments;
 use Tests\Conformance\Prompts\PromptWithEmbeddedResource;
 use Tests\Conformance\Prompts\PromptWithImage;
@@ -17,6 +18,7 @@ use Tests\Conformance\Tools\AudioContentTool;
 use Tests\Conformance\Tools\EmbeddedResourceTool;
 use Tests\Conformance\Tools\ErrorHandlingTool;
 use Tests\Conformance\Tools\ImageContentTool;
+use Tests\Conformance\Tools\InputRequiredElicitationTool;
 use Tests\Conformance\Tools\MultipleContentTypesTool;
 use Tests\Conformance\Tools\SimpleTextTool;
 
@@ -39,6 +41,7 @@ class ConformanceServer extends Server
         EmbeddedResourceTool::class,
         MultipleContentTypesTool::class,
         ErrorHandlingTool::class,
+        InputRequiredElicitationTool::class,
     ];
 
     public array $resources = [
@@ -53,5 +56,6 @@ class ConformanceServer extends Server
         PromptWithArguments::class,
         PromptWithEmbeddedResource::class,
         PromptWithImage::class,
+        InputRequiredElicitationPrompt::class,
     ];
 }
