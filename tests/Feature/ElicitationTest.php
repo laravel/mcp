@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Validation\ValidationException;
+use Laravel\Mcp\Enums\ElicitationAction;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Exceptions\ElicitationNotSupportedException;
 use Laravel\Mcp\Exceptions\InputRequiredException;
@@ -240,7 +241,8 @@ it('wraps input responses and validates accepted content', function (): void {
         'content' => ['email' => 'octocat@example.com'],
     ]);
 
-    expect($response->accepted())->toBeTrue()
+    expect($response->action())->toBe(ElicitationAction::Accept)
+        ->and($response->accepted())->toBeTrue()
         ->and($response->declined())->toBeFalse()
         ->and($response->cancelled())->toBeFalse()
         ->and($response->get('email'))->toBe('octocat@example.com')

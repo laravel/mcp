@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Elicitations;
 
 use ArrayAccess;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
+use Laravel\Mcp\Enums\ElicitationAction;
 use LogicException;
 
 /**
@@ -18,9 +20,9 @@ class ElicitResponse implements ArrayAccess
      */
     public function __construct(protected array $response)
     {
-        $this->response['content'] = is_array($this->response['content'] ?? null)
-            ? $this->response['content']
-            : [];
+        $content = Arr::get($this->response, 'content');
+
+        $this->response['content'] = is_array($content) ? $content : [];
     }
 
     public function get(string $key, mixed $default = null): mixed
@@ -28,19 +30,26 @@ class ElicitResponse implements ArrayAccess
         return $this->content()[$key] ?? $default;
     }
 
+    public function action(): ?ElicitationAction
+    {
+        $action = Arr::get($this->response, 'action');
+
+        return is_string($action) ? ElicitationAction::tryFrom($action) : null;
+    }
+
     public function accepted(): bool
     {
-        return ($this->response['action'] ?? null) === 'accept';
+        return $this->action() === ElicitationAction::Accept;
     }
 
     public function declined(): bool
     {
-        return ($this->response['action'] ?? null) === 'decline';
+        return $this->action() === ElicitationAction::Decline;
     }
 
     public function cancelled(): bool
     {
-        return ($this->response['action'] ?? null) === 'cancel';
+        return $this->action() === ElicitationAction::Cancel;
     }
 
     /**
@@ -57,14 +66,16 @@ class ElicitResponse implements ArrayAccess
      */
     protected function content(): array
     {
-        if (! $this->accepted()) {
+        $action = $this->action();
+
+        if ($action !== ElicitationAction::Accept) {
             throw new LogicException(sprintf(
                 'The elicitation was not accepted. Check accepted() before reading the response [action: %s].',
-                is_string($this->response['action'] ?? null) ? $this->response['action'] : 'missing',
+                $action instanceof ElicitationAction ? $action->value : 'missing',
             ));
         }
 
-        return $this->response['content'] ?? [];
+        return Arr::get($this->response, 'content', []);
     }
 
     public function offsetExists(mixed $offset): bool
