@@ -25,7 +25,7 @@ class ElicitResponse implements ArrayAccess
 
     public function get(string $key, mixed $default = null): mixed
     {
-        return $this->response['content'][$key] ?? $default;
+        return $this->content()[$key] ?? $default;
     }
 
     public function accepted(): bool
@@ -49,12 +49,27 @@ class ElicitResponse implements ArrayAccess
      */
     public function validate(array $rules): array
     {
-        return Validator::validate($this->response['content'] ?? [], $rules);
+        return Validator::validate($this->content(), $rules);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function content(): array
+    {
+        if (! $this->accepted()) {
+            throw new LogicException(sprintf(
+                'The elicitation was not accepted. Check accepted() before reading the response [action: %s].',
+                is_string($this->response['action'] ?? null) ? $this->response['action'] : 'missing',
+            ));
+        }
+
+        return $this->response['content'] ?? [];
     }
 
     public function offsetExists(mixed $offset): bool
     {
-        return isset($this->response['content'][$offset]);
+        return $this->accepted() && isset($this->response['content'][$offset]);
     }
 
     public function offsetGet(mixed $offset): mixed

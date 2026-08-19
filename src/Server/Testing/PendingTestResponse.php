@@ -18,11 +18,19 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Support\UriTemplate;
 use Laravel\Mcp\Transport\JsonRpcRequest;
-use Laravel\Mcp\Transport\JsonRpcResponse;
 use Stringable;
 
 class PendingTestResponse
 {
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $clientCapabilities = [
+        'elicitation' => [
+            'form' => [],
+        ],
+    ];
+
     /**
      * @param  class-string<Server>  $serverClass
      */
@@ -31,6 +39,16 @@ class PendingTestResponse
         protected string $serverClass
     ) {
         //
+    }
+
+    /**
+     * @param  array<string, mixed>  $capabilities
+     */
+    public function withClientCapabilities(array $capabilities): static
+    {
+        $this->clientCapabilities = $capabilities;
+
+        return $this;
     }
 
     /**
@@ -85,6 +103,7 @@ class PendingTestResponse
                 'context' => [
                     'arguments' => $currentArgs,
                 ],
+                '_meta' => $this->meta(),
             ],
         );
 
@@ -130,13 +149,17 @@ class PendingTestResponse
         return $server;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    protected function meta(): array
+    {
+        return [MetaKey::CLIENT_CAPABILITIES->value => $this->clientCapabilities];
+    }
+
     protected function executeRequest(Server $server, JsonRpcRequest $request): mixed
     {
-        try {
-            return (fn (): iterable|JsonRpcResponse => $this->runMethodHandle($request, $this->createContext()))->call($server);
-        } catch (JsonRpcException $jsonRpcException) {
-            return $jsonRpcException->toJsonRpcResponse();
-        }
+        return TestResponse::execute($server, $request);
     }
 
     public function actingAs(Authenticatable $user, ?string $guard = null): static
@@ -166,14 +189,7 @@ class PendingTestResponse
         $params = [
             ...$primitive->toMethodCall(),
             'arguments' => $arguments,
-            '_meta' => [
-                MetaKey::CLIENT_CAPABILITIES->value => [
-                    'elicitation' => [
-                        'form' => [],
-                        'url' => [],
-                    ],
-                ],
-            ],
+            '_meta' => $this->meta(),
         ];
 
         if ($method === 'resources/read' && $primitive instanceof HasUriTemplate) {

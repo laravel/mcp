@@ -170,6 +170,10 @@ class ToolSearch
             $params['_meta'] = $parentRequest->meta();
         }
 
+        if ($parentRequest->inputResponses() !== []) {
+            $params['inputResponses'] = $parentRequest->inputResponses();
+        }
+
         $request = new JsonRpcRequest(
             id: "execute-tools:{$index}",
             method: 'tools/call',

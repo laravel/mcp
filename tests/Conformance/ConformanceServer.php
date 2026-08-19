@@ -15,13 +15,17 @@ use Tests\Conformance\Resources\StaticTextResource;
 use Tests\Conformance\Resources\TemplateResource;
 use Tests\Conformance\Resources\WatchedResource;
 use Tests\Conformance\Tools\AudioContentTool;
+use Tests\Conformance\Tools\CapabilityCheckElicitationTool;
 use Tests\Conformance\Tools\EmbeddedResourceTool;
 use Tests\Conformance\Tools\ErrorHandlingTool;
 use Tests\Conformance\Tools\ImageContentTool;
 use Tests\Conformance\Tools\InputRequiredElicitationTool;
+use Tests\Conformance\Tools\ListRootsInputRequiredTool;
 use Tests\Conformance\Tools\MultipleContentTypesTool;
+use Tests\Conformance\Tools\MultipleInputsRequiredTool;
 use Tests\Conformance\Tools\MultiRoundInputRequiredTool;
 use Tests\Conformance\Tools\RequestStateInputRequiredTool;
+use Tests\Conformance\Tools\SamplingInputRequiredTool;
 use Tests\Conformance\Tools\SimpleTextTool;
 use Tests\Conformance\Tools\TamperedStateInputRequiredTool;
 
@@ -48,6 +52,10 @@ class ConformanceServer extends Server
         MultiRoundInputRequiredTool::class,
         RequestStateInputRequiredTool::class,
         TamperedStateInputRequiredTool::class,
+        CapabilityCheckElicitationTool::class,
+        MultipleInputsRequiredTool::class,
+        SamplingInputRequiredTool::class,
+        ListRootsInputRequiredTool::class,
     ];
 
     public array $resources = [

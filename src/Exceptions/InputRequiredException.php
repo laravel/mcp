@@ -30,7 +30,10 @@ class InputRequiredException extends Exception
     {
         return JsonRpcResponse::result($id, [
             'resultType' => 'input_required',
-            'inputRequests' => $this->inputRequests,
+            'inputRequests' => array_map(
+                fn (array $inputRequest): array => [...$inputRequest, 'params' => $inputRequest['params'] === [] ? (object) [] : $inputRequest['params']],
+                $this->inputRequests,
+            ),
             'requestState' => encrypt($this->inputResponses),
         ]);
     }

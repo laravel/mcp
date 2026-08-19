@@ -3,8 +3,12 @@
 declare(strict_types=1);
 
 use Laravel\Mcp\Enums\CacheScope;
+use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Cacheable;
+use Laravel\Mcp\Server\Contracts\Transport;
+use Laravel\Mcp\Server\Resource;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\CacheableResource;
 use Tests\Fixtures\ExampleServer;
@@ -68,6 +72,43 @@ it('leaves caching hints off a request retried with input responses', function (
     expect($result)->not->toHaveKey('ttlMs');
     expect($result)->not->toHaveKey('cacheScope');
 })->with(['inputResponses', 'requestState']);
+
+it('leaves caching hints off an input required result', function (): void {
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://resources/eliciting-resource';
+
+        public function handle(Request $request): Response
+        {
+            return Response::text((string) $request->ask('Pick a locale', ['type' => 'object'])->get('locale'));
+        }
+    };
+
+    $result = resultFor([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'resources/read',
+        'params' => [
+            '_meta' => [
+                ...protocolMeta(),
+                'io.modelcontextprotocol/clientCapabilities' => ['elicitation' => []],
+            ],
+            'uri' => 'file://resources/eliciting-resource',
+        ],
+    ], fn (ArrayTransport $transport): Server => new class($transport, $resource) extends ExampleServer
+    {
+        public function __construct(Transport $transport, Resource $resource)
+        {
+            parent::__construct($transport);
+
+            $this->resources = [$resource];
+        }
+    })['result'];
+
+    expect($result['resultType'])->toBe('input_required')
+        ->and($result)->not->toHaveKey('ttlMs')
+        ->and($result)->not->toHaveKey('cacheScope');
+});
 
 it('uses the hint the server attribute declares', function (): void {
     $result = resultFor(listToolsMessage(), fn (ArrayTransport $transport): Server => new #[Cacheable(ttlMs: 300000, scope: CacheScope::Public)] class($transport) extends ExampleServer {})['result'];

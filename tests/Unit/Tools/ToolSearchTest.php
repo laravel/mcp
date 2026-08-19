@@ -2,6 +2,8 @@
 
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Collection;
+use Laravel\Mcp\Enums\MetaKey;
+use Laravel\Mcp\Exceptions\InputRequiredException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Schema\Implementation;
@@ -275,6 +277,60 @@ it('rejects generated tool name collisions', function (): void {
 
     expect(fn (): Collection => $context->tools())
         ->toThrow(InvalidArgumentException::class, 'Duplicate server tool name [search_tools].');
+});
+
+class ElicitingCatalogTool extends Tool
+{
+    protected string $name = 'eliciting-catalog-tool';
+
+    protected string $description = 'Asks the user for their name';
+
+    public function handle(Request $request): Response
+    {
+        $response = $request->ask('Your name', fn (JsonSchema $schema): array => [
+            'name' => $schema->string()->required(),
+        ]);
+
+        return Response::text("Hi {$response['name']}");
+    }
+}
+
+it('forwards input responses to nested catalog tools', function (): void {
+    $context = toolSearchContext([ElicitingCatalogTool::class]);
+    $executeTools = toolFromContext($context, 'execute_tools');
+
+    $call = function (array $extraParams) use ($context, $executeTools): array {
+        $request = JsonRpcRequest::from([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'tools/call',
+            'params' => [
+                'name' => $executeTools->name(),
+                'arguments' => ['calls' => [['name' => 'eliciting-catalog-tool', 'arguments' => []]]],
+                '_meta' => [MetaKey::CLIENT_CAPABILITIES->value => ['elicitation' => ['form' => []]]],
+                ...$extraParams,
+            ],
+        ]);
+
+        app()->instance('mcp.request', $request->toRequest());
+
+        try {
+            $response = (new CallTool)->handle($request, $context);
+            $response = $response instanceof JsonRpcResponse ? $response : iterator_to_array($response)[0];
+        } catch (InputRequiredException $inputRequiredException) {
+            $response = $inputRequiredException->toJsonRpcResponse($request->id);
+        }
+
+        return $response->toArray();
+    };
+
+    $first = $call([]);
+    $key = array_key_first($first['result']['inputRequests']);
+
+    $second = $call(['inputResponses' => [$key => ['action' => 'accept', 'content' => ['name' => 'Taylor']]]]);
+
+    expect($first['result']['resultType'])->toBe('input_required')
+        ->and($second['result']['content'][0]['text'])->toContain('Hi Taylor');
 });
 
 function toolSearchContext(array $tools): ServerContext

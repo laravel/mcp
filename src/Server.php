@@ -421,12 +421,8 @@ abstract class Server
 
         try {
             return $methodClass->handle($request, $context);
-        } catch (Throwable $throwable) {
-            if ($throwable instanceof InputRequiredException) {
-                return $throwable->toJsonRpcResponse($request->id);
-            }
-
-            throw $throwable;
+        } catch (InputRequiredException $inputRequiredException) {
+            return $inputRequiredException->toJsonRpcResponse($request->id);
         } finally {
             $container->forgetInstance('mcp.request');
         }

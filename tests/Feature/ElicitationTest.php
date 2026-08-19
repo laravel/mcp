@@ -22,7 +22,6 @@ class ElicitationServer extends Server
     protected array $tools = [
         ElicitationTool::class,
         StreamingElicitationTool::class,
-        UrlElicitationTool::class,
         MultiRoundElicitationTool::class,
     ];
 
@@ -78,16 +77,6 @@ class MultiRoundElicitationTool extends Tool
     }
 }
 
-class UrlElicitationTool extends Tool
-{
-    public function handle(Request $request): Response
-    {
-        $response = $request->elicitUrl('Sign in to continue', 'https://example.com/sign-in');
-
-        return Response::text($response->accepted() ? 'Signed in' : 'Not signed in');
-    }
-}
-
 class ElicitationPrompt extends Prompt
 {
     public function handle(Request $request): Response
@@ -114,7 +103,7 @@ class ElicitationResource extends Resource
     }
 }
 
-function elicitationMeta(array $elicitation = ['form' => [], 'url' => []]): array
+function elicitationMeta(array $elicitation = ['form' => []]): array
 {
     return [
         MetaKey::CLIENT_CAPABILITIES->value => ['elicitation' => $elicitation],
@@ -138,16 +127,6 @@ it('exposes declined and cancelled form input', function (string $action, string
     ['decline', 'Declined'],
     ['cancel', 'Cancelled'],
 ]);
-
-it('elicits URL input and can elicit it on a new call', function (): void {
-    ElicitationServer::tool(UrlElicitationTool::class)
-        ->assertInputRequired()
-        ->assertElicits('Sign in to continue')
-        ->respond(null)
-        ->assertSee('Signed in');
-
-    ElicitationServer::tool(UrlElicitationTool::class)->assertInputRequired();
-});
 
 it('keeps earlier answers across elicitation rounds', function (): void {
     ElicitationServer::tool(MultiRoundElicitationTool::class)
@@ -195,40 +174,64 @@ it('supports elicitation from prompts and resources', function (): void {
         ->assertSee('Locale en');
 });
 
-it('uses stable default keys and honors explicit keys', function (): void {
-    $request = new Request(meta: elicitationMeta());
+it('keys default elicitations per call and stably across replays', function (): void {
     $schema = fn (JsonSchema $schema): array => ['name' => $schema->string()->required()];
-    $capture = function (?string $key = null) use ($request, $schema): InputRequiredException {
+    $keyFor = function (Request $request, ?string $key = null) use ($schema): string {
         try {
             $request->ask('Name', $schema, $key);
         } catch (InputRequiredException $inputRequiredException) {
-            return $inputRequiredException;
+            return (string) array_key_first($inputRequiredException->inputRequests());
         }
 
         throw new RuntimeException('The request did not require input.');
     };
 
-    $first = $capture();
-    $second = $capture();
-    $explicit = $capture('name');
+    $shared = new Request(meta: elicitationMeta());
 
-    expect(array_key_first($first->inputRequests()))
-        ->toBe(array_key_first($second->inputRequests()))
-        ->not->toBe('name')
-        ->and(array_key_first($explicit->inputRequests()))->toBe('name');
+    expect($keyFor(new Request(meta: elicitationMeta())))
+        ->toBe($keyFor(new Request(meta: elicitationMeta())))
+        ->and($keyFor($shared))->not->toBe($keyFor($shared))
+        ->and($keyFor(new Request(meta: elicitationMeta()), 'name'))->toBe('name');
 });
 
-it('gates form and URL modes by client capability', function (): void {
-    $legacyForm = new Request(meta: elicitationMeta([]));
-    $urlOnly = new Request(meta: elicitationMeta(['url' => []]));
+it('matches numeric elicitation keys the client echoes back', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'elicitation-tool',
+            'arguments' => [],
+            '_meta' => elicitationMeta(),
+            'requestState' => encrypt(['7' => ['action' => 'accept', 'content' => ['value' => 'kept']]]),
+            'inputResponses' => json_decode('{"9":{"action":"accept","content":{"value":"fresh"}}}', true),
+        ],
+    ])->toRequest();
 
-    expect($legacyForm->clientSupports('elicitation'))->toBeTrue()
-        ->and($legacyForm->clientSupports('elicitation.form'))->toBeTrue()
-        ->and($legacyForm->clientSupports('elicitation.url'))->toBeFalse()
-        ->and($urlOnly->clientSupports('elicitation.form'))->toBeFalse()
-        ->and($urlOnly->clientSupports('elicitation.url'))->toBeTrue()
-        ->and(fn (): ElicitResponse => $legacyForm->elicitUrl('Sign in', 'https://example.com'))
-        ->toThrow(ElicitationNotSupportedException::class, 'The client does not support URL elicitation.');
+    expect($request->inputResponses())->toHaveKeys(['7', '9'])
+        ->and($request->ask('Pick', ['type' => 'object'], '9')->get('value'))->toBe('fresh')
+        ->and($request->ask('Pick', ['type' => 'object'], '7')->get('value'))->toBe('kept');
+});
+
+it('reports boolean client capabilities as declared', function (): void {
+    $request = new Request(meta: [
+        MetaKey::CLIENT_CAPABILITIES->value => ['roots' => ['listChanged' => true], 'sampling' => ['enabled' => false]],
+    ]);
+
+    expect($request->clientSupports('roots.listChanged'))->toBeTrue()
+        ->and($request->clientSupports('sampling.enabled'))->toBeFalse()
+        ->and($request->clientSupports('roots'))->toBeTrue();
+});
+
+it('gates form elicitation by client capability', function (): void {
+    $legacy = new Request(meta: elicitationMeta([]));
+    $unsupported = new Request;
+
+    expect($legacy->clientSupports('elicitation'))->toBeTrue()
+        ->and($legacy->clientSupports('elicitation.form'))->toBeTrue()
+        ->and($unsupported->clientSupports('elicitation.form'))->toBeFalse()
+        ->and(fn (): ElicitResponse => $unsupported->ask('Your GitHub username', ['type' => 'object']))
+        ->toThrow(ElicitationNotSupportedException::class, 'The client does not support form elicitation.');
 });
 
 it('wraps input responses and validates accepted content', function (): void {
@@ -248,6 +251,14 @@ it('wraps input responses and validates accepted content', function (): void {
 
     expect(fn (): array => $response->validate(['email' => 'required|url']))
         ->toThrow(ValidationException::class);
+
+    $declined = new ElicitResponse(['action' => 'decline']);
+
+    expect(fn (): mixed => $declined->get('email'))
+        ->toThrow(LogicException::class, 'The elicitation was not accepted.')
+        ->and(fn (): array => $declined->validate(['email' => 'required']))
+        ->toThrow(LogicException::class, 'The elicitation was not accepted.')
+        ->and(isset($declined['email']))->toBeFalse();
 
     expect(function () use ($response): void {
         $response['email'] = 'other@example.com';

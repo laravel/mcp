@@ -29,6 +29,8 @@ class Request implements Arrayable
     use InteractsWithData;
     use Macroable;
 
+    protected int $elicitations = 0;
+
     /**
      * @param  array<string, mixed>  $arguments
      * @param  array<string, mixed>|null  $meta
@@ -142,24 +144,13 @@ class Request implements Arrayable
             ? JsonSchemaFactory::object($schema)->toArray()
             : $schema;
 
+        $requestedSchema['properties'] ??= (object) [];
+
         return $this->resolveElicitation([
             'mode' => 'form',
             'message' => $message,
             'requestedSchema' => $requestedSchema,
-        ], $key ?? hash('sha256', $message.json_encode($requestedSchema)));
-    }
-
-    public function elicitUrl(string $message, string $url, ?string $key = null): ElicitResponse
-    {
-        if (! $this->clientSupports('elicitation.url')) {
-            throw new ElicitationNotSupportedException('URL');
-        }
-
-        return $this->resolveElicitation([
-            'mode' => 'url',
-            'message' => $message,
-            'url' => $url,
-        ], $key ?? hash('sha256', $message.$url));
+        ], $key);
     }
 
     public function clientSupports(string $capability): bool
@@ -170,14 +161,18 @@ class Request implements Arrayable
             return true;
         }
 
-        return is_array(data_get($capabilities, $capability));
+        $declared = data_get($capabilities, $capability);
+
+        return is_bool($declared) ? $declared : is_array($declared);
     }
 
     /**
      * @param  array<string, mixed>  $params
      */
-    protected function resolveElicitation(array $params, string $key): ElicitResponse
+    protected function resolveElicitation(array $params, ?string $key): ElicitResponse
     {
+        $key ??= hash('sha256', json_encode($params).$this->elicitations++);
+
         if (isset($this->inputResponses[$key]) && is_array($this->inputResponses[$key])) {
             return new ElicitResponse($this->inputResponses[$key]);
         }

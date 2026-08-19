@@ -112,6 +112,10 @@ trait InteractsWithResponses
             return new JsonRpcException(ValidationMessages::from($e), -32602, $requestId);
         }
 
+        if ($e instanceof ElicitationNotSupportedException) {
+            return new JsonRpcException($e->getMessage(), -32603, $requestId);
+        }
+
         return new JsonRpcException($this->toErrorMessage($e), -32603, $requestId);
     }
 

@@ -109,13 +109,16 @@ class TestResponse
             $request->params['requestState'] = $requestState;
         }
 
-        try {
-            $response = (fn (): iterable|JsonRpcResponse => $this->runMethodHandle($request, $this->createContext()))->call($this->server);
-        } catch (JsonRpcException $jsonRpcException) {
-            $response = $jsonRpcException->toJsonRpcResponse();
-        }
+        return new static($this->primitive, static::execute($this->server, $request), $this->server, $request);
+    }
 
-        return new static($this->primitive, $response, $this->server, $request);
+    public static function execute(Server $server, JsonRpcRequest $request): mixed
+    {
+        try {
+            return (fn (): iterable|JsonRpcResponse => $this->runMethodHandle($request, $this->createContext()))->call($server);
+        } catch (JsonRpcException $jsonRpcException) {
+            return $jsonRpcException->toJsonRpcResponse();
+        }
     }
 
     /**
