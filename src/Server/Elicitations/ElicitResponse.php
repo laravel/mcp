@@ -16,40 +16,52 @@ use LogicException;
 class ElicitResponse implements ArrayAccess
 {
     /**
-     * @param  array{action?: mixed, content?: array<string, mixed>}  $response
+     * @param  array<string, mixed>  $content
      */
-    public function __construct(protected array $response)
-    {
-        $content = Arr::get($this->response, 'content');
-
-        $this->response['content'] = is_array($content) ? $content : [];
+    public function __construct(
+        protected ?ElicitationAction $action = null,
+        protected array $content = [],
+    ) {
+        //
     }
 
-    public function get(string $key, mixed $default = null): mixed
+    /**
+     * @param  array<string, mixed>  $response
+     */
+    public static function from(array $response): static
     {
-        return $this->content()[$key] ?? $default;
+        $action = Arr::get($response, 'action');
+        $content = Arr::get($response, 'content');
+
+        return new static(
+            is_string($action) ? ElicitationAction::tryFrom($action) : null,
+            is_array($content) ? $content : [],
+        );
     }
 
     public function action(): ?ElicitationAction
     {
-        $action = Arr::get($this->response, 'action');
-
-        return is_string($action) ? ElicitationAction::tryFrom($action) : null;
+        return $this->action;
     }
 
     public function accepted(): bool
     {
-        return $this->action() === ElicitationAction::Accept;
+        return $this->action === ElicitationAction::Accept;
     }
 
     public function declined(): bool
     {
-        return $this->action() === ElicitationAction::Decline;
+        return $this->action === ElicitationAction::Decline;
     }
 
     public function cancelled(): bool
     {
-        return $this->action() === ElicitationAction::Cancel;
+        return $this->action === ElicitationAction::Cancel;
+    }
+
+    public function get(string $key, mixed $default = null): mixed
+    {
+        return $this->accepted() ? $this->content[$key] ?? $default : $this->reject();
     }
 
     /**
@@ -58,29 +70,20 @@ class ElicitResponse implements ArrayAccess
      */
     public function validate(array $rules): array
     {
-        return Validator::validate($this->content(), $rules);
+        return $this->accepted() ? Validator::validate($this->content, $rules) : $this->reject();
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    protected function content(): array
+    protected function reject(): never
     {
-        $action = $this->action();
-
-        if ($action !== ElicitationAction::Accept) {
-            throw new LogicException(sprintf(
-                'The elicitation was not accepted. Check accepted() before reading the response [action: %s].',
-                $action instanceof ElicitationAction ? $action->value : 'missing',
-            ));
-        }
-
-        return Arr::get($this->response, 'content', []);
+        throw new LogicException(sprintf(
+            'The elicitation was not accepted. Check accepted() before reading the response [action: %s].',
+            $this->action instanceof ElicitationAction ? $this->action->value : 'missing',
+        ));
     }
 
     public function offsetExists(mixed $offset): bool
     {
-        return $this->accepted() && isset($this->response['content'][$offset]);
+        return $this->accepted() && isset($this->content[$offset]);
     }
 
     public function offsetGet(mixed $offset): mixed

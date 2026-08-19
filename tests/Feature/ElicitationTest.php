@@ -236,7 +236,7 @@ it('gates form elicitation by client capability', function (): void {
 });
 
 it('wraps input responses and validates accepted content', function (): void {
-    $response = new ElicitResponse([
+    $response = ElicitResponse::from([
         'action' => 'accept',
         'content' => ['email' => 'octocat@example.com'],
     ]);
@@ -254,7 +254,7 @@ it('wraps input responses and validates accepted content', function (): void {
     expect(fn (): array => $response->validate(['email' => 'required|url']))
         ->toThrow(ValidationException::class);
 
-    $declined = new ElicitResponse(['action' => 'decline']);
+    $declined = ElicitResponse::from(['action' => 'decline']);
 
     expect(fn (): mixed => $declined->get('email'))
         ->toThrow(LogicException::class, 'The elicitation was not accepted.')

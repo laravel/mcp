@@ -174,7 +174,7 @@ class Request implements Arrayable
         $key ??= hash('sha256', json_encode($params).$this->elicitations++);
 
         if (isset($this->inputResponses[$key]) && is_array($this->inputResponses[$key])) {
-            return new ElicitResponse($this->inputResponses[$key]);
+            return ElicitResponse::from($this->inputResponses[$key]);
         }
 
         throw new InputRequiredException([
