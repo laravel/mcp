@@ -46,7 +46,7 @@ class InputRequiredException extends Exception
             'resultType' => 'input_required',
             'inputRequests' => Arr::map(
                 $this->inputRequests,
-                fn (array $inputRequest): array => [...$inputRequest, 'params' => $inputRequest['params'] ?: (object) []],
+                fn (array $inputRequest): array => [...$inputRequest, 'params' => ($inputRequest['params'] ?? []) ?: (object) []],
             ),
             'requestState' => $request->encodeRequestState($this->inputResponses, $this->state),
         ]);

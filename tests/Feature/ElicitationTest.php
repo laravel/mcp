@@ -325,6 +325,30 @@ it('rejects an input response that is not an object', function (): void {
         ->toThrow(JsonRpcException::class, 'Invalid params: The [inputResponses.picked] member must be an object.');
 });
 
+it('rejects a malformed input response at the json rpc boundary', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'elicitation-tool',
+            'arguments' => [],
+            'inputResponses' => ['picked' => 'nope'],
+        ],
+    ]);
+
+    expect(fn (): Request => $request->toRequest())
+        ->toThrow(JsonRpcException::class, 'Invalid params: The [inputResponses.picked] member must be an object.');
+});
+
+it('treats an unrecognised elicitation action as cancelled', function (): void {
+    $response = ElicitResponse::from(['action' => 'maybe', 'content' => ['name' => 'octocat']]);
+
+    expect($response->cancelled())->toBeTrue()
+        ->and($response->accepted())->toBeFalse()
+        ->and($response->content())->toBe([]);
+});
+
 it('serializes an empty requested schema properties as an object', function (): void {
     $request = new Request(meta: elicitationMeta());
 

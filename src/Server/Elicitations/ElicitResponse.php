@@ -34,7 +34,7 @@ class ElicitResponse implements ArrayAccess
         $content = Arr::get($response, 'content');
 
         return new static(
-            is_string($action) ? ElicitationAction::tryFrom($action) : null,
+            ElicitationAction::tryFrom(is_string($action) ? $action : '') ?? ElicitationAction::Cancel,
             is_array($content) ? $content : [],
         );
     }
