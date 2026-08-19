@@ -82,7 +82,6 @@ class UriTemplate implements Stringable
         );
     }
 
-
     /**
      * Reject placeholders the parser cannot extract.
      *
