@@ -33,6 +33,8 @@ class UriTemplate implements Stringable
             throw new InvalidArgumentException('Invalid URI template: must be a valid URI template with at least one placeholder.');
         }
 
+        $this->assertWordCharacterPlaceholders($template);
+
         $this->variableNames = $this->extractVariableNames($template);
     }
 
@@ -78,6 +80,33 @@ class UriTemplate implements Stringable
             InvalidArgumentException::class,
             sprintf('%s exceeds the maximum length of %d characters (received %d)', $context, $max, Str::length($str))
         );
+    }
+
+
+    /**
+     * Reject placeholders the parser cannot extract.
+     *
+     * Validation previously accepted any `{...}` expression, but
+     * extractVariableNames() / compileRegex() only understand `{word}`
+     * placeholders. Non-word names such as `{customer-id}` or `{+path}`
+     * were therefore advertised and then treated as literal text.
+     */
+    private function assertWordCharacterPlaceholders(string $template): void
+    {
+        if (! preg_match_all('/\{([^{}]+)}/', $template, $matches)) {
+            return;
+        }
+
+        foreach ($matches[1] as $expression) {
+            throw_unless(
+                preg_match('/^\w+$/', $expression) === 1,
+                InvalidArgumentException::class,
+                sprintf(
+                    'Invalid URI template placeholder {%s}: only word-character variable names are supported.',
+                    $expression
+                )
+            );
+        }
     }
 
     /**

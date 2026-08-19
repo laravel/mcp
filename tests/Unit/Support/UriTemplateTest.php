@@ -133,3 +133,17 @@ it('casts to string', function (): void {
 
     expect((string) $template)->toBe('file://users/{id}');
 });
+
+it('rejects placeholders that are not word characters', function (): void {
+    expect(fn (): UriTemplate => new UriTemplate('file://projects/{+path}'))
+        ->toThrow(InvalidArgumentException::class, 'only word-character variable names are supported')
+        ->and(fn (): UriTemplate => new UriTemplate('file://customers/{customer-id}'))
+        ->toThrow(InvalidArgumentException::class, 'only word-character variable names are supported')
+        ->and(fn (): UriTemplate => new UriTemplate('file://users/{user.id}'))
+        ->toThrow(InvalidArgumentException::class, 'only word-character variable names are supported');
+});
+
+it('still accepts plain word-character placeholders', function (): void {
+    expect(new UriTemplate('file://projects/{path}'))->toBeInstanceOf(UriTemplate::class)
+        ->and(new UriTemplate('file://customers/{customer_id}'))->toBeInstanceOf(UriTemplate::class);
+});
