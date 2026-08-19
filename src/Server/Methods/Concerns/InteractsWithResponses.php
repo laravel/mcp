@@ -10,6 +10,8 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
+use Laravel\Mcp\Exceptions\CapabilityNotSupportedException;
+use Laravel\Mcp\Exceptions\InputRequiredException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
@@ -68,6 +70,10 @@ trait InteractsWithResponses
 
                 $pendingResponses[] = $response;
             }
+        } catch (InputRequiredException $inputRequiredException) {
+            yield $inputRequiredException->toJsonRpcResponse($request);
+
+            return;
         } catch (Throwable $throwable) {
             if ($this instanceof Errable) {
                 yield $this->toJsonRpcResponse(
@@ -89,6 +95,8 @@ trait InteractsWithResponses
     {
         try {
             return $handler();
+        } catch (InputRequiredException $inputRequiredException) {
+            throw $inputRequiredException;
         } catch (Throwable $throwable) {
             if ($this instanceof Errable) {
                 return $this->toErrorResponse($throwable);
@@ -104,6 +112,10 @@ trait InteractsWithResponses
             return new JsonRpcException(ValidationMessages::from($e), -32602, $requestId);
         }
 
+        if ($e instanceof CapabilityNotSupportedException) {
+            return new JsonRpcException($e->getMessage(), -32603, $requestId);
+        }
+
         return new JsonRpcException($this->toErrorMessage($e), -32603, $requestId);
     }
 
@@ -113,7 +125,7 @@ trait InteractsWithResponses
             return Response::error(ValidationMessages::from($e));
         }
 
-        if ($e instanceof AuthenticationException || $e instanceof AuthorizationException) {
+        if ($e instanceof AuthenticationException || $e instanceof AuthorizationException || $e instanceof CapabilityNotSupportedException) {
             return Response::error($e->getMessage());
         }
 

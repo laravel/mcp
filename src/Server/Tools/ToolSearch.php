@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use JsonException;
+use Laravel\Mcp\Exceptions\InputRequiredException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Tool;
@@ -209,10 +210,16 @@ class ToolSearch
                 $result = $payload['result'];
             }
 
+            if (is_array($result) && ($result['resultType'] ?? null) === 'input_required') {
+                return ['notifications' => [], 'result' => $this->inputNotSupportedResult($name)];
+            }
+
             return [
                 'notifications' => $notifications,
                 'result' => $result ?? $this->failedResult("Tool [{$name}] returned no result."),
             ];
+        } catch (InputRequiredException) {
+            return ['notifications' => [], 'result' => $this->inputNotSupportedResult($name)];
         } finally {
             if ($hadParentRequest) {
                 $container->instance('mcp.request', $boundParentRequest);
@@ -260,6 +267,14 @@ class ToolSearch
             'content' => [['type' => 'text', 'text' => $message]],
             'isError' => true,
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function inputNotSupportedResult(string $name): array
+    {
+        return $this->failedResult("Tool [{$name}] requested user input, which is not supported through tool search.");
     }
 
     /**

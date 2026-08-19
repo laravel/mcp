@@ -10,10 +10,14 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
 use Illuminate\Testing\Fluent\AssertableJson;
+use Laravel\Mcp\Enums\ElicitationAction;
+use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use PHPUnit\Framework\Assert;
 use RuntimeException;
@@ -36,6 +40,8 @@ class TestResponse
     public function __construct(
         protected Primitive $primitive,
         iterable|JsonRpcResponse $response,
+        protected ?Server $server = null,
+        protected ?JsonRpcRequest $request = null,
     ) {
         $responses = is_iterable($response)
             ? iterator_to_array($response)
@@ -49,6 +55,117 @@ class TestResponse
             } else {
                 $this->notifications[] = $response;
             }
+        }
+    }
+
+    public function assertInputRequired(): static
+    {
+        Assert::assertSame(
+            'input_required',
+            $this->result()['resultType'] ?? null,
+            'The response does not require additional input.',
+        );
+
+        return $this;
+    }
+
+    public function assertElicits(string $message): static
+    {
+        Assert::assertTrue(
+            collect($this->inputRequests())->contains(
+                fn (array $request): bool => ($request['method'] ?? null) === 'elicitation/create'
+                    && ($request['params']['message'] ?? null) === $message,
+            ),
+            "The response does not elicit [{$message}].",
+        );
+
+        return $this;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function result(): array
+    {
+        return $this->response->toArray()['result'] ?? [];
+    }
+
+    /**
+     * @return array<array-key, array<string, mixed>>
+     */
+    protected function inputRequests(): array
+    {
+        $inputRequests = $this->result()['inputRequests'] ?? [];
+
+        return is_array($inputRequests) || is_object($inputRequests) ? (array) $inputRequests : [];
+    }
+
+    public function decline(int|string|null $key = null): static
+    {
+        return $this->respond(null, ElicitationAction::Decline, $key);
+    }
+
+    public function cancel(int|string|null $key = null): static
+    {
+        return $this->respond(null, ElicitationAction::Cancel, $key);
+    }
+
+    public function respond(mixed $content, ElicitationAction|string $action = ElicitationAction::Accept, int|string|null $key = null): static
+    {
+        $inputResponse = ['action' => $action instanceof ElicitationAction ? $action->value : $action];
+
+        if ($content !== null) {
+            $inputResponse['content'] = $content;
+        }
+
+        return $this->respondWith($inputResponse, $key);
+    }
+
+    /**
+     * @param  array<string, mixed>  $inputResponse
+     */
+    public function respondWith(array $inputResponse, int|string|null $key = null): static
+    {
+        if (! $this->server instanceof Server || ! $this->request instanceof JsonRpcRequest) {
+            throw new RuntimeException('This response cannot be retried.');
+        }
+
+        $inputRequests = $this->inputRequests();
+        $key ??= array_key_first($inputRequests);
+
+        if ($key === null) {
+            throw new RuntimeException('The response does not contain an input request.');
+        }
+
+        if (! array_key_exists($key, $inputRequests)) {
+            throw new RuntimeException("The response does not contain an input request for [{$key}].");
+        }
+
+        $requestState = $this->result()['requestState'] ?? null;
+
+        $request = clone $this->request;
+        $inputResponses = $this->request->params['inputResponses'] ?? [];
+        $request->params['inputResponses'] = [
+            ...is_array($inputResponses) ? $inputResponses : [],
+            $key => $inputResponse,
+        ];
+
+        if (is_string($requestState)) {
+            $request->params['requestState'] = $requestState;
+        }
+
+        return new static($this->primitive, static::execute($this->server, $request), $this->server, $request);
+    }
+
+    /**
+     * @internal
+     */
+    public static function execute(Server $server, JsonRpcRequest $request): mixed
+    {
+        try {
+            return (fn (): iterable|JsonRpcResponse => $this->runMethodHandle($request, $this->createContext()))->call($server);
+        } catch (JsonRpcException $jsonRpcException) {
+            return $jsonRpcException->toJsonRpcResponse();
         }
     }
 

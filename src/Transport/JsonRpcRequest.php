@@ -4,12 +4,20 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Transport;
 
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Support\Arr;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
 
 class JsonRpcRequest
 {
+    protected const REQUEST_STATE_TTL = 3600;
+
+    private ?string $scope = null;
+
     /**
      * @param  array<string, mixed>  $params
      */
@@ -129,7 +137,106 @@ class JsonRpcRequest
             $arguments = [];
         }
 
-        return new Request($arguments, $this->meta());
+        $payload = $this->requestState();
+
+        $inputResponses = array_replace(
+            is_array($payload['inputResponses'] ?? null) ? $payload['inputResponses'] : [],
+            $this->inputResponses(),
+        );
+
+        foreach ($inputResponses as $key => $inputResponse) {
+            if (! self::isObject($inputResponse)) {
+                throw new JsonRpcException("Invalid params: The [inputResponses.{$key}] member must be an object.", -32602, $this->id);
+            }
+        }
+
+        return new Request(
+            arguments: $arguments,
+            meta: $this->meta(),
+            inputResponses: $inputResponses,
+            state: is_array($payload['state'] ?? null) ? $payload['state'] : [],
+        );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function inputResponses(): array
+    {
+        $inputResponses = $this->get('inputResponses');
+
+        return is_array($inputResponses) ? $inputResponses : [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $inputResponses
+     * @param  array<string, mixed>  $state
+     */
+    public function encodeRequestState(array $inputResponses, array $state = []): string
+    {
+        return encrypt([
+            'scope' => $this->scope(),
+            'expiresAt' => now()->getTimestamp() + static::REQUEST_STATE_TTL,
+            'inputResponses' => $inputResponses,
+            'state' => $state,
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function requestState(): array
+    {
+        $requestState = $this->get('requestState');
+
+        if (! is_string($requestState)) {
+            return [];
+        }
+
+        try {
+            $payload = decrypt($requestState);
+        } catch (DecryptException) {
+            throw new JsonRpcException('Invalid params: The [requestState] member failed integrity verification.', -32602, $this->id);
+        }
+
+        if (! is_array($payload) || ! hash_equals($this->scope(), is_string($payload['scope'] ?? null) ? $payload['scope'] : '')) {
+            throw new JsonRpcException('Invalid params: The [requestState] member was issued for a different request.', -32602, $this->id);
+        }
+
+        if (! is_int($payload['expiresAt'] ?? null) || $payload['expiresAt'] < now()->getTimestamp()) {
+            throw new JsonRpcException('Invalid params: The [requestState] member has expired.', -32602, $this->id);
+        }
+
+        return $payload;
+    }
+
+    private function scope(): string
+    {
+        if ($this->scope !== null) {
+            return $this->scope;
+        }
+
+        $user = call_user_func(Container::getInstance()->make('auth')->userResolver());
+        $arguments = $this->get('arguments');
+
+        return $this->scope = hash('sha256', json_encode([
+            $this->method,
+            $this->get('name'),
+            $this->get('uri'),
+            self::canonicalize(is_array($arguments) ? $arguments : []),
+            $user instanceof Authenticatable ? $user->getAuthIdentifier() : null,
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @param  array<string, mixed>  $arguments
+     * @return array<string, mixed>
+     */
+    private static function canonicalize(array $arguments): array
+    {
+        ksort($arguments);
+
+        return Arr::map($arguments, fn (mixed $value): mixed => is_array($value) ? self::canonicalize($value) : $value);
     }
 
     /**
