@@ -29,6 +29,7 @@ class ElicitationServer extends Server
         MultiRoundElicitationTool::class,
         SimultaneousInputsTool::class,
         RememberingTool::class,
+        SharedStateTool::class,
         SamplingTool::class,
         RootsTool::class,
     ];
@@ -385,6 +386,26 @@ class RememberingTool extends Tool
     }
 }
 
+class SharedStateTool extends Tool
+{
+    public static int $sideEffects = 0;
+
+    public function handle(Request $request): Response
+    {
+        $order = $request->remember('order', function (): string {
+            static::$sideEffects++;
+
+            return 'order-'.static::$sideEffects;
+        });
+
+        $confirm = app(Request::class)->ask('Confirm the order', fn (JsonSchema $schema): array => [
+            'ok' => $schema->boolean()->required(),
+        ], 'confirm');
+
+        return Response::text("{$order} confirmed: ".($confirm['ok'] ? 'yes' : 'no'));
+    }
+}
+
 class SamplingTool extends Tool
 {
     public function handle(Request $request): Response
@@ -414,6 +435,26 @@ it('runs a side effect once across elicitation rounds', function (): void {
         ->assertSee('order-1 confirmed: yes');
 
     expect(RememberingTool::$sideEffects)->toBe(1);
+});
+
+it('shares handler state between every request instance in a round', function (): void {
+    SharedStateTool::$sideEffects = 0;
+
+    ElicitationServer::tool(SharedStateTool::class)
+        ->assertInputRequired()
+        ->respond(['ok' => true])
+        ->assertSee('order-1 confirmed: yes');
+
+    expect(SharedStateTool::$sideEffects)->toBe(1);
+});
+
+it('serializes numeric input request keys as an object', function (): void {
+    $response = (new InputRequiredException([
+        '0' => ['method' => 'roots/list', 'params' => []],
+        '1' => ['method' => 'roots/list', 'params' => []],
+    ]))->toJsonRpcResponse(new JsonRpcRequest(id: 1, method: 'tools/call', params: ['name' => 'roots-tool']));
+
+    expect($response->toJson())->toContain('"inputRequests":{"0":');
 });
 
 it('seals handler state into the request state', function (): void {
@@ -447,8 +488,9 @@ it('binds the request state to the original arguments', function (): void {
     ])->toRequest();
 
     expect($replay(['amount' => 1])->state())->toBe([])
-        ->and($replay(['amount' => 1_000_000]))->toThrow(JsonRpcException::class);
-})->throws(JsonRpcException::class, 'issued for a different request');
+        ->and(fn (): Request => $replay(['amount' => 1_000_000]))
+        ->toThrow(JsonRpcException::class, 'issued for a different request');
+});
 
 it('ignores argument key order when binding the request state', function (): void {
     $issued = (new JsonRpcRequest(id: 1, method: 'tools/call', params: [

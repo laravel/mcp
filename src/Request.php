@@ -145,12 +145,9 @@ class Request implements Arrayable
         return $this->state;
     }
 
-    /**
-     * @param  array<string, mixed>  $state
-     */
-    public function setState(array $state): void
+    public function shareStateWith(self $request): void
     {
-        $this->state = $state;
+        $this->state = &$request->state;
     }
 
     public function remember(string $key, Closure $callback): mixed
@@ -177,6 +174,7 @@ class Request implements Arrayable
 
         $this->assertFlatSchema($requestedSchema);
 
+        $requestedSchema['type'] ??= 'object';
         $requestedSchema['properties'] = (object) ($requestedSchema['properties'] ?? []);
 
         return ElicitResponse::from($this->resolveInput([

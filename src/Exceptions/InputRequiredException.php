@@ -12,8 +12,8 @@ use Laravel\Mcp\Transport\JsonRpcResponse;
 class InputRequiredException extends Exception
 {
     /**
-     * @param  array<string, array{method: string, params: array<string, mixed>}>  $inputRequests
-     * @param  array<string, mixed>  $inputResponses
+     * @param  array<array-key, array{method: string, params: array<string, mixed>}>  $inputRequests
+     * @param  array<array-key, mixed>  $inputResponses
      * @param  array<string, mixed>  $state
      */
     public function __construct(
@@ -25,7 +25,7 @@ class InputRequiredException extends Exception
     }
 
     /**
-     * @return array<string, array{method: string, params: array<string, mixed>}>
+     * @return array<array-key, array{method: string, params: array<string, mixed>}>
      */
     public function inputRequests(): array
     {
@@ -44,7 +44,7 @@ class InputRequiredException extends Exception
     {
         return JsonRpcResponse::result($request->id, [
             'resultType' => 'input_required',
-            'inputRequests' => Arr::map(
+            'inputRequests' => (object) Arr::map(
                 $this->inputRequests,
                 fn (array $inputRequest): array => [...$inputRequest, 'params' => ($inputRequest['params'] ?? []) ?: (object) []],
             ),

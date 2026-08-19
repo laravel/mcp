@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Exceptions;
 
-use RuntimeException;
-
-class ElicitationNotSupportedException extends RuntimeException
+class ElicitationNotSupportedException extends CapabilityNotSupportedException
 {
     public function __construct()
     {

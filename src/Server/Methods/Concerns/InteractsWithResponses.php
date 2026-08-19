@@ -10,11 +10,9 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
-use Laravel\Mcp\Exceptions\ElicitationNotSupportedException;
+use Laravel\Mcp\Exceptions\CapabilityNotSupportedException;
 use Laravel\Mcp\Exceptions\InputRequiredException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\Exceptions\RootsNotSupportedException;
-use Laravel\Mcp\Exceptions\SamplingNotSupportedException;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Content\Notification;
@@ -114,7 +112,7 @@ trait InteractsWithResponses
             return new JsonRpcException(ValidationMessages::from($e), -32602, $requestId);
         }
 
-        if ($e instanceof ElicitationNotSupportedException || $e instanceof SamplingNotSupportedException || $e instanceof RootsNotSupportedException) {
+        if ($e instanceof CapabilityNotSupportedException) {
             return new JsonRpcException($e->getMessage(), -32603, $requestId);
         }
 
@@ -127,7 +125,7 @@ trait InteractsWithResponses
             return Response::error(ValidationMessages::from($e));
         }
 
-        if ($e instanceof AuthenticationException || $e instanceof AuthorizationException || $e instanceof ElicitationNotSupportedException || $e instanceof SamplingNotSupportedException || $e instanceof RootsNotSupportedException) {
+        if ($e instanceof AuthenticationException || $e instanceof AuthorizationException || $e instanceof CapabilityNotSupportedException) {
             return Response::error($e->getMessage());
         }
 

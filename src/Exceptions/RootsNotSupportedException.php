@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Exceptions;
 
-use RuntimeException;
-
-class RootsNotSupportedException extends RuntimeException
+class RootsNotSupportedException extends CapabilityNotSupportedException
 {
     public function __construct()
     {

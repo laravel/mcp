@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Exceptions;
 
-use RuntimeException;
-
-class SamplingNotSupportedException extends RuntimeException
+class SamplingNotSupportedException extends CapabilityNotSupportedException
 {
     public function __construct()
     {

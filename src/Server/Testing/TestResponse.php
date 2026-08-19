@@ -91,26 +91,26 @@ class TestResponse
     }
 
     /**
-     * @return array<string, array<string, mixed>>
+     * @return array<array-key, array<string, mixed>>
      */
     protected function inputRequests(): array
     {
         $inputRequests = $this->result()['inputRequests'] ?? [];
 
-        return is_array($inputRequests) ? $inputRequests : [];
+        return is_array($inputRequests) || is_object($inputRequests) ? (array) $inputRequests : [];
     }
 
-    public function decline(?string $key = null): static
+    public function decline(int|string|null $key = null): static
     {
         return $this->respond(null, ElicitationAction::Decline, $key);
     }
 
-    public function cancel(?string $key = null): static
+    public function cancel(int|string|null $key = null): static
     {
         return $this->respond(null, ElicitationAction::Cancel, $key);
     }
 
-    public function respond(mixed $content, ElicitationAction|string $action = ElicitationAction::Accept, ?string $key = null): static
+    public function respond(mixed $content, ElicitationAction|string $action = ElicitationAction::Accept, int|string|null $key = null): static
     {
         $inputResponse = ['action' => $action instanceof ElicitationAction ? $action->value : $action];
 
@@ -124,7 +124,7 @@ class TestResponse
     /**
      * @param  array<string, mixed>  $inputResponse
      */
-    public function respondWith(array $inputResponse, ?string $key = null): static
+    public function respondWith(array $inputResponse, int|string|null $key = null): static
     {
         if (! $this->server instanceof Server || ! $this->request instanceof JsonRpcRequest) {
             throw new RuntimeException('This response cannot be retried.');
