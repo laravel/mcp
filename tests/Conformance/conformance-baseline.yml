@@ -13,6 +13,8 @@ server:
   - input-required-result-request-state
   - input-required-result-multiple-input-requests
   - input-required-result-multi-round
+  - input-required-result-tampered-state
+  - input-required-result-capability-check
   - tools-call-with-progress
   - tools-call-embedded-resource
   - tools-call-mixed-content
