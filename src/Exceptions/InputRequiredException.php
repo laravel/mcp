@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Exceptions;
 
 use Exception;
+use Illuminate\Support\Arr;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 
 class InputRequiredException extends Exception
@@ -30,9 +31,9 @@ class InputRequiredException extends Exception
     {
         return JsonRpcResponse::result($id, [
             'resultType' => 'input_required',
-            'inputRequests' => array_map(
-                fn (array $inputRequest): array => [...$inputRequest, 'params' => $inputRequest['params'] === [] ? (object) [] : $inputRequest['params']],
+            'inputRequests' => Arr::map(
                 $this->inputRequests,
+                fn (array $inputRequest): array => [...$inputRequest, 'params' => $inputRequest['params'] ?: (object) []],
             ),
             'requestState' => encrypt($this->inputResponses),
         ]);

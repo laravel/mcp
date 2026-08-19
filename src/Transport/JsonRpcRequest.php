@@ -133,11 +133,18 @@ class JsonRpcRequest
         return new Request(
             arguments: $arguments,
             meta: $this->meta(),
-            inputResponses: array_replace(
-                $this->requestState(),
-                is_array($this->get('inputResponses')) ? $this->get('inputResponses') : [],
-            ),
+            inputResponses: array_replace($this->requestState(), $this->inputResponses()),
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function inputResponses(): array
+    {
+        $inputResponses = $this->get('inputResponses');
+
+        return is_array($inputResponses) ? $inputResponses : [];
     }
 
     /**

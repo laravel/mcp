@@ -61,7 +61,7 @@ class TestResponse
     {
         Assert::assertSame(
             'input_required',
-            $this->response->toArray()['result']['resultType'] ?? null,
+            $this->result()['resultType'] ?? null,
             'The response does not require additional input.',
         );
 
@@ -70,15 +70,33 @@ class TestResponse
 
     public function assertElicits(string $message): static
     {
-        $requests = $this->response->toArray()['result']['inputRequests'] ?? [];
+        Assert::assertTrue(
+            collect($this->inputRequests())->contains(
+                fn (array $request): bool => ($request['method'] ?? null) === 'elicitation/create'
+                    && ($request['params']['message'] ?? null) === $message,
+            ),
+            "The response does not elicit [{$message}].",
+        );
 
-        foreach ($requests as $request) {
-            if (($request['method'] ?? null) === 'elicitation/create' && ($request['params']['message'] ?? null) === $message) {
-                return $this;
-            }
-        }
+        return $this;
+    }
 
-        Assert::fail("The response does not elicit [{$message}].");
+    /**
+     * @return array<string, mixed>
+     */
+    protected function result(): array
+    {
+        return $this->response->toArray()['result'] ?? [];
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    protected function inputRequests(): array
+    {
+        $inputRequests = $this->result()['inputRequests'] ?? [];
+
+        return is_array($inputRequests) ? $inputRequests : [];
     }
 
     public function respond(mixed $content, string $action = 'accept'): static
@@ -87,8 +105,7 @@ class TestResponse
             throw new RuntimeException('This response cannot be retried.');
         }
 
-        $inputRequests = $this->response->toArray()['result']['inputRequests'] ?? [];
-        $key = array_key_first($inputRequests);
+        $key = array_key_first($this->inputRequests());
 
         if ($key === null) {
             throw new RuntimeException('The response does not contain an input request.');
@@ -100,7 +117,7 @@ class TestResponse
             $inputResponse['content'] = $content;
         }
 
-        $requestState = $this->response->toArray()['result']['requestState'] ?? null;
+        $requestState = $this->result()['requestState'] ?? null;
 
         $request = clone $this->request;
         $request->params['inputResponses'] = [$key => $inputResponse];
