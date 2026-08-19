@@ -29,6 +29,8 @@ class PendingTestResponse
         'elicitation' => [
             'form' => [],
         ],
+        'sampling' => [],
+        'roots' => [],
     ];
 
     /**

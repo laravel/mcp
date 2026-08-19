@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Carbon\Carbon;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Enums\ElicitationAction;
@@ -9,6 +10,8 @@ use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Exceptions\ElicitationNotSupportedException;
 use Laravel\Mcp\Exceptions\InputRequiredException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\Exceptions\RootsNotSupportedException;
+use Laravel\Mcp\Exceptions\SamplingNotSupportedException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
@@ -25,6 +28,9 @@ class ElicitationServer extends Server
         StreamingElicitationTool::class,
         MultiRoundElicitationTool::class,
         SimultaneousInputsTool::class,
+        RememberingTool::class,
+        SamplingTool::class,
+        RootsTool::class,
     ];
 
     protected array $prompts = [ElicitationPrompt::class];
@@ -163,10 +169,12 @@ it('round trips and integrity checks the request state', function (): void {
     expect(fn (): Request => $request('elicitation-tool', $issued)->toRequest())
         ->toThrow(JsonRpcException::class, 'issued for a different request');
 
-    $expired = encrypt(['scope' => 'nope', 'expiresAt' => time() - 1, 'inputResponses' => []]);
+    Carbon::setTestNow(Carbon::now()->addHours(2));
 
-    expect(fn (): Request => $request('multi-round-elicitation-tool', $expired)->toRequest())
-        ->toThrow(JsonRpcException::class, 'issued for a different request');
+    expect(fn (): Request => $request('multi-round-elicitation-tool', $issued)->toRequest())
+        ->toThrow(JsonRpcException::class, 'has expired');
+
+    Carbon::setTestNow();
 });
 
 it('supports elicitation from generators', function (): void {
@@ -243,8 +251,8 @@ it('gates form elicitation by client capability', function (): void {
     $unsupported = new Request;
 
     expect($legacy->clientSupports('elicitation'))->toBeTrue()
-        ->and($legacy->clientSupports('elicitation.form'))->toBeTrue()
-        ->and($unsupported->clientSupports('elicitation.form'))->toBeFalse()
+        ->and($legacy->canAsk())->toBeTrue()
+        ->and($unsupported->canAsk())->toBeFalse()
         ->and(fn (): ElicitResponse => $unsupported->ask('Your GitHub username', ['type' => 'object']))
         ->toThrow(ElicitationNotSupportedException::class, 'The client does not support form elicitation.');
 });
@@ -331,4 +339,165 @@ it('serializes an empty requested schema properties as an object', function (): 
     expect($inputRequests)->toHaveCount(1)
         ->and(json_encode($inputRequests[array_key_first($inputRequests)]['params']['requestedSchema']))
         ->toContain('"properties":{}');
+});
+
+class RememberingTool extends Tool
+{
+    public static int $sideEffects = 0;
+
+    public function handle(Request $request): Response
+    {
+        $order = $request->remember('order', function (): string {
+            static::$sideEffects++;
+
+            return 'order-'.static::$sideEffects;
+        });
+
+        $confirm = $request->ask('Confirm the order', fn (JsonSchema $schema): array => [
+            'ok' => $schema->boolean()->required(),
+        ], 'confirm');
+
+        return Response::text("{$order} confirmed: ".($confirm['ok'] ? 'yes' : 'no'));
+    }
+}
+
+class SamplingTool extends Tool
+{
+    public function handle(Request $request): Response
+    {
+        $completion = $request->sample([
+            ['role' => 'user', 'content' => ['type' => 'text', 'text' => 'Say hello.']],
+        ], 100, ['systemPrompt' => 'Be terse.'], 'completion');
+
+        return Response::text('Model said: '.$completion['content']['text']);
+    }
+}
+
+class RootsTool extends Tool
+{
+    public function handle(Request $request): Response
+    {
+        return Response::text('Roots: '.implode(', ', array_column($request->roots('roots'), 'uri')));
+    }
+}
+
+it('runs a side effect once across elicitation rounds', function (): void {
+    RememberingTool::$sideEffects = 0;
+
+    ElicitationServer::tool(RememberingTool::class)
+        ->assertInputRequired()
+        ->respond(['ok' => true])
+        ->assertSee('order-1 confirmed: yes');
+
+    expect(RememberingTool::$sideEffects)->toBe(1);
+});
+
+it('seals handler state into the request state', function (): void {
+    $request = new JsonRpcRequest(id: 1, method: 'tools/call', params: ['name' => 'remembering-tool']);
+
+    $decoded = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'remembering-tool',
+            'requestState' => $request->encodeRequestState([], ['order' => 'order-1']),
+        ],
+    ])->toRequest();
+
+    expect($decoded->state())->toBe(['order' => 'order-1'])
+        ->and($decoded->remember('order', fn (): string => 'never-called'))->toBe('order-1');
+});
+
+it('binds the request state to the original arguments', function (): void {
+    $issued = (new JsonRpcRequest(id: 1, method: 'tools/call', params: [
+        'name' => 'elicitation-tool',
+        'arguments' => ['amount' => 1],
+    ]))->encodeRequestState([]);
+
+    $replay = fn (array $arguments): Request => JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'method' => 'tools/call',
+        'params' => ['name' => 'elicitation-tool', 'arguments' => $arguments, 'requestState' => $issued],
+    ])->toRequest();
+
+    expect($replay(['amount' => 1])->state())->toBe([])
+        ->and($replay(['amount' => 1_000_000]))->toThrow(JsonRpcException::class);
+})->throws(JsonRpcException::class, 'issued for a different request');
+
+it('ignores argument key order when binding the request state', function (): void {
+    $issued = (new JsonRpcRequest(id: 1, method: 'tools/call', params: [
+        'name' => 'elicitation-tool',
+        'arguments' => ['a' => 1, 'b' => 2],
+    ]))->encodeRequestState(['first' => ['action' => 'accept']]);
+
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'method' => 'tools/call',
+        'params' => ['name' => 'elicitation-tool', 'arguments' => ['b' => 2, 'a' => 1], 'requestState' => $issued],
+    ])->toRequest();
+
+    expect($request->inputResponses())->toBe(['first' => ['action' => 'accept']]);
+});
+
+it('requests a sampling turn', function (): void {
+    ElicitationServer::tool(SamplingTool::class)
+        ->assertInputRequired()
+        ->respondWith([
+            'role' => 'assistant',
+            'content' => ['type' => 'text', 'text' => 'Hello.'],
+            'model' => 'claude-sonnet-5',
+            'stopReason' => 'endTurn',
+        ], 'completion')
+        ->assertSee('Model said: Hello.');
+});
+
+it('requests the client roots', function (): void {
+    ElicitationServer::tool(RootsTool::class)
+        ->assertInputRequired()
+        ->respondWith(['roots' => [['uri' => 'file:///app', 'name' => 'app']]], 'roots')
+        ->assertSee('Roots: file:///app');
+});
+
+it('gates sampling and roots by client capability', function (): void {
+    $bare = new Request;
+
+    expect(fn (): array => $bare->sample([], 10))
+        ->toThrow(SamplingNotSupportedException::class, 'The client does not support sampling.')
+        ->and(fn (): array => $bare->roots())
+        ->toThrow(RootsNotSupportedException::class, 'The client does not support roots.');
+});
+
+it('rejects form schemas the specification does not allow', function (array $properties, string $message): void {
+    $request = new Request(meta: elicitationMeta());
+
+    expect(fn (): ElicitResponse => $request->ask('Pick', ['type' => 'object', 'properties' => $properties]))
+        ->toThrow(InvalidArgumentException::class, $message);
+})->with([
+    'nested object' => [['profile' => ['type' => 'object']], 'The [profile] property must be a primitive.'],
+    'free array' => [['tags' => ['type' => 'array', 'items' => ['type' => 'string']]], 'The [tags] property must be an enum array.'],
+]);
+
+it('allows enum arrays in form schemas', function (): void {
+    $request = new Request(meta: elicitationMeta());
+
+    expect(fn (): ElicitResponse => $request->ask('Pick', [
+        'type' => 'object',
+        'properties' => ['tags' => ['type' => 'array', 'items' => ['enum' => ['a', 'b']]]],
+    ]))->toThrow(InputRequiredException::class);
+});
+
+it('returns the given default when the elicitation was not accepted', function (): void {
+    $declined = ElicitResponse::from(['action' => 'decline']);
+
+    expect($declined->get('name', 'anonymous'))->toBe('anonymous')
+        ->and($declined->content())->toBe([])
+        ->and(fn (): mixed => $declined->get('name'))->toThrow(LogicException::class);
+});
+
+it('declines and cancels through the test helpers', function (): void {
+    ElicitationServer::tool(ElicitationTool::class)->decline()->assertHasErrors(['Declined']);
+    ElicitationServer::tool(ElicitationTool::class)->cancel()->assertHasErrors(['Cancelled']);
 });

@@ -20,7 +20,7 @@ class CapabilityCheckElicitationTool extends Tool
         $responses = $request->inputResponses();
         $inputRequests = [];
 
-        if ($request->clientSupports('elicitation.form') && ! isset($responses['user_name'])) {
+        if ($request->canAsk() && ! isset($responses['user_name'])) {
             $inputRequests['user_name'] = [
                 'method' => 'elicitation/create',
                 'params' => [

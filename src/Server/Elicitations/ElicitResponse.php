@@ -61,7 +61,11 @@ class ElicitResponse implements ArrayAccess
 
     public function get(string $key, mixed $default = null): mixed
     {
-        return $this->accepted() ? $this->content[$key] ?? $default : $this->reject();
+        if (! $this->accepted()) {
+            return func_num_args() > 1 ? $default : $this->reject();
+        }
+
+        return $this->content[$key] ?? $default;
     }
 
     /**
@@ -89,6 +93,14 @@ class ElicitResponse implements ArrayAccess
     public function offsetGet(mixed $offset): mixed
     {
         return $this->get((string) $offset);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function content(): array
+    {
+        return $this->accepted() ? $this->content : [];
     }
 
     public function offsetSet(mixed $offset, mixed $value): void

@@ -15,10 +15,13 @@ use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\InteractsWithData;
 use Illuminate\Support\Traits\Macroable;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Exceptions\ElicitationNotSupportedException;
 use Laravel\Mcp\Exceptions\InputRequiredException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
+use Laravel\Mcp\Exceptions\RootsNotSupportedException;
+use Laravel\Mcp\Exceptions\SamplingNotSupportedException;
 use Laravel\Mcp\Server\Elicitations\ElicitResponse;
 
 /**
@@ -36,12 +39,14 @@ class Request implements Arrayable
      * @param  array<string, mixed>  $arguments
      * @param  array<string, mixed>|null  $meta
      * @param  array<string, mixed>  $inputResponses
+     * @param  array<string, mixed>  $state
      */
     public function __construct(
         protected array $arguments = [],
         protected ?array $meta = null,
         protected ?string $uri = null,
         protected array $inputResponses = [],
+        protected array $state = [],
     ) {
         //
     }
@@ -133,61 +138,140 @@ class Request implements Arrayable
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    public function state(): array
+    {
+        return $this->state;
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     */
+    public function setState(array $state): void
+    {
+        $this->state = $state;
+    }
+
+    public function remember(string $key, Closure $callback): mixed
+    {
+        if (! array_key_exists($key, $this->state)) {
+            $this->state[$key] = $callback();
+        }
+
+        return $this->state[$key];
+    }
+
+    /**
      * @param  Closure(JsonSchema): array<string, mixed>|array<string, mixed>  $schema
      */
     public function ask(string $message, Closure|array $schema, ?string $key = null): ElicitResponse
     {
-        if (! $this->clientSupports('elicitation.form')) {
-            throw new ElicitationNotSupportedException('form');
+        if (! $this->canAsk()) {
+            throw new ElicitationNotSupportedException;
         }
 
         $requestedSchema = $schema instanceof Closure
             ? JsonSchemaFactory::object($schema)->toArray()
             : $schema;
 
+        $this->assertFlatSchema($requestedSchema);
+
         $requestedSchema['properties'] = (object) ($requestedSchema['properties'] ?? []);
 
-        return $this->resolveElicitation([
-            'mode' => 'form',
-            'message' => $message,
-            'requestedSchema' => $requestedSchema,
+        return ElicitResponse::from($this->resolveInput([
+            'method' => 'elicitation/create',
+            'params' => [
+                'mode' => 'form',
+                'message' => $message,
+                'requestedSchema' => $requestedSchema,
+            ],
+        ], $key));
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $messages
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
+     */
+    public function sample(array $messages, int $maxTokens, array $options = [], ?string $key = null): array
+    {
+        if (! $this->clientSupports('sampling')) {
+            throw new SamplingNotSupportedException;
+        }
+
+        return $this->resolveInput([
+            'method' => 'sampling/createMessage',
+            'params' => [...$options, 'messages' => $messages, 'maxTokens' => $maxTokens],
         ], $key);
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function roots(?string $key = null): array
+    {
+        if (! $this->clientSupports('roots')) {
+            throw new RootsNotSupportedException;
+        }
+
+        $roots = $this->resolveInput([
+            'method' => 'roots/list',
+            'params' => [],
+        ], $key)['roots'] ?? [];
+
+        return is_array($roots) ? $roots : [];
+    }
+
+    public function canAsk(): bool
+    {
+        $elicitation = data_get($this->meta[MetaKey::CLIENT_CAPABILITIES->value] ?? [], 'elicitation');
+
+        return $elicitation === [] || is_array(data_get($elicitation, 'form'));
     }
 
     public function clientSupports(string $capability): bool
     {
-        $capabilities = $this->meta[MetaKey::CLIENT_CAPABILITIES->value] ?? [];
-
-        if ($capability === 'elicitation.form' && data_get($capabilities, 'elicitation') === []) {
-            return true;
-        }
-
-        $declared = data_get($capabilities, $capability);
+        $declared = data_get($this->meta[MetaKey::CLIENT_CAPABILITIES->value] ?? [], $capability);
 
         return is_bool($declared) ? $declared : is_array($declared);
     }
 
     /**
-     * @param  array<string, mixed>  $params
+     * @param  array<string, mixed>  $schema
      */
-    protected function resolveElicitation(array $params, ?string $key): ElicitResponse
+    protected function assertFlatSchema(array $schema): void
     {
-        $key ??= hash('sha256', json_encode($params).$this->elicitations++);
+        foreach ((array) ($schema['properties'] ?? []) as $name => $property) {
+            $type = is_array($property) ? $property['type'] ?? null : null;
+
+            if ($type === 'object') {
+                throw new InvalidArgumentException("The [{$name}] property must be a primitive. Form elicitation schemas may not nest objects.");
+            }
+
+            if ($type === 'array' && ! isset($property['items']['enum']) && ! isset($property['items']['anyOf'])) {
+                throw new InvalidArgumentException("The [{$name}] property must be an enum array. Form elicitation schemas only allow arrays of enum values.");
+            }
+        }
+    }
+
+    /**
+     * @param  array{method: string, params: array<string, mixed>}  $inputRequest
+     * @return array<string, mixed>
+     */
+    protected function resolveInput(array $inputRequest, ?string $key): array
+    {
+        $key ??= hash('sha256', json_encode($inputRequest).$this->elicitations++);
 
         if (array_key_exists($key, $this->inputResponses)) {
             if (! is_array($this->inputResponses[$key])) {
                 throw new JsonRpcException("Invalid params: The [inputResponses.{$key}] member must be an object.", -32602);
             }
 
-            return ElicitResponse::from($this->inputResponses[$key]);
+            return $this->inputResponses[$key];
         }
 
-        throw new InputRequiredException([
-            $key => [
-                'method' => 'elicitation/create',
-                'params' => $params,
-            ],
-        ], $this->inputResponses);
+        throw new InputRequiredException([$key => $inputRequest], $this->inputResponses, $this->state);
     }
 
     /**

@@ -329,6 +329,7 @@ it('fails catalog tools that request user input', function (string $name): void 
 
     $response = (new CallTool)->handle($request, $context);
     $response = $response instanceof JsonRpcResponse ? $response : iterator_to_array($response)[0];
+
     $result = $response->toArray()['result'];
 
     expect($result['isError'])->toBeTrue()

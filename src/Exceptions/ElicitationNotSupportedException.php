@@ -8,8 +8,8 @@ use RuntimeException;
 
 class ElicitationNotSupportedException extends RuntimeException
 {
-    public function __construct(string $mode)
+    public function __construct()
     {
-        parent::__construct("The client does not support {$mode} elicitation.");
+        parent::__construct('The client does not support form elicitation.');
     }
 }

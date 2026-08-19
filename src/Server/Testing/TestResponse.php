@@ -10,6 +10,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
 use Illuminate\Testing\Fluent\AssertableJson;
+use Laravel\Mcp\Enums\ElicitationAction;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Primitive;
@@ -99,7 +100,31 @@ class TestResponse
         return is_array($inputRequests) ? $inputRequests : [];
     }
 
-    public function respond(mixed $content, string $action = 'accept', ?string $key = null): static
+    public function decline(?string $key = null): static
+    {
+        return $this->respond(null, ElicitationAction::Decline, $key);
+    }
+
+    public function cancel(?string $key = null): static
+    {
+        return $this->respond(null, ElicitationAction::Cancel, $key);
+    }
+
+    public function respond(mixed $content, ElicitationAction|string $action = ElicitationAction::Accept, ?string $key = null): static
+    {
+        $inputResponse = ['action' => $action instanceof ElicitationAction ? $action->value : $action];
+
+        if ($content !== null) {
+            $inputResponse['content'] = $content;
+        }
+
+        return $this->respondWith($inputResponse, $key);
+    }
+
+    /**
+     * @param  array<string, mixed>  $inputResponse
+     */
+    public function respondWith(array $inputResponse, ?string $key = null): static
     {
         if (! $this->server instanceof Server || ! $this->request instanceof JsonRpcRequest) {
             throw new RuntimeException('This response cannot be retried.');
@@ -114,12 +139,6 @@ class TestResponse
 
         if (! array_key_exists($key, $inputRequests)) {
             throw new RuntimeException("The response does not contain an input request for [{$key}].");
-        }
-
-        $inputResponse = ['action' => $action];
-
-        if ($content !== null) {
-            $inputResponse['content'] = $content;
         }
 
         $requestState = $this->result()['requestState'] ?? null;
@@ -138,6 +157,9 @@ class TestResponse
         return new static($this->primitive, static::execute($this->server, $request), $this->server, $request);
     }
 
+    /**
+     * @internal
+     */
     public static function execute(Server $server, JsonRpcRequest $request): mixed
     {
         try {
