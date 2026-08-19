@@ -21,6 +21,7 @@ class ElicitationServer extends Server
         ElicitationTool::class,
         StreamingElicitationTool::class,
         UrlElicitationTool::class,
+        MultiRoundElicitationTool::class,
     ];
 
     protected array $prompts = [ElicitationPrompt::class];
@@ -59,6 +60,19 @@ class StreamingElicitationTool extends Tool
         ]);
 
         yield Response::text("Release {$response['release']}");
+    }
+}
+
+class MultiRoundElicitationTool extends Tool
+{
+    public function handle(Request $request): Response
+    {
+        $schema = fn (JsonSchema $schema): array => ['value' => $schema->string()->required()];
+
+        $first = $request->ask('First value', $schema, 'first');
+        $second = $request->ask('Second value', $schema, 'second');
+
+        return Response::text("{$first['value']} then {$second['value']}");
     }
 }
 
@@ -131,6 +145,15 @@ it('elicits URL input and can elicit it on a new call', function (): void {
         ->assertSee('Signed in');
 
     ElicitationServer::tool(UrlElicitationTool::class)->assertInputRequired();
+});
+
+it('keeps earlier answers across elicitation rounds', function (): void {
+    ElicitationServer::tool(MultiRoundElicitationTool::class)
+        ->assertElicits('First value')
+        ->respond(['value' => 'one'])
+        ->assertElicits('Second value')
+        ->respond(['value' => 'two'])
+        ->assertSee('one then two');
 });
 
 it('supports elicitation from generators', function (): void {

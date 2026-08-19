@@ -70,13 +70,11 @@ trait InteractsWithResponses
 
                 $pendingResponses[] = $response;
             }
+        } catch (InputRequiredException $inputRequiredException) {
+            yield $inputRequiredException->toJsonRpcResponse($request->id);
+
+            return;
         } catch (Throwable $throwable) {
-            if ($throwable instanceof InputRequiredException) {
-                yield $throwable->toJsonRpcResponse($request->id);
-
-                return;
-            }
-
             if ($this instanceof Errable) {
                 yield $this->toJsonRpcResponse(
                     $request,
@@ -97,11 +95,9 @@ trait InteractsWithResponses
     {
         try {
             return $handler();
+        } catch (InputRequiredException $inputRequiredException) {
+            throw $inputRequiredException;
         } catch (Throwable $throwable) {
-            if ($throwable instanceof InputRequiredException) {
-                throw $throwable;
-            }
-
             if ($this instanceof Errable) {
                 return $this->toErrorResponse($throwable);
             }

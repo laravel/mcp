@@ -349,9 +349,11 @@ abstract class Server
             $result = (array) $response->content['result'];
             $result['_meta'][MetaKey::SERVER_INFO->value] = $context->implementation->toArray();
 
+            $isComplete = ($result['resultType'] ?? 'complete') === 'complete';
+
             $response->content['result'] = [
                 'resultType' => 'complete',
-                ...$this->resolveCacheHints($request, $context),
+                ...$isComplete ? $this->resolveCacheHints($request, $context) : [],
                 ...$result,
             ];
         }

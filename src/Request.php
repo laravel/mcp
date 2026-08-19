@@ -165,22 +165,12 @@ class Request implements Arrayable
     public function clientSupports(string $capability): bool
     {
         $capabilities = $this->meta[MetaKey::CLIENT_CAPABILITIES->value] ?? [];
-        $segments = explode('.', $capability);
-        $value = $capabilities;
 
-        foreach ($segments as $index => $segment) {
-            if ($capability === 'elicitation.form' && $index === 1 && $value === []) {
-                return true;
-            }
-
-            if (! is_array($value) || ! array_key_exists($segment, $value)) {
-                return false;
-            }
-
-            $value = $value[$segment];
+        if ($capability === 'elicitation.form' && data_get($capabilities, 'elicitation') === []) {
+            return true;
         }
 
-        return is_array($value);
+        return is_array(data_get($capabilities, $capability));
     }
 
     /**

@@ -100,8 +100,11 @@ class TestResponse
             $inputResponse['content'] = $content;
         }
 
-        $this->request->params['inputResponses'] = [$key => $inputResponse];
-        $request = $this->request;
+        $request = clone $this->request;
+        $request->params['inputResponses'] = [
+            ...is_array($request->params['inputResponses'] ?? null) ? $request->params['inputResponses'] : [],
+            $key => $inputResponse,
+        ];
 
         try {
             $response = (fn (): iterable|JsonRpcResponse => $this->runMethodHandle($request, $this->createContext()))->call($this->server);
@@ -109,7 +112,7 @@ class TestResponse
             $response = $jsonRpcException->toJsonRpcResponse();
         }
 
-        return new static($this->primitive, $response, $this->server, $this->request);
+        return new static($this->primitive, $response, $this->server, $request);
     }
 
     /**
