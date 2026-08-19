@@ -100,11 +100,14 @@ class TestResponse
             $inputResponse['content'] = $content;
         }
 
+        $requestState = $this->response->toArray()['result']['requestState'] ?? null;
+
         $request = clone $this->request;
-        $request->params['inputResponses'] = [
-            ...is_array($request->params['inputResponses'] ?? null) ? $request->params['inputResponses'] : [],
-            $key => $inputResponse,
-        ];
+        $request->params['inputResponses'] = [$key => $inputResponse];
+
+        if (is_string($requestState)) {
+            $request->params['requestState'] = $requestState;
+        }
 
         try {
             $response = (fn (): iterable|JsonRpcResponse => $this->runMethodHandle($request, $this->createContext()))->call($this->server);

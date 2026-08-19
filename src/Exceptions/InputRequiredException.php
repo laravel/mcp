@@ -11,8 +11,9 @@ class InputRequiredException extends Exception
 {
     /**
      * @param  array<string, array{method: string, params: array<string, mixed>}>  $inputRequests
+     * @param  array<string, mixed>  $inputResponses
      */
-    public function __construct(protected array $inputRequests)
+    public function __construct(protected array $inputRequests, protected array $inputResponses = [])
     {
         parent::__construct('Additional input is required.');
     }
@@ -30,6 +31,7 @@ class InputRequiredException extends Exception
         return JsonRpcResponse::result($id, [
             'resultType' => 'input_required',
             'inputRequests' => $this->inputRequests,
+            'requestState' => encrypt($this->inputResponses),
         ]);
     }
 }

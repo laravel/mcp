@@ -187,7 +187,7 @@ class Request implements Arrayable
                 'method' => 'elicitation/create',
                 'params' => $params,
             ],
-        ]);
+        ], $this->inputResponses);
     }
 
     /**

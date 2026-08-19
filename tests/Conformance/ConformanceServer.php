@@ -20,7 +20,10 @@ use Tests\Conformance\Tools\ErrorHandlingTool;
 use Tests\Conformance\Tools\ImageContentTool;
 use Tests\Conformance\Tools\InputRequiredElicitationTool;
 use Tests\Conformance\Tools\MultipleContentTypesTool;
+use Tests\Conformance\Tools\MultiRoundInputRequiredTool;
+use Tests\Conformance\Tools\RequestStateInputRequiredTool;
 use Tests\Conformance\Tools\SimpleTextTool;
+use Tests\Conformance\Tools\TamperedStateInputRequiredTool;
 
 class ConformanceServer extends Server
 {
@@ -42,6 +45,9 @@ class ConformanceServer extends Server
         MultipleContentTypesTool::class,
         ErrorHandlingTool::class,
         InputRequiredElicitationTool::class,
+        MultiRoundInputRequiredTool::class,
+        RequestStateInputRequiredTool::class,
+        TamperedStateInputRequiredTool::class,
     ];
 
     public array $resources = [

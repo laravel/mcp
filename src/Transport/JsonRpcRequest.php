@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Transport;
 
+use Illuminate\Contracts\Encryption\DecryptException;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
@@ -132,8 +133,31 @@ class JsonRpcRequest
         return new Request(
             arguments: $arguments,
             meta: $this->meta(),
-            inputResponses: is_array($this->get('inputResponses')) ? $this->get('inputResponses') : [],
+            inputResponses: [
+                ...$this->requestState(),
+                ...is_array($this->get('inputResponses')) ? $this->get('inputResponses') : [],
+            ],
         );
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function requestState(): array
+    {
+        $requestState = $this->get('requestState');
+
+        if (! is_string($requestState)) {
+            return [];
+        }
+
+        try {
+            $inputResponses = decrypt($requestState);
+        } catch (DecryptException) {
+            throw new JsonRpcException('Invalid params: The [requestState] member failed integrity verification.', -32602, $this->id);
+        }
+
+        return is_array($inputResponses) ? $inputResponses : [];
     }
 
     /**

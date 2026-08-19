@@ -49,7 +49,11 @@ it('leaves caching hints off a result that is not cacheable', function (): void 
     expect($result)->not->toHaveKey('cacheScope');
 });
 
-it('leaves caching hints off a request retried with input responses', function (array $params): void {
+it('leaves caching hints off a request retried with input responses', function (string $case): void {
+    $params = $case === 'inputResponses'
+        ? ['inputResponses' => ['login' => ['action' => 'accept']]]
+        : ['requestState' => encrypt([])];
+
     $result = resultFor([
         'jsonrpc' => '2.0',
         'id' => 1,
@@ -63,10 +67,7 @@ it('leaves caching hints off a request retried with input responses', function (
 
     expect($result)->not->toHaveKey('ttlMs');
     expect($result)->not->toHaveKey('cacheScope');
-})->with([
-    'inputResponses' => [['inputResponses' => ['login' => ['action' => 'accept']]]],
-    'requestState' => [['requestState' => 'eyJ...']],
-]);
+})->with(['inputResponses', 'requestState']);
 
 it('uses the hint the server attribute declares', function (): void {
     $result = resultFor(listToolsMessage(), fn (ArrayTransport $transport): Server => new #[Cacheable(ttlMs: 300000, scope: CacheScope::Public)] class($transport) extends ExampleServer {})['result'];

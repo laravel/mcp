@@ -7,6 +7,7 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Exceptions\ElicitationNotSupportedException;
 use Laravel\Mcp\Exceptions\InputRequiredException;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
@@ -14,6 +15,7 @@ use Laravel\Mcp\Server\Elicitations\ElicitResponse;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 
 class ElicitationServer extends Server
 {
@@ -154,6 +156,24 @@ it('keeps earlier answers across elicitation rounds', function (): void {
         ->assertElicits('Second value')
         ->respond(['value' => 'two'])
         ->assertSee('one then two');
+});
+
+it('round trips and integrity checks the request state', function (): void {
+    $call = fn (string $requestState): Request => JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'multi-round-elicitation-tool',
+            'arguments' => [],
+            'requestState' => $requestState,
+        ],
+    ])->toRequest();
+
+    expect($call(encrypt(['first' => ['action' => 'accept']]))->inputResponses())
+        ->toBe(['first' => ['action' => 'accept']]);
+
+    expect(fn (): Request => $call('tampered'))->toThrow(JsonRpcException::class);
 });
 
 it('supports elicitation from generators', function (): void {
