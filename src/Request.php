@@ -18,6 +18,7 @@ use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Exceptions\ElicitationNotSupportedException;
 use Laravel\Mcp\Exceptions\InputRequiredException;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Elicitations\ElicitResponse;
 
 /**
@@ -144,7 +145,7 @@ class Request implements Arrayable
             ? JsonSchemaFactory::object($schema)->toArray()
             : $schema;
 
-        $requestedSchema['properties'] ??= (object) [];
+        $requestedSchema['properties'] = (object) ($requestedSchema['properties'] ?? []);
 
         return $this->resolveElicitation([
             'mode' => 'form',
@@ -173,7 +174,11 @@ class Request implements Arrayable
     {
         $key ??= hash('sha256', json_encode($params).$this->elicitations++);
 
-        if (isset($this->inputResponses[$key]) && is_array($this->inputResponses[$key])) {
+        if (array_key_exists($key, $this->inputResponses)) {
+            if (! is_array($this->inputResponses[$key])) {
+                throw new JsonRpcException("Invalid params: The [inputResponses.{$key}] member must be an object.", -32602);
+            }
+
             return ElicitResponse::from($this->inputResponses[$key]);
         }
 

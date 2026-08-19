@@ -71,7 +71,7 @@ trait InteractsWithResponses
                 $pendingResponses[] = $response;
             }
         } catch (InputRequiredException $inputRequiredException) {
-            yield $inputRequiredException->toJsonRpcResponse($request->id);
+            yield $inputRequiredException->toJsonRpcResponse($request);
 
             return;
         } catch (Throwable $throwable) {

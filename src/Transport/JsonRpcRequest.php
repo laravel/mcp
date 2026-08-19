@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Transport;
 
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\JsonRpcException;
@@ -11,6 +13,8 @@ use Laravel\Mcp\Request;
 
 class JsonRpcRequest
 {
+    protected const REQUEST_STATE_TTL = 900;
+
     /**
      * @param  array<string, mixed>  $params
      */
@@ -148,6 +152,18 @@ class JsonRpcRequest
     }
 
     /**
+     * @param  array<string, mixed>  $inputResponses
+     */
+    public function encodeRequestState(array $inputResponses): string
+    {
+        return encrypt([
+            'scope' => $this->scope(),
+            'expiresAt' => time() + static::REQUEST_STATE_TTL,
+            'inputResponses' => $inputResponses,
+        ]);
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function requestState(): array
@@ -159,12 +175,32 @@ class JsonRpcRequest
         }
 
         try {
-            $inputResponses = decrypt($requestState);
+            $payload = decrypt($requestState);
         } catch (DecryptException) {
             throw new JsonRpcException('Invalid params: The [requestState] member failed integrity verification.', -32602, $this->id);
         }
 
-        return is_array($inputResponses) ? $inputResponses : [];
+        if (! is_array($payload) || ! hash_equals($this->scope(), is_string($payload['scope'] ?? null) ? $payload['scope'] : '')) {
+            throw new JsonRpcException('Invalid params: The [requestState] member was issued for a different request.', -32602, $this->id);
+        }
+
+        if (! is_int($payload['expiresAt'] ?? null) || $payload['expiresAt'] < time()) {
+            throw new JsonRpcException('Invalid params: The [requestState] member has expired.', -32602, $this->id);
+        }
+
+        return is_array($payload['inputResponses'] ?? null) ? $payload['inputResponses'] : [];
+    }
+
+    private function scope(): string
+    {
+        $user = call_user_func(Container::getInstance()->make('auth')->userResolver());
+
+        return hash('sha256', (string) json_encode([
+            $this->method,
+            $this->get('name'),
+            $this->get('uri'),
+            $user instanceof Authenticatable ? $user->getAuthIdentifier() : null,
+        ], JSON_THROW_ON_ERROR));
     }
 
     /**

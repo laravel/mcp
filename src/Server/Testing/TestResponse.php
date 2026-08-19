@@ -99,16 +99,21 @@ class TestResponse
         return is_array($inputRequests) ? $inputRequests : [];
     }
 
-    public function respond(mixed $content, string $action = 'accept'): static
+    public function respond(mixed $content, string $action = 'accept', ?string $key = null): static
     {
         if (! $this->server instanceof Server || ! $this->request instanceof JsonRpcRequest) {
             throw new RuntimeException('This response cannot be retried.');
         }
 
-        $key = array_key_first($this->inputRequests());
+        $inputRequests = $this->inputRequests();
+        $key ??= array_key_first($inputRequests);
 
         if ($key === null) {
             throw new RuntimeException('The response does not contain an input request.');
+        }
+
+        if (! array_key_exists($key, $inputRequests)) {
+            throw new RuntimeException("The response does not contain an input request for [{$key}].");
         }
 
         $inputResponse = ['action' => $action];
@@ -120,7 +125,11 @@ class TestResponse
         $requestState = $this->result()['requestState'] ?? null;
 
         $request = clone $this->request;
-        $request->params['inputResponses'] = [$key => $inputResponse];
+        $inputResponses = $this->request->params['inputResponses'] ?? [];
+        $request->params['inputResponses'] = [
+            ...is_array($inputResponses) ? $inputResponses : [],
+            $key => $inputResponse,
+        ];
 
         if (is_string($requestState)) {
             $request->params['requestState'] = $requestState;

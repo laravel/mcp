@@ -24,6 +24,7 @@ class ElicitationServer extends Server
         ElicitationTool::class,
         StreamingElicitationTool::class,
         MultiRoundElicitationTool::class,
+        SimultaneousInputsTool::class,
     ];
 
     protected array $prompts = [ElicitationPrompt::class];
@@ -139,21 +140,33 @@ it('keeps earlier answers across elicitation rounds', function (): void {
 });
 
 it('round trips and integrity checks the request state', function (): void {
-    $call = fn (string $requestState): Request => JsonRpcRequest::from([
+    $request = fn (string $name, string $requestState): JsonRpcRequest => JsonRpcRequest::from([
         'jsonrpc' => '2.0',
         'id' => 1,
         'method' => 'tools/call',
         'params' => [
-            'name' => 'multi-round-elicitation-tool',
+            'name' => $name,
             'arguments' => [],
             'requestState' => $requestState,
         ],
-    ])->toRequest();
+    ]);
 
-    expect($call(encrypt(['first' => ['action' => 'accept']]))->inputResponses())
+    $issued = (new JsonRpcRequest(id: 1, method: 'tools/call', params: ['name' => 'multi-round-elicitation-tool']))
+        ->encodeRequestState(['first' => ['action' => 'accept']]);
+
+    expect($request('multi-round-elicitation-tool', $issued)->toRequest()->inputResponses())
         ->toBe(['first' => ['action' => 'accept']]);
 
-    expect(fn (): Request => $call('tampered'))->toThrow(JsonRpcException::class);
+    expect(fn (): Request => $request('multi-round-elicitation-tool', 'tampered')->toRequest())
+        ->toThrow(JsonRpcException::class, 'failed integrity verification');
+
+    expect(fn (): Request => $request('elicitation-tool', $issued)->toRequest())
+        ->toThrow(JsonRpcException::class, 'issued for a different request');
+
+    $expired = encrypt(['scope' => 'nope', 'expiresAt' => time() - 1, 'inputResponses' => []]);
+
+    expect(fn (): Request => $request('multi-round-elicitation-tool', $expired)->toRequest())
+        ->toThrow(JsonRpcException::class, 'issued for a different request');
 });
 
 it('supports elicitation from generators', function (): void {
@@ -204,7 +217,8 @@ it('matches numeric elicitation keys the client echoes back', function (): void 
             'name' => 'elicitation-tool',
             'arguments' => [],
             '_meta' => elicitationMeta(),
-            'requestState' => encrypt(['7' => ['action' => 'accept', 'content' => ['value' => 'kept']]]),
+            'requestState' => (new JsonRpcRequest(id: 1, method: 'tools/call', params: ['name' => 'elicitation-tool']))
+                ->encodeRequestState(['7' => ['action' => 'accept', 'content' => ['value' => 'kept']]]),
             'inputResponses' => json_decode('{"9":{"action":"accept","content":{"value":"fresh"}}}', true),
         ],
     ])->toRequest();
@@ -268,4 +282,53 @@ it('wraps input responses and validates accepted content', function (): void {
         ->and(function () use ($response): void {
             unset($response['email']);
         })->toThrow(LogicException::class, 'Elicitation responses are immutable.');
+});
+
+class SimultaneousInputsTool extends Tool
+{
+    public function handle(Request $request): Response
+    {
+        $responses = $request->inputResponses();
+
+        if (! isset($responses['first'], $responses['second'])) {
+            throw new InputRequiredException([
+                'first' => ['method' => 'elicitation/create', 'params' => ['mode' => 'form', 'message' => 'First']],
+                'second' => ['method' => 'elicitation/create', 'params' => ['mode' => 'form', 'message' => 'Second']],
+            ], $responses);
+        }
+
+        return Response::text("{$responses['first']['content']['value']} and {$responses['second']['content']['value']}");
+    }
+}
+
+it('answers each simultaneous input request in turn', function (): void {
+    ElicitationServer::tool(SimultaneousInputsTool::class)
+        ->assertInputRequired()
+        ->respond(['value' => 'one'], key: 'first')
+        ->assertInputRequired()
+        ->respond(['value' => 'two'], key: 'second')
+        ->assertSee('one and two');
+});
+
+it('rejects an input response that is not an object', function (): void {
+    $request = new Request(meta: elicitationMeta(), inputResponses: ['picked' => 'nope']);
+
+    expect(fn (): ElicitResponse => $request->ask('Pick', ['type' => 'object'], 'picked'))
+        ->toThrow(JsonRpcException::class, 'Invalid params: The [inputResponses.picked] member must be an object.');
+});
+
+it('serializes an empty requested schema properties as an object', function (): void {
+    $request = new Request(meta: elicitationMeta());
+
+    $inputRequests = [];
+
+    try {
+        $request->ask('Pick', ['type' => 'object', 'properties' => []]);
+    } catch (InputRequiredException $inputRequiredException) {
+        $inputRequests = $inputRequiredException->inputRequests();
+    }
+
+    expect($inputRequests)->toHaveCount(1)
+        ->and(json_encode($inputRequests[array_key_first($inputRequests)]['params']['requestedSchema']))
+        ->toContain('"properties":{}');
 });

@@ -9,6 +9,7 @@ use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Cacheable;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Transport\JsonRpcRequest;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\CacheableResource;
 use Tests\Fixtures\ExampleServer;
@@ -56,7 +57,7 @@ it('leaves caching hints off a result that is not cacheable', function (): void 
 it('leaves caching hints off a request retried with input responses', function (string $case): void {
     $params = $case === 'inputResponses'
         ? ['inputResponses' => ['login' => ['action' => 'accept']]]
-        : ['requestState' => encrypt([])];
+        : ['requestState' => stateFor('resources/read', ['uri' => 'file://resources/last-log-line-resource'])];
 
     $result = resultFor([
         'jsonrpc' => '2.0',
@@ -172,3 +173,8 @@ it('returns tools in the same order on every request', function (): void {
 
     expect($names())->toBe($names())->and($names())->not->toBeEmpty();
 });
+
+function stateFor(string $method, array $params): string
+{
+    return (new JsonRpcRequest(id: 1, method: $method, params: $params))->encodeRequestState([]);
+}
