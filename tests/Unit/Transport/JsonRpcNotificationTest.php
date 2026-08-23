@@ -58,6 +58,24 @@ it('throws exception for non string method in notification', function (): void {
     ]);
 });
 
+it('throws exception for invalid params type in notification', function (mixed $params): void {
+    $this->expectException(JsonRpcException::class);
+    $this->expectExceptionMessage('Invalid params: The [params] member must be an object.');
+    $this->expectExceptionCode(-32602);
+
+    JsonRpcNotification::from([
+        'jsonrpc' => '2.0',
+        'method' => 'notifications/progress',
+        'params' => $params,
+    ]);
+})->with([
+    'string' => ['invalid'],
+    'integer' => [1],
+    'boolean' => [true],
+    'null' => [null],
+    'list' => [[1, 2, 3]],
+]);
+
 it('serializes to an array with params when present', function (): void {
     $notification = new JsonRpcNotification('notifications/progress', ['progress' => 50]);
 
