@@ -21,6 +21,7 @@ use Laravel\Mcp\Client\Primitives\Prompt;
 use Laravel\Mcp\Client\Primitives\Resource;
 use Laravel\Mcp\Client\Primitives\Tool;
 use Laravel\Mcp\Client\Protocol;
+use Laravel\Mcp\Client\ResponseCache;
 use Laravel\Mcp\Client\Schema\DiscoverResult;
 use Laravel\Mcp\Client\Schema\InitializeResult;
 use Laravel\Mcp\Client\Schema\PromptResult;
@@ -77,6 +78,20 @@ class Client
     public static function web(string $url): WebClient
     {
         return new WebClient(new HttpTransport($url));
+    }
+
+    public function withCache(?string $store = null, ?string $for = null): static
+    {
+        $this->protocol->useCache(new ResponseCache($store, $for));
+
+        return $this;
+    }
+
+    public function withoutCache(): static
+    {
+        $this->protocol->useCache(null);
+
+        return $this;
     }
 
     public function withTimeout(float $seconds): static
@@ -268,6 +283,7 @@ class Client
             'clientInfo' => $this->clientInfo,
             'transport' => $this->transport->recipe(),
             'protocolVersion' => $this->protocol->pinnedProtocolVersion()?->value,
+            'cache' => $this->protocol->cache(),
         ];
     }
 
@@ -284,15 +300,18 @@ class Client
             $this->transport = $resolved->transport;
             $this->clientInfo = $resolved->clientInfo;
             $pinned = $resolved->protocol->pinnedProtocolVersion();
+            $cache = $resolved->protocol->cache();
         } else {
             $this->clientInfo = Arr::get($data, 'clientInfo');
             $this->transport = TransportFactory::fromRecipe(Arr::get($data, 'transport'));
             $pinned = ProtocolVersion::tryFrom((string) Arr::get($data, 'protocolVersion'));
+            $cache = Arr::get($data, 'cache');
         }
 
         $this->clientInfo ??= $this->defaultClientInfo();
 
         $this->protocol = new Protocol($this->transport, $this->clientInfo, $pinned);
+        $this->protocol->useCache($cache instanceof ResponseCache ? $cache : null);
     }
 
     public function __destruct()
