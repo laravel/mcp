@@ -37,6 +37,7 @@ use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Server\Testing\PendingTestResponse;
+use Laravel\Mcp\Server\Testing\TestListResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Transport\JsonRpcNotification;
@@ -450,7 +451,7 @@ abstract class Server
     /**
      * @param  array<array-key, mixed>  $arguments
      */
-    public static function __callStatic(string $name, array $arguments): PendingTestResponse|TestResponse
+    public static function __callStatic(string $name, array $arguments): PendingTestResponse|TestResponse|TestListResponse
     {
         $pendingTestResponse = new PendingTestResponse(
             Container::getInstance(),

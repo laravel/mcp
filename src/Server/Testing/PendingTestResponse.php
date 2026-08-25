@@ -32,6 +32,102 @@ class PendingTestResponse
         //
     }
 
+    public function tools(): TestListResponse
+    {
+        $server = $this->initializeServer();
+        $tools = [];
+        $cursor = null;
+
+        do {
+            $request = new JsonRpcRequest(
+                uniqid(),
+                'tools/list',
+                $cursor !== null ? ['cursor' => $cursor] : [],
+            );
+
+            $response = $this->executeRequest($server, $request);
+
+            if (! $response instanceof JsonRpcResponse) {
+                throw new InvalidArgumentException('Expected a JsonRpcResponse for [tools/list].');
+            }
+
+            $result = $response->toArray()['result'] ?? null;
+
+            if (! is_array($result) || ! is_array($result['tools'] ?? null)) {
+                throw new InvalidArgumentException('Invalid tools/list response from server.');
+            }
+
+            $tools = [...$tools, ...$result['tools']];
+            $cursor = is_string($result['nextCursor'] ?? null) ? $result['nextCursor'] : null;
+        } while ($cursor !== null);
+
+        return new TestListResponse($tools);
+    }
+
+    public function resources(): TestListResponse
+    {
+        $server = $this->initializeServer();
+        $resources = [];
+        $cursor = null;
+
+        do {
+            $request = new JsonRpcRequest(
+                uniqid(),
+                'resources/list',
+                $cursor !== null ? ['cursor' => $cursor] : [],
+            );
+
+            $response = $this->executeRequest($server, $request);
+
+            if (! $response instanceof JsonRpcResponse) {
+                throw new InvalidArgumentException('Expected a JsonRpcResponse for [resources/list].');
+            }
+
+            $result = $response->toArray()['result'] ?? null;
+
+            if (! is_array($result) || ! is_array($result['resources'] ?? null)) {
+                throw new InvalidArgumentException('Invalid resources/list response from server.');
+            }
+
+            $resources = [...$resources, ...$result['resources']];
+            $cursor = is_string($result['nextCursor'] ?? null) ? $result['nextCursor'] : null;
+        } while ($cursor !== null);
+
+        return new TestListResponse($resources);
+    }
+
+    public function prompts(): TestListResponse
+    {
+        $server = $this->initializeServer();
+        $prompts = [];
+        $cursor = null;
+
+        do {
+            $request = new JsonRpcRequest(
+                uniqid(),
+                'prompts/list',
+                $cursor !== null ? ['cursor' => $cursor] : [],
+            );
+
+            $response = $this->executeRequest($server, $request);
+
+            if (! $response instanceof JsonRpcResponse) {
+                throw new InvalidArgumentException('Expected a JsonRpcResponse for [prompts/list].');
+            }
+
+            $result = $response->toArray()['result'] ?? null;
+
+            if (! is_array($result) || ! is_array($result['prompts'] ?? null)) {
+                throw new InvalidArgumentException('Invalid prompts/list response from server.');
+            }
+
+            $prompts = [...$prompts, ...$result['prompts']];
+            $cursor = is_string($result['nextCursor'] ?? null) ? $result['nextCursor'] : null;
+        } while ($cursor !== null);
+
+        return new TestListResponse($prompts);
+    }
+
     /**
      * @param  class-string<Tool>|Tool  $tool
      * @param  array<string, mixed>  $arguments

@@ -84,6 +84,9 @@
         ],
         "test:unit": "pest --ci --coverage --min=92.5",
         "test:types": "phpstan --no-progress",
+        "test:conformance": "bash tests/Conformance/run.sh all",
+        "test:conformance:server": "bash tests/Conformance/run.sh server",
+        "test:conformance:client": "bash tests/Conformance/run.sh client",
         "test": [
             "@test:lint",
             "@test:unit",

@@ -54,6 +54,30 @@ it('falls back to the handshake when discovery is not implemented', function ():
     expect($transport->protocolVersion)->toBe(ProtocolVersion::V2025_11_25);
 });
 
+it('falls back to the handshake when discovery is rejected with a server defined error', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'error' => [
+            'code' => -32000,
+            'message' => 'Bad Request: Unsupported protocol version: 2026-07-28 (supported versions: 2025-11-25, 2025-06-18)',
+        ],
+    ]);
+    $transport->responses[] = initializeResponse(2);
+
+    $client = new Client($transport);
+    $client->connect();
+
+    expect($client->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
+    expect($client->discoverResult())->toBeNull();
+    expect($client->initializeResult()?->serverInfo->name)->toBe('Test Server');
+
+    expect($transport->sent)->toHaveCount(3);
+    expect(json_decode($transport->sent[0], true)['method'])->toBe('server/discover');
+    expect(json_decode($transport->sent[1], true)['method'])->toBe('initialize');
+});
+
 it('falls back to the handshake when the discovery probe times out', function (): void {
     $transport = negotiatingTransport();
     $transport->timesOutOnDiscover = true;
@@ -433,4 +457,27 @@ it('exposes the server details without knowing which era was negotiated', functi
 
     expect($client->instructions())->toBe('Be nice.');
     expect($client->capabilities())->toBeArray();
+});
+
+it('falls back to the handshake when discovery is rejected with a null id error', function (): void {
+    $transport = negotiatingTransport();
+    $transport->responses[] = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => null,
+        'error' => [
+            'code' => -32000,
+            'message' => 'Bad Request: Unsupported protocol version: 2026-07-28 (supported versions: 2025-11-25, 2025-06-18)',
+        ],
+    ]);
+    $transport->responses[] = initializeResponse(2);
+
+    $client = new Client($transport);
+    $client->connect();
+
+    expect($client->protocolVersion())->toBe(ProtocolVersion::V2025_11_25);
+    expect($client->initializeResult()?->serverInfo->name)->toBe('Test Server');
+
+    expect($transport->sent)->toHaveCount(3);
+    expect(json_decode($transport->sent[0], true)['method'])->toBe('server/discover');
+    expect(json_decode($transport->sent[1], true)['method'])->toBe('initialize');
 });
