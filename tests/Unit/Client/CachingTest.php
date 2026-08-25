@@ -105,19 +105,19 @@ it('never caches a result the server marked immediately stale', function (): voi
 });
 
 it('keeps private results out of another authorization context', function (): void {
-    (new Client(cacheableTransport()))->withCache(by: 'tenant-a')->tools();
+    (new Client(cacheableTransport()))->withCache(for: 'tenant-a')->tools();
 
     $second = cacheableTransport();
-    (new Client($second))->withCache(by: 'tenant-b')->tools();
+    (new Client($second))->withCache(for: 'tenant-b')->tools();
 
     expect($second->sent)->not->toBeEmpty();
 });
 
 it('shares public results across authorization contexts', function (): void {
-    (new Client(cacheableTransport(scope: 'public')))->withCache(by: 'tenant-a')->tools();
+    (new Client(cacheableTransport(scope: 'public')))->withCache(for: 'tenant-a')->tools();
 
     $second = cacheableTransport(scope: 'public');
-    $tools = (new Client($second))->withCache(by: 'tenant-b')->tools();
+    $tools = (new Client($second))->withCache(for: 'tenant-b')->tools();
 
     expect($tools->keys()->all())->toBe(['add'])
         ->and($second->sent)->toBeEmpty();
@@ -229,12 +229,12 @@ it('stops caching once the cache is turned back off', function (): void {
 });
 
 it('keeps caching through a serialize round-trip', function (): void {
-    $client = Client::local('node', ['server.js'])->withCache(store: 'array', by: 'tenant-a');
+    $client = Client::local('node', ['server.js'])->withCache(store: 'array', for: 'tenant-a');
 
     $restored = unserialize(serialize($client));
 
     expect($restored->__serialize()['cache'])
         ->toBeInstanceOf(ResponseCache::class)
         ->store->toBe('array')
-        ->by->toBe('tenant-a');
+        ->for->toBe('tenant-a');
 });

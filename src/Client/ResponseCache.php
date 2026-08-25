@@ -18,7 +18,7 @@ class ResponseCache
 
     public function __construct(
         public readonly ?string $store = null,
-        public readonly ?string $by = null,
+        public readonly ?string $for = null,
     ) {
         //
     }
@@ -90,7 +90,7 @@ class ResponseCache
             $this->hash(Arr::only($recipe, ['driver', 'url', 'command', 'args', 'headers'])),
             $scope === CacheScope::Public
                 ? 'public'
-                : $this->hash([$this->by, Arr::except($recipe, ['timeoutSeconds'])]),
+                : $this->hash([$this->for, Arr::except($recipe, ['timeoutSeconds'])]),
             $method,
             $this->hash($params),
         ]);
