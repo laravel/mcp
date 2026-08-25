@@ -80,9 +80,9 @@ class Client
         return new WebClient(new HttpTransport($url));
     }
 
-    public function withCache(?string $store = null, ?string $context = null): static
+    public function withCache(?string $store = null, ?string $by = null): static
     {
-        $this->protocol->useCache(new ResponseCache($store, $context));
+        $this->protocol->useCache(new ResponseCache($store, $by));
 
         return $this;
     }
