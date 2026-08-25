@@ -19,7 +19,7 @@ class JsonRpcNotification
     }
 
     /**
-     * @param  array{jsonrpc?: mixed, method?: mixed, params?: array<string, mixed>}  $jsonRequest
+     * @param  array{jsonrpc?: mixed, method?: mixed, params?: mixed}  $jsonRequest
      *
      * @throws JsonRpcException
      */
@@ -33,9 +33,15 @@ class JsonRpcNotification
             throw new JsonRpcException('Invalid Request: Invalid or missing "method". Must be a string.', -32600);
         }
 
+        $params = array_key_exists('params', $jsonRequest) ? $jsonRequest['params'] : [];
+
+        if (! is_array($params) || ($params !== [] && array_is_list($params))) {
+            throw new JsonRpcException('Invalid params: The [params] member must be an object.', -32602);
+        }
+
         return new static(
             method: $jsonRequest['method'],
-            params: $jsonRequest['params'] ?? []
+            params: $params
         );
     }
 
