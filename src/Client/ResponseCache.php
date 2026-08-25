@@ -43,8 +43,7 @@ class ResponseCache
         $shared = $this->key($recipe, $method->method(), $params, CacheScope::Public);
         $private = $this->key($recipe, $method->method(), $params, CacheScope::Private);
 
-        $found = $repository->many([$private, $shared]);
-        $cached = $found[$private] ?? $found[$shared];
+        $cached = $repository->get($private) ?? $repository->get($shared);
 
         if (is_array($cached)) {
             return $cached;
