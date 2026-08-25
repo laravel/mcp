@@ -33,19 +33,16 @@ class JsonRpcNotification
             throw new JsonRpcException('Invalid Request: Invalid or missing "method". Must be a string.', -32600);
         }
 
-        if (array_key_exists('params', $jsonRequest) && ! self::isObject($jsonRequest['params'])) {
+        $params = array_key_exists('params', $jsonRequest) ? $jsonRequest['params'] : [];
+
+        if (! is_array($params) || ($params !== [] && array_is_list($params))) {
             throw new JsonRpcException('Invalid params: The [params] member must be an object.', -32602);
         }
 
         return new static(
             method: $jsonRequest['method'],
-            params: $jsonRequest['params'] ?? []
+            params: $params
         );
-    }
-
-    private static function isObject(mixed $value): bool
-    {
-        return is_array($value) && ($value === [] || ! array_is_list($value));
     }
 
     /**
