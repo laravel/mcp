@@ -8,6 +8,7 @@ use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Arr;
+use JsonException;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
@@ -174,12 +175,12 @@ class JsonRpcRequest
      */
     public function encodeRequestState(array $inputResponses, array $state = []): string
     {
-        return encrypt([
+        return encrypt(json_encode([
             'scope' => $this->scope(),
             'expiresAt' => now()->getTimestamp() + static::REQUEST_STATE_TTL,
             'inputResponses' => $inputResponses,
             'state' => $state,
-        ]);
+        ], JSON_THROW_ON_ERROR), false);
     }
 
     /**
@@ -194,8 +195,8 @@ class JsonRpcRequest
         }
 
         try {
-            $payload = decrypt($requestState);
-        } catch (DecryptException) {
+            $payload = json_decode(decrypt($requestState, false), true, 512, JSON_THROW_ON_ERROR);
+        } catch (DecryptException|JsonException) {
             throw new JsonRpcException('Invalid params: The [requestState] member failed integrity verification.', -32602, $this->id);
         }
 

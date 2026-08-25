@@ -32,6 +32,8 @@ class ElicitationServer extends Server
         SharedStateTool::class,
         SamplingTool::class,
         RootsTool::class,
+        TwoInstanceElicitationTool::class,
+        UnserializableStateTool::class,
     ];
 
     protected array $prompts = [ElicitationPrompt::class];
@@ -566,4 +568,61 @@ it('returns the given default when the elicitation was not accepted', function (
 it('declines and cancels through the test helpers', function (): void {
     ElicitationServer::tool(ElicitationTool::class)->decline()->assertHasErrors(['Declined']);
     ElicitationServer::tool(ElicitationTool::class)->cancel()->assertHasErrors(['Cancelled']);
+});
+
+class TwoInstanceElicitationTool extends Tool
+{
+    public function handle(Request $request): Response
+    {
+        $schema = fn (JsonSchema $schema): array => ['value' => $schema->string()->required()];
+
+        $first = $request->ask('Same question', $schema);
+        $second = app(Request::class)->ask('Same question', $schema);
+
+        return Response::text("{$first['value']} then {$second['value']}");
+    }
+}
+
+class UnserializableStateTool extends Tool
+{
+    public function handle(Request $request): Response
+    {
+        $request->remember('formatter', fn (): Closure => fn (string $value): string => $value);
+
+        return Response::text('never reached');
+    }
+}
+
+it('keys each request instance separately within a round', function (): void {
+    ElicitationServer::tool(TwoInstanceElicitationTool::class)
+        ->assertInputRequired()
+        ->respond(['value' => 'first'])
+        ->assertInputRequired()
+        ->respond(['value' => 'second'])
+        ->assertSee('first then second');
+});
+
+it('validates accepted content against the requested schema', function (array $content, string $message): void {
+    ElicitationServer::tool(ElicitationTool::class)
+        ->respond($content)
+        ->assertHasErrors([$message]);
+})->with([
+    'missing required' => [[], 'The name field is required.'],
+    'wrong type' => [['name' => ['a' => 1]], 'The name field must be a string.'],
+]);
+
+it('rejects state that cannot be sealed as json', function (): void {
+    ElicitationServer::tool(UnserializableStateTool::class)
+        ->assertHasErrors(['The remembered [formatter] value must be JSON serializable.']);
+});
+
+it('seals the request state as json rather than php serialization', function (): void {
+    $state = (new JsonRpcRequest(id: 1, method: 'tools/call', params: ['name' => 'elicitation-tool']))
+        ->encodeRequestState(['confirm' => ['action' => 'accept']], ['order' => 'order-1']);
+
+    expect(json_decode(decrypt($state, false), true))
+        ->toMatchArray([
+            'inputResponses' => ['confirm' => ['action' => 'accept']],
+            'state' => ['order' => 'order-1'],
+        ]);
 });

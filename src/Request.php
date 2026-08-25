@@ -148,12 +148,19 @@ class Request implements Arrayable
     public function shareStateWith(self $request): void
     {
         $this->state = &$request->state;
+        $this->elicitations = &$request->elicitations;
     }
 
     public function remember(string $key, Closure $callback): mixed
     {
         if (! array_key_exists($key, $this->state)) {
-            $this->state[$key] = $callback();
+            $value = $callback();
+
+            if (! is_null($value) && ! is_scalar($value) && ! is_array($value)) {
+                throw new InvalidArgumentException("The remembered [{$key}] value must be JSON serializable.");
+            }
+
+            $this->state[$key] = $value;
         }
 
         return $this->state[$key];
@@ -174,10 +181,13 @@ class Request implements Arrayable
 
         $this->assertFlatSchema($requestedSchema);
 
-        $requestedSchema['type'] ??= 'object';
-        $requestedSchema['properties'] = (object) ($requestedSchema['properties'] ?? []);
+        $properties = (array) ($requestedSchema['properties'] ?? []);
+        $required = (array) ($requestedSchema['required'] ?? []);
 
-        return ElicitResponse::from($this->resolveInput([
+        $requestedSchema['type'] ??= 'object';
+        $requestedSchema['properties'] = (object) $properties;
+
+        $response = ElicitResponse::from($this->resolveInput([
             'method' => 'elicitation/create',
             'params' => [
                 'mode' => 'form',
@@ -185,6 +195,12 @@ class Request implements Arrayable
                 'requestedSchema' => $requestedSchema,
             ],
         ], $key));
+
+        if ($response->accepted()) {
+            $response->validate(ElicitResponse::rulesFor($properties, $required));
+        }
+
+        return $response;
     }
 
     /**

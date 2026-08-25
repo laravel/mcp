@@ -69,6 +69,31 @@ class ElicitResponse implements ArrayAccess
     }
 
     /**
+     * @param  array<string, mixed>  $properties
+     * @param  array<array-key, mixed>  $required
+     * @return array<string, string>
+     */
+    public static function rulesFor(array $properties, array $required): array
+    {
+        $types = [
+            'string' => 'string',
+            'integer' => 'integer',
+            'number' => 'numeric',
+            'boolean' => 'boolean',
+            'array' => 'array',
+        ];
+
+        return Arr::mapWithKeys($properties, function (mixed $property, string $name) use ($required, $types): array {
+            $type = is_array($property) ? $property['type'] ?? null : null;
+
+            return [$name => implode('|', array_filter([
+                in_array($name, $required, true) ? 'required' : 'sometimes',
+                is_string($type) ? $types[$type] ?? null : null,
+            ]))];
+        });
+    }
+
+    /**
      * @param  array<string, mixed>  $rules
      * @return array<string, mixed>
      */
