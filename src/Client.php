@@ -43,8 +43,6 @@ class Client
 
     protected ?string $name = null;
 
-    protected ?ResponseCache $cache = null;
-
     public function __construct(
         protected Transport $transport,
         public ?Implementation $clientInfo = null,
@@ -84,18 +82,14 @@ class Client
 
     public function withCache(?string $store = null, ?string $context = null): static
     {
-        $this->cache = new ResponseCache($store, $context);
-
-        $this->protocol->cacheWith($this->cache);
+        $this->protocol->useCache(new ResponseCache($store, $context));
 
         return $this;
     }
 
     public function withoutCache(): static
     {
-        $this->cache = null;
-
-        $this->protocol->cacheWith(null);
+        $this->protocol->useCache(null);
 
         return $this;
     }
@@ -289,7 +283,7 @@ class Client
             'clientInfo' => $this->clientInfo,
             'transport' => $this->transport->recipe(),
             'protocolVersion' => $this->protocol->pinnedProtocolVersion()?->value,
-            'cache' => $this->cache,
+            'cache' => $this->protocol->cache(),
         ];
     }
 
@@ -306,7 +300,7 @@ class Client
             $this->transport = $resolved->transport;
             $this->clientInfo = $resolved->clientInfo;
             $pinned = $resolved->protocol->pinnedProtocolVersion();
-            $cache = $resolved->cache;
+            $cache = $resolved->protocol->cache();
         } else {
             $this->clientInfo = Arr::get($data, 'clientInfo');
             $this->transport = TransportFactory::fromRecipe(Arr::get($data, 'transport'));
@@ -315,10 +309,9 @@ class Client
         }
 
         $this->clientInfo ??= $this->defaultClientInfo();
-        $this->cache = $cache instanceof ResponseCache ? $cache : null;
 
         $this->protocol = new Protocol($this->transport, $this->clientInfo, $pinned);
-        $this->protocol->cacheWith($this->cache);
+        $this->protocol->useCache($cache instanceof ResponseCache ? $cache : null);
     }
 
     public function __destruct()

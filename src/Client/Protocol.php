@@ -288,14 +288,19 @@ class Protocol
 
         return $this->cache->remember(
             $method,
-            fn (): array => $this->transport->recipe(),
+            $this->transport,
             fn (): array => $this->roundTrip($method),
         );
     }
 
-    public function cacheWith(?ResponseCache $responseCache): void
+    public function useCache(?ResponseCache $responseCache): void
     {
         $this->cache = $responseCache;
+    }
+
+    public function cache(): ?ResponseCache
+    {
+        return $this->cache;
     }
 
     /**
