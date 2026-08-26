@@ -12,6 +12,11 @@ use Laravel\Mcp\Transport\JsonRpcResponse;
 class InputRequiredException extends Exception
 {
     /**
+     * @var array<int, string>
+     */
+    protected const SUPPORTED_METHODS = ['tools/call', 'prompts/get', 'resources/read'];
+
+    /**
      * @param  array<array-key, array{method: string, params: array<string, mixed>}>  $inputRequests
      * @param  array<array-key, mixed>  $inputResponses
      * @param  array<string, mixed>  $state
@@ -40,8 +45,19 @@ class InputRequiredException extends Exception
         return $this->state;
     }
 
+    /**
+     * @throws JsonRpcException
+     */
     public function toJsonRpcResponse(JsonRpcRequest $request): JsonRpcResponse
     {
+        if (! in_array($request->method, static::SUPPORTED_METHODS, true)) {
+            throw new JsonRpcException(
+                "The [{$request->method}] method may not request additional input.",
+                -32603,
+                $request->id,
+            );
+        }
+
         return JsonRpcResponse::result($request->id, [
             'resultType' => 'input_required',
             'inputRequests' => (object) Arr::map(

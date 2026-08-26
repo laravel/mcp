@@ -10,6 +10,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\JsonSchema\JsonSchema as JsonSchemaFactory;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\InteractsWithData;
@@ -156,8 +157,10 @@ class Request implements Arrayable
         if (! array_key_exists($key, $this->state)) {
             $value = $callback();
 
-            if (! is_null($value) && ! is_scalar($value) && ! is_array($value)) {
-                throw new InvalidArgumentException("The remembered [{$key}] value must be JSON serializable.");
+            foreach (is_array($value) ? Arr::flatten($value) : [$value] as $leaf) {
+                if (! is_null($leaf) && ! is_scalar($leaf)) {
+                    throw new InvalidArgumentException("The remembered [{$key}] value must be JSON serializable.");
+                }
             }
 
             $this->state[$key] = $value;

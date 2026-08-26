@@ -34,6 +34,7 @@ class ElicitationServer extends Server
         RootsTool::class,
         TwoInstanceElicitationTool::class,
         UnserializableStateTool::class,
+        EnumElicitationTool::class,
     ];
 
     protected array $prompts = [ElicitationPrompt::class];
@@ -587,9 +588,30 @@ class UnserializableStateTool extends Tool
 {
     public function handle(Request $request): Response
     {
-        $request->remember('formatter', fn (): Closure => fn (string $value): string => $value);
+        $request->remember('formatter', fn (): array => ['nested' => ['callback' => fn (string $value): string => $value]]);
 
         return Response::text('never reached');
+    }
+}
+
+class EnumElicitationTool extends Tool
+{
+    public function handle(Request $request): Response
+    {
+        $response = $request->ask('Pick your colours', [
+            'type' => 'object',
+            'properties' => [
+                'colour' => ['type' => 'string', 'enum' => ['red', 'green']],
+                'shade' => ['type' => 'string', 'oneOf' => [
+                    ['const' => '#fff', 'title' => 'Light'],
+                    ['const' => '#000', 'title' => 'Dark'],
+                ]],
+                'tags' => ['type' => 'array', 'items' => ['enum' => ['a', 'b']]],
+            ],
+            'required' => ['colour'],
+        ], 'colours');
+
+        return Response::text("{$response['colour']} {$response['shade']}");
     }
 }
 
@@ -614,6 +636,32 @@ it('validates accepted content against the requested schema', function (array $c
 it('rejects state that cannot be sealed as json', function (): void {
     ElicitationServer::tool(UnserializableStateTool::class)
         ->assertHasErrors(['The remembered [formatter] value must be JSON serializable.']);
+});
+
+it('validates accepted content against the allowed enum values', function (array $content, string $message): void {
+    ElicitationServer::tool(EnumElicitationTool::class)
+        ->respond($content, key: 'colours')
+        ->assertHasErrors([$message]);
+})->with([
+    'outside enum' => [['colour' => 'purple'], 'The selected colour is invalid.'],
+    'outside one of' => [['colour' => 'red', 'shade' => '#f00'], 'The selected shade is invalid.'],
+    'outside item enum' => [['colour' => 'red', 'tags' => ['a', 'z']], 'The selected tags.1 is invalid.'],
+]);
+
+it('accepts content matching the allowed enum values', function (): void {
+    ElicitationServer::tool(EnumElicitationTool::class)
+        ->respond(['colour' => 'green', 'shade' => '#000', 'tags' => ['a']], key: 'colours')
+        ->assertSee('green #000');
+});
+
+it('refuses to request input on methods the specification does not allow', function (): void {
+    $inputRequiredException = new InputRequiredException([
+        'confirm' => ['method' => 'elicitation/create', 'params' => []],
+    ]);
+
+    expect(fn (): mixed => $inputRequiredException->toJsonRpcResponse(
+        new JsonRpcRequest(id: 1, method: 'completion/complete', params: []),
+    ))->toThrow(JsonRpcException::class, 'The [completion/complete] method may not request additional input.');
 });
 
 it('seals the request state as json rather than php serialization', function (): void {

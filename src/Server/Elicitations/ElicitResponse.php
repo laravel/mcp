@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Elicitations;
 use ArrayAccess;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Laravel\Mcp\Enums\ElicitationAction;
 use LogicException;
 
@@ -71,7 +72,7 @@ class ElicitResponse implements ArrayAccess
     /**
      * @param  array<string, mixed>  $properties
      * @param  array<array-key, mixed>  $required
-     * @return array<string, string>
+     * @return array<string, array<int, mixed>>
      */
     public static function rulesFor(array $properties, array $required): array
     {
@@ -84,13 +85,52 @@ class ElicitResponse implements ArrayAccess
         ];
 
         return Arr::mapWithKeys($properties, function (mixed $property, string $name) use ($required, $types): array {
-            $type = is_array($property) ? $property['type'] ?? null : null;
+            $property = is_array($property) ? $property : [];
+            $type = $property['type'] ?? null;
+            $allowed = static::allowedValues($property);
 
-            return [$name => implode('|', array_filter([
+            $rules = [$name => array_values(array_filter([
                 in_array($name, $required, true) ? 'required' : 'sometimes',
                 is_string($type) ? $types[$type] ?? null : null,
+                is_null($allowed) ? null : Rule::in($allowed),
             ]))];
+
+            $items = static::allowedValues(is_array($property['items'] ?? null) ? $property['items'] : []);
+
+            if (! is_null($items)) {
+                $rules["{$name}.*"] = [Rule::in($items)];
+            }
+
+            return $rules;
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $schema
+     * @return array<int, mixed>|null
+     */
+    protected static function allowedValues(array $schema): ?array
+    {
+        if (is_array($schema['enum'] ?? null) && $schema['enum'] !== []) {
+            return array_values($schema['enum']);
+        }
+
+        foreach (['oneOf', 'anyOf'] as $key) {
+            if (! is_array($schema[$key] ?? null)) {
+                continue;
+            }
+
+            $values = array_values(array_filter(
+                Arr::pluck($schema[$key], 'const'),
+                fn (mixed $const): bool => ! is_null($const),
+            ));
+
+            if ($values !== []) {
+                return $values;
+            }
+        }
+
+        return null;
     }
 
     /**
