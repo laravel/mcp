@@ -6,12 +6,10 @@ use Carbon\Carbon;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Enums\ElicitationAction;
+use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\MetaKey;
-use Laravel\Mcp\Exceptions\ElicitationNotSupportedException;
 use Laravel\Mcp\Exceptions\InputRequiredException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\Exceptions\RootsNotSupportedException;
-use Laravel\Mcp\Exceptions\SamplingNotSupportedException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
@@ -32,6 +30,7 @@ class ElicitationServer extends Server
         SharedStateTool::class,
         SamplingTool::class,
         RootsTool::class,
+        SamplingWithToolsTool::class,
         TwoInstanceElicitationTool::class,
         UnserializableStateTool::class,
         EnumElicitationTool::class,
@@ -230,7 +229,7 @@ it('matches numeric elicitation keys the client echoes back', function (): void 
             'arguments' => [],
             '_meta' => elicitationMeta(),
             'requestState' => (new JsonRpcRequest(id: 1, method: 'tools/call', params: ['name' => 'elicitation-tool']))
-                ->encodeRequestState(['7' => ['action' => 'accept', 'content' => ['value' => 'kept']]]),
+                ->encodeRequestState(['7' => ['action' => 'accept', 'content' => ['value' => 'kept']]], [], ['9']),
             'inputResponses' => json_decode('{"9":{"action":"accept","content":{"value":"fresh"}}}', true),
         ],
     ])->toRequest();
@@ -257,8 +256,37 @@ it('gates form elicitation by client capability', function (): void {
     expect($legacy->clientSupports('elicitation'))->toBeTrue()
         ->and($legacy->canAsk())->toBeTrue()
         ->and($unsupported->canAsk())->toBeFalse()
-        ->and(fn (): ElicitResponse => $unsupported->ask('Your GitHub username', ['type' => 'object']))
-        ->toThrow(ElicitationNotSupportedException::class, 'The client does not support form elicitation.');
+        ->and((new Request(meta: elicitationMeta(['url' => []])))->canAsk())->toBeFalse();
+});
+
+it('reports a missing client capability as a protocol error', function (string $tool, array $capabilities, array $required): void {
+    ElicitationServer::withClientCapabilities($capabilities)
+        ->tool($tool)
+        ->assertErrorCode(
+            ErrorCode::MISSING_REQUIRED_CLIENT_CAPABILITY->value,
+            ['requiredCapabilities' => $required],
+        )
+        ->assertHasErrors(['The client did not declare the capabilities this request requires.']);
+})->with([
+    'elicitation' => [ElicitationTool::class, [], ['elicitation' => ['form' => []]]],
+    'form only declared as url' => [ElicitationTool::class, ['elicitation' => ['url' => []]], ['elicitation' => ['form' => []]]],
+    'sampling' => [SamplingTool::class, [], ['sampling' => []]],
+    'roots' => [RootsTool::class, [], ['roots' => []]],
+    'tool enabled sampling' => [SamplingWithToolsTool::class, ['sampling' => []], ['sampling' => ['tools' => []]]],
+]);
+
+it('declares form elicitation, sampling and roots by default in tests', function (): void {
+    ElicitationServer::tool(ElicitationTool::class)->assertInputRequired();
+    ElicitationServer::tool(SamplingTool::class)->assertInputRequired();
+    ElicitationServer::tool(RootsTool::class)->assertInputRequired();
+    ElicitationServer::tool(SamplingWithToolsTool::class)
+        ->assertErrorCode(ErrorCode::MISSING_REQUIRED_CLIENT_CAPABILITY->value);
+});
+
+it('allows tool enabled sampling once the client declares it', function (): void {
+    ElicitationServer::withClientCapabilities(['sampling' => ['tools' => []]])
+        ->tool(SamplingWithToolsTool::class)
+        ->assertInputRequired();
 });
 
 it('wraps input responses and validates accepted content', function (): void {
@@ -345,12 +373,20 @@ it('rejects a malformed input response at the json rpc boundary', function (): v
         ->toThrow(JsonRpcException::class, 'Invalid params: The [inputResponses.picked] member must be an object.');
 });
 
-it('treats an unrecognised elicitation action as cancelled', function (): void {
-    $response = ElicitResponse::from(['action' => 'maybe', 'content' => ['name' => 'octocat']]);
+it('rejects an elicitation response with an unusable action', function (mixed $action, string $message): void {
+    expect(fn (): ElicitResponse => ElicitResponse::from(['action' => $action, 'content' => ['name' => 'octocat']]))
+        ->toThrow(JsonRpcException::class, $message);
+})->with([
+    'unknown' => ['maybe', 'The elicitation response action [maybe] must be one of [accept, decline, cancel].'],
+    'missing' => [null, 'The elicitation response action [null] must be one of [accept, decline, cancel].'],
+    'wrong type' => [true, 'The elicitation response action [bool] must be one of [accept, decline, cancel].'],
+]);
 
-    expect($response->cancelled())->toBeTrue()
-        ->and($response->accepted())->toBeFalse()
-        ->and($response->content())->toBe([]);
+it('rejects accepted content that is not an object', function (): void {
+    expect(fn (): ElicitResponse => ElicitResponse::from(['action' => 'accept', 'content' => 'octocat']))
+        ->toThrow(JsonRpcException::class, 'The elicitation response content must be an object.');
+
+    expect(ElicitResponse::from(['action' => 'accept'])->content())->toBe([]);
 });
 
 it('serializes an empty requested schema properties as an object', function (): void {
@@ -429,6 +465,21 @@ class RootsTool extends Tool
     }
 }
 
+class SamplingWithToolsTool extends Tool
+{
+    public function handle(Request $request): Response
+    {
+        $completion = $request->sample([
+            ['role' => 'user', 'content' => ['type' => 'text', 'text' => 'Check the weather.']],
+        ], 100, [
+            'tools' => [['name' => 'get_weather', 'inputSchema' => ['type' => 'object']]],
+            'toolChoice' => ['mode' => 'auto'],
+        ], 'completion');
+
+        return Response::text('Model said: '.$completion['content']['text']);
+    }
+}
+
 it('runs a side effect once across elicitation rounds', function (): void {
     RememberingTool::$sideEffects = 0;
 
@@ -455,7 +506,11 @@ it('serializes numeric input request keys as an object', function (): void {
     $response = (new InputRequiredException([
         '0' => ['method' => 'roots/list', 'params' => []],
         '1' => ['method' => 'roots/list', 'params' => []],
-    ]))->toJsonRpcResponse(new JsonRpcRequest(id: 1, method: 'tools/call', params: ['name' => 'roots-tool']));
+    ]))->toJsonRpcResponse(new JsonRpcRequest(
+        id: 1,
+        method: 'tools/call',
+        params: ['name' => 'roots-tool', '_meta' => [MetaKey::CLIENT_CAPABILITIES->value => ['roots' => []]]],
+    ));
 
     expect($response->toJson())->toContain('"inputRequests":{"0":');
 });
@@ -530,13 +585,27 @@ it('requests the client roots', function (): void {
         ->assertSee('Roots: file:///app');
 });
 
-it('gates sampling and roots by client capability', function (): void {
-    $bare = new Request;
+it('reports every missing capability in one protocol error', function (): void {
+    $inputRequiredException = new InputRequiredException([
+        'ask' => ['method' => 'elicitation/create', 'params' => ['mode' => 'form', 'message' => 'Who?']],
+        'roots' => ['method' => 'roots/list', 'params' => []],
+    ]);
 
-    expect(fn (): array => $bare->sample([], 10))
-        ->toThrow(SamplingNotSupportedException::class, 'The client does not support sampling.')
-        ->and(fn (): array => $bare->roots())
-        ->toThrow(RootsNotSupportedException::class, 'The client does not support roots.');
+    try {
+        $inputRequiredException->toJsonRpcResponse(new JsonRpcRequest(
+            id: 1,
+            method: 'tools/call',
+            params: ['name' => 'elicitation-tool', '_meta' => elicitationMeta()],
+        ));
+    } catch (JsonRpcException $jsonRpcException) {
+        expect($jsonRpcException->getCode())->toBe(ErrorCode::MISSING_REQUIRED_CLIENT_CAPABILITY->value)
+            ->and(json_decode((string) json_encode($jsonRpcException->data()), true))
+            ->toBe(['requiredCapabilities' => ['roots' => []]]);
+
+        return;
+    }
+
+    throw new RuntimeException('The missing capability was not reported.');
 });
 
 it('rejects form schemas the specification does not allow', function (array $properties, string $message): void {
@@ -662,6 +731,110 @@ it('refuses to request input on methods the specification does not allow', funct
     expect(fn (): mixed => $inputRequiredException->toJsonRpcResponse(
         new JsonRpcRequest(id: 1, method: 'completion/complete', params: []),
     ))->toThrow(JsonRpcException::class, 'The [completion/complete] method may not request additional input.');
+});
+
+it('keeps a sealed answer when the retry tries to change it', function (): void {
+    $issued = (new JsonRpcRequest(id: 1, method: 'tools/call', params: ['name' => 'elicitation-tool']))
+        ->encodeRequestState(['first' => ['action' => 'accept', 'content' => ['value' => 'sealed']]], [], ['second']);
+
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'elicitation-tool',
+            'requestState' => $issued,
+            'inputResponses' => [
+                'first' => ['action' => 'accept', 'content' => ['value' => 'tampered']],
+                'second' => ['action' => 'accept', 'content' => ['value' => 'answered']],
+            ],
+        ],
+    ])->toRequest();
+
+    expect($request->inputResponses())->toBe([
+        'first' => ['action' => 'accept', 'content' => ['value' => 'sealed']],
+        'second' => ['action' => 'accept', 'content' => ['value' => 'answered']],
+    ]);
+});
+
+it('ignores an input response the server never requested', function (): void {
+    $issued = (new JsonRpcRequest(id: 1, method: 'tools/call', params: ['name' => 'multi-round-elicitation-tool']))
+        ->encodeRequestState([], [], ['first']);
+
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'multi-round-elicitation-tool',
+            'requestState' => $issued,
+            'inputResponses' => [
+                'first' => ['action' => 'accept', 'content' => ['value' => 'one']],
+                'second' => ['action' => 'accept', 'content' => ['value' => 'unsolicited']],
+            ],
+        ],
+    ])->toRequest();
+
+    expect($request->inputResponses())->toBe(['first' => ['action' => 'accept', 'content' => ['value' => 'one']]]);
+});
+
+it('rejects malformed multi round trip parameters', function (array $params, string $message): void {
+    expect(fn (): Request => JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => ['name' => 'elicitation-tool', ...$params],
+    ])->toRequest())->toThrow(JsonRpcException::class, $message);
+})->with([
+    'string input responses' => [['inputResponses' => 'invalid'], 'The [inputResponses] member must be an object.'],
+    'listed input responses' => [['inputResponses' => [['action' => 'accept']]], 'The [inputResponses] member must be an object.'],
+    'null input responses' => [['inputResponses' => null], 'The [inputResponses] member must be an object.'],
+    'numeric request state' => [['requestState' => 123], 'The [requestState] member must be a string.'],
+    'null request state' => [['requestState' => null], 'The [requestState] member must be a string.'],
+]);
+
+it('rejects form schemas outside the restricted grammar', function (array $schema, string $message): void {
+    $request = new Request(meta: elicitationMeta());
+
+    expect(fn (): ElicitResponse => $request->ask('Pick', $schema))
+        ->toThrow(InvalidArgumentException::class, $message);
+})->with([
+    'non object root' => [['type' => 'string'], 'Form elicitation schemas must declare a root type of [object].'],
+    'unknown type' => [
+        ['type' => 'object', 'properties' => ['when' => ['type' => 'timestamp']]],
+        'The [when] property must declare one of the [string, number, integer, boolean] types.',
+    ],
+    'missing type' => [
+        ['type' => 'object', 'properties' => ['when' => ['description' => 'When?']]],
+        'The [when] property must declare one of the [string, number, integer, boolean] types.',
+    ],
+    'empty enum array' => [
+        ['type' => 'object', 'properties' => ['tags' => ['type' => 'array', 'items' => ['enum' => []]]]],
+        'The [tags] property must be an enum array.',
+    ],
+    'undeclared required' => [
+        ['type' => 'object', 'properties' => ['name' => ['type' => 'string']], 'required' => ['nope']],
+        'The [required] member may only list declared properties.',
+    ],
+]);
+
+it('validates accepted content against the schema constraints', function (): void {
+    $rules = ElicitResponse::rulesFor([
+        'name' => ['type' => 'string', 'minLength' => 3],
+        'email' => ['type' => 'string', 'format' => 'email'],
+        'age' => ['type' => 'integer', 'minimum' => 18, 'maximum' => 120],
+        'tags' => ['type' => 'array', 'maxItems' => 2, 'items' => ['enum' => ['a', 'b', 'c']]],
+    ], ['name']);
+
+    expect(fn (): array => ElicitResponse::from([
+        'action' => 'accept',
+        'content' => ['name' => 'ab', 'email' => 'nope', 'age' => 7, 'tags' => ['a', 'b', 'c']],
+    ])->validate($rules))->toThrow(ValidationException::class);
+
+    expect(ElicitResponse::from([
+        'action' => 'accept',
+        'content' => ['name' => 'octocat', 'email' => 'octocat@example.com', 'age' => 30, 'tags' => ['a']],
+    ])->validate($rules))->toHaveKeys(['name', 'email', 'age', 'tags']);
 });
 
 it('seals the request state as json rather than php serialization', function (): void {

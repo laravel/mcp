@@ -9,6 +9,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Laravel\Mcp\Enums\ElicitationAction;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use LogicException;
 
 /**
@@ -32,12 +33,22 @@ class ElicitResponse implements ArrayAccess
     public static function from(array $response): static
     {
         $action = Arr::get($response, 'action');
+        $resolved = ElicitationAction::tryFrom(is_string($action) ? $action : '');
+
+        if (is_null($resolved)) {
+            throw new JsonRpcException(sprintf(
+                'Invalid params: The elicitation response action [%s] must be one of [accept, decline, cancel].',
+                is_string($action) ? $action : get_debug_type($action),
+            ), -32602);
+        }
+
         $content = Arr::get($response, 'content');
 
-        return new static(
-            ElicitationAction::tryFrom(is_string($action) ? $action : '') ?? ElicitationAction::Cancel,
-            is_array($content) ? $content : [],
-        );
+        if ($resolved === ElicitationAction::Accept && ! is_null($content) && ! is_array($content)) {
+            throw new JsonRpcException('Invalid params: The elicitation response content must be an object.', -32602);
+        }
+
+        return new static($resolved, is_array($content) ? $content : []);
     }
 
     public function action(): ?ElicitationAction
@@ -88,11 +99,21 @@ class ElicitResponse implements ArrayAccess
             $property = is_array($property) ? $property : [];
             $type = $property['type'] ?? null;
             $allowed = static::allowedValues($property);
+            $min = $property['minLength'] ?? $property['minimum'] ?? $property['minItems'] ?? null;
+            $max = $property['maxLength'] ?? $property['maximum'] ?? $property['maxItems'] ?? null;
 
             $rules = [$name => array_values(array_filter([
                 in_array($name, $required, true) ? 'required' : 'sometimes',
                 is_string($type) ? $types[$type] ?? null : null,
                 is_null($allowed) ? null : Rule::in($allowed),
+                is_scalar($min) ? "min:{$min}" : null,
+                is_scalar($max) ? "max:{$max}" : null,
+                match ($property['format'] ?? null) {
+                    'email' => 'email',
+                    'uri' => 'url',
+                    'date', 'date-time' => 'date',
+                    default => null,
+                },
             ]))];
 
             $items = static::allowedValues(is_array($property['items'] ?? null) ? $property['items'] : []);

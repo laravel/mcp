@@ -139,11 +139,14 @@ class JsonRpcRequest
         }
 
         $payload = $this->requestState();
+        $inputResponses = $this->inputResponses();
 
-        $inputResponses = array_replace(
-            is_array($payload['inputResponses'] ?? null) ? $payload['inputResponses'] : [],
-            $this->inputResponses(),
-        );
+        if ($payload !== []) {
+            $sealed = is_array($payload['inputResponses'] ?? null) ? $payload['inputResponses'] : [];
+            $issued = is_array($payload['issued'] ?? null) ? $payload['issued'] : [];
+
+            $inputResponses = $sealed + array_intersect_key($inputResponses, array_flip($issued));
+        }
 
         foreach ($inputResponses as $key => $inputResponse) {
             if (! self::isObject($inputResponse)) {
@@ -164,22 +167,30 @@ class JsonRpcRequest
      */
     private function inputResponses(): array
     {
-        $inputResponses = $this->get('inputResponses');
+        if (! array_key_exists('inputResponses', $this->params)) {
+            return [];
+        }
 
-        return is_array($inputResponses) ? $inputResponses : [];
+        if (! self::isObject($this->params['inputResponses'])) {
+            throw new JsonRpcException('Invalid params: The [inputResponses] member must be an object.', -32602, $this->id);
+        }
+
+        return $this->params['inputResponses'];
     }
 
     /**
      * @param  array<string, mixed>  $inputResponses
      * @param  array<string, mixed>  $state
+     * @param  array<int, string>  $issued
      */
-    public function encodeRequestState(array $inputResponses, array $state = []): string
+    public function encodeRequestState(array $inputResponses, array $state = [], array $issued = []): string
     {
         return encrypt(json_encode([
             'scope' => $this->scope(),
             'expiresAt' => now()->getTimestamp() + static::REQUEST_STATE_TTL,
             'inputResponses' => $inputResponses,
             'state' => $state,
+            'issued' => $issued,
         ], JSON_THROW_ON_ERROR), false);
     }
 
@@ -188,10 +199,14 @@ class JsonRpcRequest
      */
     private function requestState(): array
     {
-        $requestState = $this->get('requestState');
+        if (! array_key_exists('requestState', $this->params)) {
+            return [];
+        }
+
+        $requestState = $this->params['requestState'];
 
         if (! is_string($requestState)) {
-            return [];
+            throw new JsonRpcException('Invalid params: The [requestState] member must be a string.', -32602, $this->id);
         }
 
         try {

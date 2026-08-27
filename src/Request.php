@@ -18,11 +18,8 @@ use Illuminate\Support\Traits\Macroable;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Mcp\Enums\MetaKey;
-use Laravel\Mcp\Exceptions\ElicitationNotSupportedException;
 use Laravel\Mcp\Exceptions\InputRequiredException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
-use Laravel\Mcp\Exceptions\RootsNotSupportedException;
-use Laravel\Mcp\Exceptions\SamplingNotSupportedException;
 use Laravel\Mcp\Server\Elicitations\ElicitResponse;
 
 /**
@@ -33,6 +30,11 @@ class Request implements Arrayable
     use Conditionable;
     use InteractsWithData;
     use Macroable;
+
+    /**
+     * @var array<int, string>
+     */
+    protected const PRIMITIVE_TYPES = ['string', 'number', 'integer', 'boolean'];
 
     protected int $elicitations = 0;
 
@@ -174,15 +176,11 @@ class Request implements Arrayable
      */
     public function ask(string $message, Closure|array $schema, ?string $key = null): ElicitResponse
     {
-        if (! $this->canAsk()) {
-            throw new ElicitationNotSupportedException;
-        }
-
         $requestedSchema = $schema instanceof Closure
             ? JsonSchemaFactory::object($schema)->toArray()
             : $schema;
 
-        $this->assertFlatSchema($requestedSchema);
+        $this->assertRestrictedSchema($requestedSchema);
 
         $properties = (array) ($requestedSchema['properties'] ?? []);
         $required = (array) ($requestedSchema['required'] ?? []);
@@ -210,13 +208,11 @@ class Request implements Arrayable
      * @param  array<int, array<string, mixed>>  $messages
      * @param  array<string, mixed>  $options
      * @return array<string, mixed>
+     *
+     * @deprecated Sampling is deprecated as of protocol version 2026-07-28.
      */
     public function sample(array $messages, int $maxTokens, array $options = [], ?string $key = null): array
     {
-        if (! $this->clientSupports('sampling')) {
-            throw new SamplingNotSupportedException;
-        }
-
         return $this->resolveInput([
             'method' => 'sampling/createMessage',
             'params' => [...$options, 'messages' => $messages, 'maxTokens' => $maxTokens],
@@ -225,13 +221,11 @@ class Request implements Arrayable
 
     /**
      * @return array<int, array<string, mixed>>
+     *
+     * @deprecated Roots is deprecated as of protocol version 2026-07-28.
      */
     public function roots(?string $key = null): array
     {
-        if (! $this->clientSupports('roots')) {
-            throw new RootsNotSupportedException;
-        }
-
         $roots = $this->resolveInput([
             'method' => 'roots/list',
             'params' => [],
@@ -242,14 +236,18 @@ class Request implements Arrayable
 
     public function canAsk(): bool
     {
-        $elicitation = data_get($this->meta[MetaKey::CLIENT_CAPABILITIES->value] ?? [], 'elicitation');
-
-        return $elicitation === [] || is_array(data_get($elicitation, 'form'));
+        return $this->clientSupports('elicitation.form');
     }
 
     public function clientSupports(string $capability): bool
     {
-        $declared = data_get($this->meta[MetaKey::CLIENT_CAPABILITIES->value] ?? [], $capability);
+        $capabilities = $this->meta[MetaKey::CLIENT_CAPABILITIES->value] ?? [];
+
+        if ($capability === 'elicitation.form' && data_get($capabilities, 'elicitation') === []) {
+            return true;
+        }
+
+        $declared = data_get($capabilities, $capability);
 
         return is_bool($declared) ? $declared : is_array($declared);
     }
@@ -257,17 +255,40 @@ class Request implements Arrayable
     /**
      * @param  array<string, mixed>  $schema
      */
-    protected function assertFlatSchema(array $schema): void
+    protected function assertRestrictedSchema(array $schema): void
     {
-        foreach ((array) ($schema['properties'] ?? []) as $name => $property) {
+        if (($schema['type'] ?? 'object') !== 'object') {
+            throw new InvalidArgumentException('Form elicitation schemas must declare a root type of [object].');
+        }
+
+        $properties = (array) ($schema['properties'] ?? []);
+
+        foreach ($properties as $name => $property) {
             $type = is_array($property) ? $property['type'] ?? null : null;
 
             if ($type === 'object') {
                 throw new InvalidArgumentException("The [{$name}] property must be a primitive. Form elicitation schemas may not nest objects.");
             }
 
-            if ($type === 'array' && ! isset($property['items']['enum']) && ! isset($property['items']['anyOf'])) {
-                throw new InvalidArgumentException("The [{$name}] property must be an enum array. Form elicitation schemas only allow arrays of enum values.");
+            if ($type === 'array') {
+                $items = is_array($property['items'] ?? null) ? $property['items'] : [];
+                $allowed = $items['enum'] ?? $items['anyOf'] ?? null;
+
+                if (! is_array($allowed) || $allowed === []) {
+                    throw new InvalidArgumentException("The [{$name}] property must be an enum array. Form elicitation schemas only allow arrays of enum values.");
+                }
+
+                continue;
+            }
+
+            if (! in_array($type, static::PRIMITIVE_TYPES, true)) {
+                throw new InvalidArgumentException("The [{$name}] property must declare one of the [".implode(', ', static::PRIMITIVE_TYPES).'] types.');
+            }
+        }
+
+        foreach ((array) ($schema['required'] ?? []) as $name) {
+            if (! is_string($name) || ! array_key_exists($name, $properties)) {
+                throw new InvalidArgumentException('The [required] member may only list declared properties.');
             }
         }
     }
