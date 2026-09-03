@@ -49,11 +49,7 @@ class Request implements Arrayable
 
     protected function data(mixed $key = null, mixed $default = null): mixed
     {
-        if (is_null($key)) {
-            return $this->arguments;
-        }
-
-        return $this->arguments[$key] ?? $default;
+        return data_get($this->arguments, $key, $default);
     }
 
     public function get(string $key, mixed $default = null): mixed
