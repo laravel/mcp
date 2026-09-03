@@ -69,6 +69,18 @@ it('retrieves nested input using dot notation', function (): void {
         ->and($request->filled('user.country'))->toBeFalse();
 });
 
+it('does not resolve literal dotted keys', function (): void {
+    $request = new Request([
+        'limit.items' => 5,
+        'limit' => ['items' => 10],
+    ]);
+
+    expect($request->get('limit.items'))->toBe(10)
+        ->and($request->get('limit.items', 'fallback'))->toBe(10)
+        ->and((new Request(['limit.items' => 5]))->get('limit.items'))->toBeNull()
+        ->and((new Request(['limit.items' => 5]))->all())->toBe(['limit.items' => 5]);
+});
+
 it('may be returned as array', function (): void {
     $request = new Request([
         'name' => 'Alice',
