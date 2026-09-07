@@ -365,6 +365,16 @@ it('rejects invalid registration metadata before creating a client', function (s
     'too long' => ['https://example.com/'.str_repeat('a', 2030)],
 ]);
 
+it('rejects non-string redirect URIs before creating a client', function (): void {
+    prepareOauthRegistration();
+
+    $this->postJson('/oauth/register', [
+        'redirect_uris' => [42],
+    ])->assertBadRequest()->assertJson(['error' => 'invalid_redirect_uri']);
+
+    $this->assertDatabaseCount('oauth_clients', 0);
+});
+
 it('keeps redirect errors ahead of metadata errors', function (): void {
     prepareOauthRegistration();
 
