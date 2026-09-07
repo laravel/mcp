@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Registrar;
+use RuntimeException;
 use Throwable;
 
 class OAuthRegisterController
@@ -52,6 +53,12 @@ class OAuthRegisterController
             }],
         ]);
 
+        // Preserve error precedence by adding metadata rules after redirect rules are expanded.
+        $validator->addRules([
+            'logo_uri' => ['nullable', 'string', 'url:http,https', 'max:2048'],
+            'client_uri' => ['nullable', 'string', 'url:http,https', 'max:2048'],
+        ]);
+
         if ($validator->fails()) {
             $errors = $validator->errors();
 
@@ -79,14 +86,23 @@ class OAuthRegisterController
         );
 
         try {
-            $client = $clients->createAuthorizationCodeGrantClient(
-                name: $this->resolveClientName($validated),
-                redirectUris: $validated['redirect_uris'],
-                confidential: false,
-                enableDeviceFlow: false,
-            );
+            $passport = 'Laravel\Passport\Passport';
 
-            $this->grantMcpScope($client);
+            /** @var Model $model */
+            $model = $passport::client();
+
+            [$client, $metadata] = $model->getConnection()->transaction(function () use ($clients, $validated): array {
+                $client = $clients->createAuthorizationCodeGrantClient(
+                    name: $this->resolveClientName($validated),
+                    redirectUris: $validated['redirect_uris'],
+                    confidential: false,
+                    enableDeviceFlow: false,
+                );
+
+                $this->grantMcpScope($client);
+
+                return [$client, $this->persistClientMetadata($client, $validated)];
+            });
         } catch (Throwable $throwable) {
             report($throwable);
 
@@ -103,6 +119,7 @@ class OAuthRegisterController
             'redirect_uris' => $client->redirect_uris,
             'scope' => Registrar::OAUTH_SCOPE,
             'token_endpoint_auth_method' => 'none',
+            ...$metadata,
         ], 201);
     }
 
@@ -119,6 +136,39 @@ class OAuthRegisterController
         }
 
         $client->forceFill(['scopes' => [...$scopes, Registrar::OAUTH_SCOPE]])->save();
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    protected function persistClientMetadata(mixed $client, array $validated): array
+    {
+        if (! $client instanceof Model) {
+            return [];
+        }
+
+        $columns = $client->getConnection()->getSchemaBuilder()->getColumnListing($client->getTable());
+        $supported = array_intersect(['logo_uri', 'client_uri'], $columns);
+        $metadata = array_intersect_key($validated, array_flip($supported));
+
+        if ($metadata !== []) {
+            if (! $client->forceFill($metadata)->save()) {
+                throw new RuntimeException('The client metadata could not be saved.');
+            }
+
+            $client->refresh();
+        }
+
+        $metadata = [];
+
+        foreach ($supported as $attribute) {
+            if (($value = $client->getAttribute($attribute)) !== null) {
+                $metadata[$attribute] = $value;
+            }
+        }
+
+        return $metadata;
     }
 
     /**
