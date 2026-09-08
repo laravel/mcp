@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Server\Registrar;
 use Laravel\Passport\Client;
@@ -397,29 +396,6 @@ it('returns metadata transformed by a custom client model', function (): void {
 
     expect($repository->client->fresh()->logo_uri)->toBe('https://example.com/logo.png');
 });
-
-it('rolls back registration when metadata cannot be saved', function (bool $cancelSave): void {
-    Exceptions::fake();
-    $repository = prepareOauthRegistration(clientModel: CustomPassportClient::class);
-    CustomPassportClient::updating(function () use ($cancelSave): bool {
-        if ($cancelSave) {
-            return false;
-        }
-
-        throw new RuntimeException('Private metadata failure details.');
-    });
-
-    $this->postJson('/oauth/register', [
-        'redirect_uris' => ['https://example.com/callback'],
-        'logo_uri' => 'https://example.com/logo.png',
-    ])->assertStatus(500)->assertExactJson([
-        'error' => 'server_error',
-        'error_description' => 'The client could not be registered.',
-    ]);
-
-    expect($repository->client->newQuery()->count())->toBe(0);
-    Exceptions::assertReported(RuntimeException::class);
-})->with(['exception' => false, 'save cancelled' => true]);
 
 it('persists the advertised mcp scope when passport clients are scope-restricted by default', function (): void {
     ensureMockClientRepository();

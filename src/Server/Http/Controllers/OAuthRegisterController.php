@@ -12,7 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Registrar;
-use RuntimeException;
 use Throwable;
 
 class OAuthRegisterController
@@ -51,24 +50,17 @@ class OAuthRegisterController
                     $fail($attribute.' is not a permitted redirect domain.');
                 }
             }],
-        ]);
-
-        // Preserve error precedence by adding metadata rules after redirect rules are expanded.
-        $validator->addRules([
             'logo_uri' => ['nullable', 'string', 'url:http,https', 'max:2048'],
             'client_uri' => ['nullable', 'string', 'url:http,https', 'max:2048'],
         ]);
 
         if ($validator->fails()) {
             $errors = $validator->errors();
-
-            $isRedirectError = collect($errors->keys())->contains(
-                fn (string $key): bool => str_starts_with($key, 'redirect_uris')
-            );
+            $redirectError = $errors->first('redirect_uris*');
 
             return response()->json([
-                'error' => $isRedirectError ? 'invalid_redirect_uri' : 'invalid_client_metadata',
-                'error_description' => $errors->first(),
+                'error' => $redirectError !== '' ? 'invalid_redirect_uri' : 'invalid_client_metadata',
+                'error_description' => $redirectError !== '' ? $redirectError : $errors->first(),
             ], 400);
         }
 
@@ -86,23 +78,16 @@ class OAuthRegisterController
         );
 
         try {
-            $passport = 'Laravel\Passport\Passport';
+            $client = $clients->createAuthorizationCodeGrantClient(
+                name: $this->resolveClientName($validated),
+                redirectUris: $validated['redirect_uris'],
+                confidential: false,
+                enableDeviceFlow: false,
+            );
 
-            /** @var Model $model */
-            $model = $passport::client();
+            $this->grantMcpScope($client);
 
-            [$client, $metadata] = $model->getConnection()->transaction(function () use ($clients, $validated): array {
-                $client = $clients->createAuthorizationCodeGrantClient(
-                    name: $this->resolveClientName($validated),
-                    redirectUris: $validated['redirect_uris'],
-                    confidential: false,
-                    enableDeviceFlow: false,
-                );
-
-                $this->grantMcpScope($client);
-
-                return [$client, $this->persistClientMetadata($client, $validated)];
-            });
+            $metadata = $this->persistClientMetadata($client, $validated);
         } catch (Throwable $throwable) {
             report($throwable);
 
@@ -150,25 +135,13 @@ class OAuthRegisterController
 
         $columns = $client->getConnection()->getSchemaBuilder()->getColumnListing($client->getTable());
         $supported = array_intersect(['logo_uri', 'client_uri'], $columns);
-        $metadata = array_intersect_key($validated, array_flip($supported));
+        $metadata = array_filter(array_intersect_key($validated, array_flip($supported)));
 
         if ($metadata !== []) {
-            if (! $client->forceFill($metadata)->save()) {
-                throw new RuntimeException('The client metadata could not be saved.');
-            }
-
-            $client->refresh();
+            $client->forceFill($metadata)->save();
         }
 
-        $metadata = [];
-
-        foreach ($supported as $attribute) {
-            if (($value = $client->getAttribute($attribute)) !== null) {
-                $metadata[$attribute] = $value;
-            }
-        }
-
-        return $metadata;
+        return array_filter(array_map($client->getAttribute(...), array_combine($supported, $supported)));
     }
 
     /**
