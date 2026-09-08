@@ -51,7 +51,7 @@
             <!-- Header -->
             <div class="flex flex-col space-y-1.5 p-6">
                 <div class="flex items-center justify-center mb-4">
-                    @if ($client->logo_uri)
+                    @if ($client->logo_uri ?? null)
                     <img src="{{ $client->logo_uri }}" alt="{{ $client->name }}" class="h-12 w-12 rounded object-contain">
                     @else
                     <!-- Shield Icon -->
@@ -69,7 +69,7 @@
                     This application will be able to:<br/>Use available MCP functionality.
                 </p>
 
-                @if ($client->client_uri)
+                @if ($client->client_uri ?? null)
                 <a href="{{ $client->client_uri }}" target="_blank" rel="noopener noreferrer" class="text-sm text-primary underline text-center">
                     {{ $client->client_uri }}
                 </a>

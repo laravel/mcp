@@ -9,6 +9,7 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Registrar;
@@ -135,13 +136,13 @@ class OAuthRegisterController
 
         $columns = $client->getConnection()->getSchemaBuilder()->getColumnListing($client->getTable());
         $supported = array_intersect(['logo_uri', 'client_uri'], $columns);
-        $metadata = array_filter(array_intersect_key($validated, array_flip($supported)));
+        $metadata = array_filter(Arr::only($validated, $supported));
 
         if ($metadata !== []) {
             $client->forceFill($metadata)->save();
         }
 
-        return array_filter(array_map($client->getAttribute(...), array_combine($supported, $supported)));
+        return array_filter($client->only($supported));
     }
 
     /**

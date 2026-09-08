@@ -386,6 +386,60 @@ it('keeps redirect errors ahead of metadata errors', function (): void {
     ]);
 });
 
+it('describes the redirect error when an earlier rule also fails', function (): void {
+    prepareOauthRegistration();
+
+    $this->postJson('/oauth/register', [
+        'client_name' => 123,
+        'redirect_uris' => ['not-a-url'],
+    ])->assertBadRequest()->assertExactJson([
+        'error' => 'invalid_redirect_uri',
+        'error_description' => 'redirect_uris.0 is not a valid URL.',
+    ]);
+});
+
+it('renders client metadata on the authorize view', function (array $metadataColumns, array $attributes, array $expected, array $missing): void {
+    $this->withoutVite();
+    prepareOauthRegistration(metadataColumns: $metadataColumns);
+    Route::post('oauth/authorize', fn (): null => null)->name('passport.authorizations.approve');
+    Route::delete('oauth/authorize', fn (): null => null)->name('passport.authorizations.deny');
+    Model::preventAccessingMissingAttributes();
+
+    $client = Passport::client()->forceFill(['id' => 'client-id', 'name' => 'Example', 'grant_types' => [], 'redirect_uris' => [], ...$attributes]);
+    $client->save();
+
+    $html = view('mcp::authorize', [
+        'client' => $client->fresh(),
+        'user' => (object) ['email' => 'user@example.com'],
+        'scopes' => [],
+        'authToken' => 'token',
+        'appearance' => 'light',
+    ])->render();
+
+    Model::preventAccessingMissingAttributes(false);
+
+    foreach ($expected as $fragment) {
+        expect($html)->toContain($fragment);
+    }
+
+    foreach ($missing as $fragment) {
+        expect($html)->not->toContain($fragment);
+    }
+})->with([
+    'with metadata' => [
+        ['logo_uri', 'client_uri'],
+        ['logo_uri' => 'https://example.com/logo.png', 'client_uri' => 'https://example.com'],
+        ['<img src="https://example.com/logo.png"', '<a href="https://example.com"'],
+        ['h-12 w-12 text-primary'],
+    ],
+    'without columns' => [
+        [],
+        [],
+        ['h-12 w-12 text-primary'],
+        ['<img', '<a href='],
+    ],
+]);
+
 it('returns metadata transformed by a custom client model', function (): void {
     $repository = prepareOauthRegistration(clientModel: CustomPassportClient::class);
 
