@@ -314,6 +314,18 @@ it('handles oauth registration endpoint', function (): void {
     ]);
 });
 
+it('ignores registration metadata when the client is not an eloquent model', function (): void {
+    ensureMockClientRepository();
+    (new Registrar)->oauthRoutes();
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $this->postJson('/oauth/register', [
+        'redirect_uris' => ['http://localhost:3000/callback'],
+        'logo_uri' => 'https://example.com/logo.png',
+        'client_uri' => 'https://example.com',
+    ])->assertCreated()->assertJsonMissingPath('logo_uri')->assertJsonMissingPath('client_uri');
+});
+
 it('persists and returns supported registration metadata', function (array $expected): void {
     config()->set('passport.connection', 'clients');
     $repository = prepareOauthRegistration(metadataColumns: array_keys($expected));

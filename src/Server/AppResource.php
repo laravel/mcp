@@ -30,7 +30,9 @@ abstract class AppResource extends Resource
     {
         $appMeta = $this->appMeta()->toArray();
 
-        $appMeta['domain'] ??= $this->toClaudeDomain(url()->current());
+        if (! isset($appMeta['domain'])) {
+            $appMeta['domain'] = $this->toClaudeDomain(url()->current());
+        }
 
         return $appMeta;
     }
