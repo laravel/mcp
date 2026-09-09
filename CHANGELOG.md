@@ -1,6 +1,18 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.9.4...0.x)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.9.5...0.x)
+
+## [v0.9.5](https://github.com/laravel/mcp/compare/v0.9.4...v0.9.5) - 2026-09-09
+
+### What's Changed
+
+* Add oauth client logo and uri by [@benbjurstrom](https://github.com/benbjurstrom) in https://github.com/laravel/mcp/pull/337
+
+### New Contributors
+
+* [@benbjurstrom](https://github.com/benbjurstrom) made their first contribution in https://github.com/laravel/mcp/pull/337
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.9.4...v0.9.5
 
 ## [v0.9.4](https://github.com/laravel/mcp/compare/v0.9.3...v0.9.4) - 2026-08-13
 
@@ -66,6 +78,7 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
 
 
 
@@ -387,6 +400,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -397,6 +411,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
