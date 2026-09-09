@@ -5,10 +5,11 @@ declare(strict_types=1);
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Schema;
 use Laravel\Mcp\Server\Registrar;
+use Laravel\Passport\Client;
 use Laravel\Passport\ClientRepository;
 use Laravel\Passport\Passport;
+use Tests\Fixtures\CustomPassportClient;
 use Tests\Fixtures\ExampleServer;
 
 function ensureMockClientRepository(): void
@@ -16,16 +17,37 @@ function ensureMockClientRepository(): void
     if (! class_exists(ClientRepository::class)) {
         require_once __DIR__.'/../../Fixtures/PassportClientRepository.php';
     }
+
+    if (! class_exists(Client::class)) {
+        require_once __DIR__.'/../../Fixtures/PassportClient.php';
+    }
+
+    if (! class_exists(Passport::class)) {
+        require_once __DIR__.'/../../Fixtures/PassportPassport.php';
+    }
 }
 
-function createOauthClientsTable(bool $withScopesColumn, ?string $scopesDefault = null): void
+afterEach(function (): void {
+    if (class_exists(Passport::class)) {
+        Passport::useClientModel(Client::class);
+    }
+});
+
+function createOauthClientsTable(bool $withScopesColumn, ?string $scopesDefault = null, array $metadataColumns = []): void
 {
-    Schema::dropIfExists('oauth_clients');
-    Schema::create('oauth_clients', function (Blueprint $table) use ($withScopesColumn, $scopesDefault): void {
+    $model = Passport::client();
+    $schema = $model->getConnection()->getSchemaBuilder();
+
+    $schema->dropIfExists($model->getTable());
+    $schema->create($model->getTable(), function (Blueprint $table) use ($withScopesColumn, $scopesDefault, $metadataColumns): void {
         $table->string('id')->primary();
         $table->string('name');
         $table->json('grant_types');
         $table->json('redirect_uris');
+
+        foreach ($metadataColumns as $column) {
+            $table->text($column)->nullable();
+        }
 
         if ($withScopesColumn && $scopesDefault !== null) {
             $table->json('scopes')->default($scopesDefault);
@@ -37,37 +59,15 @@ function createOauthClientsTable(bool $withScopesColumn, ?string $scopesDefault 
 
 function databaseClientRepository(?array $initialScopes = null): object
 {
-    $prototype = new class extends Model
-    {
-        public $incrementing = false;
-
-        public $timestamps = false;
-
-        protected $guarded = [];
-
-        protected $keyType = 'string';
-
-        protected $table = 'oauth_clients';
-
-        protected function casts(): array
-        {
-            return [
-                'grant_types' => 'array',
-                'redirect_uris' => 'array',
-                'scopes' => 'array',
-            ];
-        }
-    };
-
-    return new class($prototype, $initialScopes)
+    return new class($initialScopes)
     {
         public Model $client;
 
-        public function __construct(protected Model $prototype, protected ?array $initialScopes = null) {}
+        public function __construct(protected ?array $initialScopes = null) {}
 
         public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false): Model
         {
-            $client = $this->prototype->newInstance([
+            $client = Passport::client()->forceFill([
                 'id' => 'test-client-id',
                 'name' => $name,
                 'grant_types' => ['authorization_code'],
@@ -79,6 +79,20 @@ function databaseClientRepository(?array $initialScopes = null): object
             return $this->client = $client;
         }
     };
+}
+
+function prepareOauthRegistration(array $metadataColumns = ['logo_uri', 'client_uri'], string $clientModel = Client::class): object
+{
+    ensureMockClientRepository();
+    config()->set('database.connections.clients', ['driver' => 'sqlite', 'database' => ':memory:']);
+    Passport::useClientModel($clientModel);
+    createOauthClientsTable(withScopesColumn: false, metadataColumns: $metadataColumns);
+
+    $repository = databaseClientRepository();
+    app()->instance(ClientRepository::class, $repository);
+    (new Registrar)->oauthRoutes();
+
+    return $repository;
 }
 
 it('registers a local server and retrieves it', function (): void {
@@ -298,6 +312,155 @@ it('handles oauth registration endpoint', function (): void {
         'scope' => 'mcp:use',
         'token_endpoint_auth_method' => 'none',
     ]);
+});
+
+it('ignores registration metadata when the client is not an eloquent model', function (): void {
+    ensureMockClientRepository();
+    (new Registrar)->oauthRoutes();
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $this->postJson('/oauth/register', [
+        'redirect_uris' => ['http://localhost:3000/callback'],
+        'logo_uri' => 'https://example.com/logo.png',
+        'client_uri' => 'https://example.com',
+    ])->assertCreated()->assertJsonMissingPath('logo_uri')->assertJsonMissingPath('client_uri');
+});
+
+it('persists and returns supported registration metadata', function (array $expected): void {
+    config()->set('passport.connection', 'clients');
+    $repository = prepareOauthRegistration(metadataColumns: array_keys($expected));
+
+    $response = $this->postJson('/oauth/register', [
+        'redirect_uris' => ['https://example.com/callback'],
+        'logo_uri' => 'https://example.com/logo.png',
+        'client_uri' => 'http://example.com',
+    ])->assertCreated();
+
+    expect($response->collect()->only(['logo_uri', 'client_uri'])->all())->toBe($expected)
+        ->and($repository->client->fresh()->only(array_keys($expected)))->toBe($expected);
+})->with([
+    'both columns' => [['logo_uri' => 'https://example.com/logo.png', 'client_uri' => 'http://example.com']],
+    'logo only' => [['logo_uri' => 'https://example.com/logo.png']],
+    'website only' => [['client_uri' => 'http://example.com']],
+    'neither column' => [[]],
+]);
+
+it('omits missing or null registration metadata from the response', function (array $metadata): void {
+    $repository = prepareOauthRegistration();
+
+    $this->postJson('/oauth/register', [
+        'redirect_uris' => ['https://example.com/callback'],
+        ...$metadata,
+    ])->assertCreated()->assertJsonMissingPath('logo_uri')->assertJsonMissingPath('client_uri');
+
+    expect($repository->client->fresh()->only(['logo_uri', 'client_uri']))
+        ->toBe(['logo_uri' => null, 'client_uri' => null]);
+})->with([
+    'omitted' => [[]],
+    'null' => [['logo_uri' => null, 'client_uri' => null]],
+]);
+
+it('rejects invalid registration metadata before creating a client', function (string $attribute, mixed $value): void {
+    prepareOauthRegistration();
+
+    $this->postJson('/oauth/register', [
+        'redirect_uris' => ['https://example.com/callback'],
+        $attribute => $value,
+    ])->assertBadRequest()->assertJson(['error' => 'invalid_client_metadata']);
+
+    $this->assertDatabaseCount('oauth_clients', 0);
+})->with(['logo_uri', 'client_uri'])->with([
+    'invalid URL' => ['not-a-url'],
+    'unsupported scheme' => ['ftp://example.com/logo.png'],
+    'non-string' => [['https://example.com']],
+    'too long' => ['https://example.com/'.str_repeat('a', 2030)],
+]);
+
+it('rejects non-string redirect URIs before creating a client', function (): void {
+    prepareOauthRegistration();
+
+    $this->postJson('/oauth/register', [
+        'redirect_uris' => [42],
+    ])->assertBadRequest()->assertJson(['error' => 'invalid_redirect_uri']);
+
+    $this->assertDatabaseCount('oauth_clients', 0);
+});
+
+it('keeps redirect errors ahead of metadata errors', function (): void {
+    prepareOauthRegistration();
+
+    $this->postJson('/oauth/register', [
+        'redirect_uris' => ['not-a-url'],
+        'logo_uri' => 'not-a-url',
+    ])->assertBadRequest()->assertExactJson([
+        'error' => 'invalid_redirect_uri',
+        'error_description' => 'redirect_uris.0 is not a valid URL.',
+    ]);
+});
+
+it('describes the redirect error when an earlier rule also fails', function (): void {
+    prepareOauthRegistration();
+
+    $this->postJson('/oauth/register', [
+        'client_name' => 123,
+        'redirect_uris' => ['not-a-url'],
+    ])->assertBadRequest()->assertExactJson([
+        'error' => 'invalid_redirect_uri',
+        'error_description' => 'redirect_uris.0 is not a valid URL.',
+    ]);
+});
+
+it('renders client metadata on the authorize view', function (array $metadataColumns, array $attributes, array $expected, array $missing): void {
+    $this->withoutVite();
+    prepareOauthRegistration(metadataColumns: $metadataColumns);
+    Route::post('oauth/authorize', fn (): null => null)->name('passport.authorizations.approve');
+    Route::delete('oauth/authorize', fn (): null => null)->name('passport.authorizations.deny');
+    Model::preventAccessingMissingAttributes();
+
+    $client = Passport::client()->forceFill(['id' => 'client-id', 'name' => 'Example', 'grant_types' => [], 'redirect_uris' => [], ...$attributes]);
+    $client->save();
+
+    $html = view('mcp::authorize', [
+        'client' => $client->fresh(),
+        'user' => (object) ['email' => 'user@example.com'],
+        'scopes' => [],
+        'authToken' => 'token',
+        'appearance' => 'light',
+    ])->render();
+
+    Model::preventAccessingMissingAttributes(false);
+
+    foreach ($expected as $fragment) {
+        expect($html)->toContain($fragment);
+    }
+
+    foreach ($missing as $fragment) {
+        expect($html)->not->toContain($fragment);
+    }
+})->with([
+    'with metadata' => [
+        ['logo_uri', 'client_uri'],
+        ['logo_uri' => 'https://example.com/logo.png', 'client_uri' => 'https://example.com'],
+        ['<img src="https://example.com/logo.png"', '<a href="https://example.com"'],
+        ['h-12 w-12 text-primary'],
+    ],
+    'without columns' => [
+        [],
+        [],
+        ['h-12 w-12 text-primary'],
+        ['<img', '<a href='],
+    ],
+]);
+
+it('returns metadata transformed by a custom client model', function (): void {
+    $repository = prepareOauthRegistration(clientModel: CustomPassportClient::class);
+
+    $this->postJson('/oauth/register', [
+        'redirect_uris' => ['https://example.com/callback'],
+        'logo_uri' => 'https://example.com/LOGO.png',
+    ])->assertCreated()->assertJsonPath('logo_uri', 'https://example.com/logo.png');
+
+    expect($repository->client->fresh()->logo_uri)->toBe('https://example.com/logo.png');
 });
 
 it('persists the advertised mcp scope when passport clients are scope-restricted by default', function (): void {
