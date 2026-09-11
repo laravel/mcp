@@ -105,6 +105,8 @@ class McpServiceProvider extends ServiceProvider
 
                 $request->setArguments($currentRequest->all());
                 $request->setMeta($currentRequest->meta());
+                $request->setInputResponses($currentRequest->inputResponses());
+                $request->shareStateWith($currentRequest);
             }
         });
     }

@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Testing;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use InvalidArgumentException;
+use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
@@ -22,6 +23,17 @@ use Stringable;
 
 class PendingTestResponse
 {
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $clientCapabilities = [
+        'elicitation' => [
+            'form' => [],
+        ],
+        'sampling' => [],
+        'roots' => [],
+    ];
+
     /**
      * @param  class-string<Server>  $serverClass
      */
@@ -129,6 +141,16 @@ class PendingTestResponse
     }
 
     /**
+     * @param  array<string, mixed>  $capabilities
+     */
+    public function withClientCapabilities(array $capabilities): static
+    {
+        $this->clientCapabilities = $capabilities;
+
+        return $this;
+    }
+
+    /**
      * @param  class-string<Tool>|Tool  $tool
      * @param  array<string, mixed>  $arguments
      */
@@ -180,12 +202,13 @@ class PendingTestResponse
                 'context' => [
                     'arguments' => $currentArgs,
                 ],
+                '_meta' => $this->meta(),
             ],
         );
 
         $response = $this->executeRequest($server, $request);
 
-        return new TestResponse($primitive, $response);
+        return new TestResponse($primitive, $response, $server, $request);
     }
 
     /**
@@ -225,13 +248,17 @@ class PendingTestResponse
         return $server;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    protected function meta(): array
+    {
+        return [MetaKey::CLIENT_CAPABILITIES->value => $this->clientCapabilities];
+    }
+
     protected function executeRequest(Server $server, JsonRpcRequest $request): mixed
     {
-        try {
-            return (fn (): iterable|JsonRpcResponse => $this->runMethodHandle($request, $this->createContext()))->call($server);
-        } catch (JsonRpcException $jsonRpcException) {
-            return $jsonRpcException->toJsonRpcResponse();
-        }
+        return TestResponse::execute($server, $request);
     }
 
     public function actingAs(Authenticatable $user, ?string $guard = null): static
@@ -261,6 +288,7 @@ class PendingTestResponse
         $params = [
             ...$primitive->toMethodCall(),
             'arguments' => $arguments,
+            '_meta' => $this->meta(),
         ];
 
         if ($method === 'resources/read' && $primitive instanceof HasUriTemplate) {
@@ -271,7 +299,7 @@ class PendingTestResponse
 
         $response = $this->executeRequest($server, $request);
 
-        return new TestResponse($primitive, $response);
+        return new TestResponse($primitive, $response, $server, $request);
     }
 
     /**

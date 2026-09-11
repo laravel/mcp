@@ -2,6 +2,7 @@
 
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Collection;
+use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Schema\Implementation;
@@ -276,6 +277,64 @@ it('rejects generated tool name collisions', function (): void {
     expect(fn (): Collection => $context->tools())
         ->toThrow(InvalidArgumentException::class, 'Duplicate server tool name [search_tools].');
 });
+
+class ElicitingCatalogTool extends Tool
+{
+    protected string $name = 'eliciting-catalog-tool';
+
+    protected string $description = 'Asks the user for their name';
+
+    public function handle(Request $request): Response
+    {
+        $response = $request->ask('Your name', fn (JsonSchema $schema): array => [
+            'name' => $schema->string()->required(),
+        ]);
+
+        return Response::text("Hi {$response['name']}");
+    }
+}
+
+class StreamingElicitingCatalogTool extends Tool
+{
+    protected string $name = 'streaming-eliciting-catalog-tool';
+
+    protected string $description = 'Asks the user for their name while streaming';
+
+    public function handle(Request $request): Generator
+    {
+        $response = $request->ask('Your name', fn (JsonSchema $schema): array => [
+            'name' => $schema->string()->required(),
+        ]);
+
+        yield Response::text("Hi {$response['name']}");
+    }
+}
+
+it('fails catalog tools that request user input', function (string $name): void {
+    $context = toolSearchContext([ElicitingCatalogTool::class, StreamingElicitingCatalogTool::class]);
+    $executeTools = toolFromContext($context, 'execute_tools');
+
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => $executeTools->name(),
+            'arguments' => ['calls' => [['name' => $name, 'arguments' => []]]],
+            '_meta' => [MetaKey::CLIENT_CAPABILITIES->value => ['elicitation' => ['form' => []]]],
+        ],
+    ]);
+
+    app()->instance('mcp.request', $request->toRequest());
+
+    $response = (new CallTool)->handle($request, $context);
+    $response = $response instanceof JsonRpcResponse ? $response : iterator_to_array($response)[0];
+
+    $result = $response->toArray()['result'];
+
+    expect($result['isError'])->toBeTrue()
+        ->and($result['content'][0]['text'])->toContain("Tool [{$name}] requested user input, which is not supported through tool search.");
+})->with(['eliciting-catalog-tool', 'streaming-eliciting-catalog-tool']);
 
 function toolSearchContext(array $tools): ServerContext
 {
