@@ -9,6 +9,7 @@ use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Laravel\Mcp\Server\Registrar;
@@ -27,7 +28,7 @@ class OAuthRegisterController
             'client_name' => ['nullable', 'string', 'min:1', 'max:255'],
             'name' => ['nullable', 'string', 'min:1', 'max:255'],
             'redirect_uris' => ['required', 'array', 'min:1'],
-            'redirect_uris.*' => ['required', 'string', function (string $attribute, $value, $fail): void {
+            'redirect_uris.*' => ['bail', 'required', 'string', function (string $attribute, $value, $fail): void {
                 if (! $this->isValidRedirectUri($value)) {
                     $fail($attribute.' is not a valid URL.');
 
@@ -50,18 +51,17 @@ class OAuthRegisterController
                     $fail($attribute.' is not a permitted redirect domain.');
                 }
             }],
+            'logo_uri' => ['nullable', 'string', 'url:http,https', 'max:2048'],
+            'client_uri' => ['nullable', 'string', 'url:http,https', 'max:2048'],
         ]);
 
         if ($validator->fails()) {
             $errors = $validator->errors();
-
-            $isRedirectError = collect($errors->keys())->contains(
-                fn (string $key): bool => str_starts_with($key, 'redirect_uris')
-            );
+            $redirectError = $errors->first('redirect_uris*');
 
             return response()->json([
-                'error' => $isRedirectError ? 'invalid_redirect_uri' : 'invalid_client_metadata',
-                'error_description' => $errors->first(),
+                'error' => $redirectError !== '' ? 'invalid_redirect_uri' : 'invalid_client_metadata',
+                'error_description' => $redirectError !== '' ? $redirectError : $errors->first(),
             ], 400);
         }
 
@@ -87,6 +87,8 @@ class OAuthRegisterController
             );
 
             $this->grantMcpScope($client);
+
+            $metadata = $this->persistClientMetadata($client, $validated);
         } catch (Throwable $throwable) {
             report($throwable);
 
@@ -103,6 +105,7 @@ class OAuthRegisterController
             'redirect_uris' => $client->redirect_uris,
             'scope' => Registrar::OAUTH_SCOPE,
             'token_endpoint_auth_method' => 'none',
+            ...$metadata,
         ], 201);
     }
 
@@ -119,6 +122,27 @@ class OAuthRegisterController
         }
 
         $client->forceFill(['scopes' => [...$scopes, Registrar::OAUTH_SCOPE]])->save();
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @return array<string, mixed>
+     */
+    protected function persistClientMetadata(mixed $client, array $validated): array
+    {
+        if (! $client instanceof Model) {
+            return [];
+        }
+
+        $columns = $client->getConnection()->getSchemaBuilder()->getColumnListing($client->getTable());
+        $supported = array_intersect(['logo_uri', 'client_uri'], $columns);
+        $metadata = array_filter(Arr::only($validated, $supported));
+
+        if ($metadata !== []) {
+            $client->forceFill($metadata)->save();
+        }
+
+        return array_filter($client->only($supported));
     }
 
     /**
