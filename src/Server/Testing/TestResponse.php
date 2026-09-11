@@ -403,7 +403,7 @@ class TestResponse
     {
         $structuredContent = $this->response->toArray()['result']['structuredContent'] ?? null;
 
-        if (is_array($structuredContent) === false) {
+        if (is_array($structuredContent) === false && ! is_object($structuredContent)) {
             return null;
         }
 
