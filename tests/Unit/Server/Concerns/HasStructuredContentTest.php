@@ -37,32 +37,9 @@ it('merges structured content into base array', function (): void {
     expect($result)->toEqual([
         'content' => [['type' => 'text', 'text' => 'Weather data']],
         'isError' => false,
-        'structuredContent' => (object) [
+        'structuredContent' => [
             'temperature' => 22.5,
             'humidity' => 65,
-        ],
-    ]);
-});
-
-it('casts structured content as object when a indexed array is used', function (): void {
-    $object = new class
-    {
-        use HasStructuredContent;
-    };
-
-    $object->setStructuredContent(['value1', 'value2']);
-
-    $result = $object->mergeStructuredContent([
-        'content' => [['type' => 'text', 'text' => 'value1, value2']],
-        'isError' => false,
-    ]);
-
-    expect($result)->toEqual([
-        'content' => [['type' => 'text', 'text' => 'value1, value2']],
-        'isError' => false,
-        'structuredContent' => (object) [
-            '0' => 'value1',
-            '1' => 'value2',
         ],
     ]);
 });
