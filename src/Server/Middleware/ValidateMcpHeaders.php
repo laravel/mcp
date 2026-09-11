@@ -28,12 +28,12 @@ class ValidateMcpHeaders
             return $next($request);
         }
 
-        if ($body['method'] === 'initialize') {
-            return $next($request);
-        }
-
         $params = is_array($body['params'] ?? null) ? $body['params'] : [];
         $meta = is_array($params['_meta'] ?? null) ? $params['_meta'] : [];
+
+        if (! array_key_exists(MetaKey::PROTOCOL_VERSION->value, $meta)) {
+            return $next($request);
+        }
 
         $message = new JsonRpcRequest(
             id: is_int($body['id']) || is_string($body['id']) ? $body['id'] : 0,

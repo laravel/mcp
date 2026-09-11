@@ -129,23 +129,6 @@ it('answers an unknown method with a 404', function (): void {
     expect($response->json('error.code'))->toBe(-32601);
 });
 
-it('requires the protocol version header even when the body omits the meta member', function (): void {
-    $message = listToolsMessage();
-    unset($message['params']['_meta']['io.modelcontextprotocol/protocolVersion']);
-
-    $headers = mcpHeaders($message);
-    unset($headers['MCP-Protocol-Version']);
-
-    $response = $this->postJson('test-mcp', $message, $headers);
-
-    $response->assertStatus(400);
-
-    expect($response->json('error'))->toEqual([
-        'code' => -32020,
-        'message' => 'Header mismatch: The [MCP-Protocol-Version] header is required.',
-    ]);
-});
-
 it('requires the name header even when the body carries no usable name', function (): void {
     $message = callToolMessage();
     $message['params']['name'] = 123;
