@@ -40,6 +40,17 @@ it('falls back to the latest legacy version for an unknown initialize version', 
     expect(json_decode((string) $transport->sent[0], true)['result']['protocolVersion'])->toBe('2025-11-25');
 });
 
+it('falls back to the latest legacy version for a malformed initialize version', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    ($transport->handler)(json_encode([...initializeMessage(), 'params' => ['protocolVersion' => 1]]));
+
+    expect(json_decode((string) $transport->sent[0], true)['result']['protocolVersion'])->toBe('2025-11-25');
+});
+
 it('serves a legacy request without protocol metadata', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
@@ -90,6 +101,10 @@ it('rejects a request without the required protocol metadata', function (array $
         ],
     ]);
 })->with([
+    'missing version' => [
+        ['io.modelcontextprotocol/clientCapabilities' => []],
+        'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/protocolVersion] member.',
+    ],
     'missing capabilities' => [
         ['io.modelcontextprotocol/protocolVersion' => '2026-07-28'],
         'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/clientCapabilities] member.',
@@ -383,7 +398,7 @@ it('keeps the result type and metadata a method supplied itself', function (): v
     ]);
 });
 
-it('no longer answers a ping message', function (): void {
+it('answers a legacy ping message', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
 
@@ -393,17 +408,18 @@ it('no longer answers a ping message', function (): void {
         'jsonrpc' => '2.0',
         'id' => 789,
         'method' => 'ping',
-        'params' => ['_meta' => protocolMeta()],
     ]);
 
     ($transport->handler)($payload);
 
     $response = json_decode((string) $transport->sent[0], true);
 
-    expect($response['error']['code'])->toBe(-32601);
+    expect($response['id'])->toBe(789)
+        ->and($response)->not->toHaveKey('error')
+        ->and($response['result'])->toBeArray();
 });
 
-it('lets a dual-era server serve initialize through addMethod', function (): void {
+it('lets addMethod override the built-in initialize handler', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
 

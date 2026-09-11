@@ -28,20 +28,17 @@ class ValidateMcpHeaders
             return $next($request);
         }
 
-        $params = is_array($body['params'] ?? null) ? $body['params'] : [];
-        $meta = is_array($params['_meta'] ?? null) ? $params['_meta'] : [];
-
-        if (! array_key_exists(MetaKey::PROTOCOL_VERSION->value, $meta)) {
-            return $next($request);
-        }
-
         $message = new JsonRpcRequest(
             id: is_int($body['id']) || is_string($body['id']) ? $body['id'] : 0,
             method: $body['method'],
-            params: $params,
+            params: is_array($body['params'] ?? null) ? $body['params'] : [],
         );
 
-        $mismatch = $this->mismatch($request, RequestHeader::PROTOCOL_VERSION, $meta[MetaKey::PROTOCOL_VERSION->value] ?? null, true)
+        if ($message->isLegacy()) {
+            return $next($request);
+        }
+
+        $mismatch = $this->mismatch($request, RequestHeader::PROTOCOL_VERSION, $message->meta()[MetaKey::PROTOCOL_VERSION->value] ?? null, true)
             ?? $this->mismatch($request, RequestHeader::METHOD, $message->method, true)
             ?? $this->mismatch($request, RequestHeader::NAME, $message->name(), $message->requiresName());
 

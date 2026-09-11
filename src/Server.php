@@ -33,6 +33,7 @@ use Laravel\Mcp\Server\Methods\ListPrompts;
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Methods\ListResourceTemplates;
 use Laravel\Mcp\Server\Methods\ListTools;
+use Laravel\Mcp\Server\Methods\Ping;
 use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -138,6 +139,7 @@ abstract class Server
         'completion/complete' => CompletionComplete::class,
         'server/discover' => Discover::class,
         'initialize' => Initialize::class,
+        'ping' => Ping::class,
         'subscriptions/listen' => Listen::class,
     ];
 
@@ -218,7 +220,7 @@ abstract class Server
 
             $requestId = $request->id;
 
-            if (array_key_exists(MetaKey::PROTOCOL_VERSION->value, $request->meta() ?? [])) {
+            if (! $request->isLegacy()) {
                 $this->validateProtocolMeta($request, $context);
             }
 
