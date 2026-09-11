@@ -640,7 +640,7 @@ it('returns structured content in tool response', function (): void {
 
     expect($payload['id'])->toEqual(1)
         ->and($payload['result'])->toHaveKey('structuredContent')
-        ->and($payload['result']['structuredContent'])->toEqual([
+        ->and($payload['result']['structuredContent'])->toEqual((object) [
             'temperature' => 22.5,
             'conditions' => 'Partly cloudy',
             'humidity' => 65,
@@ -685,7 +685,7 @@ it('returns structured content with meta in tool response', function (): void {
 
     expect($payload['id'])->toEqual(1)
         ->and($payload['result'])->toHaveKey('structuredContent')
-        ->and($payload['result']['structuredContent'])->toEqual([
+        ->and($payload['result']['structuredContent'])->toEqual((object) [
             'result' => 'The operation completed successfully',
         ])
         ->and($payload['result'])->toHaveKey('_meta')
@@ -728,7 +728,7 @@ it('returns ResponseFactory with structured content added via withStructuredCont
 
     expect($payload['id'])->toEqual(1)
         ->and($payload['result'])->toHaveKey('structuredContent')
-        ->and($payload['result']['structuredContent'])->toEqual([
+        ->and($payload['result']['structuredContent'])->toEqual((object) [
             'status' => 'success',
             'code' => 200,
         ])
