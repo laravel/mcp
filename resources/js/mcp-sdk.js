@@ -231,9 +231,26 @@
     }
 
     function currentSize() {
+        const body = document.body;
+
+        if (!body) {
+            return {
+                width: document.documentElement.scrollWidth,
+                height: document.documentElement.scrollHeight,
+            };
+        }
+
+        const styles = getComputedStyle(body);
+
         return {
-            width: document.documentElement.scrollWidth,
-            height: document.documentElement.scrollHeight,
+            width:
+                body.scrollWidth +
+                parseFloat(styles.marginLeft) +
+                parseFloat(styles.marginRight),
+            height:
+                body.scrollHeight +
+                parseFloat(styles.marginTop) +
+                parseFloat(styles.marginBottom),
         };
     }
 
