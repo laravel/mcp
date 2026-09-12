@@ -169,6 +169,59 @@ it('registers oauth routes', function (): void {
     expect($hasAuthServer)->toBeTrue();
 });
 
+it('leaves an application route for the authorization server metadata alone', function (): void {
+    Route::get('/.well-known/oauth-authorization-server', fn () => response()->json(['issuer' => 'the application']))
+        ->name('application.oauth.authorization-server');
+
+    (new Registrar)->oauthRoutes();
+
+    $registered = collect(Route::getRoutes()->getRoutes())
+        ->filter(fn ($route): bool => $route->uri() === '.well-known/oauth-authorization-server')
+        ->map(fn ($route) => $route->getName())
+        ->values();
+
+    expect($registered->all())->toBe(['application.oauth.authorization-server']);
+});
+
+it('leaves an application route for the protected resource metadata alone', function (): void {
+    Route::get('/.well-known/oauth-protected-resource', fn () => response()->json(['resource' => 'the application']))
+        ->name('application.oauth.protected-resource');
+
+    (new Registrar)->oauthRoutes();
+
+    $registered = collect(Route::getRoutes()->getRoutes())
+        ->filter(fn ($route): bool => $route->uri() === '.well-known/oauth-protected-resource')
+        ->map(fn ($route) => $route->getName())
+        ->values();
+
+    expect($registered->all())->toBe(['application.oauth.protected-resource']);
+});
+
+it('does not let the nested metadata route answer the bare path', function (): void {
+    // The nested parameter has to stay required. An optional one matches the
+    // bare path as well, so an application that already serves its own
+    // discovery document gets it silently replaced.
+    Route::get('/.well-known/oauth-authorization-server', fn () => response()->json(['issuer' => 'the application']))
+        ->name('application.oauth.authorization-server');
+
+    (new Registrar)->oauthRoutes();
+
+    $this->get('/.well-known/oauth-authorization-server')
+        ->assertOk()
+        ->assertJson(['issuer' => 'the application']);
+});
+
+it('still answers a nested metadata path when the application serves the bare one', function (): void {
+    Route::get('/.well-known/oauth-protected-resource', fn () => response()->json(['resource' => 'the application']))
+        ->name('application.oauth.protected-resource');
+
+    (new Registrar)->oauthRoutes();
+
+    $this->get('/.well-known/oauth-protected-resource/mcp')
+        ->assertOk()
+        ->assertJsonPath('resource', url('/mcp'));
+});
+
 it('registers oauth routes with custom prefix', function (): void {
     $registrar = new Registrar;
 
