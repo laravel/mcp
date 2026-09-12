@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use Illuminate\Container\Container;
 use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Mcp\Attributes\Argument as ArgumentAttribute;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
 use Laravel\Mcp\Console\Commands\MakeAppResourceCommand;
@@ -98,6 +100,10 @@ class McpServiceProvider extends ServiceProvider
 
     protected function registerContainerCallbacks(): void
     {
+        if ($this->app instanceof Container) {
+            $this->app->whenHasAttribute(ArgumentAttribute::class, ArgumentAttribute::resolve(...));
+        }
+
         $this->app->resolving(Request::class, function (Request $request, $app): void {
             if ($app->bound('mcp.request')) {
                 /** @var Request $currentRequest */
