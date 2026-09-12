@@ -27,11 +27,13 @@ use Laravel\Mcp\Server\Methods\CompletionComplete;
 use Laravel\Mcp\Server\Methods\Concerns\ResolvesResources;
 use Laravel\Mcp\Server\Methods\Discover;
 use Laravel\Mcp\Server\Methods\GetPrompt;
+use Laravel\Mcp\Server\Methods\Initialize;
 use Laravel\Mcp\Server\Methods\Listen;
 use Laravel\Mcp\Server\Methods\ListPrompts;
 use Laravel\Mcp\Server\Methods\ListResources;
 use Laravel\Mcp\Server\Methods\ListResourceTemplates;
 use Laravel\Mcp\Server\Methods\ListTools;
+use Laravel\Mcp\Server\Methods\Ping;
 use Laravel\Mcp\Server\Methods\ReadResource;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
@@ -136,6 +138,8 @@ abstract class Server
         'prompts/get' => GetPrompt::class,
         'completion/complete' => CompletionComplete::class,
         'server/discover' => Discover::class,
+        'initialize' => Initialize::class,
+        'ping' => Ping::class,
         'subscriptions/listen' => Listen::class,
     ];
 
@@ -216,16 +220,9 @@ abstract class Server
 
             $requestId = $request->id;
 
-            if ($request->method === 'initialize' && ! isset($this->methods['initialize'])) {
-                throw new JsonRpcException(
-                    'The [initialize] handshake was removed in MCP '.ProtocolVersion::LATEST->value.'. Send the protocol version in the request [_meta] instead.',
-                    ErrorCode::METHOD_NOT_FOUND->value,
-                    $request->id,
-                    ['supported' => $context->supportedProtocolVersions],
-                );
+            if (! $request->isLegacy()) {
+                $this->validateProtocolMeta($request, $context);
             }
-
-            $this->validateProtocolMeta($request, $context);
 
             if (! isset($this->methods[$request->method])) {
                 throw new JsonRpcException(

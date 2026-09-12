@@ -13,29 +13,53 @@ use Tests\Fixtures\CustomMethodHandler;
 use Tests\Fixtures\ExampleServer;
 use Tests\Fixtures\ThrowingMethodHandler;
 
-it('rejects the initialize handshake', function (): void {
+it('answers the legacy initialize handshake', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
 
     $server->start();
 
-    $payload = json_encode(initializeMessage());
-
-    ($transport->handler)($payload);
+    ($transport->handler)(json_encode([...initializeMessage(), 'params' => ['protocolVersion' => '2025-06-18']]));
 
     $response = json_decode((string) $transport->sent[0], true);
 
-    expect($response)->toEqual([
-        'jsonrpc' => '2.0',
-        'id' => 456,
-        'error' => [
-            'code' => -32601,
-            'message' => 'The [initialize] handshake was removed in MCP 2026-07-28. Send the protocol version in the request [_meta] instead.',
-            'data' => [
-                'supported' => ['2026-07-28'],
-            ],
-        ],
-    ]);
+    expect($response['id'])->toBe(456)
+        ->and($response['result']['protocolVersion'])->toBe('2025-06-18')
+        ->and($response['result']['serverInfo']['name'])->toBe('Laravel MCP Server')
+        ->and($response['result'])->toHaveKeys(['capabilities', 'instructions']);
+});
+
+it('falls back to the latest legacy version for an unknown initialize version', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    ($transport->handler)(json_encode([...initializeMessage(), 'params' => ['protocolVersion' => '2024-11-05']]));
+
+    expect(json_decode((string) $transport->sent[0], true)['result']['protocolVersion'])->toBe('2025-11-25');
+});
+
+it('falls back to the latest legacy version for a malformed initialize version', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    ($transport->handler)(json_encode([...initializeMessage(), 'params' => ['protocolVersion' => 1]]));
+
+    expect(json_decode((string) $transport->sent[0], true)['result']['protocolVersion'])->toBe('2025-11-25');
+});
+
+it('serves a legacy request without protocol metadata', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    ($transport->handler)(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list', 'params' => []]));
+
+    expect(json_decode((string) $transport->sent[0], true)['result']['tools'])->not->toBeEmpty();
 });
 
 it('can handle a discover message', function (): void {
@@ -374,7 +398,7 @@ it('keeps the result type and metadata a method supplied itself', function (): v
     ]);
 });
 
-it('no longer answers a ping message', function (): void {
+it('answers a legacy ping message', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
 
@@ -384,17 +408,18 @@ it('no longer answers a ping message', function (): void {
         'jsonrpc' => '2.0',
         'id' => 789,
         'method' => 'ping',
-        'params' => ['_meta' => protocolMeta()],
     ]);
 
     ($transport->handler)($payload);
 
     $response = json_decode((string) $transport->sent[0], true);
 
-    expect($response['error']['code'])->toBe(-32601);
+    expect($response['id'])->toBe(789)
+        ->and($response)->not->toHaveKey('error')
+        ->and($response['result'])->toBeArray();
 });
 
-it('lets a dual-era server serve initialize through addMethod', function (): void {
+it('lets addMethod override the built-in initialize handler', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
 

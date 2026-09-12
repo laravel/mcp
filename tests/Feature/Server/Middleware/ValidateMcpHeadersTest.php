@@ -146,6 +146,14 @@ it('requires the protocol version header even when the body omits the meta membe
     ]);
 });
 
+it('skips header validation for a legacy request without protocol metadata', function (): void {
+    $response = $this->postJson('test-mcp', ['jsonrpc' => '2.0', 'id' => 3, 'method' => 'tools/list', 'params' => []]);
+
+    $response->assertStatus(200);
+
+    expect($response->json('result.tools'))->not->toBeEmpty();
+});
+
 it('requires the name header even when the body carries no usable name', function (): void {
     $message = callToolMessage();
     $message['params']['name'] = 123;
