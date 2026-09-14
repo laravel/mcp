@@ -231,27 +231,14 @@
     }
 
     function currentSize() {
-        const body = document.body;
+        const html = document.documentElement;
+        const originalHeight = html.style.height;
 
-        if (!body) {
-            return {
-                width: document.documentElement.scrollWidth,
-                height: document.documentElement.scrollHeight,
-            };
-        }
+        html.style.height = "max-content";
+        const height = Math.ceil(html.getBoundingClientRect().height);
+        html.style.height = originalHeight;
 
-        const styles = getComputedStyle(body);
-
-        return {
-            width:
-                body.scrollWidth +
-                parseFloat(styles.marginLeft) +
-                parseFloat(styles.marginRight),
-            height:
-                body.scrollHeight +
-                parseFloat(styles.marginTop) +
-                parseFloat(styles.marginBottom),
-        };
+        return { width: Math.ceil(window.innerWidth), height };
     }
 
     function notifySizeChanged() {
