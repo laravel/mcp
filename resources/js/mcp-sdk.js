@@ -231,10 +231,14 @@
     }
 
     function currentSize() {
-        return {
-            width: document.documentElement.scrollWidth,
-            height: document.documentElement.scrollHeight,
-        };
+        const html = document.documentElement;
+        const originalHeight = html.style.height;
+
+        html.style.height = "max-content";
+        const height = Math.ceil(html.getBoundingClientRect().height);
+        html.style.height = originalHeight;
+
+        return { width: Math.ceil(window.innerWidth), height };
     }
 
     function notifySizeChanged() {
