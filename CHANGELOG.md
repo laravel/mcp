@@ -1,6 +1,36 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.9.2...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.9.5...main)
+
+## [v0.9.5](https://github.com/laravel/mcp/compare/v0.9.4...v0.9.5) - 2026-09-09
+
+### What's Changed
+
+* Add oauth client logo and uri by [@benbjurstrom](https://github.com/benbjurstrom) in https://github.com/laravel/mcp/pull/337
+
+### New Contributors
+
+* [@benbjurstrom](https://github.com/benbjurstrom) made their first contribution in https://github.com/laravel/mcp/pull/337
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.9.4...v0.9.5
+
+## [v0.9.4](https://github.com/laravel/mcp/compare/v0.9.3...v0.9.4) - 2026-08-13
+
+### What's Changed
+
+* [0.x] Update .gitattributes by [@jackbayliss](https://github.com/jackbayliss) in https://github.com/laravel/mcp/pull/309
+* Add searchable tool catalogs by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/317
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.9.3...v0.9.4
+
+## [v0.9.3](https://github.com/laravel/mcp/compare/v0.9.1...v0.9.3) - 2026-08-10
+
+### What's Changed
+
+* Pin MCP Inspector to v1-latest by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/307
+* Prompt for route parameter values in mcp:inspector by [@lazerg](https://github.com/lazerg) in https://github.com/laravel/mcp/pull/294
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.9.2...v0.9.3
 
 ## [v0.9.2](https://github.com/laravel/mcp/compare/v0.9.1...v0.9.2) - 2026-08-06
 
