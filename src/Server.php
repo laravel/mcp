@@ -143,6 +143,13 @@ abstract class Server
         'subscriptions/listen' => Listen::class,
     ];
 
+    /**
+     * @experimental
+     *
+     * @internal Set by the registrar on the WebMCP bridge route.
+     */
+    public bool $usingWebMcp = false;
+
     public function __construct(
         protected Transport $transport,
     ) {
@@ -183,6 +190,18 @@ abstract class Server
     public function addMethod(string $method, string $handler): void
     {
         $this->methods[$method] = $handler;
+    }
+
+    /**
+     * The tools exposed to in-page agents through WebMCP.
+     *
+     * @experimental This feature is experimental.
+     *
+     * @return array<int|string, Tool|class-string<Tool>|array<int, Tool|class-string<Tool>>>
+     */
+    public function webMcp(): array
+    {
+        return $this->tools;
     }
 
     public function start(): void
@@ -269,7 +288,7 @@ abstract class Server
             instructions: $instructions !== null ? $instructions->value : $this->instructions,
             maxPaginationLength: $this->maxPaginationLength,
             defaultPaginationLength: $this->defaultPaginationLength,
-            tools: $this->tools,
+            tools: $this->usingWebMcp ? $this->webMcp() : $this->tools,
             resources: $this->resources,
             prompts: $this->prompts,
         );

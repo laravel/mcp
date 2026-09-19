@@ -67,4 +67,20 @@ return [
         'max_output_bytes' => 65_536,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | WebMCP
+    |--------------------------------------------------------------------------
+    |
+    | WebMCP lets in-page browser agents call your tools as the signed-in user.
+    | Enabling it exposes every tool of every routed server to the page, so
+    | override "webMcp" on a server to narrow that list down when needed.
+    |
+    */
+
+    'web_mcp' => [
+        'enabled' => env('MCP_WEB_MCP', false),
+        'middleware' => ['web'],
+    ],
+
 ];

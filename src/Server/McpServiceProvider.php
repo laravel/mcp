@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Contracts\Http\Kernel as HttpKernelContract;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Client\ClientManager;
@@ -27,6 +28,8 @@ class McpServiceProvider extends ServiceProvider
 
         $this->app->singleton(ClientManager::class, fn (): ClientManager => new ClientManager);
 
+        $this->app->singleton('mcp.webmcp', fn (): string => (string) file_get_contents(__DIR__.'/../../resources/js/webmcp.min.js'));
+
         $this->app->singleton('mcp.sdk', fn (): string => (string) file_get_contents(__DIR__.'/../../resources/js/mcp-sdk.min.js'));
 
         $this->mergeConfigFrom(__DIR__.'/../../config/mcp.php', 'mcp');
@@ -40,11 +43,21 @@ class McpServiceProvider extends ServiceProvider
         $this->registerContainerCallbacks();
         $this->registerClientDisconnect();
         $this->registerViews();
+        $this->registerBladeDirectives();
 
         if ($this->app->runningInConsole()) {
             $this->registerCommands();
             $this->registerPublishing();
         }
+    }
+
+    protected function registerBladeDirectives(): void
+    {
+        Blade::directive('webMcp', fn (string $expression): string => sprintf(
+            '<?php echo app(\\%s::class)->scripts(%s); ?>',
+            Registrar::class,
+            $expression,
+        ));
     }
 
     protected function registerGlobalMiddleware(): void
