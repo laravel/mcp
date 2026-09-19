@@ -96,8 +96,17 @@ class Registrar
         Router::post($uri.'/webmcp', static fn (): mixed => static::startServer(
             $serverClass,
             static fn (): HttpTransport => new HttpTransport(request()),
-            true,
         ))->name('mcp.webmcp.'.$uri)->middleware($middleware);
+    }
+
+    /**
+     * Determine whether the current request came from an in-page agent.
+     *
+     * @experimental This feature is experimental.
+     */
+    public function viaWebMcp(): bool
+    {
+        return request()->routeIs('mcp.webmcp.*');
     }
 
     /**
@@ -275,17 +284,13 @@ class Registrar
      * @param  class-string<Server>  $serverClass
      * @param  callable(): Transport  $transportFactory
      */
-    protected static function startServer(string $serverClass, callable $transportFactory, bool $webMcp = false): mixed
+    protected static function startServer(string $serverClass, callable $transportFactory): mixed
     {
         $transport = $transportFactory();
 
         $server = Container::getInstance()->make($serverClass, [
             'transport' => $transport,
         ]);
-
-        if ($webMcp) {
-            $server->usingWebMcp = true;
-        }
 
         $server->start();
 

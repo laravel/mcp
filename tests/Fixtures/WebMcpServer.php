@@ -10,13 +10,6 @@ class WebMcpServer extends Server
 {
     public array $tools = [
         SayHiTool::class,
-        StreamingTool::class,
+        HiddenFromWebMcpTool::class,
     ];
-
-    public function webMcp(): array
-    {
-        return [
-            SayHiTool::class,
-        ];
-    }
 }

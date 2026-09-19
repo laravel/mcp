@@ -7,8 +7,11 @@ use Illuminate\Foundation\Auth\User;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Registrar;
+use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
 use Tests\Fixtures\ExampleServer;
 use Tests\Fixtures\WebMcpServer;
@@ -28,6 +31,65 @@ class WebMcpIdentityTool extends Tool
             ? 'Signed in'
             : 'Guest';
     }
+}
+
+class WebMcpPrimitiveServer extends Server
+{
+    protected array $resources = [
+        WebMcpHiddenResource::class,
+    ];
+
+    protected array $prompts = [
+        WebMcpHiddenPrompt::class,
+    ];
+}
+
+class WebMcpHiddenResource extends Resource
+{
+    public function shouldRegister(): bool
+    {
+        return ! Mcp::viaWebMcp();
+    }
+
+    public function description(): string
+    {
+        return 'Only remote clients see me.';
+    }
+
+    public function handle(): string
+    {
+        return 'Nothing to see here.';
+    }
+}
+
+class WebMcpHiddenPrompt extends Prompt
+{
+    protected string $description = 'Only remote clients see me.';
+
+    public function shouldRegister(): bool
+    {
+        return ! Mcp::viaWebMcp();
+    }
+
+    public function handle(): Response
+    {
+        return Response::text('Nothing to see here.');
+    }
+}
+
+function webMcpList(string $method): array
+{
+    return [
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => $method,
+        'params' => [
+            '_meta' => [
+                'io.modelcontextprotocol/protocolVersion' => ProtocolVersion::LATEST->value,
+                'io.modelcontextprotocol/clientCapabilities' => (object) [],
+            ],
+        ],
+    ];
 }
 
 function webMcpCallTool(string $name): array
@@ -98,7 +160,7 @@ it('exposes every tool through the bridge endpoint by default', function (): voi
     expect($tools)->toHaveCount(2);
 });
 
-it('only exposes the narrowed tools through the bridge endpoint', function (): void {
+it('hides primitives that opt out of web mcp registration', function (): void {
     config()->set('mcp.web_mcp.enabled', true);
     config()->set('mcp.web_mcp.middleware', []);
 
@@ -162,4 +224,29 @@ it('treats an unauthenticated visitor as a guest', function (): void {
     $this->postJson('guest-mcp/webmcp', webMcpCallTool('web-mcp-identity-tool'))
         ->assertOk()
         ->assertSee('Guest');
+});
+
+it('hides resources and prompts that opt out of web mcp registration', function (): void {
+    config()->set('mcp.web_mcp.enabled', true);
+    config()->set('mcp.web_mcp.middleware', []);
+
+    Mcp::web('primitive-mcp', WebMcpPrimitiveServer::class);
+
+    expect($this->postJson('primitive-mcp/webmcp', webMcpList('resources/list'))->json('result.resources'))->toBe([])
+        ->and($this->postJson('primitive-mcp/webmcp', webMcpList('prompts/list'))->json('result.prompts'))->toBe([]);
+});
+
+it('keeps those resources and prompts on the regular endpoint', function (): void {
+    config()->set('mcp.web_mcp.enabled', true);
+
+    Mcp::web('primitive-full-mcp', WebMcpPrimitiveServer::class);
+
+    expect($this->postJson('primitive-full-mcp', webMcpList('resources/list'), [
+        'MCP-Protocol-Version' => ProtocolVersion::LATEST->value,
+        'MCP-Method' => 'resources/list',
+    ])->json('result.resources'))->toHaveCount(1)
+        ->and($this->postJson('primitive-full-mcp', webMcpList('prompts/list'), [
+            'MCP-Protocol-Version' => ProtocolVersion::LATEST->value,
+            'MCP-Method' => 'prompts/list',
+        ])->json('result.prompts'))->toHaveCount(1);
 });
