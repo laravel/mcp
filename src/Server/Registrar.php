@@ -91,13 +91,13 @@ class Registrar
                 'Content-Type' => 'text/javascript; charset=utf-8',
                 'Cache-Control' => 'public, max-age=300',
             ],
-        ))->middleware($middleware)->name('mcp.webmcp.script.'.$uri);
+        ))->name('mcp.webmcp.script.'.$uri)->middleware($middleware);
 
         Router::post($uri.'/webmcp', static fn (): mixed => static::startServer(
             $serverClass,
             static fn (): HttpTransport => new HttpTransport(request()),
             true,
-        ))->middleware($middleware)->name('mcp.webmcp.'.$uri);
+        ))->name('mcp.webmcp.'.$uri)->middleware($middleware);
     }
 
     /**
