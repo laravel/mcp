@@ -21,5 +21,6 @@
     <php>
         <env name="DB_CONNECTION" value="sqlite"/>
         <env name="DB_DATABASE" value=":memory:"/>
+        <env name="SESSION_DRIVER" value="array"/>
     </php>
 </phpunit>
