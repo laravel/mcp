@@ -56,9 +56,9 @@ return [
     | Tool Search
     |--------------------------------------------------------------------------
     |
-    | Here you may configure the limits enforced during tool search. The maximum
-    | number of tool calls limits how many tools each search request can run
-    | while the maximum output bytes value caps the size of every result.
+    | Here you may configure the limits enforced during tool search. The max
+    | number of tool calls limits how many tools search requests can call
+    | while the maximum output bytes value will limit the result sizes.
     |
     */
 

@@ -1,6 +1,63 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.9.2...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v1.0.0...main)
+
+## [v1.0.0](https://github.com/laravel/mcp/compare/v0.9.5...v1.0.0) - 2026-09-14
+
+### What's Changed
+
+* Expose OAuth challenges on authenticated MCP routes by [@Gujiassh](https://github.com/Gujiassh) in https://github.com/laravel/mcp/pull/322
+* Add the MCP conformance suite for local runs by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/327
+* Update SKILL.blade.php by [@MartinCamen](https://github.com/MartinCamen) in https://github.com/laravel/mcp/pull/332
+* `assertNotRegistered` method on `TestResponse` by [@gdebrauwer](https://github.com/gdebrauwer) in https://github.com/laravel/mcp/pull/334
+* Asserting registered tools and prompts and resources by [@gdebrauwer](https://github.com/gdebrauwer) in https://github.com/laravel/mcp/pull/333
+* Validate params shape on JSON-RPC notifications by [@shoemoney](https://github.com/shoemoney) in https://github.com/laravel/mcp/pull/331
+* Honor server caching hints on the client by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/326
+* Support nested request input with Laravel-style dot notation by [@ethanbray](https://github.com/ethanbray) in https://github.com/laravel/mcp/pull/336
+* Updated HasStructuredContent so structured content always gets returned correctly. by [@Smoseby](https://github.com/Smoseby) in https://github.com/laravel/mcp/pull/339
+* Revert "Updated HasStructuredContent so structured content always gets returned correctly." by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/340
+* Port OAuth client logo and uri to 1.0 by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/342
+* Serve legacy initialize clients alongside the modern protocol by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/341
+* Sync 0.x changes and update phpunit.xml.dist by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/346
+
+### New Contributors
+
+* [@MartinCamen](https://github.com/MartinCamen) made their first contribution in https://github.com/laravel/mcp/pull/332
+* [@shoemoney](https://github.com/shoemoney) made their first contribution in https://github.com/laravel/mcp/pull/331
+* [@ethanbray](https://github.com/ethanbray) made their first contribution in https://github.com/laravel/mcp/pull/336
+* [@Smoseby](https://github.com/Smoseby) made their first contribution in https://github.com/laravel/mcp/pull/339
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.0.0-beta.1...v1.0.0
+
+## [v0.9.5](https://github.com/laravel/mcp/compare/v0.9.4...v0.9.5) - 2026-09-09
+
+### What's Changed
+
+* Add oauth client logo and uri by [@benbjurstrom](https://github.com/benbjurstrom) in https://github.com/laravel/mcp/pull/337
+
+### New Contributors
+
+* [@benbjurstrom](https://github.com/benbjurstrom) made their first contribution in https://github.com/laravel/mcp/pull/337
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.9.4...v0.9.5
+
+## [v0.9.4](https://github.com/laravel/mcp/compare/v0.9.3...v0.9.4) - 2026-08-13
+
+### What's Changed
+
+* [0.x] Update .gitattributes by [@jackbayliss](https://github.com/jackbayliss) in https://github.com/laravel/mcp/pull/309
+* Add searchable tool catalogs by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/317
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.9.3...v0.9.4
+
+## [v0.9.3](https://github.com/laravel/mcp/compare/v0.9.1...v0.9.3) - 2026-08-10
+
+### What's Changed
+
+* Pin MCP Inspector to v1-latest by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/307
+* Prompt for route parameter values in mcp:inspector by [@lazerg](https://github.com/lazerg) in https://github.com/laravel/mcp/pull/294
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.9.2...v0.9.3
 
 ## [v0.9.2](https://github.com/laravel/mcp/compare/v0.9.1...v0.9.2) - 2026-08-06
 
@@ -61,6 +118,7 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
 
 
 
@@ -380,6 +438,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -390,6 +449,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
