@@ -15,8 +15,7 @@ use Orchestra\Testbench\TestCase as TestbenchTestCase;
 
 abstract class TestCase extends TestbenchTestCase
 {
-    use VerifiesDoubles;
-    use WithWorkbench;
+    use VerifiesDoubles, WithWorkbench;
 
     protected function getServerContext(array $properties = []): ServerContext
     {
