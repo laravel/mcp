@@ -17,15 +17,9 @@ beforeEach(function (): void {
 
 it('normalizes windows paths in guidance output', function (): void {
     $command = Double::for(InspectorCommand::class)->passthru();
-    $this->registrar
-        ->shouldReceive('getLocalServer')
-        ->with('demo')
-        ->andReturn(function (): void {});
+    $this->registrar->allows('getLocalServer')->with('demo')->returns(function (): void {});
 
-    $this->registrar
-        ->shouldReceive('getWebServer')
-        ->with('demo')
-        ->andReturn(null);
+    $this->registrar->allows('getWebServer')->with('demo')->returns(null);
 
     $windowsPath = 'D:\\Herd\\cyborgfinance\\artisan';
     $normalizedPath = str_replace('\\', '/', $windowsPath);
@@ -48,17 +42,11 @@ it('normalizes mixed paths correctly', function (): void {
 });
 
 it('fails with invalid handle', function (): void {
-    $this->registrar
-        ->shouldReceive('getLocalServer')
-        ->with('invalid')
-        ->andReturn(null);
+    $this->registrar->allows('getLocalServer')->with('invalid')->returns(null);
 
-    $this->registrar
-        ->shouldReceive('getWebServer')
-        ->with('invalid')
-        ->andReturn(null);
+    $this->registrar->allows('getWebServer')->with('invalid')->returns(null);
 
-    $this->registrar->shouldReceive('servers')->andReturn(['demo' => 'Demo Server', 'weather' => 'Weather Server']);
+    $this->registrar->allows('servers')->returns(['demo' => 'Demo Server', 'weather' => 'Weather Server']);
 
     $this->artisan('mcp:inspector', ['handle' => 'invalid'])
         ->expectsOutputToContain('Starting the MCP Inspector for server [invalid].')
@@ -73,17 +61,11 @@ it('validates handle argument is required', function (): void {
 });
 
 it('fails when no servers are registered', function (): void {
-    $this->registrar
-        ->shouldReceive('getLocalServer')
-        ->with('demo')
-        ->andReturn(null);
+    $this->registrar->allows('getLocalServer')->with('demo')->returns(null);
 
-    $this->registrar
-        ->shouldReceive('getWebServer')
-        ->with('demo')
-        ->andReturn(null);
+    $this->registrar->allows('getWebServer')->with('demo')->returns(null);
 
-    $this->registrar->shouldReceive('servers')->andReturn([]);
+    $this->registrar->allows('servers')->returns([]);
 
     $this->artisan('mcp:inspector', ['handle' => 'demo'])
         ->expectsOutputToContain('Starting the MCP Inspector for server [demo]')
@@ -94,7 +76,7 @@ it('fails when no servers are registered', function (): void {
 it('uses single server when only one is registered', function (): void {
     $callable = function (): void {};
 
-    $this->registrar->shouldReceive('servers')->andReturn(['demo' => $callable]);
+    $this->registrar->allows('servers')->returns(['demo' => $callable]);
 
     // Can't test the actual Process execution in unit tests
     // This would require integration testing
@@ -103,19 +85,13 @@ it('uses single server when only one is registered', function (): void {
 
 it('handles http transport with https url', function (): void {
     $route = Double::for(Route::class);
-    $route->shouldReceive('uri')->andReturn('api/mcp');
+    $route->allows('uri')->returns('api/mcp');
 
-    $this->registrar
-        ->shouldReceive('getLocalServer')
-        ->with('demo')
-        ->andReturn(null);
+    $this->registrar->allows('getLocalServer')->with('demo')->returns(null);
 
-    $this->registrar
-        ->shouldReceive('getWebServer')
-        ->with('demo')
-        ->andReturn($route);
+    $this->registrar->allows('getWebServer')->with('demo')->returns($route);
 
-    $this->registrar->shouldReceive('servers')->andReturn(['demo' => $route]);
+    $this->registrar->allows('servers')->returns(['demo' => $route]);
 
     // Verify that route config is set up correctly
     expect($route->uri())->toBe('api/mcp');
@@ -124,17 +100,11 @@ it('handles http transport with https url', function (): void {
 it('handles stdio transport successfully', function (): void {
     $callable = function (): void {};
 
-    $this->registrar
-        ->shouldReceive('getLocalServer')
-        ->with('demo')
-        ->andReturn($callable);
+    $this->registrar->allows('getLocalServer')->with('demo')->returns($callable);
 
-    $this->registrar
-        ->shouldReceive('getWebServer')
-        ->with('demo')
-        ->andReturn(null);
+    $this->registrar->allows('getWebServer')->with('demo')->returns(null);
 
-    $this->registrar->shouldReceive('servers')->andReturn(['demo' => $callable]);
+    $this->registrar->allows('servers')->returns(['demo' => $callable]);
 
     // Verify local server is retrieved correctly
     expect($this->registrar->getLocalServer('demo'))->toBe($callable);
@@ -148,19 +118,13 @@ it('handles non-string handle argument', function (): void {
 
 it('handles single server with Route class', function (): void {
     $route = Double::for(Route::class);
-    $route->shouldReceive('uri')->andReturn('api/mcp');
+    $route->allows('uri')->returns('api/mcp');
 
-    $this->registrar
-        ->shouldReceive('getLocalServer')
-        ->with('demo')
-        ->andReturn(null);
+    $this->registrar->allows('getLocalServer')->with('demo')->returns(null);
 
-    $this->registrar
-        ->shouldReceive('getWebServer')
-        ->with('demo')
-        ->andReturn(null);
+    $this->registrar->allows('getWebServer')->with('demo')->returns(null);
 
-    $this->registrar->shouldReceive('servers')->andReturn(['single' => $route]);
+    $this->registrar->allows('servers')->returns(['single' => $route]);
 
     // Can't test the actual Process execution in unit tests
     expect($route)->toBeInstanceOf(Route::class);
@@ -169,17 +133,11 @@ it('handles single server with Route class', function (): void {
 it('handles single server with unknown type', function (): void {
     $unknownServer = new stdClass;
 
-    $this->registrar
-        ->shouldReceive('getLocalServer')
-        ->with('demo')
-        ->andReturn(null);
+    $this->registrar->allows('getLocalServer')->with('demo')->returns(null);
 
-    $this->registrar
-        ->shouldReceive('getWebServer')
-        ->with('demo')
-        ->andReturn(null);
+    $this->registrar->allows('getWebServer')->with('demo')->returns(null);
 
-    $this->registrar->shouldReceive('servers')->andReturn(['single' => $unknownServer]);
+    $this->registrar->allows('servers')->returns(['single' => $unknownServer]);
 
     $this->artisan('mcp:inspector', ['handle' => 'demo'])
         ->expectsOutputToContain('MCP Server with name [demo] not found')
@@ -189,17 +147,11 @@ it('handles single server with unknown type', function (): void {
 it('verifies process timeout is set correctly', function (): void {
     $callable = function (): void {};
 
-    $this->registrar
-        ->shouldReceive('getLocalServer')
-        ->with('demo')
-        ->andReturn($callable);
+    $this->registrar->allows('getLocalServer')->with('demo')->returns($callable);
 
-    $this->registrar
-        ->shouldReceive('getWebServer')
-        ->with('demo')
-        ->andReturn(null);
+    $this->registrar->allows('getWebServer')->with('demo')->returns(null);
 
-    $this->registrar->shouldReceive('servers')->andReturn(['demo' => $callable]);
+    $this->registrar->allows('servers')->returns(['demo' => $callable]);
 
     // Can't mock Process class directly in unit tests
     // Just verify the callable is set correctly
@@ -208,27 +160,21 @@ it('verifies process timeout is set correctly', function (): void {
 
 it('handles http transport with http url', function (): void {
     $route = Double::for(Route::class);
-    $route->shouldReceive('uri')->andReturn('api/mcp');
+    $route->allows('uri')->returns('api/mcp');
 
     // Mock url() helper to return http URL
     app()->bind('url', function () {
         $url = Double::for(UrlGenerator::class);
-        $url->shouldReceive('to')->andReturn('http://localhost/api/mcp');
+        $url->allows('to')->returns('http://localhost/api/mcp');
 
         return $url;
     });
 
-    $this->registrar
-        ->shouldReceive('getLocalServer')
-        ->with('demo')
-        ->andReturn(null);
+    $this->registrar->allows('getLocalServer')->with('demo')->returns(null);
 
-    $this->registrar
-        ->shouldReceive('getWebServer')
-        ->with('demo')
-        ->andReturn($route);
+    $this->registrar->allows('getWebServer')->with('demo')->returns($route);
 
-    $this->registrar->shouldReceive('servers')->andReturn(['demo' => $route]);
+    $this->registrar->allows('servers')->returns(['demo' => $route]);
 
     // Verify that route config is set up correctly
     expect($route->uri())->toBe('api/mcp');
@@ -250,10 +196,7 @@ it('asks for route parameter values when building the server url', function (): 
     $route = (new Registrar)->web('mcp/{organisation:uuid}', ExampleServer::class);
 
     $components = Double::for(Factory::class);
-    $components->shouldReceive('ask')
-        ->once()
-        ->with('What is the value for the [organisation] route parameter?')
-        ->andReturn('4f8a1c2e');
+    $components->expects('ask')->with('What is the value for the [organisation] route parameter?')->returns('4f8a1c2e');
 
     $command = new InspectorCommand;
     $command->setLaravel($this->app);
@@ -268,17 +211,11 @@ it('asks for route parameter values when building the server url', function (): 
 it('fails when a route parameter is left blank', function (): void {
     $route = (new Registrar)->web('mcp/{organisation:uuid}', ExampleServer::class);
 
-    $this->registrar
-        ->shouldReceive('getLocalServer')
-        ->with('demo')
-        ->andReturn(null);
+    $this->registrar->allows('getLocalServer')->with('demo')->returns(null);
 
-    $this->registrar
-        ->shouldReceive('getWebServer')
-        ->with('demo')
-        ->andReturn($route);
+    $this->registrar->allows('getWebServer')->with('demo')->returns($route);
 
-    $this->registrar->shouldReceive('servers')->andReturn(['demo' => $route]);
+    $this->registrar->allows('servers')->returns(['demo' => $route]);
 
     $this->artisan('mcp:inspector', ['handle' => 'demo'])
         ->expectsQuestion('What is the value for the [organisation] route parameter?', null)
@@ -289,17 +226,11 @@ it('fails when a route parameter is left blank', function (): void {
 it('fails when a route parameter only contains whitespace', function (): void {
     $route = (new Registrar)->web('mcp/{organisation:uuid}', ExampleServer::class);
 
-    $this->registrar
-        ->shouldReceive('getLocalServer')
-        ->with('demo')
-        ->andReturn(null);
+    $this->registrar->allows('getLocalServer')->with('demo')->returns(null);
 
-    $this->registrar
-        ->shouldReceive('getWebServer')
-        ->with('demo')
-        ->andReturn($route);
+    $this->registrar->allows('getWebServer')->with('demo')->returns($route);
 
-    $this->registrar->shouldReceive('servers')->andReturn(['demo' => $route]);
+    $this->registrar->allows('servers')->returns(['demo' => $route]);
 
     $this->artisan('mcp:inspector', ['handle' => 'demo'])
         ->expectsQuestion('What is the value for the [organisation] route parameter?', '   ')
