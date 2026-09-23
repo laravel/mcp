@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use JMac\Testing\Integrations\PHPUnit\VerifiesDoubles;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\Resources\Content;
 use Laravel\Mcp\Server\Resource;
@@ -14,6 +15,7 @@ use Orchestra\Testbench\TestCase as TestbenchTestCase;
 
 abstract class TestCase extends TestbenchTestCase
 {
+    use VerifiesDoubles;
     use WithWorkbench;
 
     protected function getServerContext(array $properties = []): ServerContext
