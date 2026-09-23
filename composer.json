@@ -32,6 +32,7 @@
         "symfony/process": "^7.4.5|^8.0.5"
     },
     "require-dev": {
+        "jasonmccreary/double": "~0.10",
         "laravel/pint": "^1.20",
         "orchestra/testbench": "^9.15|^10.8|^11.0",
         "pestphp/pest": "^3.8.5|^4.3.2",
