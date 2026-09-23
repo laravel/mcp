@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-use JMac\Testing\Double;
 use Illuminate\Console\View\Components\Factory;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\UrlGenerator;
+use JMac\Testing\Double;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
 use Laravel\Mcp\Server\Registrar;
 use Tests\Fixtures\ExampleServer;

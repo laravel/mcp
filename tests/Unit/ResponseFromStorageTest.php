@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-use JMac\Testing\Double;
 use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
+use JMac\Testing\Double;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Image;
