@@ -19,7 +19,7 @@ beforeEach(function (): void {
 });
 
 it('normalizes windows paths in guidance output', function (): void {
-    $command = Double::for(InspectorCommand::class)->passthru();
+    $command = new InspectorCommand;
     $this->registrar->allows('getLocalServer')->with('demo')->returns(function (): void {});
 
     $this->registrar->allows('getWebServer')->with('demo')->returns(null);
