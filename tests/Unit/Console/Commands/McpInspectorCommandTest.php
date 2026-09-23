@@ -9,13 +9,15 @@ use Illuminate\Routing\UrlGenerator;
 use JMac\Testing\Double;
 use JMac\Testing\Matching\Argument;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
+use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\Server\Registrar;
 use Symfony\Component\Console\Question\Question;
 use Tests\Fixtures\ExampleServer;
 
 beforeEach(function (): void {
+    Mcp::swap(new Registrar);
+
     $this->registrar = Double::for(Registrar::class);
-    $this->app->instance(Registrar::class, $this->registrar);
 });
 
 it('normalizes windows paths in guidance output', function (): void {
@@ -45,11 +47,8 @@ it('normalizes mixed paths correctly', function (): void {
 });
 
 it('fails with invalid handle', function (): void {
-    $this->registrar->expects('getLocalServer')->with('invalid')->returns(null);
-
-    $this->registrar->expects('getWebServer')->with('invalid')->returns(null);
-
-    $this->registrar->expects('servers')->returns(['demo' => 'Demo Server', 'weather' => 'Weather Server']);
+    Mcp::local('demo', ExampleServer::class);
+    Mcp::local('weather', ExampleServer::class);
 
     $this->artisan('mcp:inspector', ['handle' => 'invalid'])
         ->expectsOutputToContain('Starting the MCP Inspector for server [invalid].')
@@ -64,12 +63,6 @@ it('validates handle argument is required', function (): void {
 });
 
 it('fails when no servers are registered', function (): void {
-    $this->registrar->expects('getLocalServer')->with('demo')->returns(null);
-
-    $this->registrar->expects('getWebServer')->with('demo')->returns(null);
-
-    $this->registrar->expects('servers')->returns([]);
-
     $this->artisan('mcp:inspector', ['handle' => 'demo'])
         ->expectsOutputToContain('Starting the MCP Inspector for server [demo]')
         ->expectsOutputToContain('No MCP servers found. Please run `php artisan make:mcp-server [name]`')
@@ -135,6 +128,8 @@ it('handles single server with Route class', function (): void {
 
 it('handles single server with unknown type', function (): void {
     $unknownServer = new stdClass;
+
+    $this->app->instance(Registrar::class, $this->registrar);
 
     $this->registrar->expects('getLocalServer')->with('demo')->returns(null);
 
@@ -216,13 +211,7 @@ it('asks for route parameter values when building the server url', function (): 
 });
 
 it('fails when a route parameter is left blank', function (): void {
-    $route = (new Registrar)->web('mcp/{organisation:uuid}', ExampleServer::class);
-
-    $this->registrar->expects('getLocalServer')->with('demo')->returns(null);
-
-    $this->registrar->expects('getWebServer')->with('demo')->returns($route);
-
-    $this->registrar->expects('servers')->returns(['demo' => $route]);
+    Mcp::web('mcp/{organisation:uuid}', ExampleServer::class);
 
     $this->artisan('mcp:inspector', ['handle' => 'demo'])
         ->expectsQuestion('What is the value for the [organisation] route parameter?', null)
@@ -231,13 +220,7 @@ it('fails when a route parameter is left blank', function (): void {
 });
 
 it('fails when a route parameter only contains whitespace', function (): void {
-    $route = (new Registrar)->web('mcp/{organisation:uuid}', ExampleServer::class);
-
-    $this->registrar->expects('getLocalServer')->with('demo')->returns(null);
-
-    $this->registrar->expects('getWebServer')->with('demo')->returns($route);
-
-    $this->registrar->expects('servers')->returns(['demo' => $route]);
+    Mcp::web('mcp/{organisation:uuid}', ExampleServer::class);
 
     $this->artisan('mcp:inspector', ['handle' => 'demo'])
         ->expectsQuestion('What is the value for the [organisation] route parameter?', '   ')
