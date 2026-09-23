@@ -2,12 +2,15 @@
 
 declare(strict_types=1);
 
+use Illuminate\Console\OutputStyle;
 use Illuminate\Console\View\Components\Factory;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\UrlGenerator;
 use JMac\Testing\Double;
+use JMac\Testing\Matching\Argument;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
 use Laravel\Mcp\Server\Registrar;
+use Symfony\Component\Console\Question\Question;
 use Tests\Fixtures\ExampleServer;
 
 beforeEach(function (): void {
@@ -195,8 +198,12 @@ it('retrieves php binary path correctly', function (): void {
 it('asks for route parameter values when building the server url', function (): void {
     $route = (new Registrar)->web('mcp/{organisation:uuid}', ExampleServer::class);
 
-    $components = Double::for(Factory::class);
-    $components->expects('ask')->with('What is the value for the [organisation] route parameter?')->returns('4f8a1c2e');
+    $output = Double::for(OutputStyle::class);
+    $output->expects('askQuestion')
+        ->with(Argument::satisfies(fn (Question $question): bool => $question->getQuestion() === 'What is the value for the [organisation] route parameter?'))
+        ->returns('4f8a1c2e');
+
+    $components = new Factory($output);
 
     $command = new InspectorCommand;
     $command->setLaravel($this->app);
