@@ -2,13 +2,10 @@
 
 declare(strict_types=1);
 
-use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Support\Facades\Storage;
-use JMac\Testing\Double;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Image;
-use League\Flysystem\UnableToReadFile;
 
 it('creates image response from storage', function (): void {
     Storage::fake();
@@ -94,20 +91,14 @@ it('throws when file does not exist', function (): void {
 })->throws(InvalidArgumentException::class, 'File not found at path [nonexistent/file.png].');
 
 it('throws when storage disk throws on missing file', function (): void {
-    $storage = Double::for(FilesystemAdapter::class);
-    $storage->expects('get')->with('missing/file.png')->throws(UnableToReadFile::fromLocation('missing/file.png'));
-
-    Storage::shouldReceive('disk')->with(null)->andReturn($storage);
+    Storage::fake(config: ['throw' => true]);
 
     Response::fromStorage('missing/file.png');
 })->throws(InvalidArgumentException::class, 'File not found at path [missing/file.png].');
 
 it('throws when mime type cannot be determined', function (): void {
-    $storage = Double::for(FilesystemAdapter::class);
-    $storage->expects('get')->with('data/unknown')->returns('some-data');
-    $storage->expects('mimeType')->with('data/unknown')->returns(false);
-
-    Storage::shouldReceive('disk')->with(null)->andReturn($storage);
+    Storage::fake();
+    Storage::put('data/unknown', 'some-data');
 
     Response::fromStorage('data/unknown');
 })->throws(InvalidArgumentException::class, 'Unable to determine MIME type for [data/unknown].');
