@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
+use JMac\Testing\Double;
 use Laravel\Mcp\Server\Registrar;
 
 beforeEach(function (): void {
-    $this->registrar = Mockery::mock(Registrar::class);
+    $this->registrar = Double::for(Registrar::class);
     $this->app->instance(Registrar::class, $this->registrar);
 });
 

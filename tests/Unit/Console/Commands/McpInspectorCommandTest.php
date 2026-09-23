@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use JMac\Testing\Double;
 use Illuminate\Console\View\Components\Factory;
 use Illuminate\Routing\Route;
 use Illuminate\Routing\UrlGenerator;
@@ -10,12 +11,12 @@ use Laravel\Mcp\Server\Registrar;
 use Tests\Fixtures\ExampleServer;
 
 beforeEach(function (): void {
-    $this->registrar = Mockery::mock(Registrar::class);
+    $this->registrar = Double::for(Registrar::class);
     $this->app->instance(Registrar::class, $this->registrar);
 });
 
 it('normalizes windows paths in guidance output', function (): void {
-    $command = Mockery::mock(InspectorCommand::class)->makePartial();
+    $command = Double::for(InspectorCommand::class)->passthru();
     $this->registrar
         ->shouldReceive('getLocalServer')
         ->with('demo')
@@ -101,7 +102,7 @@ it('uses single server when only one is registered', function (): void {
 });
 
 it('handles http transport with https url', function (): void {
-    $route = Mockery::mock(Route::class);
+    $route = Double::for(Route::class);
     $route->shouldReceive('uri')->andReturn('api/mcp');
 
     $this->registrar
@@ -146,7 +147,7 @@ it('handles non-string handle argument', function (): void {
 });
 
 it('handles single server with Route class', function (): void {
-    $route = Mockery::mock(Route::class);
+    $route = Double::for(Route::class);
     $route->shouldReceive('uri')->andReturn('api/mcp');
 
     $this->registrar
@@ -206,12 +207,12 @@ it('verifies process timeout is set correctly', function (): void {
 });
 
 it('handles http transport with http url', function (): void {
-    $route = Mockery::mock(Route::class);
+    $route = Double::for(Route::class);
     $route->shouldReceive('uri')->andReturn('api/mcp');
 
     // Mock url() helper to return http URL
     app()->bind('url', function () {
-        $url = Mockery::mock(UrlGenerator::class);
+        $url = Double::for(UrlGenerator::class);
         $url->shouldReceive('to')->andReturn('http://localhost/api/mcp');
 
         return $url;
@@ -248,7 +249,7 @@ it('retrieves php binary path correctly', function (): void {
 it('asks for route parameter values when building the server url', function (): void {
     $route = (new Registrar)->web('mcp/{organisation:uuid}', ExampleServer::class);
 
-    $components = Mockery::mock(Factory::class);
+    $components = Double::for(Factory::class);
     $components->shouldReceive('ask')
         ->once()
         ->with('What is the value for the [organisation] route parameter?')
