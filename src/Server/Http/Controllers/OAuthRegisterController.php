@@ -165,6 +165,10 @@ class OAuthRegisterController
             return false;
         }
 
+        if (parse_url($value, PHP_URL_USER) !== null || parse_url($value, PHP_URL_PASS) !== null) {
+            return false;
+        }
+
         if (in_array($scheme, ['http', 'https'], true)) {
             return Str::isUrl($value, ['http', 'https']);
         }
@@ -178,14 +182,13 @@ class OAuthRegisterController
 
     protected function isLocalhostUrl(string $url): bool
     {
-        return Str::startsWith($url, [
-            'http://localhost:',
-            'http://localhost/',
-            'http://127.0.0.1:',
-            'http://127.0.0.1/',
-            'http://[::1]:',
-            'http://[::1]/',
-        ]);
+        $parts = parse_url($url);
+
+        if ($parts === false || ($parts['scheme'] ?? null) !== 'http' || isset($parts['user']) || isset($parts['pass'])) {
+            return false;
+        }
+
+        return in_array($parts['host'] ?? null, ['localhost', '127.0.0.1', '[::1]'], true);
     }
 
     /**
