@@ -16,7 +16,7 @@ it('starts a registered local server successfully', function (): void {
         $serverCalled = true;
     };
 
-    $this->registrar->allows('getLocalServer')->with('demo')->returns($server);
+    $this->registrar->expects('getLocalServer')->with('demo')->returns($server);
 
     $this->artisan('mcp:start', ['handle' => 'demo'])
         ->assertExitCode(0);
@@ -25,7 +25,7 @@ it('starts a registered local server successfully', function (): void {
 });
 
 it('fails when server handle is not found', function (): void {
-    $this->registrar->allows('getLocalServer')->with('invalid')->returns(null);
+    $this->registrar->expects('getLocalServer')->with('invalid')->returns(null);
 
     $this->artisan('mcp:start', ['handle' => 'invalid'])
         ->expectsOutputToContain('MCP Server with name [invalid] not found. Did you register it using [Mcp::local()]?')
@@ -41,7 +41,7 @@ it('requires handle argument', function (): void {
 it('asserts handle is a string', function (): void {
     $server = function (): void {};
 
-    $this->registrar->allows('getLocalServer')->with('test-handle')->returns($server);
+    $this->registrar->expects('getLocalServer')->with('test-handle')->returns($server);
 
     // This test ensures the assert(is_string($handle)) works correctly
     $this->artisan('mcp:start', ['handle' => 'test-handle'])
