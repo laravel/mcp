@@ -16,7 +16,7 @@ use Laravel\Mcp\Server\Registrar;
  * @method static callable|null getLocalServer(string $handle)
  * @method static \Illuminate\Routing\Route|null getWebServer(string $route)
  * @method static array servers()
- * @method static void oauthRoutes(string $oauthPrefix = 'oauth')
+ * @method static void oauthRoutes(string $oauthPrefix = 'oauth', bool $registration = true)
  * @method static array ensureMcpScope()
  * @method static void macro(string $name, object|callable $macro)
  * @method static void mixin(object $mixin, bool $replace = true)

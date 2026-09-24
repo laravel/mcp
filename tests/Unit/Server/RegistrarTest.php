@@ -1126,3 +1126,44 @@ it('returns json validation errors even without Accept application/json header',
     $response->assertHeader('Content-Type', 'application/json');
     $response->assertJsonStructure(['error', 'error_description']);
 });
+
+it('does not register the client registration route when registration is disabled', function (): void {
+    (new Registrar)->oauthRoutes(registration: false);
+
+    $registerRoutes = collect(Route::getRoutes()->getRoutes())
+        ->filter(fn ($route): bool => $route->uri() === 'oauth/register');
+
+    expect($registerRoutes)->toBeEmpty();
+});
+
+it('omits the registration endpoint from the metadata when registration is disabled', function (string $uri): void {
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    (new Registrar)->oauthRoutes(registration: false);
+
+    $response = $this->getJson($uri);
+
+    $response->assertStatus(200);
+    $response->assertJsonMissingPath('registration_endpoint');
+    $response->assertJson([
+        'issuer' => url('/'),
+        'authorization_endpoint' => url('/oauth/authorize'),
+        'token_endpoint' => url('/oauth/token'),
+        'scopes_supported' => ['mcp:use'],
+    ]);
+})->with([
+    '/.well-known/oauth-authorization-server',
+    '/.well-known/oauth-authorization-server/mcp/weather',
+]);
+
+it('still advertises the registration endpoint by default', function (): void {
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    (new Registrar)->oauthRoutes();
+
+    $this->getJson('/.well-known/oauth-authorization-server')
+        ->assertStatus(200)
+        ->assertJsonPath('registration_endpoint', url('oauth/register'));
+});

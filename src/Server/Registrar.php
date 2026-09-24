@@ -121,7 +121,7 @@ class Registrar
         );
     }
 
-    public function oauthRoutes(string $oauthPrefix = 'oauth'): void
+    public function oauthRoutes(string $oauthPrefix = 'oauth', bool $registration = true): void
     {
         static::ensureMcpScope();
         $hasExactProtectedResourceRoute = $this->hasGetRoute('.well-known/oauth-protected-resource');
@@ -133,7 +133,7 @@ class Registrar
         }
 
         if (! $hasExactAuthorizationServerRoute) {
-            Router::get('/.well-known/oauth-authorization-server', static fn () => response()->json(static::authorizationServerMetadata($oauthPrefix)))
+            Router::get('/.well-known/oauth-authorization-server', static fn () => response()->json(static::advertisedAuthorizationServerMetadata($oauthPrefix, $registration)))
                 ->name('mcp.oauth.authorization-server');
         }
 
@@ -145,11 +145,27 @@ class Registrar
             ->where('path', '.*')
             ->name('mcp.oauth.protected-resource.nested');
 
-        Router::get('/.well-known/oauth-authorization-server/{path}', static fn (string $path) => response()->json(static::authorizationServerMetadata($oauthPrefix)))
+        Router::get('/.well-known/oauth-authorization-server/{path}', static fn (string $path) => response()->json(static::advertisedAuthorizationServerMetadata($oauthPrefix, $registration)))
             ->where('path', '.*')
             ->name('mcp.oauth.authorization-server.nested');
 
-        Router::post($oauthPrefix.'/register', OAuthRegisterController::class);
+        if ($registration) {
+            Router::post($oauthPrefix.'/register', OAuthRegisterController::class);
+        }
+    }
+
+    /**
+     * @return array<string, array<int, string>|string>
+     */
+    protected static function advertisedAuthorizationServerMetadata(string $oauthPrefix, bool $registration): array
+    {
+        $metadata = static::authorizationServerMetadata($oauthPrefix);
+
+        if (! $registration) {
+            unset($metadata['registration_endpoint']);
+        }
+
+        return $metadata;
     }
 
     /**
