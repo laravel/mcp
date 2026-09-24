@@ -1,6 +1,14 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v1.0.0...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v1.0.1...main)
+
+## [v1.0.1](https://github.com/laravel/mcp/compare/v1.0.0...v1.0.1) - 2026-09-24
+
+### What's Changed
+
+* Validate loopback redirect URIs by parsed host by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/349
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.0.0...v1.0.1
 
 ## [v1.0.0](https://github.com/laravel/mcp/compare/v0.9.5...v1.0.0) - 2026-09-14
 
@@ -118,6 +126,7 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
 
 
 
@@ -439,6 +448,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -449,6 +459,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
