@@ -1,6 +1,19 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.9.5...0.x)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.9.6...0.x)
+
+## [v0.9.6](https://github.com/laravel/mcp/compare/v0.9.5...v0.9.6) - 2026-09-24
+
+### What's Changed
+
+* Let an MCP App shrink by measuring the body in size notifications by [@sergeevpasha](https://github.com/sergeevpasha) in https://github.com/laravel/mcp/pull/344
+* Validate loopback redirect URIs by parsed host by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/351
+
+### New Contributors
+
+* [@sergeevpasha](https://github.com/sergeevpasha) made their first contribution in https://github.com/laravel/mcp/pull/344
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.9.5...v0.9.6
 
 ## [v0.9.5](https://github.com/laravel/mcp/compare/v0.9.4...v0.9.5) - 2026-09-09
 
@@ -78,6 +91,7 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
 
 
 
@@ -401,6 +415,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -411,6 +426,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
