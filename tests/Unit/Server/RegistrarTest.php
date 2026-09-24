@@ -801,6 +801,31 @@ it('does not allow non-localhost URLs when localhost is in redirect_domains', fu
     $response->assertStatus(400);
 });
 
+it('rejects redirect URIs with userinfo', function (string $uri, array $domains): void {
+    ensureMockClientRepository();
+
+    $registrar = new Registrar;
+    $registrar->oauthRoutes();
+
+    config()->set('mcp.redirect_domains', $domains);
+
+    $this->app->instance(ClientRepository::class, new ClientRepository);
+
+    $response = $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => [$uri],
+    ]);
+
+    $response->assertStatus(400)
+        ->assertJson(['error' => 'invalid_redirect_uri']);
+})->with([
+    ['http://localhost:53123@evil.example/cb', ['https://example.com', 'http://localhost']],
+    ['http://127.0.0.1:1@evil.example/cb', ['https://example.com', 'http://127.0.0.1']],
+    ['http://localhost@evil.example/cb', ['https://example.com', 'http://localhost']],
+    ['https://example.com@evil.example/cb', ['https://example.com']],
+    ['https://user:pass@example.com/cb', ['*']],
+]);
+
 it('does not allow https localhost URLs via localhost redirect domain', function (): void {
     ensureMockClientRepository();
 
