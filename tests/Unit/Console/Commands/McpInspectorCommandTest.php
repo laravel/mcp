@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 use Illuminate\Console\OutputStyle;
 use Illuminate\Console\View\Components\Factory;
-use Illuminate\Routing\Route;
-use Illuminate\Routing\UrlGenerator;
 use JMac\Testing\Double;
 use JMac\Testing\Matching\Argument;
 use Laravel\Mcp\Console\Commands\InspectorCommand;
@@ -18,18 +16,6 @@ beforeEach(function (): void {
     Mcp::swap(new Registrar);
 
     $this->registrar = Double::for(Registrar::class);
-});
-
-it('normalizes windows paths in guidance output', function (): void {
-    $command = new InspectorCommand;
-    $this->registrar->allows('getLocalServer')->with('demo')->returns(function (): void {});
-
-    $this->registrar->allows('getWebServer')->with('demo')->returns(null);
-
-    $windowsPath = 'D:\\Herd\\cyborgfinance\\artisan';
-    $normalizedPath = str_replace('\\', '/', $windowsPath);
-
-    expect($normalizedPath)->toBe('D:/Herd/cyborgfinance/artisan');
 });
 
 it('normalizes mixed paths correctly', function (): void {
@@ -69,61 +55,10 @@ it('fails when no servers are registered', function (): void {
         ->assertExitCode(1);
 });
 
-it('uses single server when only one is registered', function (): void {
-    $callable = function (): void {};
-
-    $this->registrar->allows('servers')->returns(['demo' => $callable]);
-
-    // Can't test the actual Process execution in unit tests
-    // This would require integration testing
-    expect($callable)->toBeCallable();
-});
-
-it('handles http transport with https url', function (): void {
-    $route = Double::for(Route::class);
-    $route->expects('uri')->returns('api/mcp');
-
-    $this->registrar->allows('getLocalServer')->with('demo')->returns(null);
-
-    $this->registrar->allows('getWebServer')->with('demo')->returns($route);
-
-    $this->registrar->allows('servers')->returns(['demo' => $route]);
-
-    // Verify that route config is set up correctly
-    expect($route->uri())->toBe('api/mcp');
-});
-
-it('handles stdio transport successfully', function (): void {
-    $callable = function (): void {};
-
-    $this->registrar->expects('getLocalServer')->with('demo')->returns($callable);
-
-    $this->registrar->allows('getWebServer')->with('demo')->returns(null);
-
-    $this->registrar->allows('servers')->returns(['demo' => $callable]);
-
-    // Verify local server is retrieved correctly
-    expect($this->registrar->getLocalServer('demo'))->toBe($callable);
-});
-
 it('handles non-string handle argument', function (): void {
     $this->artisan('mcp:inspector', ['handle' => 123])
         ->expectsOutputToContain('Please pass a valid MCP server handle')
         ->assertExitCode(1);
-});
-
-it('handles single server with Route class', function (): void {
-    $route = Double::for(Route::class);
-    $route->allows('uri')->returns('api/mcp');
-
-    $this->registrar->allows('getLocalServer')->with('demo')->returns(null);
-
-    $this->registrar->allows('getWebServer')->with('demo')->returns(null);
-
-    $this->registrar->allows('servers')->returns(['single' => $route]);
-
-    // Can't test the actual Process execution in unit tests
-    expect($route)->toBeInstanceOf(Route::class);
 });
 
 it('handles single server with unknown type', function (): void {
@@ -140,42 +75,6 @@ it('handles single server with unknown type', function (): void {
     $this->artisan('mcp:inspector', ['handle' => 'demo'])
         ->expectsOutputToContain('MCP Server with name [demo] not found')
         ->assertExitCode(1);
-});
-
-it('verifies process timeout is set correctly', function (): void {
-    $callable = function (): void {};
-
-    $this->registrar->allows('getLocalServer')->with('demo')->returns($callable);
-
-    $this->registrar->allows('getWebServer')->with('demo')->returns(null);
-
-    $this->registrar->allows('servers')->returns(['demo' => $callable]);
-
-    // Can't mock Process class directly in unit tests
-    // Just verify the callable is set correctly
-    expect($callable)->toBeCallable();
-});
-
-it('handles http transport with http url', function (): void {
-    $route = Double::for(Route::class);
-    $route->expects('uri')->returns('api/mcp');
-
-    // Mock url() helper to return http URL
-    app()->bind('url', function () {
-        $url = Double::for(UrlGenerator::class);
-        $url->expects('to')->returns('http://localhost/api/mcp');
-
-        return $url;
-    });
-
-    $this->registrar->allows('getLocalServer')->with('demo')->returns(null);
-
-    $this->registrar->allows('getWebServer')->with('demo')->returns($route);
-
-    $this->registrar->allows('servers')->returns(['demo' => $route]);
-
-    // Verify that route config is set up correctly
-    expect($route->uri())->toBe('api/mcp');
 });
 
 it('retrieves php binary path correctly', function (): void {
