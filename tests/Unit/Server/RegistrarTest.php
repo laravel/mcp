@@ -1131,10 +1131,10 @@ it('returns json validation errors even without Accept application/json header',
 it('does not register the client registration route when registration is disabled', function (): void {
     (new Registrar)->oauthRoutes(registration: false);
 
-    $registerRoutes = collect(Route::getRoutes()->getRoutes())
-        ->filter(fn ($route): bool => $route->uri() === 'oauth/register');
-
-    expect($registerRoutes)->toBeEmpty();
+    $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['https://example.com/callback'],
+    ])->assertNotFound();
 });
 
 it('omits the registration endpoint from the metadata when registration is disabled', function (string $uri): void {
@@ -1158,15 +1158,15 @@ it('omits the registration endpoint from the metadata when registration is disab
     '/.well-known/oauth-authorization-server/mcp/weather',
 ]);
 
-it('still advertises the registration endpoint by default', function (): void {
+it('advertises the registration endpoint under a custom prefix', function (): void {
     Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
     Route::post('/oauth/token')->name('passport.token');
 
-    (new Registrar)->oauthRoutes();
+    (new Registrar)->oauthRoutes('custom-oauth');
 
     $this->getJson('/.well-known/oauth-authorization-server')
-        ->assertStatus(200)
-        ->assertJsonPath('registration_endpoint', url('oauth/register'));
+        ->assertOk()
+        ->assertJsonPath('registration_endpoint', url('custom-oauth/register'));
 });
 
 it('advertises a custom registration route when registration is disabled', function (): void {

@@ -169,7 +169,7 @@ class Registrar
             'code_challenge_methods_supported' => ['S256'],
             'scopes_supported' => [self::OAUTH_SCOPE],
             'grant_types_supported' => ['authorization_code', 'refresh_token'],
-        ]);
+        ], fn (mixed $value): bool => $value !== null);
     }
 
     /**
