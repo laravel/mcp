@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Route;
+use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController;
 use Laravel\Mcp\Server\Registrar;
 use Laravel\Passport\Client;
 use Laravel\Passport\ClientRepository;
@@ -1125,4 +1126,60 @@ it('returns json validation errors even without Accept application/json header',
     $response->assertStatus(400);
     $response->assertHeader('Content-Type', 'application/json');
     $response->assertJsonStructure(['error', 'error_description']);
+});
+
+it('does not register the client registration route when registration is disabled', function (): void {
+    (new Registrar)->oauthRoutes(registration: false);
+
+    $this->postJson('/oauth/register', [
+        'client_name' => 'Test Client',
+        'redirect_uris' => ['https://example.com/callback'],
+    ])->assertNotFound();
+});
+
+it('omits the registration endpoint from the metadata when registration is disabled', function (string $uri): void {
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    (new Registrar)->oauthRoutes(registration: false);
+
+    $response = $this->getJson($uri);
+
+    $response->assertStatus(200);
+    $response->assertJsonMissingPath('registration_endpoint');
+    $response->assertJson([
+        'issuer' => url('/'),
+        'authorization_endpoint' => url('/oauth/authorize'),
+        'token_endpoint' => url('/oauth/token'),
+        'scopes_supported' => ['mcp:use'],
+    ]);
+})->with([
+    '/.well-known/oauth-authorization-server',
+    '/.well-known/oauth-authorization-server/mcp/weather',
+]);
+
+it('advertises the registration endpoint under a custom prefix', function (): void {
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    (new Registrar)->oauthRoutes('custom-oauth');
+
+    $this->getJson('/.well-known/oauth-authorization-server')
+        ->assertOk()
+        ->assertJsonPath('registration_endpoint', url('custom-oauth/register'));
+});
+
+it('advertises a custom registration route when registration is disabled', function (): void {
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    (new Registrar)->oauthRoutes(registration: false);
+
+    Route::post('/clients/register', OAuthRegisterController::class)
+        ->middleware('throttle:60,1')
+        ->name('mcp.oauth.register');
+
+    $this->getJson('/.well-known/oauth-authorization-server')
+        ->assertStatus(200)
+        ->assertJsonPath('registration_endpoint', url('clients/register'));
 });
