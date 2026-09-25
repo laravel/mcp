@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Route;
+use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController;
 use Laravel\Mcp\Server\Registrar;
 use Laravel\Passport\Client;
 use Laravel\Passport\ClientRepository;
@@ -1166,4 +1167,19 @@ it('still advertises the registration endpoint by default', function (): void {
     $this->getJson('/.well-known/oauth-authorization-server')
         ->assertStatus(200)
         ->assertJsonPath('registration_endpoint', url('oauth/register'));
+});
+
+it('advertises a custom registration route when registration is disabled', function (): void {
+    Route::get('/oauth/authorize')->name('passport.authorizations.authorize');
+    Route::post('/oauth/token')->name('passport.token');
+
+    (new Registrar)->oauthRoutes(registration: false);
+
+    Route::post('/clients/register', OAuthRegisterController::class)
+        ->middleware('throttle:60,1')
+        ->name('mcp.oauth.register');
+
+    $this->getJson('/.well-known/oauth-authorization-server')
+        ->assertStatus(200)
+        ->assertJsonPath('registration_endpoint', url('clients/register'));
 });

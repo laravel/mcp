@@ -133,7 +133,7 @@ class Registrar
         }
 
         if (! $hasExactAuthorizationServerRoute) {
-            Router::get('/.well-known/oauth-authorization-server', static fn () => response()->json(static::advertisedAuthorizationServerMetadata($oauthPrefix, $registration)))
+            Router::get('/.well-known/oauth-authorization-server', static fn () => response()->json(static::authorizationServerMetadata($oauthPrefix)))
                 ->name('mcp.oauth.authorization-server');
         }
 
@@ -145,27 +145,14 @@ class Registrar
             ->where('path', '.*')
             ->name('mcp.oauth.protected-resource.nested');
 
-        Router::get('/.well-known/oauth-authorization-server/{path}', static fn (string $path) => response()->json(static::advertisedAuthorizationServerMetadata($oauthPrefix, $registration)))
+        Router::get('/.well-known/oauth-authorization-server/{path}', static fn (string $path) => response()->json(static::authorizationServerMetadata($oauthPrefix)))
             ->where('path', '.*')
             ->name('mcp.oauth.authorization-server.nested');
 
         if ($registration) {
-            Router::post($oauthPrefix.'/register', OAuthRegisterController::class);
+            Router::post($oauthPrefix.'/register', OAuthRegisterController::class)
+                ->name('mcp.oauth.register');
         }
-    }
-
-    /**
-     * @return array<string, array<int, string>|string>
-     */
-    protected static function advertisedAuthorizationServerMetadata(string $oauthPrefix, bool $registration): array
-    {
-        $metadata = static::authorizationServerMetadata($oauthPrefix);
-
-        if (! $registration) {
-            unset($metadata['registration_endpoint']);
-        }
-
-        return $metadata;
     }
 
     /**
@@ -173,16 +160,16 @@ class Registrar
      */
     protected static function authorizationServerMetadata(string $oauthPrefix): array
     {
-        return [
+        return array_filter([
             'issuer' => config('mcp.authorization_server') ?? url('/'),
             'authorization_endpoint' => route('passport.authorizations.authorize'),
             'token_endpoint' => route('passport.token'),
-            'registration_endpoint' => url($oauthPrefix.'/register'),
+            'registration_endpoint' => Router::has('mcp.oauth.register') ? route('mcp.oauth.register') : null,
             'response_types_supported' => ['code'],
             'code_challenge_methods_supported' => ['S256'],
             'scopes_supported' => [self::OAUTH_SCOPE],
             'grant_types_supported' => ['authorization_code', 'refresh_token'],
-        ];
+        ]);
     }
 
     /**
