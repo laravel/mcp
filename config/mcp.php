@@ -67,4 +67,22 @@ return [
         'max_output_bytes' => 65_536,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | WebMCP (Experimental)
+    |--------------------------------------------------------------------------
+    |
+    | WebMCP lets in-page browser agents call your tools as the signed-in user.
+    | Enabling it exposes every tool, resource, and prompt you have routed.
+    | Check "Mcp::viaWebMcp" in your "shouldRegister" method to hide it.
+    |
+    | This tracks a W3C Community Group draft and may change in any release.
+    |
+    */
+
+    'web_mcp' => [
+        'enabled' => env('MCP_WEB_MCP_ENABLED', false),
+        'middleware' => ['web'],
+    ],
+
 ];

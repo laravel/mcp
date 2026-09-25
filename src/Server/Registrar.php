@@ -9,11 +9,13 @@ use Illuminate\Container\Container;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Traits\Macroable;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Client\OAuth\OAuthRouteRegistrar;
 use Laravel\Mcp\Client\OAuth\TokenSet;
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController;
@@ -41,6 +43,8 @@ class Registrar
      */
     public function web(string $route, string $serverClass): Route
     {
+        $uri = trim($route, '/');
+
         // https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#listening-for-messages-from-the-server
         Router::get($route, fn (): Response => response('', 405)->header('Allow', 'POST'));
 
@@ -59,7 +63,50 @@ class Registrar
 
         $this->httpServers[$route->uri()] = $route;
 
+        if (config('mcp.web_mcp.enabled') === true) {
+            $this->webMcpRoutes($uri, $serverClass);
+        }
+
         return $route;
+    }
+
+    /**
+     * @experimental This tracks a W3C Community Group draft and may change in any release.
+     *
+     * @param  class-string<Server>  $serverClass
+     */
+    protected function webMcpRoutes(string $uri, string $serverClass): void
+    {
+        $middleware = config('mcp.web_mcp.middleware', ['web']);
+
+        assert(is_array($middleware) || is_string($middleware));
+
+        Router::get($uri.'/webmcp.js', fn (): Response => response(
+            sprintf('window.__laravelWebMcp=%s;%s', json_encode([
+                'endpoint' => url($uri.'/webmcp'),
+                'version' => ProtocolVersion::LATEST->value,
+            ], JSON_UNESCAPED_SLASHES), app('mcp.webmcp')),
+            200,
+            [
+                'Content-Type' => 'text/javascript; charset=utf-8',
+                'Cache-Control' => 'public, max-age=300',
+            ],
+        ))->name('mcp.webmcp.script.'.$uri)->middleware($middleware);
+
+        Router::post($uri.'/webmcp', static fn (): mixed => static::startServer(
+            $serverClass,
+            static fn (): HttpTransport => new HttpTransport(request()),
+        ))->name('mcp.webmcp.'.$uri)->middleware($middleware);
+    }
+
+    /**
+     * Determine whether the current request came from an in-page agent.
+     *
+     * @experimental This feature is experimental.
+     */
+    public function viaWebMcp(): bool
+    {
+        return request()->routeIs('mcp.webmcp.*');
     }
 
     /**
@@ -98,6 +145,23 @@ class Registrar
         array $clientMetadata = [],
     ): void {
         (new OAuthRouteRegistrar)->register($client, $handler, $middleware, $connectUri, $callbackUri, $clientMetadataUri, $clientMetadata);
+    }
+
+    /**
+     * @experimental This tracks a W3C Community Group draft and may change in any release.
+     */
+    public function scripts(?string $uri = null): HtmlString
+    {
+        if (config('mcp.web_mcp.enabled') !== true) {
+            return new HtmlString('');
+        }
+
+        $uris = $uri !== null ? [trim($uri, '/')] : array_keys($this->httpServers);
+
+        return new HtmlString(implode('', array_map(
+            fn (string $uri): string => sprintf('<script src="%s" async></script>', e(url($uri.'/webmcp.js'))),
+            $uris,
+        )));
     }
 
     public function getLocalServer(string $handle): ?callable

@@ -1,0 +1,12 @@
+{
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "esbuild resources/ts/webmcp.ts --bundle --minify --target=es2022 --format=iife --outfile=resources/js/webmcp.min.js",
+        "types": "tsc --noEmit --strict --target es2023 --lib es2023,dom --module esnext --moduleResolution bundler --skipLibCheck resources/ts/webmcp.ts"
+    },
+    "devDependencies": {
+        "esbuild": "^0.28.0",
+        "typescript": "^7.0.2"
+    }
+}
