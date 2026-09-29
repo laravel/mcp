@@ -48,6 +48,39 @@ it('interact with data', function (): void {
         ->and($request->integer('city'))->toBe(0);
 });
 
+it('retrieves nested input using dot notation', function (): void {
+    $request = new Request([
+        'user' => [
+            'name' => 'Alice',
+            'email' => 'alice@example.com',
+        ],
+        'products' => [
+            ['name' => 'Widget'],
+            ['name' => 'Gadget'],
+        ],
+    ]);
+
+    expect($request->get('user.name'))->toBe('Alice')
+        ->and($request->get('user.missing', 'fallback'))->toBe('fallback')
+        ->and($request->get('products.0.name'))->toBe('Widget')
+        ->and($request->get('products.*.name'))->toBe(['Widget', 'Gadget'])
+        ->and($request->string('user.email')->value())->toBe('alice@example.com')
+        ->and($request->filled('user.name'))->toBeTrue()
+        ->and($request->filled('user.country'))->toBeFalse();
+});
+
+it('does not resolve literal dotted keys', function (): void {
+    $request = new Request([
+        'limit.items' => 5,
+        'limit' => ['items' => 10],
+    ]);
+
+    expect($request->get('limit.items'))->toBe(10)
+        ->and($request->get('limit.items', 'fallback'))->toBe(10)
+        ->and((new Request(['limit.items' => 5]))->get('limit.items'))->toBeNull()
+        ->and((new Request(['limit.items' => 5]))->all())->toBe(['limit.items' => 5]);
+});
+
 it('may be returned as array', function (): void {
     $request = new Request([
         'name' => 'Alice',

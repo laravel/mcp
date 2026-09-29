@@ -8,22 +8,20 @@ use Symfony\Component\Process\Process;
 
 use function Orchestra\Testbench\remote;
 
-it('rejects the initialize handshake over http', function (): void {
+it('answers the legacy initialize handshake over http', function (): void {
     $response = $this->postJson('test-mcp', initializeMessage());
 
-    $response->assertStatus(404);
+    $response->assertStatus(200);
 
-    expect($response->json())->toEqual([
-        'jsonrpc' => '2.0',
-        'id' => 456,
-        'error' => [
-            'code' => -32601,
-            'message' => 'The [initialize] handshake was removed in MCP 2026-07-28. Send the protocol version in the request [_meta] instead.',
-            'data' => [
-                'supported' => ['2026-07-28'],
-            ],
-        ],
-    ]);
+    expect($response->json('result.protocolVersion'))->toBe('2025-11-25');
+});
+
+it('serves legacy requests without mcp headers over http', function (): void {
+    $response = $this->postJson('test-mcp', ['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list', 'params' => []]);
+
+    $response->assertStatus(200);
+
+    expect($response->json('result.tools'))->not->toBeEmpty();
 });
 
 it('does not return a session id over http', function (): void {

@@ -2,10 +2,11 @@
 
 declare(strict_types=1);
 
+use JMac\Testing\Double;
 use Laravel\Mcp\Server\Registrar;
 
 beforeEach(function (): void {
-    $this->registrar = Mockery::mock(Registrar::class);
+    $this->registrar = Double::for(Registrar::class);
     $this->app->instance(Registrar::class, $this->registrar);
 });
 
@@ -15,10 +16,7 @@ it('starts a registered local server successfully', function (): void {
         $serverCalled = true;
     };
 
-    $this->registrar
-        ->shouldReceive('getLocalServer')
-        ->with('demo')
-        ->andReturn($server);
+    $this->registrar->expects('getLocalServer')->with('demo')->returns($server);
 
     $this->artisan('mcp:start', ['handle' => 'demo'])
         ->assertExitCode(0);
@@ -27,10 +25,7 @@ it('starts a registered local server successfully', function (): void {
 });
 
 it('fails when server handle is not found', function (): void {
-    $this->registrar
-        ->shouldReceive('getLocalServer')
-        ->with('invalid')
-        ->andReturn(null);
+    $this->registrar->expects('getLocalServer')->with('invalid')->returns(null);
 
     $this->artisan('mcp:start', ['handle' => 'invalid'])
         ->expectsOutputToContain('MCP Server with name [invalid] not found. Did you register it using [Mcp::local()]?')
@@ -46,10 +41,7 @@ it('requires handle argument', function (): void {
 it('asserts handle is a string', function (): void {
     $server = function (): void {};
 
-    $this->registrar
-        ->shouldReceive('getLocalServer')
-        ->with('test-handle')
-        ->andReturn($server);
+    $this->registrar->expects('getLocalServer')->with('test-handle')->returns($server);
 
     // This test ensures the assert(is_string($handle)) works correctly
     $this->artisan('mcp:start', ['handle' => 'test-handle'])

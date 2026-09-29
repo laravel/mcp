@@ -9,6 +9,7 @@ use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Arr;
 use JsonException;
+use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
@@ -83,6 +84,14 @@ class JsonRpcRequest
     public function meta(): ?array
     {
         return isset($this->params['_meta']) && self::isObject($this->params['_meta']) ? $this->params['_meta'] : null;
+    }
+
+    public function isLegacy(): bool
+    {
+        $meta = $this->meta() ?? [];
+
+        return ! array_key_exists(MetaKey::PROTOCOL_VERSION->value, $meta)
+            && ! array_key_exists(MetaKey::CLIENT_CAPABILITIES->value, $meta);
     }
 
     /**

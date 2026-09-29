@@ -16,9 +16,7 @@ In your application's `composer.json` file, update the `laravel/mcp` dependency:
 
 **Likelihood Of Impact: High**
 
-The server now supports only protocol revision `2026-07-28`. The protocol versions `2025-11-25`, `2025-06-18`, `2025-03-26`, and `2024-11-05` are no longer accepted.
-
-The `initialize` handshake has been replaced by the `server/discover` method. Without a handshake, every request must include the protocol version and client capabilities in its own `params._meta`:
+The server now speaks protocol revision `2026-07-28` by default. The `initialize` handshake has been replaced by the `server/discover` method, and every modern request must include the protocol version and client capabilities in its own `params._meta`:
 
 ```
 // Before...
@@ -33,7 +31,7 @@ The `initialize` handshake has been replaced by the `server/discover` method. Wi
 
 If your application only defines `Tool`, `Resource`, `Prompt`, and `Server` classes, no changes are required as long as your MCP client supports the `2026-07-28` revision. Both `Laravel\Mcp\Client` and the MCP Inspector support this revision.
 
-Clients that support only the `initialize` flow can no longer connect and will receive a `-32601` error. Re-registering `initialize` via `addMethod()` will not restore compatibility because every request must still pass the protocol metadata check.
+Clients that still open with `initialize` continue to work. The server answers the handshake with `2025-11-25` or `2025-06-18`, whichever the client requested, and serves the rest of that client's requests without requiring `_meta` or the MCP HTTP headers. Clients requesting `2025-03-26` or `2024-11-05` are offered `2025-11-25` instead. A request that carries `io.modelcontextprotocol/protocolVersion` or `io.modelcontextprotocol/clientCapabilities` in `_meta` is always treated as a `2026-07-28` request and validated as such.
 
 ## MCP HTTP Headers
 
@@ -70,7 +68,7 @@ $this->postJson('mcp-endpoint', $message, [
 ]);
 ```
 
-A mismatch returns an HTTP 400 response containing the JSON-RPC error code `-32020`. Requests to the removed `initialize` method are exempt from header validation, but still receive a `-32601` method-not-found error. The `Mcp-Name` header may be encoded as `=?base64?<b64>?=` when a name contains characters that are not valid in a raw header value.
+A mismatch returns an HTTP 400 response containing the JSON-RPC error code `-32020`. Requests from legacy `initialize` clients, which carry no protocol metadata in `_meta`, are exempt from header validation. The `Mcp-Name` header may be encoded as `=?base64?<b64>?=` when a name contains characters that are not valid in a raw header value.
 
 ## Session IDs
 
@@ -192,12 +190,6 @@ Mcp::oAuthRoutesFor('github', $handler, clientMetadataUri: 'oauth/github/metadat
 The `client_id` and default `redirect_uris` values are computed from your `APP_URL` and route table, while `token_endpoint_auth_method` is always `none`; these values may not be overridden. Any additional `redirect_uris` are included alongside the generated callback URL. The `client_secret`, `client_secret_expires_at`, and `registration_access_token` keys are stripped from the document.
 
 You should check for route collisions at this path and ensure `APP_URL` is correct in production because the document is built from that value rather than from the incoming request.
-
-## The `ping` Method
-
-**Likelihood Of Impact: Low**
-
-The `ping` method has been removed in favor of `server/discover`. Requests to `ping` now return a `-32601` error. Update any health checks or tooling that send a bare `ping` request.
 
 ## The MCP Apps Capability
 

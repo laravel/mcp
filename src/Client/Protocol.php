@@ -39,6 +39,8 @@ class Protocol
 
     protected ?NegotiatedConnection $connection = null;
 
+    protected ?ResponseCache $cache = null;
+
     public function __construct(
         protected Transport $transport,
         protected Implementation $clientInfo,
@@ -279,6 +281,33 @@ class Protocol
      * @return array<string, mixed>
      */
     public function dispatch(Method $method): array
+    {
+        if (! $this->cache instanceof ResponseCache) {
+            return $this->roundTrip($method);
+        }
+
+        return $this->cache->remember(
+            $method,
+            $this->transport,
+            fn (): array => $this->roundTrip($method),
+        );
+    }
+
+    public function useCache(?ResponseCache $responseCache): void
+    {
+        $this->cache = $responseCache;
+    }
+
+    public function cache(): ?ResponseCache
+    {
+        return $this->cache;
+    }
+
+    /**
+     * @param  Method<mixed>  $method
+     * @return array<string, mixed>
+     */
+    protected function roundTrip(Method $method): array
     {
         if (! $this->connected && ! $this->connecting) {
             $this->connect();
