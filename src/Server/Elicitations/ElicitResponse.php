@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Elicitations;
 
 use ArrayAccess;
+use Closure;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -153,13 +154,15 @@ class ElicitResponse implements ArrayAccess
                 in_array($name, $required, true) ? 'present' : 'sometimes',
                 is_int($property['minLength'] ?? null) && $property['minLength'] > 0 ? 'required' : null,
                 is_string($type) ? $types[$type] ?? null : null,
+                is_string($type) ? static::jsonType($type) : null,
                 is_null($allowed) ? null : Rule::in($allowed),
                 is_scalar($min) ? "min:{$min}" : null,
                 is_scalar($max) ? "max:{$max}" : null,
                 match ($property['format'] ?? null) {
                     'email' => 'email',
                     'uri' => 'url',
-                    'date', 'date-time' => 'date',
+                    'date' => 'date_format:Y-m-d',
+                    'date-time' => 'date',
                     default => null,
                 },
             ]))];
@@ -172,6 +175,24 @@ class ElicitResponse implements ArrayAccess
 
             return $rules;
         });
+    }
+
+    protected static function jsonType(string $type): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) use ($type): void {
+            $valid = match ($type) {
+                'string' => is_string($value),
+                'integer' => is_int($value),
+                'number' => is_int($value) || is_float($value),
+                'boolean' => is_bool($value),
+                'array' => is_array($value) && array_is_list($value),
+                default => true,
+            };
+
+            if (! $valid) {
+                $fail("The {$attribute} field must be of type {$type}.");
+            }
+        };
     }
 
     /**

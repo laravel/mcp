@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Transport;
 
-use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Arr;
@@ -13,6 +12,7 @@ use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Elicitations\ElicitResponse;
 
 class JsonRpcRequest
 {
@@ -159,12 +159,22 @@ class JsonRpcRequest
         $sealed = is_array($payload['inputResponses'] ?? null) ? $payload['inputResponses'] : [];
         $issued = is_array($payload['issued'] ?? null) ? $payload['issued'] : [];
 
-        $inputResponses = $payload === [] ? [] : $sealed + array_intersect_key($inputResponses, array_flip($issued));
+        $answered = array_intersect_key($inputResponses, $issued);
+
+        foreach ($answered as $key => $inputResponse) {
+            if ($issued[$key] === 'elicitation/create') {
+                try {
+                    ElicitResponse::from($inputResponse);
+                } catch (JsonRpcException $jsonRpcException) {
+                    throw new JsonRpcException($jsonRpcException->getMessage(), -32602, $this->id);
+                }
+            }
+        }
 
         return new Request(
             arguments: $arguments,
             meta: $this->meta(),
-            inputResponses: $inputResponses,
+            inputResponses: $sealed + $answered,
             state: is_array($payload['state'] ?? null) ? $payload['state'] : [],
         );
     }
@@ -188,7 +198,7 @@ class JsonRpcRequest
     /**
      * @param  array<string, mixed>  $inputResponses
      * @param  array<string, mixed>  $state
-     * @param  array<int, string>  $issued
+     * @param  array<array-key, string>  $issued
      */
     public function encodeRequestState(array $inputResponses, array $state = [], array $issued = []): string
     {
@@ -239,7 +249,7 @@ class JsonRpcRequest
             return $this->scope;
         }
 
-        $user = call_user_func(Container::getInstance()->make('auth')->userResolver());
+        $user = (new Request)->user();
         $arguments = $this->get('arguments');
 
         return $this->scope = hash('sha256', json_encode([
@@ -247,7 +257,8 @@ class JsonRpcRequest
             $this->get('name'),
             $this->get('uri'),
             self::canonicalize(is_array($arguments) ? $arguments : []),
-            $user instanceof Authenticatable ? $user->getAuthIdentifier() : null,
+            $user?->getAuthIdentifier(),
+            $user instanceof Authenticatable && method_exists($user, 'token') ? data_get($user->token(), 'client_id') : null,
         ], JSON_THROW_ON_ERROR));
     }
 

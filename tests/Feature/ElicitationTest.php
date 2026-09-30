@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Carbon\Carbon;
+use Illuminate\Auth\GenericUser;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Validation\ValidationException;
 use Laravel\Mcp\Enums\ElicitationAction;
@@ -18,6 +19,7 @@ use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Transport\JsonRpcRequest;
+use stdClass;
 
 class ElicitationServer extends Server
 {
@@ -34,6 +36,8 @@ class ElicitationServer extends Server
         TwoInstanceElicitationTool::class,
         UnserializableStateTool::class,
         EnumElicitationTool::class,
+        AskThenRootsTool::class,
+        ContentElicitationTool::class,
     ];
 
     protected array $prompts = [ElicitationPrompt::class];
@@ -229,14 +233,14 @@ it('matches numeric elicitation keys the client echoes back', function (): void 
             'arguments' => [],
             '_meta' => elicitationMeta(),
             'requestState' => (new JsonRpcRequest(id: 1, method: 'tools/call', params: ['name' => 'elicitation-tool']))
-                ->encodeRequestState(['7' => ['action' => 'accept', 'content' => ['value' => 'kept']]], [], ['9']),
+                ->encodeRequestState(['7' => ['action' => 'accept', 'content' => ['value' => 'kept']]], [], ['9' => 'elicitation/create']),
             'inputResponses' => json_decode('{"9":{"action":"accept","content":{"value":"fresh"}}}', true),
         ],
     ])->toRequest();
 
     expect($request->inputResponses())->toHaveKeys(['7', '9'])
-        ->and($request->ask('Pick', ['type' => 'object'], '9')->get('value'))->toBe('fresh')
-        ->and($request->ask('Pick', ['type' => 'object'], '7')->get('value'))->toBe('kept');
+        ->and($request->ask('Pick', $schema = ['type' => 'object', 'properties' => ['value' => ['type' => 'string']]], '9')->get('value'))->toBe('fresh')
+        ->and($request->ask('Pick', $schema, '7')->get('value'))->toBe('kept');
 });
 
 it('reports boolean client capabilities as declared', function (): void {
@@ -738,7 +742,7 @@ it('refuses to request input on methods the specification does not allow', funct
 
 it('keeps a sealed answer when the retry tries to change it', function (): void {
     $issued = (new JsonRpcRequest(id: 1, method: 'tools/call', params: ['name' => 'elicitation-tool']))
-        ->encodeRequestState(['first' => ['action' => 'accept', 'content' => ['value' => 'sealed']]], [], ['second']);
+        ->encodeRequestState(['first' => ['action' => 'accept', 'content' => ['value' => 'sealed']]], [], ['second' => 'elicitation/create']);
 
     $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
@@ -762,7 +766,7 @@ it('keeps a sealed answer when the retry tries to change it', function (): void 
 
 it('ignores an input response the server never requested', function (): void {
     $issued = (new JsonRpcRequest(id: 1, method: 'tools/call', params: ['name' => 'multi-round-elicitation-tool']))
-        ->encodeRequestState([], [], ['first']);
+        ->encodeRequestState([], [], ['first' => 'elicitation/create']);
 
     $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
@@ -892,4 +896,108 @@ it('seals the request state as json rather than php serialization', function ():
             'inputResponses' => ['confirm' => ['action' => 'accept']],
             'state' => ['order' => 'order-1'],
         ]);
+});
+
+class AskThenRootsTool extends Tool
+{
+    public function handle(Request $request): Response
+    {
+        $name = $request->ask('Your name', fn (JsonSchema $schema): array => [
+            'name' => $schema->string()->required(),
+        ], 'name');
+
+        $roots = $request->inputResponses()['roots'] ?? throw new InputRequiredException([
+            'roots' => ['method' => 'roots/list', 'params' => []],
+        ]);
+
+        return Response::text("{$name['name']}: ".implode(', ', array_column($roots['roots'], 'uri')));
+    }
+}
+
+class ContentElicitationTool extends Tool
+{
+    public function handle(Request $request): Response
+    {
+        $response = $request->ask('Your name', fn (JsonSchema $schema): array => [
+            'name' => $schema->string()->required(),
+        ]);
+
+        return Response::text((string) json_encode($response->content()));
+    }
+}
+
+it('keeps earlier answers when a handler throws for more input directly', function (): void {
+    ElicitationServer::tool(AskThenRootsTool::class)
+        ->respond(['name' => 'octocat'], key: 'name')
+        ->assertInputRequired()
+        ->respondWith(['roots' => [['uri' => 'file:///app']]], 'roots')
+        ->assertSee('octocat: file:///app');
+});
+
+it('rejects an unusable elicitation response as invalid params', function (mixed $action, mixed $content): void {
+    ElicitationServer::tool(ElicitationTool::class)
+        ->respond($content, $action)
+        ->assertErrorCode(ErrorCode::INVALID_PARAMS->value);
+})->with([
+    'unknown action' => ['maybe', ['name' => 'octocat']],
+    'non object content' => ['accept', 'octocat'],
+]);
+
+it('rejects content that only loosely matches the requested types', function (): void {
+    ElicitationServer::tool(RememberingTool::class)
+        ->respond(['ok' => '1'])
+        ->assertHasErrors(['The ok field must be of type boolean.']);
+});
+
+it('drops content the requested schema does not declare', function (): void {
+    ElicitationServer::tool(ContentElicitationTool::class)
+        ->respond(['name' => 'octocat', 'admin' => true])
+        ->assertSee('{"name":"octocat"}');
+});
+
+it('validates the date format as a full date', function (): void {
+    $rules = ElicitResponse::rulesFor(['when' => ['type' => 'string', 'format' => 'date']], ['when']);
+
+    expect(ElicitResponse::from(['action' => 'accept', 'content' => ['when' => '2026-09-30']])->validate($rules))
+        ->toBe(['when' => '2026-09-30'])
+        ->and(fn (): array => ElicitResponse::from(['action' => 'accept', 'content' => ['when' => '09/30/2026']])->validate($rules))
+        ->toThrow(ValidationException::class);
+});
+
+it('binds the request state to the oauth client', function (): void {
+    $userWithClient = fn (string $clientId): GenericUser => new class(['id' => 1, 'client' => $clientId]) extends GenericUser
+    {
+        public function token(): stdClass
+        {
+            return (object) ['client_id' => $this->client];
+        }
+    };
+
+    $params = ['name' => 'elicitation-tool'];
+
+    $this->actingAs($userWithClient('client-a'));
+    $issued = (new JsonRpcRequest(id: 1, method: 'tools/call', params: $params))->encodeRequestState([]);
+
+    $replay = fn (): Request => JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'method' => 'tools/call',
+        'params' => [...$params, 'requestState' => $issued],
+    ])->toRequest();
+
+    expect($replay()->state())->toBe([]);
+
+    $this->actingAs($userWithClient('client-b'));
+
+    expect($replay)->toThrow(JsonRpcException::class, 'issued for a different request');
+});
+
+it('refuses input requests the specification does not define', function (): void {
+    $inputRequiredException = new InputRequiredException([
+        'custom' => ['method' => 'custom/ask', 'params' => []],
+    ]);
+
+    expect(fn (): mixed => $inputRequiredException->toJsonRpcResponse(
+        new JsonRpcRequest(id: 1, method: 'tools/call', params: ['name' => 'elicitation-tool']),
+    ))->toThrow(InvalidArgumentException::class, 'The [custom/ask] input request is not supported.');
 });

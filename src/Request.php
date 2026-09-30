@@ -17,6 +17,7 @@ use Illuminate\Support\Traits\InteractsWithData;
 use Illuminate\Support\Traits\Macroable;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
+use Laravel\Mcp\Enums\ElicitationAction;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Exceptions\InputRequiredException;
 use Laravel\Mcp\Server\Elicitations\ElicitResponse;
@@ -187,11 +188,9 @@ class Request implements Arrayable
             ],
         ], $key));
 
-        if ($response->accepted()) {
-            $response->validate(ElicitResponse::rulesFor($properties, $required));
-        }
-
-        return $response;
+        return $response->accepted()
+            ? new ElicitResponse(ElicitationAction::Accept, $response->validate(ElicitResponse::rulesFor($properties, $required)))
+            : $response;
     }
 
     public function canAsk(): bool

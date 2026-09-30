@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Exceptions;
 
 use Exception;
 use Illuminate\Support\Arr;
+use InvalidArgumentException;
 use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Transport\JsonRpcRequest;
@@ -62,6 +63,8 @@ class InputRequiredException extends Exception
 
         $this->assertClientSupportsEveryInputRequest($request);
 
+        $carried = $request->toRequest();
+
         return JsonRpcResponse::result($request->id, [
             'resultType' => 'input_required',
             'inputRequests' => (object) Arr::map(
@@ -72,9 +75,9 @@ class InputRequiredException extends Exception
                 ],
             ),
             'requestState' => $request->encodeRequestState(
-                $this->inputResponses,
-                $this->state,
-                array_map(strval(...), array_keys($this->inputRequests)),
+                $this->inputResponses + $carried->inputResponses(),
+                $this->state + $carried->state(),
+                Arr::map($this->inputRequests, fn (array $inputRequest): string => $inputRequest['method']),
             ),
         ]);
     }
@@ -90,7 +93,7 @@ class InputRequiredException extends Exception
         foreach ($this->inputRequests as $inputRequest) {
             $capability = static::requiredCapability($inputRequest);
 
-            if (! is_null($capability) && ! $client->clientSupports($capability)) {
+            if (! $client->clientSupports($capability)) {
                 data_set($missing, $capability, (object) []);
             }
         }
@@ -110,15 +113,19 @@ class InputRequiredException extends Exception
     /**
      * @param  array{method: string, params?: array<string, mixed>}  $inputRequest
      */
-    protected static function requiredCapability(array $inputRequest): ?string
+    protected static function requiredCapability(array $inputRequest): string
     {
         $params = $inputRequest['params'] ?? [];
+        $method = $inputRequest['method'] ?? null;
 
-        return match ($inputRequest['method'] ?? null) {
+        return match ($method) {
             'elicitation/create' => ($params['mode'] ?? 'form') === 'url' ? 'elicitation.url' : 'elicitation.form',
             'sampling/createMessage' => isset($params['tools']) || isset($params['toolChoice']) ? 'sampling.tools' : 'sampling',
             'roots/list' => 'roots',
-            default => null,
+            default => throw new InvalidArgumentException(sprintf(
+                'The [%s] input request is not supported. Input requests must be one of [elicitation/create, sampling/createMessage, roots/list].',
+                is_string($method) ? $method : get_debug_type($method),
+            )),
         };
     }
 }
