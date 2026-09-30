@@ -150,18 +150,16 @@ class JsonRpcRequest
         $payload = $this->requestState();
         $inputResponses = $this->inputResponses();
 
-        if ($payload !== []) {
-            $sealed = is_array($payload['inputResponses'] ?? null) ? $payload['inputResponses'] : [];
-            $issued = is_array($payload['issued'] ?? null) ? $payload['issued'] : [];
-
-            $inputResponses = $sealed + array_intersect_key($inputResponses, array_flip($issued));
-        }
-
         foreach ($inputResponses as $key => $inputResponse) {
             if (! self::isObject($inputResponse)) {
                 throw new JsonRpcException("Invalid params: The [inputResponses.{$key}] member must be an object.", -32602, $this->id);
             }
         }
+
+        $sealed = is_array($payload['inputResponses'] ?? null) ? $payload['inputResponses'] : [];
+        $issued = is_array($payload['issued'] ?? null) ? $payload['issued'] : [];
+
+        $inputResponses = $payload === [] ? [] : $sealed + array_intersect_key($inputResponses, array_flip($issued));
 
         return new Request(
             arguments: $arguments,

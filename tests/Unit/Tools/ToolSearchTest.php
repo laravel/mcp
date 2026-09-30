@@ -310,7 +310,7 @@ class StreamingElicitingCatalogTool extends Tool
     }
 }
 
-it('fails catalog tools that request user input', function (string $name): void {
+it('fails catalog tools that request user input', function (string $name, array $capabilities): void {
     $context = toolSearchContext([ElicitingCatalogTool::class, StreamingElicitingCatalogTool::class]);
     $executeTools = toolFromContext($context, 'execute_tools');
 
@@ -321,7 +321,7 @@ it('fails catalog tools that request user input', function (string $name): void 
         'params' => [
             'name' => $executeTools->name(),
             'arguments' => ['calls' => [['name' => $name, 'arguments' => []]]],
-            '_meta' => [MetaKey::CLIENT_CAPABILITIES->value => ['elicitation' => ['form' => []]]],
+            '_meta' => [MetaKey::CLIENT_CAPABILITIES->value => $capabilities],
         ],
     ]);
 
@@ -334,7 +334,10 @@ it('fails catalog tools that request user input', function (string $name): void 
 
     expect($result['isError'])->toBeTrue()
         ->and($result['content'][0]['text'])->toContain("Tool [{$name}] requested user input, which is not supported through tool search.");
-})->with(['eliciting-catalog-tool', 'streaming-eliciting-catalog-tool']);
+})->with(['eliciting-catalog-tool', 'streaming-eliciting-catalog-tool'])->with([
+    'with elicitation' => [['elicitation' => ['form' => []]]],
+    'without elicitation' => [[]],
+]);
 
 function toolSearchContext(array $tools): ServerContext
 {

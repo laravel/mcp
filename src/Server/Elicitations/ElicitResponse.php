@@ -8,6 +8,7 @@ use ArrayAccess;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use InvalidArgumentException;
 use Laravel\Mcp\Enums\ElicitationAction;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use LogicException;
@@ -17,6 +18,11 @@ use LogicException;
  */
 class ElicitResponse implements ArrayAccess
 {
+    /**
+     * @var array<int, string>
+     */
+    protected const PRIMITIVE_TYPES = ['string', 'number', 'integer', 'boolean'];
+
     /**
      * @param  array<string, mixed>  $content
      */
@@ -81,6 +87,47 @@ class ElicitResponse implements ArrayAccess
     }
 
     /**
+     * @param  array<string, mixed>  $schema
+     */
+    public static function assertFormSchema(array $schema): void
+    {
+        if (($schema['type'] ?? 'object') !== 'object') {
+            throw new InvalidArgumentException('Form elicitation schemas must declare a root type of [object].');
+        }
+
+        $properties = (array) ($schema['properties'] ?? []);
+
+        foreach ($properties as $name => $property) {
+            $type = is_array($property) ? $property['type'] ?? null : null;
+
+            if ($type === 'object') {
+                throw new InvalidArgumentException("The [{$name}] property must be a primitive. Form elicitation schemas may not nest objects.");
+            }
+
+            if ($type === 'array') {
+                $items = is_array($property['items'] ?? null) ? $property['items'] : [];
+                $allowed = $items['enum'] ?? $items['anyOf'] ?? null;
+
+                if (! is_array($allowed) || $allowed === []) {
+                    throw new InvalidArgumentException("The [{$name}] property must be an enum array. Form elicitation schemas only allow arrays of enum values.");
+                }
+
+                continue;
+            }
+
+            if (! in_array($type, static::PRIMITIVE_TYPES, true)) {
+                throw new InvalidArgumentException("The [{$name}] property must declare one of the [".implode(', ', static::PRIMITIVE_TYPES).'] types.');
+            }
+        }
+
+        foreach ((array) ($schema['required'] ?? []) as $name) {
+            if (! is_string($name) || ! array_key_exists($name, $properties)) {
+                throw new InvalidArgumentException('The [required] member may only list declared properties.');
+            }
+        }
+    }
+
+    /**
      * @param  array<string, mixed>  $properties
      * @param  array<array-key, mixed>  $required
      * @return array<string, array<int, mixed>>
@@ -103,7 +150,8 @@ class ElicitResponse implements ArrayAccess
             $max = $property['maxLength'] ?? $property['maximum'] ?? $property['maxItems'] ?? null;
 
             $rules = [$name => array_values(array_filter([
-                in_array($name, $required, true) ? 'required' : 'sometimes',
+                in_array($name, $required, true) ? 'present' : 'sometimes',
+                is_int($property['minLength'] ?? null) && $property['minLength'] > 0 ? 'required' : null,
                 is_string($type) ? $types[$type] ?? null : null,
                 is_null($allowed) ? null : Rule::in($allowed),
                 is_scalar($min) ? "min:{$min}" : null,

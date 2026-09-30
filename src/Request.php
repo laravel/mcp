@@ -19,7 +19,6 @@ use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Exceptions\InputRequiredException;
-use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Elicitations\ElicitResponse;
 
 /**
@@ -30,11 +29,6 @@ class Request implements Arrayable
     use Conditionable;
     use InteractsWithData;
     use Macroable;
-
-    /**
-     * @var array<int, string>
-     */
-    protected const PRIMITIVE_TYPES = ['string', 'number', 'integer', 'boolean'];
 
     protected int $elicitations = 0;
 
@@ -176,7 +170,7 @@ class Request implements Arrayable
             ? JsonSchemaFactory::object($schema)->toArray()
             : $schema;
 
-        $this->assertRestrictedSchema($requestedSchema);
+        ElicitResponse::assertFormSchema($requestedSchema);
 
         $properties = (array) ($requestedSchema['properties'] ?? []);
         $required = (array) ($requestedSchema['required'] ?? []);
@@ -200,36 +194,6 @@ class Request implements Arrayable
         return $response;
     }
 
-    /**
-     * @param  array<int, array<string, mixed>>  $messages
-     * @param  array<string, mixed>  $options
-     * @return array<string, mixed>
-     *
-     * @deprecated Sampling is deprecated as of protocol version 2026-07-28.
-     */
-    public function sample(array $messages, int $maxTokens, array $options = [], ?string $key = null): array
-    {
-        return $this->resolveInput([
-            'method' => 'sampling/createMessage',
-            'params' => [...$options, 'messages' => $messages, 'maxTokens' => $maxTokens],
-        ], $key);
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     *
-     * @deprecated Roots is deprecated as of protocol version 2026-07-28.
-     */
-    public function roots(?string $key = null): array
-    {
-        $roots = $this->resolveInput([
-            'method' => 'roots/list',
-            'params' => [],
-        ], $key)['roots'] ?? [];
-
-        return is_array($roots) ? $roots : [];
-    }
-
     public function canAsk(): bool
     {
         return $this->clientSupports('elicitation.form');
@@ -249,59 +213,14 @@ class Request implements Arrayable
     }
 
     /**
-     * @param  array<string, mixed>  $schema
-     */
-    protected function assertRestrictedSchema(array $schema): void
-    {
-        if (($schema['type'] ?? 'object') !== 'object') {
-            throw new InvalidArgumentException('Form elicitation schemas must declare a root type of [object].');
-        }
-
-        $properties = (array) ($schema['properties'] ?? []);
-
-        foreach ($properties as $name => $property) {
-            $type = is_array($property) ? $property['type'] ?? null : null;
-
-            if ($type === 'object') {
-                throw new InvalidArgumentException("The [{$name}] property must be a primitive. Form elicitation schemas may not nest objects.");
-            }
-
-            if ($type === 'array') {
-                $items = is_array($property['items'] ?? null) ? $property['items'] : [];
-                $allowed = $items['enum'] ?? $items['anyOf'] ?? null;
-
-                if (! is_array($allowed) || $allowed === []) {
-                    throw new InvalidArgumentException("The [{$name}] property must be an enum array. Form elicitation schemas only allow arrays of enum values.");
-                }
-
-                continue;
-            }
-
-            if (! in_array($type, static::PRIMITIVE_TYPES, true)) {
-                throw new InvalidArgumentException("The [{$name}] property must declare one of the [".implode(', ', static::PRIMITIVE_TYPES).'] types.');
-            }
-        }
-
-        foreach ((array) ($schema['required'] ?? []) as $name) {
-            if (! is_string($name) || ! array_key_exists($name, $properties)) {
-                throw new InvalidArgumentException('The [required] member may only list declared properties.');
-            }
-        }
-    }
-
-    /**
      * @param  array{method: string, params: array<string, mixed>}  $inputRequest
      * @return array<string, mixed>
      */
     protected function resolveInput(array $inputRequest, ?string $key): array
     {
-        $key ??= hash('sha256', json_encode($inputRequest).$this->elicitations++);
+        $key ??= hash('sha256', json_encode([$inputRequest['method'], Arr::except($inputRequest['params'], 'message')]).$this->elicitations++);
 
         if (array_key_exists($key, $this->inputResponses)) {
-            if (! is_array($this->inputResponses[$key])) {
-                throw new JsonRpcException("Invalid params: The [inputResponses.{$key}] member must be an object.", -32602);
-            }
-
             return $this->inputResponses[$key];
         }
 

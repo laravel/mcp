@@ -8,7 +8,9 @@ use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use JsonException;
+use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Exceptions\InputRequiredException;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Tool;
@@ -219,6 +221,12 @@ class ToolSearch
                 'result' => $result ?? $this->failedResult("Tool [{$name}] returned no result."),
             ];
         } catch (InputRequiredException) {
+            return ['notifications' => [], 'result' => $this->inputNotSupportedResult($name)];
+        } catch (JsonRpcException $jsonRpcException) {
+            if ($jsonRpcException->getCode() !== ErrorCode::MISSING_REQUIRED_CLIENT_CAPABILITY->value) {
+                throw $jsonRpcException;
+            }
+
             return ['notifications' => [], 'result' => $this->inputNotSupportedResult($name)];
         } finally {
             if ($hadParentRequest) {

@@ -350,13 +350,6 @@ it('answers each simultaneous input request in turn', function (): void {
         ->assertSee('one and two');
 });
 
-it('rejects an input response that is not an object', function (): void {
-    $request = new Request(meta: elicitationMeta(), inputResponses: ['picked' => 'nope']);
-
-    expect(fn (): ElicitResponse => $request->ask('Pick', ['type' => 'object'], 'picked'))
-        ->toThrow(JsonRpcException::class, 'Invalid params: The [inputResponses.picked] member must be an object.');
-});
-
 it('rejects a malformed input response at the json rpc boundary', function (): void {
     $request = JsonRpcRequest::from([
         'jsonrpc' => '2.0',
@@ -449,9 +442,13 @@ class SamplingTool extends Tool
 {
     public function handle(Request $request): Response
     {
-        $completion = $request->sample([
-            ['role' => 'user', 'content' => ['type' => 'text', 'text' => 'Say hello.']],
-        ], 100, ['systemPrompt' => 'Be terse.'], 'completion');
+        $completion = $request->inputResponses()['completion'] ?? throw new InputRequiredException([
+            'completion' => ['method' => 'sampling/createMessage', 'params' => [
+                'messages' => [['role' => 'user', 'content' => ['type' => 'text', 'text' => 'Say hello.']]],
+                'systemPrompt' => 'Be terse.',
+                'maxTokens' => 100,
+            ]],
+        ], $request->inputResponses());
 
         return Response::text('Model said: '.$completion['content']['text']);
     }
@@ -461,7 +458,11 @@ class RootsTool extends Tool
 {
     public function handle(Request $request): Response
     {
-        return Response::text('Roots: '.implode(', ', array_column($request->roots('roots'), 'uri')));
+        $roots = $request->inputResponses()['roots'] ?? throw new InputRequiredException([
+            'roots' => ['method' => 'roots/list', 'params' => []],
+        ], $request->inputResponses());
+
+        return Response::text('Roots: '.implode(', ', array_column($roots['roots'], 'uri')));
     }
 }
 
@@ -469,12 +470,14 @@ class SamplingWithToolsTool extends Tool
 {
     public function handle(Request $request): Response
     {
-        $completion = $request->sample([
-            ['role' => 'user', 'content' => ['type' => 'text', 'text' => 'Check the weather.']],
-        ], 100, [
-            'tools' => [['name' => 'get_weather', 'inputSchema' => ['type' => 'object']]],
-            'toolChoice' => ['mode' => 'auto'],
-        ], 'completion');
+        $completion = $request->inputResponses()['completion'] ?? throw new InputRequiredException([
+            'completion' => ['method' => 'sampling/createMessage', 'params' => [
+                'messages' => [['role' => 'user', 'content' => ['type' => 'text', 'text' => 'Check the weather.']]],
+                'maxTokens' => 100,
+                'tools' => [['name' => 'get_weather', 'inputSchema' => ['type' => 'object']]],
+                'toolChoice' => ['mode' => 'auto'],
+            ]],
+        ], $request->inputResponses());
 
         return Response::text('Model said: '.$completion['content']['text']);
     }
@@ -698,7 +701,7 @@ it('validates accepted content against the requested schema', function (array $c
         ->respond($content)
         ->assertHasErrors([$message]);
 })->with([
-    'missing required' => [[], 'The name field is required.'],
+    'missing required' => [[], 'The name field must be present.'],
     'wrong type' => [['name' => ['a' => 1]], 'The name field must be a string.'],
 ]);
 
@@ -776,6 +779,49 @@ it('ignores an input response the server never requested', function (): void {
     ])->toRequest();
 
     expect($request->inputResponses())->toBe(['first' => ['action' => 'accept', 'content' => ['value' => 'one']]]);
+});
+
+it('ignores input responses sent without the request state', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 2,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'multi-round-elicitation-tool',
+            'inputResponses' => [
+                'first' => ['action' => 'accept', 'content' => ['value' => 'forged']],
+                'second' => ['action' => 'accept', 'content' => ['value' => 'never shown']],
+            ],
+        ],
+    ])->toRequest();
+
+    expect($request->inputResponses())->toBe([]);
+});
+
+it('keeps the default key when only the message changes between rounds', function (): void {
+    $keyFor = function (string $message): string {
+        try {
+            (new Request(meta: elicitationMeta()))->ask($message, ['type' => 'object']);
+        } catch (InputRequiredException $inputRequiredException) {
+            return (string) array_key_first($inputRequiredException->inputRequests());
+        }
+
+        throw new RuntimeException('The request did not require input.');
+    };
+
+    expect($keyFor('Delete 3 rows?'))->toBe($keyFor('Delete 4 rows?'));
+});
+
+it('treats required as presence and minLength as non empty', function (): void {
+    $rules = ElicitResponse::rulesFor([
+        'nickname' => ['type' => 'string'],
+        'name' => ['type' => 'string', 'minLength' => 1],
+    ], ['nickname', 'name']);
+
+    expect(ElicitResponse::from(['action' => 'accept', 'content' => ['nickname' => '', 'name' => 'a']])->validate($rules))
+        ->toBe(['nickname' => '', 'name' => 'a'])
+        ->and(fn (): array => ElicitResponse::from(['action' => 'accept', 'content' => ['nickname' => '', 'name' => '']])->validate($rules))
+        ->toThrow(ValidationException::class);
 });
 
 it('rejects malformed multi round trip parameters', function (array $params, string $message): void {
