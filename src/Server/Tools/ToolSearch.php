@@ -213,7 +213,7 @@ class ToolSearch
             }
 
             if (is_array($result) && ($result['resultType'] ?? null) === 'input_required') {
-                return ['notifications' => [], 'result' => $this->inputNotSupportedResult($name)];
+                return $this->inputNotSupported($name);
             }
 
             return [
@@ -221,13 +221,13 @@ class ToolSearch
                 'result' => $result ?? $this->failedResult("Tool [{$name}] returned no result."),
             ];
         } catch (InputRequiredException) {
-            return ['notifications' => [], 'result' => $this->inputNotSupportedResult($name)];
+            return $this->inputNotSupported($name);
         } catch (JsonRpcException $jsonRpcException) {
             if ($jsonRpcException->getCode() !== ErrorCode::MISSING_REQUIRED_CLIENT_CAPABILITY->value) {
                 throw $jsonRpcException;
             }
 
-            return ['notifications' => [], 'result' => $this->inputNotSupportedResult($name)];
+            return $this->inputNotSupported($name);
         } finally {
             if ($hadParentRequest) {
                 $container->instance('mcp.request', $boundParentRequest);
@@ -278,11 +278,14 @@ class ToolSearch
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array{notifications: array<int, Response>, result: array<string, mixed>}
      */
-    protected function inputNotSupportedResult(string $name): array
+    protected function inputNotSupported(string $name): array
     {
-        return $this->failedResult("Tool [{$name}] requested user input, which is not supported through tool search.");
+        return [
+            'notifications' => [],
+            'result' => $this->failedResult("Tool [{$name}] requested user input, which is not supported through tool search."),
+        ];
     }
 
     /**
