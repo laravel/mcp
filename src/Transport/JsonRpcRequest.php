@@ -4,22 +4,13 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Transport;
 
-use Illuminate\Contracts\Auth\Authenticatable;
-use Illuminate\Contracts\Encryption\DecryptException;
-use Illuminate\Support\Arr;
-use JsonException;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
-use Laravel\Mcp\Server\Elicitations\ElicitResponse;
 
 class JsonRpcRequest
 {
-    protected const REQUEST_STATE_TTL = 3600;
-
-    private ?string $scope = null;
-
     /**
      * @param  array<string, mixed>  $params
      */
@@ -147,132 +138,7 @@ class JsonRpcRequest
             $arguments = [];
         }
 
-        $payload = $this->requestState();
-        $inputResponses = $this->inputResponses();
-
-        $sealed = is_array($payload['inputResponses'] ?? null) ? $payload['inputResponses'] : [];
-        $issued = is_array($payload['issued'] ?? null) ? $payload['issued'] : [];
-
-        $answered = array_intersect_key($inputResponses, $issued);
-
-        foreach ($answered as $key => $inputResponse) {
-            if ($issued[$key] === 'elicitation/create') {
-                try {
-                    ElicitResponse::from($inputResponse);
-                } catch (JsonRpcException $jsonRpcException) {
-                    throw new JsonRpcException($jsonRpcException->getMessage(), -32602, $this->id);
-                }
-            }
-        }
-
-        return new Request(
-            arguments: $arguments,
-            meta: $this->meta(),
-            inputResponses: $sealed + $answered,
-            state: is_array($payload['state'] ?? null) ? $payload['state'] : [],
-        );
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function inputResponses(): array
-    {
-        if (! array_key_exists('inputResponses', $this->params)) {
-            return [];
-        }
-
-        $inputResponses = $this->params['inputResponses'];
-
-        if (! self::isObject($inputResponses)) {
-            throw new JsonRpcException('Invalid params: The [inputResponses] member must be an object.', -32602, $this->id);
-        }
-
-        foreach ($inputResponses as $key => $inputResponse) {
-            if (! self::isObject($inputResponse)) {
-                throw new JsonRpcException("Invalid params: The [inputResponses.{$key}] member must be an object.", -32602, $this->id);
-            }
-        }
-
-        return $inputResponses;
-    }
-
-    /**
-     * @param  array<string, mixed>  $inputResponses
-     * @param  array<string, mixed>  $state
-     * @param  array<array-key, string>  $issued
-     */
-    public function encodeRequestState(array $inputResponses, array $state = [], array $issued = []): string
-    {
-        return encrypt(json_encode([
-            'scope' => $this->scope(),
-            'expiresAt' => now()->getTimestamp() + static::REQUEST_STATE_TTL,
-            'inputResponses' => $inputResponses,
-            'state' => $state,
-            'issued' => $issued,
-        ], JSON_THROW_ON_ERROR), false);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function requestState(): array
-    {
-        if (! array_key_exists('requestState', $this->params)) {
-            return [];
-        }
-
-        $requestState = $this->params['requestState'];
-
-        if (! is_string($requestState)) {
-            throw new JsonRpcException('Invalid params: The [requestState] member must be a string.', -32602, $this->id);
-        }
-
-        try {
-            $payload = json_decode(decrypt($requestState, false), true, 512, JSON_THROW_ON_ERROR);
-        } catch (DecryptException|JsonException) {
-            throw new JsonRpcException('Invalid params: The [requestState] member failed integrity verification.', -32602, $this->id);
-        }
-
-        if (! is_array($payload) || ! hash_equals($this->scope(), is_string($payload['scope'] ?? null) ? $payload['scope'] : '')) {
-            throw new JsonRpcException('Invalid params: The [requestState] member was issued for a different request.', -32602, $this->id);
-        }
-
-        if (! is_int($payload['expiresAt'] ?? null) || $payload['expiresAt'] < now()->getTimestamp()) {
-            throw new JsonRpcException('Invalid params: The [requestState] member has expired.', -32602, $this->id);
-        }
-
-        return $payload;
-    }
-
-    private function scope(): string
-    {
-        if ($this->scope !== null) {
-            return $this->scope;
-        }
-
-        $user = (new Request)->user();
-        $arguments = $this->get('arguments');
-
-        return $this->scope = hash('sha256', json_encode([
-            $this->method,
-            $this->get('name'),
-            $this->get('uri'),
-            self::canonicalize(is_array($arguments) ? $arguments : []),
-            $user?->getAuthIdentifier(),
-            $user instanceof Authenticatable && method_exists($user, 'token') ? data_get($user->token(), 'client_id') : null,
-        ], JSON_THROW_ON_ERROR));
-    }
-
-    /**
-     * @param  array<string, mixed>  $arguments
-     * @return array<string, mixed>
-     */
-    private static function canonicalize(array $arguments): array
-    {
-        ksort($arguments);
-
-        return Arr::map($arguments, fn (mixed $value): mixed => is_array($value) ? self::canonicalize($value) : $value);
+        return new Request($arguments, $this->meta());
     }
 
     /**

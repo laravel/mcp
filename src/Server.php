@@ -11,7 +11,6 @@ use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\Extension;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\ProtocolVersion;
-use Laravel\Mcp\Exceptions\InputRequiredException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Schema\Implementation;
@@ -347,11 +346,9 @@ abstract class Server
             $result = (array) $response->content['result'];
             $result['_meta'][MetaKey::SERVER_INFO->value] = $context->implementation->toArray();
 
-            $resultType = $result['resultType'] ?? 'complete';
-
             $response->content['result'] = [
-                'resultType' => $resultType,
-                ...$resultType === 'complete' ? $this->resolveCacheHints($request, $context) : [],
+                'resultType' => 'complete',
+                ...$this->resolveCacheHints($request, $context),
                 ...$result,
             ];
         }
@@ -418,12 +415,12 @@ abstract class Server
         $container->instance('mcp.request', $request->toRequest());
 
         try {
-            return $methodClass->handle($request, $context);
-        } catch (InputRequiredException $inputRequiredException) {
-            return $inputRequiredException->toJsonRpcResponse($request);
+            $response = $methodClass->handle($request, $context);
         } finally {
             $container->forgetInstance('mcp.request');
         }
+
+        return $response;
     }
 
     /**
