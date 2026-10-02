@@ -130,7 +130,7 @@ class AuthServerDiscovery
 
         $origin = $this->originFromParts($parts);
 
-        $path = $parts['path'] ?? '';
+        $path = rtrim($parts['path'] ?? '', '/');
 
         if ($path === '') {
             return [

@@ -63,6 +63,32 @@ it('builds an authorization redirect with PKCE and stashes session state', funct
         ->and($stored['verifier'])->toBeString();
 });
 
+it('discovers an authorization server whose issuer has a trailing slash', function (): void {
+    // Real-world shape (e.g. Fireflies' MCP server): the issuer in the
+    // protected resource metadata ends with "/", which must not be treated
+    // as a meaningful path segment when building the metadata candidate
+    // URLs - otherwise none of them resolve.
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'authorization_servers' => ['https://auth.test/'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test/',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'token_endpoint' => 'https://auth.test/token',
+            'code_challenge_methods_supported' => ['S256'],
+        ]),
+    ]);
+
+    $target = Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect()
+        ->getTargetUrl();
+
+    expect($target)->toStartWith('https://auth.test/authorize?');
+});
+
 it('merges query params onto an authorization endpoint that already has a query string', function (): void {
     Http::fake([
         'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
