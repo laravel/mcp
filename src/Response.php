@@ -18,6 +18,7 @@ use Laravel\Mcp\Server\Content\Blob;
 use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\ResourceLink;
+use Laravel\Mcp\Server\Content\StructuredContentText;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
 use Laravel\Mcp\Server\Resource;
@@ -99,7 +100,7 @@ class Response
             throw new InvalidArgumentException("Invalid structured content: {$jsonException->getMessage()}", 0, $jsonException);
         }
 
-        $content = Response::text($json);
+        $content = new static(new StructuredContentText($json));
 
         return (new ResponseFactory($content))->withStructuredContent($response);
     }
