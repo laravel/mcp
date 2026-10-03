@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client;
 
 use Closure;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Traits\Macroable;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Exceptions\ClientException;
@@ -41,40 +40,37 @@ class ClientManager
 
     public function build(string $name): Client
     {
-        $config = config("mcp.clients.{$name}");
-
         $client = match (true) {
             isset($this->factories[$name]) => ($this->factories[$name])(),
-            is_array($config) => $this->fromConfig($config),
+            is_array(config("mcp.clients.{$name}")) => $this->fromConfig("mcp.clients.{$name}"),
             default => throw new ClientException("MCP client [{$name}] has not been registered."),
         };
 
         return $client->setName($name);
     }
 
-    /**
-     * @param  array<array-key, mixed>  $config
-     */
-    protected function fromConfig(array $config): Client
+    protected function fromConfig(string $key): Client
     {
-        if (filled($config['url'] ?? null)) {
-            $client = Client::web(Arr::string($config, 'url'))
-                ->withHeaders(array_filter(Arr::array($config, 'headers', []), filled(...)));
+        $config = config();
 
-            if (filled($config['token'] ?? null)) {
-                $client->withToken(Arr::string($config, 'token'));
+        if (filled($config->get("{$key}.url"))) {
+            $client = Client::web($config->string("{$key}.url"))
+                ->withHeaders(array_filter($config->array("{$key}.headers", []), filled(...)));
+
+            if (filled($config->get("{$key}.token"))) {
+                $client->withToken($config->string("{$key}.token"));
             }
         } else {
-            $client = Client::local(Arr::string($config, 'command'), Arr::array($config, 'args', []));
+            $client = Client::local($config->string("{$key}.command"), $config->array("{$key}.args", []));
         }
 
-        if (is_numeric($config['timeout'] ?? null)) {
-            $client->withTimeout((float) $config['timeout']);
+        if (is_numeric($timeout = $config->get("{$key}.timeout"))) {
+            $client->withTimeout((float) $timeout);
         }
 
         return $client
-            ->onlyTools(Arr::get($config, 'tools.only'))
-            ->exceptTools(Arr::array($config, 'tools.except', []));
+            ->onlyTools($config->get("{$key}.tools.only"))
+            ->exceptTools($config->array("{$key}.tools.except", []));
     }
 
     public function disconnectAll(): void
