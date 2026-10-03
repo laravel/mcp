@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Client;
 
 use Closure;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Traits\Macroable;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Exceptions\ClientException;
@@ -40,11 +41,40 @@ class ClientManager
 
     public function build(string $name): Client
     {
-        if (! array_key_exists($name, $this->factories)) {
-            throw new ClientException("MCP client [{$name}] has not been registered.");
+        $config = config("mcp.clients.{$name}");
+
+        $client = match (true) {
+            isset($this->factories[$name]) => ($this->factories[$name])(),
+            is_array($config) => $this->fromConfig($config),
+            default => throw new ClientException("MCP client [{$name}] has not been registered."),
+        };
+
+        return $client->setName($name);
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $config
+     */
+    protected function fromConfig(array $config): Client
+    {
+        if (filled($config['url'] ?? null)) {
+            $client = Client::web(Arr::string($config, 'url'))
+                ->withHeaders(array_filter(Arr::array($config, 'headers', []), filled(...)));
+
+            if (filled($config['token'] ?? null)) {
+                $client->withToken(Arr::string($config, 'token'));
+            }
+        } else {
+            $client = Client::local(Arr::string($config, 'command'), Arr::array($config, 'args', []));
         }
 
-        return ($this->factories[$name])()->setName($name);
+        if (is_numeric($config['timeout'] ?? null)) {
+            $client->withTimeout((float) $config['timeout']);
+        }
+
+        return $client
+            ->onlyTools(Arr::get($config, 'tools.only'))
+            ->exceptTools(Arr::array($config, 'tools.except', []));
     }
 
     public function disconnectAll(): void
