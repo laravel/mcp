@@ -8,6 +8,7 @@ use Generator;
 use Illuminate\Container\Container;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
+use Laravel\Mcp\Server\Content\StructuredContentText;
 use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Methods\Concerns\InteractsWithResponses;
 use Laravel\Mcp\Transport\JsonRpcRequest;
@@ -16,6 +17,11 @@ use Laravel\Mcp\Transport\JsonRpcResponse;
 class ToolInvoker implements Errable
 {
     use InteractsWithResponses;
+
+    public function __construct(protected bool $mirrorStructuredContent = true)
+    {
+        //
+    }
 
     public function invoke(Tool $tool, JsonRpcRequest $request): Generator|JsonRpcResponse
     {
@@ -31,7 +37,11 @@ class ToolInvoker implements Errable
     {
         return fn (ResponseFactory $factory): array => $factory->mergeStructuredContent(
             $factory->mergeMeta([
-                'content' => $factory->responses()->map(fn (Response $response): array => $response->content()->toTool($tool))->all(),
+                'content' => $factory->responses()
+                    ->reject(fn (Response $response): bool => ! $this->mirrorStructuredContent && $response->content() instanceof StructuredContentText)
+                    ->map(fn (Response $response): array => $response->content()->toTool($tool))
+                    ->values()
+                    ->all(),
                 'isError' => $factory->responses()->contains(fn (Response $response): bool => $response->isError()),
             ])
         );
