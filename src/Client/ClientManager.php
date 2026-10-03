@@ -40,11 +40,37 @@ class ClientManager
 
     public function build(string $name): Client
     {
-        if (! array_key_exists($name, $this->factories)) {
-            throw new ClientException("MCP client [{$name}] has not been registered.");
+        $client = match (true) {
+            isset($this->factories[$name]) => ($this->factories[$name])(),
+            is_array(config("mcp.clients.{$name}")) => $this->fromConfig("mcp.clients.{$name}"),
+            default => throw new ClientException("MCP client [{$name}] has not been registered."),
+        };
+
+        return $client->setName($name);
+    }
+
+    protected function fromConfig(string $key): Client
+    {
+        $config = config();
+
+        if (filled($config->get("{$key}.url"))) {
+            $client = Client::web($config->string("{$key}.url"))
+                ->withHeaders(array_filter($config->array("{$key}.headers", []), filled(...)));
+
+            if (filled($config->get("{$key}.token"))) {
+                $client->withToken($config->string("{$key}.token"));
+            }
+        } else {
+            $client = Client::local($config->string("{$key}.command"), $config->array("{$key}.args", []));
         }
 
-        return ($this->factories[$name])()->setName($name);
+        if (is_numeric($timeout = $config->get("{$key}.timeout"))) {
+            $client->withTimeout((float) $timeout);
+        }
+
+        return $client
+            ->onlyTools($config->get("{$key}.tools.only"))
+            ->exceptTools($config->array("{$key}.tools.except", []));
     }
 
     public function disconnectAll(): void

@@ -25,7 +25,7 @@ class WebClient extends Client
     }
 
     /**
-     * @param  string|Closure(): string  $token
+     * @param  string|Closure(): ?string  $token
      */
     public function withToken(#[SensitiveParameter] string|Closure $token): static
     {

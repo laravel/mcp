@@ -14,6 +14,7 @@ use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Client\OAuth\OAuthRouteRegistrar;
 use Laravel\Mcp\Client\OAuth\TokenSet;
+use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Contracts\Transport;
 use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController;
@@ -22,11 +23,14 @@ use Laravel\Mcp\Server\Middleware\ReorderJsonAccept;
 use Laravel\Mcp\Server\Middleware\ValidateMcpHeaders;
 use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Server\Transport\StdioTransport;
+use Laravel\Mcp\WebClient;
 use Laravel\Passport\Passport;
 
 class Registrar
 {
-    use Macroable;
+    use Macroable {
+        __call as macroCall;
+    }
 
     public const OAUTH_SCOPE = 'mcp:use';
 
@@ -81,6 +85,21 @@ class Registrar
     public function client(string $name): Client
     {
         return $this->clientManager()->client($name);
+    }
+
+    public function github(): WebClient
+    {
+        return $this->webClient('github');
+    }
+
+    public function linear(): WebClient
+    {
+        return $this->webClient('linear');
+    }
+
+    public function playwright(): Client
+    {
+        return $this->client('playwright');
     }
 
     /**
@@ -212,6 +231,29 @@ class Registrar
         }
 
         return $current;
+    }
+
+    /**
+     * @param  array<int, mixed>  $parameters
+     */
+    public function __call(string $method, array $parameters): mixed
+    {
+        if (static::hasMacro($method)) {
+            return $this->macroCall($method, $parameters);
+        }
+
+        return $this->client($method);
+    }
+
+    protected function webClient(string $name): WebClient
+    {
+        $client = $this->client($name);
+
+        if (! $client instanceof WebClient) {
+            throw new ClientException("MCP client [{$name}] must be a web client.");
+        }
+
+        return $client;
     }
 
     protected function clientManager(): ClientManager

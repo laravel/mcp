@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
+use Laravel\Mcp\Client\Schema\ToolResult;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Facades\Mcp;
@@ -307,4 +308,158 @@ it('propagates a live fetch failure', function (): void {
         ->toThrow(ClientException::class, 'Invalid tools/list response from server.');
 
     expect($transport->responses)->toBeEmpty();
+});
+
+function transportRecipe(Client $client): array
+{
+    return (new ReflectionProperty(Client::class, 'transport'))->getValue($client)->recipe();
+}
+
+function listToolsResponse(int $id, array $names): string
+{
+    return json_encode([
+        'jsonrpc' => '2.0',
+        'id' => $id,
+        'result' => ['tools' => array_map(fn (string $name): array => ['name' => $name], $names)],
+    ]);
+}
+
+it('provides a read only github client from config', function (): void {
+    config(['mcp.clients.github.token' => 'gh-token']);
+
+    $client = Mcp::github();
+
+    expect($client)->toBeInstanceOf(WebClient::class)
+        ->and($client)->toBe(Mcp::client('github'))
+        ->and(transportRecipe($client))->toMatchArray([
+            'url' => 'https://api.githubcopilot.com/mcp/',
+            'token' => 'gh-token',
+            'headers' => ['X-MCP-Readonly' => 'true'],
+        ]);
+});
+
+it('provides a linear client from config', function (): void {
+    config(['mcp.clients.linear.token' => 'lin-token']);
+
+    expect(transportRecipe(Mcp::linear()))->toMatchArray([
+        'url' => 'https://mcp.linear.app/mcp',
+        'token' => 'lin-token',
+    ]);
+});
+
+it('provides a headless playwright client from config', function (): void {
+    expect(transportRecipe(Mcp::playwright()))->toMatchArray([
+        'command' => 'npx',
+        'args' => ['-y', '@playwright/mcp', '--headless'],
+    ]);
+});
+
+it('resolves any client defined in config', function (): void {
+    config(['mcp.clients.sentry' => [
+        'url' => 'https://mcp.sentry.dev/mcp',
+        'token' => 'sentry-token',
+        'headers' => ['X-Org' => 'laravel', 'X-Empty' => null],
+        'timeout' => 5,
+    ]]);
+
+    $client = Mcp::client('sentry');
+
+    expect(transportRecipe($client))->toMatchArray([
+        'url' => 'https://mcp.sentry.dev/mcp',
+        'token' => 'sentry-token',
+        'headers' => ['X-Org' => 'laravel'],
+        'timeoutSeconds' => 5.0,
+    ]);
+});
+
+it('prefers a registered client over the config entry', function (): void {
+    $web = new WebClient(new HttpTransport('https://custom.test/mcp'));
+
+    Mcp::registerClient('github', fn (): WebClient => $web);
+
+    expect(Mcp::github())->toBe($web);
+});
+
+it('throws when a web preset is registered with a non web client', function (): void {
+    Mcp::registerClient('github', fn (): Client => new Client(new FakeTransport));
+
+    expect(fn (): WebClient => Mcp::github())
+        ->toThrow(ClientException::class, 'MCP client [github] must be a web client.');
+});
+
+it('filters tools with only and except patterns', function (): void {
+    $transport = new FakeTransport;
+    $transport->responses[] = initializeResponse();
+    $transport->responses[] = listToolsResponse(2, ['get_issue', 'list_issues', 'delete_issue', 'create_branch']);
+
+    $client = (new Client($transport))->onlyTools(['*_issue', 'list_*'])->exceptTools(['delete_*']);
+
+    expect($client->tools()->keys()->all())->toBe(['get_issue', 'list_issues']);
+});
+
+it('refuses to call an excluded tool', function (): void {
+    $client = (new Client(new FakeTransport))->exceptTools(['delete_*']);
+
+    expect(fn (): ToolResult => $client->callTool('delete_issue'))
+        ->toThrow(ClientException::class, 'MCP tool [delete_issue] is not allowed on this client.');
+});
+
+it('applies tool filters from config', function (): void {
+    config(['mcp.clients.local' => [
+        'command' => 'php',
+        'tools' => ['only' => ['say-*'], 'except' => ['say-bye']],
+    ]]);
+
+    $client = Mcp::client('local');
+
+    expect($client->allowsTool('say-hi'))->toBeTrue()
+        ->and($client->allowsTool('say-bye'))->toBeFalse()
+        ->and($client->allowsTool('add'))->toBeFalse();
+});
+
+it('keeps tool filters when an unnamed client is serialized', function (): void {
+    $client = Client::local('php')->onlyTools(['say-*'])->exceptTools(['say-bye']);
+
+    $restored = unserialize(serialize($client));
+
+    expect($restored->allowsTool('say-hi'))->toBeTrue()
+        ->and($restored->allowsTool('say-bye'))->toBeFalse()
+        ->and($restored->allowsTool('add'))->toBeFalse();
+});
+
+it('keeps tool filters when a named client is restored', function (): void {
+    config(['mcp.clients.local' => ['command' => 'php', 'tools' => ['except' => ['say-bye']]]]);
+
+    $restored = unserialize(serialize(Mcp::client('local')));
+
+    expect($restored->allowsTool('say-bye'))->toBeFalse()
+        ->and($restored->allowsTool('say-hi'))->toBeTrue();
+});
+
+it('resolves a registered client through a dynamic facade method', function (): void {
+    $client = new Client(new FakeTransport);
+
+    Mcp::registerClient('sentry', fn (): Client => $client);
+
+    expect(Mcp::sentry())->toBe($client);
+});
+
+it('resolves a config client through a dynamic facade method', function (): void {
+    config(['mcp.clients.sentry' => ['url' => 'https://mcp.sentry.dev/mcp']]);
+
+    expect(Mcp::sentry())->toBe(Mcp::client('sentry'));
+});
+
+it('prefers a macro over a client with the same name', function (): void {
+    Mcp::registerClient('sentry', fn (): Client => new Client(new FakeTransport));
+    Mcp::macro('sentry', fn (): string => 'macro');
+
+    expect(Mcp::sentry())->toBe('macro');
+
+    Mcp::flushMacros();
+});
+
+it('throws when a dynamic facade method matches no client', function (): void {
+    expect(fn () => Mcp::missing())
+        ->toThrow(ClientException::class, 'MCP client [missing] has not been registered.');
 });

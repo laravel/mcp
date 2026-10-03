@@ -26,7 +26,7 @@ use Throwable;
 
 class HttpTransport implements Transport, UsesProtocol
 {
-    /** @var string|(Closure(): string)|null */
+    /** @var string|(Closure(): ?string)|null */
     protected string|Closure|null $token = null;
 
     protected ?ProtocolVersion $protocolVersion = null;
@@ -66,7 +66,7 @@ class HttpTransport implements Transport, UsesProtocol
     }
 
     /**
-     * @param  string|Closure(): string  $token
+     * @param  string|Closure(): ?string  $token
      */
     public function withToken(#[SensitiveParameter] string|Closure $token): void
     {
