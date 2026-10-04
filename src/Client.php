@@ -76,10 +76,11 @@ class Client
 
     /**
      * @param  array<int, string>  $args
+     * @param  array<string, string>  $env
      */
-    public static function local(string $command, array $args = []): static
+    public static function local(string $command, array $args = [], array $env = []): static
     {
-        return new static(new StdioTransport($command, $args));
+        return new static(new StdioTransport($command, $args, $env));
     }
 
     public static function web(string $url): WebClient

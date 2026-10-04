@@ -72,33 +72,20 @@ return [
             'url' => env('MCP_GITHUB_URL', 'https://api.githubcopilot.com/mcp/'),
             'token' => env('MCP_GITHUB_TOKEN'),
             'headers' => [
-                'X-MCP-Readonly' => env('MCP_GITHUB_READONLY', 'true'),
-                'X-MCP-Toolsets' => env('MCP_GITHUB_TOOLSETS'),
-            ],
-            'tools' => [
-                'only' => null,
-                'except' => [],
+                'X-MCP-Readonly' => 'true',
             ],
         ],
 
         'linear' => [
             'url' => env('MCP_LINEAR_URL', 'https://mcp.linear.app/mcp'),
             'token' => env('MCP_LINEAR_TOKEN'),
-            'tools' => [
-                'only' => null,
-                'except' => [],
-            ],
         ],
 
         'playwright' => [
             'command' => 'npx',
-            'args' => ['-y', '@playwright/mcp', '--headless'],
-            'tools' => [
-                'only' => null,
-                'except' => [],
-            ],
+            'args' => ['-y', '@playwright/mcp@latest', '--headless'],
+            'env' => [],
         ],
-
     ],
 
 ];

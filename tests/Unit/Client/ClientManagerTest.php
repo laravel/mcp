@@ -9,6 +9,7 @@ use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
 use Laravel\Mcp\Client\Schema\ToolResult;
 use Laravel\Mcp\Client\Transport\HttpTransport;
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
 use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\WebClient;
@@ -327,10 +328,9 @@ function listToolsResponse(int $id, array $names): string
 it('provides a read only github client from config', function (): void {
     config(['mcp.clients.github.token' => 'gh-token']);
 
-    $client = Mcp::github();
+    $client = Mcp::client('github');
 
     expect($client)->toBeInstanceOf(WebClient::class)
-        ->and($client)->toBe(Mcp::client('github'))
         ->and(transportRecipe($client))->toMatchArray([
             'url' => 'https://api.githubcopilot.com/mcp/',
             'token' => 'gh-token',
@@ -341,16 +341,16 @@ it('provides a read only github client from config', function (): void {
 it('provides a linear client from config', function (): void {
     config(['mcp.clients.linear.token' => 'lin-token']);
 
-    expect(transportRecipe(Mcp::linear()))->toMatchArray([
+    expect(transportRecipe(Mcp::client('linear')))->toMatchArray([
         'url' => 'https://mcp.linear.app/mcp',
         'token' => 'lin-token',
     ]);
 });
 
 it('provides a headless playwright client from config', function (): void {
-    expect(transportRecipe(Mcp::playwright()))->toMatchArray([
+    expect(transportRecipe(Mcp::client('playwright')))->toMatchArray([
         'command' => 'npx',
-        'args' => ['-y', '@playwright/mcp', '--headless'],
+        'args' => ['-y', '@playwright/mcp@latest', '--headless'],
     ]);
 });
 
@@ -372,19 +372,69 @@ it('resolves any client defined in config', function (): void {
     ]);
 });
 
+it('resolves a local client defined in config', function (): void {
+    config(['mcp.clients.weather' => [
+        'command' => 'php',
+        'args' => ['artisan', 'mcp:start', 'weather'],
+        'env' => ['WEATHER_API_KEY' => 'secret', 'UNSET' => null],
+        'timeout' => 10,
+    ]]);
+
+    expect(transportRecipe(Mcp::client('weather')))->toMatchArray([
+        'command' => 'php',
+        'args' => ['artisan', 'mcp:start', 'weather'],
+        'env' => ['WEATHER_API_KEY' => 'secret'],
+        'timeoutSeconds' => 10.0,
+    ]);
+});
+
+it('applies oauth, cache and protocol version from config', function (): void {
+    config(['mcp.clients.sentry' => [
+        'url' => 'https://mcp.sentry.dev/mcp',
+        'oauth' => [
+            'client_id' => 'sentry-id',
+            'client_secret' => 'sentry-secret',
+            'scope' => 'org:read',
+            'redirect_uri' => 'https://app.test/callback',
+        ],
+        'cache' => ['store' => 'array', 'for' => 'tenant-a'],
+        'protocol_version' => '2025-06-18',
+    ]]);
+
+    $client = Mcp::client('sentry');
+    $protocol = (new ReflectionProperty(Client::class, 'protocol'))->getValue($client);
+
+    expect((new ReflectionProperty(WebClient::class, 'oAuthConfig'))->getValue($client))->toMatchArray([
+        'clientId' => 'sentry-id',
+        'clientSecret' => 'sentry-secret',
+        'scope' => 'org:read',
+        'redirectUri' => 'https://app.test/callback',
+    ])
+        ->and($protocol->cache())->toMatchArray(['store' => 'array', 'for' => 'tenant-a'])
+        ->and($protocol->pinnedProtocolVersion())->toBe(ProtocolVersion::V2025_06_18);
+});
+
+it('enables the default cache when cache is true', function (): void {
+    config(['mcp.clients.local' => ['command' => 'php', 'cache' => true]]);
+
+    $protocol = (new ReflectionProperty(Client::class, 'protocol'))->getValue(Mcp::client('local'));
+
+    expect($protocol->cache())->toMatchArray(['store' => null, 'for' => null]);
+});
+
+it('throws when a config client defines neither a url nor a command', function (): void {
+    config(['mcp.clients.broken' => ['token' => 'secret']]);
+
+    expect(fn (): Client => Mcp::client('broken'))
+        ->toThrow(ClientException::class, 'MCP client [broken] must define a [url] or [command].');
+});
+
 it('prefers a registered client over the config entry', function (): void {
     $web = new WebClient(new HttpTransport('https://custom.test/mcp'));
 
     Mcp::registerClient('github', fn (): WebClient => $web);
 
-    expect(Mcp::github())->toBe($web);
-});
-
-it('throws when a web preset is registered with a non web client', function (): void {
-    Mcp::registerClient('github', fn (): Client => new Client(new FakeTransport));
-
-    expect(fn (): WebClient => Mcp::github())
-        ->toThrow(ClientException::class, 'MCP client [github] must be a web client.');
+    expect(Mcp::client('github'))->toBe($web);
 });
 
 it('filters tools with only and except patterns', function (): void {
@@ -434,32 +484,4 @@ it('keeps tool filters when a named client is restored', function (): void {
 
     expect($restored->allowsTool('say-bye'))->toBeFalse()
         ->and($restored->allowsTool('say-hi'))->toBeTrue();
-});
-
-it('resolves a registered client through a dynamic facade method', function (): void {
-    $client = new Client(new FakeTransport);
-
-    Mcp::registerClient('sentry', fn (): Client => $client);
-
-    expect(Mcp::sentry())->toBe($client);
-});
-
-it('resolves a config client through a dynamic facade method', function (): void {
-    config(['mcp.clients.sentry' => ['url' => 'https://mcp.sentry.dev/mcp']]);
-
-    expect(Mcp::sentry())->toBe(Mcp::client('sentry'));
-});
-
-it('prefers a macro over a client with the same name', function (): void {
-    Mcp::registerClient('sentry', fn (): Client => new Client(new FakeTransport));
-    Mcp::macro('sentry', fn (): string => 'macro');
-
-    expect(Mcp::sentry())->toBe('macro');
-
-    Mcp::flushMacros();
-});
-
-it('throws when a dynamic facade method matches no client', function (): void {
-    expect(fn () => Mcp::missing())
-        ->toThrow(ClientException::class, 'MCP client [missing] has not been registered.');
 });
