@@ -2,6 +2,7 @@
 
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
+use Laravel\Mcp\Server\Content\StructuredContentText;
 
 it('creates a factory with a single response', function (): void {
     $response = Response::text('Hello');
@@ -80,7 +81,8 @@ it('creates a structured content response with Response::structured', function (
         ->and($factory->responses())->toHaveCount(1);
 
     $textResponse = $factory->responses()->first();
-    expect($textResponse->content()->toArray()['text'])
+    expect($textResponse->content())->toBeInstanceOf(StructuredContentText::class)
+        ->and($textResponse->content()->toArray()['text'])
         ->toContain('"result":"The result of the tool."');
 });
 

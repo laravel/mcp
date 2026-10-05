@@ -4,6 +4,7 @@ use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Collection;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Methods\CallTool;
@@ -132,7 +133,7 @@ it('executes multiple independent tools synchronously', function (): void {
                 ],
                 [
                     'name' => 'structured-content-tool',
-                    'content' => [['type' => 'text', 'text' => '{"temperature":22.5,"conditions":"Partly cloudy","humidity":65}']],
+                    'content' => [],
                     'isError' => false,
                     'structuredContent' => [
                         'temperature' => 22.5,
@@ -142,6 +143,92 @@ it('executes multiple independent tools synchronously', function (): void {
                 ],
             ],
         ]);
+});
+
+it('keeps the text a tool returns alongside its structured content', function (): void {
+    $summaryTool = new class extends Tool
+    {
+        protected string $name = 'summary-tool';
+
+        public function handle(): ResponseFactory
+        {
+            return Response::make(Response::text('Found 2 results'))->withStructuredContent(['count' => 2]);
+        }
+    };
+
+    $context = toolSearchContext([$summaryTool]);
+    $executeTools = toolFromContext($context, 'execute_tools');
+
+    $result = callContextTool($context, $executeTools, [
+        'calls' => [['name' => 'summary-tool', 'arguments' => []]],
+    ]);
+
+    expect($result['payload']['results'])->toBe([[
+        'name' => 'summary-tool',
+        'content' => [['type' => 'text', 'text' => 'Found 2 results']],
+        'isError' => false,
+        'structuredContent' => ['count' => 2],
+    ]]);
+});
+
+it('counts structured content once against the output limit', function (): void {
+    config()->set('mcp.tool_search.max_output_bytes', 256);
+
+    $structuredTool = new class extends Tool
+    {
+        protected string $name = 'structured-tool';
+
+        public function handle(): ResponseFactory
+        {
+            return Response::structured(['value' => str_repeat('x', 120)]);
+        }
+    };
+
+    $context = toolSearchContext([$structuredTool]);
+    $executeTools = toolFromContext($context, 'execute_tools');
+
+    $result = callContextTool($context, $executeTools, [
+        'calls' => [['name' => 'structured-tool', 'arguments' => []]],
+    ]);
+
+    expect($result['isError'])->toBeFalse()
+        ->and($result['payload'])->toBe([
+            'ok' => true,
+            'results' => [[
+                'name' => 'structured-tool',
+                'content' => [],
+                'isError' => false,
+                'structuredContent' => ['value' => str_repeat('x', 120)],
+            ]],
+        ]);
+});
+
+it('drops the structured content text from streamed tool results', function (): void {
+    $streamedTool = new class extends Tool
+    {
+        protected string $name = 'streamed-structured-tool';
+
+        public function handle(): Generator
+        {
+            yield Response::notification('progress', ['step' => 1]);
+
+            yield Response::structured(['count' => 2]);
+        }
+    };
+
+    $context = toolSearchContext([$streamedTool]);
+    $executeTools = toolFromContext($context, 'execute_tools');
+
+    $result = callContextTool($context, $executeTools, [
+        'calls' => [['name' => 'streamed-structured-tool', 'arguments' => []]],
+    ]);
+
+    expect($result['payload']['results'])->toBe([[
+        'name' => 'streamed-structured-tool',
+        'content' => [],
+        'isError' => false,
+        'structuredContent' => ['count' => 2],
+    ]]);
 });
 
 it('stops executing after the first tool error', function (): void {
