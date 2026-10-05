@@ -38,7 +38,9 @@ class ToolInvoker implements Errable
         return fn (ResponseFactory $factory): array => $factory->mergeStructuredContent(
             $factory->mergeMeta([
                 'content' => $factory->responses()
-                    ->reject(fn (Response $response): bool => ! $this->mirrorStructuredContent && $response->content() instanceof StructuredContentText)
+                    ->unless($this->mirrorStructuredContent, fn ($responses) => $responses->reject(
+                        fn (Response $response): bool => $response->content() instanceof StructuredContentText
+                    ))
                     ->map(fn (Response $response): array => $response->content()->toTool($tool))
                     ->values()
                     ->all(),

@@ -203,6 +203,34 @@ it('counts structured content once against the output limit', function (): void 
         ]);
 });
 
+it('drops the structured content text from streamed tool results', function (): void {
+    $streamedTool = new class extends Tool
+    {
+        protected string $name = 'streamed-structured-tool';
+
+        public function handle(): Generator
+        {
+            yield Response::notification('progress', ['step' => 1]);
+
+            yield Response::structured(['count' => 2]);
+        }
+    };
+
+    $context = toolSearchContext([$streamedTool]);
+    $executeTools = toolFromContext($context, 'execute_tools');
+
+    $result = callContextTool($context, $executeTools, [
+        'calls' => [['name' => 'streamed-structured-tool', 'arguments' => []]],
+    ]);
+
+    expect($result['payload']['results'])->toBe([[
+        'name' => 'streamed-structured-tool',
+        'content' => [],
+        'isError' => false,
+        'structuredContent' => ['count' => 2],
+    ]]);
+});
+
 it('stops executing after the first tool error', function (): void {
     $calls = [];
 
