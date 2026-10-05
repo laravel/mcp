@@ -27,6 +27,9 @@ class ListSkills implements Method
             throw new JsonRpcException('The [per_page] parameter must be a positive integer.', ErrorCode::INVALID_PARAMS->value, $request->id);
         }
 
+        // Validate the resource map before publishing any file manifests.
+        $context->resources();
+
         $paginator = new CursorPaginator(
             items: $context->skills(),
             perPage: $context->perPage($perPage),

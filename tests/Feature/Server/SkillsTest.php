@@ -196,8 +196,17 @@ it('rejects duplicate skill URIs while allowing equal names', function (): void 
 });
 
 it('rejects registered resources that would shadow skill file bytes', function (): void {
+    config(['app.debug' => false]);
     $this->server->resources[] = $this->makeResource('wrong bytes', overrides: ['uri' => 'skill://release-checklist/SKILL.md']);
+    $this->server->start();
+
     expect(fn () => $this->server->createContext()->resources())->toThrow(InvalidArgumentException::class, 'already registered');
+
+    foreach (['skills/list', 'skills/get'] as $method) {
+        $response = skillResponse($this->server, $this->transport, $method, ['uri' => 'skill://release-checklist/SKILL.md']);
+        expect($response['error']['code'])->toBe(-32603)
+            ->and($response)->not->toHaveKey('result');
+    }
 });
 
 it('serves a complete discovery get and file read flow over HTTP', function (): void {

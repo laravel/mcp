@@ -108,6 +108,8 @@ Publish dedicated, application-controlled directories. Every regular file beneat
 
 The implementation rejects symbolic links, nonregular files, invalid frontmatter, and skills exceeding 512 files or 16 MiB total. It validates required fields, naming rules, and the types and lengths of known optional fields. Unknown frontmatter fields pass through. YAML parsing never enables PHP object deserialization or constant evaluation; values must be JSON representable.
 
+Quote dates and timestamps in frontmatter, for example `published-at: "2026-10-05"`. Unquoted YAML dates are rejected, including in nested fields, so the parser cannot silently turn them into Unix timestamps.
+
 Reads resolve only registered file URIs and recheck the filesystem boundary, file type, and symlinks before reading. URI traversal, encoded separators, arbitrary filesystem paths, and directory reads cannot be used to access extra files. Keep the published directories protected from concurrent untrusted writes; these checks do not replace operating-system access controls. Deploy complete directories atomically when possible.
 
 Manifests are refreshed on each list/get request. Changes between discovery and reading may cause a client's digest verification to fail; the client refreshes with `skills/get`. Digests establish content consistency, not trust in the server. Host applications remain responsible for origin isolation, digest verification, per-skill execution approval, and gating permission-related frontmatter such as `allowed-tools`. Reading a resource does not itself activate a skill.

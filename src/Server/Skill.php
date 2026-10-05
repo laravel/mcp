@@ -198,11 +198,13 @@ abstract class Skill extends Primitive
             throw new RuntimeException('SKILL.md must begin with YAML frontmatter and contain UTF-8 text.');
         }
 
-        $frontmatter = Yaml::parse($matches[1], Yaml::PARSE_OBJECT_FOR_MAP | Yaml::PARSE_EXCEPTION_ON_INVALID_TYPE);
+        $frontmatter = Yaml::parse($matches[1], Yaml::PARSE_OBJECT_FOR_MAP | Yaml::PARSE_EXCEPTION_ON_INVALID_TYPE | Yaml::PARSE_DATETIME);
 
         if (! $frontmatter instanceof stdClass) {
             throw new RuntimeException('Skill frontmatter must be a YAML mapping.');
         }
+
+        $this->validateFrontmatterValue($frontmatter);
 
         $frontmatter = get_object_vars($frontmatter);
 
@@ -258,5 +260,18 @@ abstract class Skill extends Primitive
         json_encode($frontmatter, JSON_THROW_ON_ERROR);
 
         return $frontmatter;
+    }
+
+    private function validateFrontmatterValue(mixed $value): void
+    {
+        if (is_object($value) && ! $value instanceof stdClass) {
+            throw new RuntimeException('Skill frontmatter must use JSON-compatible values. Quote dates and timestamps to preserve them as strings.');
+        }
+
+        if (is_array($value) || $value instanceof stdClass) {
+            foreach ((array) $value as $child) {
+                $this->validateFrontmatterValue($child);
+            }
+        }
     }
 }

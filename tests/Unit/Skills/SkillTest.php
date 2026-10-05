@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 use Illuminate\Filesystem\Filesystem;
 use Laravel\Mcp\Server\Attributes\Uri;
+use Laravel\Mcp\Server\Methods\GetSkill;
+use Laravel\Mcp\Server\Methods\ListSkills;
 use Laravel\Mcp\Server\Skill;
+use Laravel\Mcp\Transport\JsonRpcRequest;
+use Laravel\Mcp\Transport\JsonRpcResponse;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Tests\Fixtures\TestSkill;
 
@@ -120,6 +124,22 @@ it('rejects values that JSON cannot represent', function (): void {
     expect(fn () => $this->skill->toArray())->toThrow(JsonException::class);
 });
 
+it('rejects YAML dates rather than silently changing frontmatter values', function (string $field): void {
+    file_put_contents($this->skill->path().'/SKILL.md', "---\nname: release-checklist\ndescription: Release\n{$field}\n---\n");
+    expect(fn () => $this->skill->toArray())->toThrow(RuntimeException::class, 'Quote dates and timestamps');
+})->with([
+    'published-at: 2026-10-05',
+    'custom: { published-at: 2026-10-05T12:30:00Z }',
+    'custom: [2026-10-05]',
+]);
+
+it('preserves quoted dates and timestamps in unknown frontmatter fields', function (): void {
+    file_put_contents($this->skill->path().'/SKILL.md', "---\nname: release-checklist\ndescription: Release\npublished-at: '2026-10-05'\ncustom: { timestamp: '2026-10-05T12:30:00Z' }\n---\n");
+    $entry = $this->skill->toArray();
+    expect($entry['frontmatter']['published-at'])->toBe('2026-10-05')
+        ->and($entry['frontmatter']['custom']->timestamp)->toBe('2026-10-05T12:30:00Z');
+});
+
 it('requires an existing directory and SKILL.md', function (): void {
     expect(fn (): array => (new TestSkill($this->directory.'/missing'))->toArray())->toThrow(RuntimeException::class);
     unlink($this->skill->path().'/SKILL.md');
@@ -212,6 +232,11 @@ it('rejects overlapping namespaces backed by different files', function (): void
     file_put_contents($this->directory.'/nested/SKILL.md', "---\nname: nested\ndescription: Different\n---\n");
     $context = $this->getServerContext(['skills' => [$this->skill, new TestSkill($this->directory.'/nested', 'skill://release-checklist/nested/SKILL.md')]]);
     expect(fn () => $context->resources())->toThrow(InvalidArgumentException::class, 'Different skill files');
+
+    foreach (['skills/list' => new ListSkills, 'skills/get' => new GetSkill] as $method => $handler) {
+        $request = new JsonRpcRequest(1, $method, ['uri' => $this->skill->uri()]);
+        expect(fn (): JsonRpcResponse => $handler->handle($request, $context))->toThrow(InvalidArgumentException::class, 'Different skill files');
+    }
 });
 
 it('rejects special files without opening them', function (): void {

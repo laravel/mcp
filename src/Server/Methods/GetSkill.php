@@ -28,6 +28,9 @@ class GetSkill implements Method
             throw new JsonRpcException("Skill [{$uri}] not found.", ErrorCode::INVALID_PARAMS->value, $request->id);
         }
 
+        // Validate the resource map before publishing the file manifest.
+        $context->resources();
+
         return JsonRpcResponse::result($request->id, ['skill' => $skill->toArray()]);
     }
 }
