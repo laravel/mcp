@@ -81,9 +81,11 @@ class ClientManager
             $client->withProtocolVersion(ProtocolVersion::from($version));
         }
 
-        return $client
-            ->onlyTools($config->get("{$key}.tools.only"))
-            ->exceptTools($config->array("{$key}.tools.except", []));
+        if (is_array($only = $config->get("{$key}.tools.only"))) {
+            $client->onlyTools($only);
+        }
+
+        return $client->exceptTools($config->array("{$key}.tools.except", []));
     }
 
     protected function webClientFromConfig(string $key): WebClient

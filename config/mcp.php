@@ -84,7 +84,6 @@ return [
         'playwright' => [
             'command' => 'npx',
             'args' => ['-y', '@playwright/mcp@latest', '--headless'],
-            'env' => [],
         ],
     ],
 

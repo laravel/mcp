@@ -110,9 +110,9 @@ class Client
     }
 
     /**
-     * @param  array<int, string>|null  $tools
+     * @param  array<int, string>  $tools
      */
-    public function onlyTools(?array $tools): static
+    public function onlyTools(array $tools): static
     {
         $this->onlyTools = $tools;
 
