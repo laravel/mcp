@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server;
 
 use Generator;
 use Illuminate\Container\Container;
+use Illuminate\Support\Collection;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Content\StructuredContentText;
@@ -38,7 +39,7 @@ class ToolInvoker implements Errable
         return fn (ResponseFactory $factory): array => $factory->mergeStructuredContent(
             $factory->mergeMeta([
                 'content' => $factory->responses()
-                    ->unless($this->mirrorStructuredContent, fn ($responses) => $responses->reject(
+                    ->unless($this->mirrorStructuredContent, fn (Collection $responses): Collection => $responses->reject(
                         fn (Response $response): bool => $response->content() instanceof StructuredContentText
                     ))
                     ->map(fn (Response $response): array => $response->content()->toTool($tool))
