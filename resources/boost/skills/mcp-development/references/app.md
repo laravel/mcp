@@ -27,7 +27,14 @@ class DashboardApp extends AppResource
         createMcpApp(async (app) => {
             document.getElementById('run-btn').addEventListener('click', async () => {
                 const result = await app.callServerTool({ name: 'tool-name', arguments: {} });
-                document.getElementById('output').textContent = result.content[0]?.text ?? '';
+                const output = document.getElementById('output');
+
+                if (result.isError) {
+                    output.textContent = `Error: ${result.content[0]?.text ?? 'Unknown error'}`;
+                    return;
+                }
+
+                output.textContent = result.content[0]?.text ?? '';
             });
         });
         </script>
@@ -307,7 +314,14 @@ Renders a complete self-contained HTML document with the MCP SDK inlined. `creat
         createMcpApp(async (app) => {
             document.getElementById('run-btn').addEventListener('click', async () => {
                 const result = await app.callServerTool({ name: 'tool-name', arguments: {} });
-                document.getElementById('output').textContent = result.content[0]?.text ?? '';
+                const output = document.getElementById('output');
+
+                if (result.isError) {
+                    output.textContent = `Error: ${result.content[0]?.text ?? 'Unknown error'}`;
+                    return;
+                }
+
+                output.textContent = result.content[0]?.text ?? '';
             });
         });
         </script>
@@ -704,6 +718,11 @@ class GetMonitorData extends Tool
 createMcpApp(async (app) => {
     async function poll() {
         const result = await app.callServerTool('get-monitor-data');
+
+        if (result.isError) {
+            return;
+        }
+
         const data = JSON.parse(result.content[0]?.text ?? '{}');
         document.getElementById('cpu').textContent = data.cpu;
     }
