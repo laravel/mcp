@@ -12,7 +12,7 @@ use RuntimeException;
 use stdClass;
 use Symfony\Component\Yaml\Yaml;
 
-abstract class Skill extends Primitive
+class Skill extends Primitive
 {
     public const MAX_RESOURCES = 512;
 
@@ -20,7 +20,21 @@ abstract class Skill extends Primitive
 
     protected string $uri = '';
 
-    abstract public function path(): string;
+    protected string $path = '';
+
+    public static function fromDirectory(string $directory, string $uri = ''): self
+    {
+        $skill = new self;
+        $skill->path = $directory;
+        $skill->uri = $uri;
+
+        return $skill;
+    }
+
+    public function path(): string
+    {
+        return $this->path;
+    }
 
     public function uri(): string
     {
@@ -142,6 +156,11 @@ abstract class Skill extends Primitive
     protected function directory(): string
     {
         $path = rtrim($this->path(), '/\\');
+
+        if ($path === '') {
+            throw new RuntimeException('The skill path must not be empty.');
+        }
+
         clearstatcache(true, $path);
         $directory = realpath($path);
 

@@ -80,6 +80,23 @@ class ProjectServer extends Server
 }
 ```
 
+When a skill needs no attributes or `shouldRegister` method, you may skip the class and register a directory directly with `Skill::fromDirectory` from your server's `boot` method. The second argument is an optional URI; see [Skill URIs](#skill-uris):
+
+```php
+use Laravel\Mcp\Server;
+use Laravel\Mcp\Server\Skill;
+
+class ProjectServer extends Server
+{
+    protected function boot(): void
+    {
+        $this->skills[] = Skill::fromDirectory(resource_path('skills/release-checklist'));
+    }
+}
+```
+
+`fromDirectory` does not read the directory. Like skills registered by class, the directory is validated when a client lists, retrieves, or reads the skill, and an empty path is rejected at that point.
+
 Registering a skill enables the extension and declares the `resources` capability if the server does not already declare it. Servers without skills are unchanged: they do not advertise the extension, and `skills/list` and `skills/get` are not available.
 
 To advertise the extension with an empty catalog, add `Laravel\Mcp\Enums\Extension::Skills` to the server's `$extensions` property.

@@ -10,6 +10,7 @@ use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Cacheable;
 use Laravel\Mcp\Server\Methods\ListSkills;
 use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Skill;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Tests\Fixtures\ArrayTransport;
@@ -60,6 +61,33 @@ it('leaves servers without skills unchanged', function (): void {
     expect(skillResponse($server, $this->transport, 'server/discover')['result']['capabilities'])->not->toHaveKey('extensions');
     expect(skillResponse($server, $this->transport, 'skills/list')['error']['code'])->toBe(-32601);
 });
+
+it('registers a directory skill during boot and serves its files', function (string $uri): void {
+    $server = new class($this->transport) extends Server
+    {
+        public string $skillUri = '';
+
+        protected function boot(): void
+        {
+            $this->skills = [Skill::fromDirectory(__DIR__.'/../../Fixtures/Skills/release-checklist', $this->skillUri)];
+        }
+    };
+    $server->skillUri = $uri;
+    $server->start();
+
+    expect(skillResponse($server, $this->transport, 'server/discover')['result']['capabilities']['extensions'])
+        ->toHaveKey('io.modelcontextprotocol/skills');
+
+    $entry = skillResponse($server, $this->transport, 'skills/list')['result']['skills'][0];
+    expect($entry['uri'])->toBe($uri ?: 'skill://release-checklist/SKILL.md')
+        ->and(skillResponse($server, $this->transport, 'skills/get', ['uri' => $entry['uri']])['result']['skill'])->toBe($entry);
+
+    foreach ($entry['resources'] as $resource) {
+        $content = skillResponse($server, $this->transport, 'resources/read', ['uri' => $resource['uri']])['result']['contents'][0];
+        expect(strlen($content['text']))->toBe($resource['size'])
+            ->and('sha256:'.hash('sha256', $content['text']))->toBe($resource['digest']);
+    }
+})->with(['', 'skill://team/release-checklist/SKILL.md']);
 
 it('can declare an empty skill catalog explicitly', function (): void {
     $server = new class($this->transport) extends Server
@@ -236,7 +264,7 @@ it('serves binary and percent encoded files without transforming their bytes and
     $files->copyDirectory(__DIR__.'/../../Fixtures/Skills/release-checklist', $directory.'/release-checklist');
 
     try {
-        $skill = new TestSkill($directory.'/release-checklist');
+        $skill = Skill::fromDirectory($directory.'/release-checklist');
         $bytes = file_get_contents(__DIR__.'/../../Fixtures/binary.png');
         file_put_contents($skill->path().'/a file%.png', $bytes);
         $this->server->skills = [$skill];
@@ -277,15 +305,15 @@ it('rejects malformed skill pagination parameters', function (array $params): vo
     [['per_page' => '2']],
 ]);
 
-it('reports invalid server skill configuration as an internal error', function (): void {
+it('reports invalid server skill configuration as an internal error', function (string $directory): void {
     config(['app.debug' => false]);
-    $this->server->skills = [new TestSkill('/nonexistent/skill')];
+    $this->server->skills = [Skill::fromDirectory($directory)];
     $this->server->start();
 
     $response = skillResponse($this->server, $this->transport, 'skills/list');
     expect($response['error']['code'])->toBe(-32603)
         ->and($response['error']['message'])->not->toContain('/nonexistent/skill');
-});
+})->with(['', '/', '/nonexistent/skill']);
 
 it('retains mandatory cache fields when unrelated continuation params are supplied', function (string $method): void {
     $this->server->start();
