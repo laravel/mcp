@@ -717,14 +717,18 @@ class GetMonitorData extends Tool
 ```js
 createMcpApp(async (app) => {
     async function poll() {
-        const result = await app.callServerTool('get-monitor-data');
+        try {
+            const result = await app.callServerTool('get-monitor-data');
 
-        if (result.isError) {
-            return;
+            if (result.isError) {
+                return;
+            }
+
+            const data = JSON.parse(result.content[0]?.text ?? '{}');
+            document.getElementById('cpu').textContent = data.cpu;
+        } catch {
+            // transport failure or malformed payload, retry on next tick
         }
-
-        const data = JSON.parse(result.content[0]?.text ?? '{}');
-        document.getElementById('cpu').textContent = data.cpu;
     }
 
     setInterval(poll, 2000);
