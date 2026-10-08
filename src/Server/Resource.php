@@ -30,9 +30,7 @@ abstract class Resource extends Primitive
 
         $attribute = $this->resolveAttribute(Uri::class);
 
-        return $attribute !== null
-            ? $attribute->value
-            : ($this->uri !== '' ? $this->uri : $this->defaultUriScheme.'://resources/'.Str::kebab(class_basename($this)));
+        return $attribute?->value ?? ($this->uri !== '' ? $this->uri : $this->defaultUriScheme.'://resources/'.Str::kebab(class_basename($this)));
     }
 
     public function cacheable(): ?Cacheable
@@ -44,9 +42,7 @@ abstract class Resource extends Primitive
     {
         $attribute = $this->resolveAttribute(MimeType::class);
 
-        return $attribute !== null
-            ? $attribute->value
-            : ($this->mimeType !== '' ? $this->mimeType : 'text/plain');
+        return $attribute?->value ?? ($this->mimeType !== '' ? $this->mimeType : 'text/plain');
     }
 
     /**
