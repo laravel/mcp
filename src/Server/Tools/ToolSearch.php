@@ -192,7 +192,7 @@ class ToolSearch
                 return ['notifications' => [], 'result' => $this->failedResult("Tool [{$name}] is not available.")];
             }
 
-            $toolResponses = (new ToolInvoker)->invoke($tool, $request);
+            $toolResponses = (new ToolInvoker(mirrorStructuredContent: false))->invoke($tool, $request);
             $toolResponses = $toolResponses instanceof JsonRpcResponse ? [$toolResponses] : $toolResponses;
             $notifications = [];
             $result = null;
