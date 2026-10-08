@@ -193,7 +193,13 @@ class Skill extends Primitive
                 continue;
             }
 
-            $files[] = str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($directory) + 1));
+            $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($directory) + 1));
+
+            if (str_contains($relative, '\\') || ! $file->isReadable()) {
+                throw new RuntimeException('Skill files must be readable and must not contain backslashes in their paths.');
+            }
+
+            $files[] = $relative;
             $size += $file->getSize();
 
             if ($size > self::MAX_SIZE) {

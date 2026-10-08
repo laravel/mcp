@@ -165,6 +165,25 @@ it('rejects symbolic links including links within the skill and broken links', f
         ->and(fn () => $this->skill->read('link'))->toThrow(RuntimeException::class);
 })->with(['inside', 'outside', 'broken']);
 
+it('rejects files during discovery that cannot be read later', function (string $case): void {
+    if (PHP_OS_FAMILY === 'Windows') {
+        $this->markTestSkipped('Backslashes and permission bits are not portable to Windows.');
+    }
+
+    $path = $this->skill->path().'/references/'.($case === 'backslash' ? 'a\\b.md' : 'locked.md');
+    file_put_contents($path, 'contents');
+
+    if ($case === 'unreadable') {
+        chmod($path, 0000);
+
+        if (is_readable($path)) {
+            $this->markTestSkipped('Permission bits are ignored for this user.');
+        }
+    }
+
+    expect(fn (): array => $this->skill->resources())->toThrow(RuntimeException::class, 'readable');
+})->with(['backslash', 'unreadable']);
+
 it('rejects a symbolic link used as the root', function (): void {
     if (PHP_OS_FAMILY === 'Windows') {
         $this->markTestSkipped('Creating symbolic links requires elevated privileges on Windows.');
