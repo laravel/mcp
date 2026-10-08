@@ -182,6 +182,7 @@ class Skill extends Primitive
             RecursiveIteratorIterator::SELF_FIRST,
         );
         $files = [];
+        $size = 0;
 
         foreach ($iterator as $file) {
             if ($file->isLink() || (! $file->isDir() && ! $file->isFile())) {
@@ -193,6 +194,11 @@ class Skill extends Primitive
             }
 
             $files[] = str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($directory) + 1));
+            $size += $file->getSize();
+
+            if ($size > self::MAX_SIZE) {
+                throw new RuntimeException('Skills must not exceed 16 MiB in total.');
+            }
 
             if (count($files) > self::MAX_RESOURCES) {
                 throw new RuntimeException('Skills must not contain more than 512 files.');

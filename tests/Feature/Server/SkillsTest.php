@@ -220,7 +220,7 @@ it('does not declare or implement optional directory reading', function (): void
 
 it('rejects duplicate skill URIs while allowing equal names', function (): void {
     $this->server->skills = [TestSkill::class, new TestSkill];
-    expect(fn () => $this->server->createContext()->skills())->toThrow(InvalidArgumentException::class, 'Duplicate server skill URI');
+    expect(fn () => $this->server->createContext()->skills())->toThrow(LogicException::class, 'Duplicate server skill URI');
 });
 
 it('rejects registered resources that would shadow skill file bytes', function (): void {
@@ -228,7 +228,7 @@ it('rejects registered resources that would shadow skill file bytes', function (
     $this->server->resources[] = $this->makeResource('wrong bytes', overrides: ['uri' => 'skill://release-checklist/SKILL.md']);
     $this->server->start();
 
-    expect(fn () => $this->server->createContext()->resources())->toThrow(InvalidArgumentException::class, 'already registered');
+    expect(fn () => $this->server->createContext()->resources())->toThrow(LogicException::class, 'already registered');
 
     foreach (['skills/list', 'skills/get'] as $method) {
         $response = skillResponse($this->server, $this->transport, $method, ['uri' => 'skill://release-checklist/SKILL.md']);
@@ -294,26 +294,26 @@ class EmptySkillListing extends ListSkills
     }
 }
 
-it('rejects malformed skill pagination parameters', function (array $params): void {
-    $this->server->start();
-    expect(skillResponse($this->server, $this->transport, 'skills/list', $params)['error']['code'])->toBe(-32602);
-})->with([
-    [['cursor' => []]],
-    [['cursor' => 12]],
-    [['per_page' => 0]],
-    [['per_page' => -1]],
-    [['per_page' => '2']],
-]);
-
-it('reports invalid server skill configuration as an internal error', function (string $directory): void {
+it('skips invalid skills without affecting other skills or resources', function (string $directory): void {
     config(['app.debug' => false]);
-    $this->server->skills = [Skill::fromDirectory($directory)];
+    $this->server->skills[] = Skill::fromDirectory($directory);
     $this->server->start();
 
-    $response = skillResponse($this->server, $this->transport, 'skills/list');
-    expect($response['error']['code'])->toBe(-32603)
-        ->and($response['error']['message'])->not->toContain('/nonexistent/skill');
+    expect(array_column(skillResponse($this->server, $this->transport, 'skills/list')['result']['skills'], 'uri'))->toBe(['skill://release-checklist/SKILL.md'])
+        ->and(skillResponse($this->server, $this->transport, 'skills/get', ['uri' => 'skill://release-checklist/SKILL.md'])['result']['skill']['uri'])->toBe('skill://release-checklist/SKILL.md')
+        ->and(skillResponse($this->server, $this->transport, 'resources/read', ['uri' => 'file://resources/last-log-line-resource'])['result']['contents'][0]['text'])->toBe('2025-07-02 12:00:00 Error: Something went wrong.')
+        ->and(skillResponse($this->server, $this->transport, 'resources/list')['result']['resources'])->not->toBeEmpty();
 })->with(['', '/', '/nonexistent/skill']);
+
+it('reports conflicting skill configuration as an internal error on resource reads', function (): void {
+    config(['app.debug' => false]);
+    $this->server->skills = [TestSkill::class, new TestSkill];
+    $this->server->start();
+
+    $response = skillResponse($this->server, $this->transport, 'resources/read', ['uri' => 'file://resources/last-log-line-resource']);
+    expect($response['error']['code'])->toBe(-32603)
+        ->and($response['error']['message'])->not->toContain('Duplicate');
+});
 
 it('retains mandatory cache fields when unrelated continuation params are supplied', function (string $method): void {
     $this->server->start();

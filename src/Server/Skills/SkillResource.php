@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Skills;
 
-use finfo;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Skill;
+use Symfony\Component\Mime\MimeTypes;
 
 class SkillResource extends Resource
 {
@@ -25,11 +25,13 @@ class SkillResource extends Resource
 
     public function mimeType(): string
     {
-        if (strtolower(pathinfo($this->file, PATHINFO_EXTENSION)) === 'md') {
+        $extension = strtolower(pathinfo($this->file, PATHINFO_EXTENSION));
+
+        if ($extension === 'md') {
             return 'text/markdown';
         }
 
-        return (new finfo(FILEINFO_MIME_TYPE))->buffer($this->skill->read($this->file)) ?: 'application/octet-stream';
+        return MimeTypes::getDefault()->getMimeTypes($extension)[0] ?? 'application/octet-stream';
     }
 
     public function sourcePath(): string

@@ -194,7 +194,7 @@ Only use the public scope when every caller receives the same skills and the sam
 
 `skills/get` returns a JSON-RPC `-32602` error when the URI is missing, malformed, or does not identify a registered skill's `SKILL.md`. `resources/read` returns `-32602` for any URI that is not a published file.
 
-An invalid skill, such as a missing directory or invalid frontmatter, causes `skills/list` and `skills/get` to fail with an internal error instead of returning an incomplete entry. The same applies when a skill's files conflict with other registered resources. Skill files are part of the server's resource list, so an invalid skill also affects `resources/list` and `resources/read`; validate skill directories before deploying them.
+An invalid skill, such as a missing directory, invalid frontmatter, or a symbolic link, is reported through your exception handler and left out of `skills/list`, `skills/get`, and the resource list, so the server's other skills and resources keep working. Conflicting configuration, such as two skills at the same URI or a resource registered at a skill file's URI, causes every resource and skill request to fail with an internal error.
 
 <a name="skill-uris"></a>
 ## Skill URIs

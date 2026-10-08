@@ -231,11 +231,11 @@ it('rejects overlapping namespaces backed by different files', function (): void
     mkdir($this->directory.'/nested');
     file_put_contents($this->directory.'/nested/SKILL.md', "---\nname: nested\ndescription: Different\n---\n");
     $context = $this->getServerContext(['skills' => [$this->skill, new TestSkill($this->directory.'/nested', 'skill://release-checklist/nested/SKILL.md')]]);
-    expect(fn () => $context->resources())->toThrow(InvalidArgumentException::class, 'Different skill files');
+    expect(fn () => $context->resources())->toThrow(LogicException::class, 'Different skill files');
 
     foreach (['skills/list' => new ListSkills, 'skills/get' => new GetSkill] as $method => $handler) {
         $request = new JsonRpcRequest(1, $method, ['uri' => $this->skill->uri()]);
-        expect(fn (): JsonRpcResponse => $handler->handle($request, $context))->toThrow(InvalidArgumentException::class, 'Different skill files');
+        expect(fn (): JsonRpcResponse => $handler->handle($request, $context))->toThrow(LogicException::class, 'Different skill files');
     }
 });
 
