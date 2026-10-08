@@ -721,6 +721,7 @@ createMcpApp(async (app) => {
             const result = await app.callServerTool('get-monitor-data');
 
             if (result.isError) {
+                document.getElementById('cpu').textContent = result.content[0]?.text ?? 'Unavailable';
                 return;
             }
 
@@ -799,6 +800,11 @@ In the client, convert the base64 blob to a data URI for rendering:
 
 ```js
 const result = await app.callServerTool('get-image', { id: 42 });
+
+if (result.isError) {
+    return;
+}
+
 const blob = result.content[0];
 img.src = `data:${blob.mimeType};base64,${blob.data}`;
 ```
@@ -821,8 +827,17 @@ createMcpApp(async (app) => {
     });
 
     app.onToolResult((params) => {
-        const data = JSON.parse(params.result.content[0]?.text ?? "{}");
-        renderResults(data);
+        if (params.result.isError) {
+            document.getElementById("error").textContent =
+                params.result.content[0]?.text ?? "Unknown error";
+            return;
+        }
+
+        try {
+            renderResults(JSON.parse(params.result.content[0]?.text ?? "{}"));
+        } catch {
+            document.getElementById("error").textContent = "Malformed tool result";
+        }
     });
 });
 ```
