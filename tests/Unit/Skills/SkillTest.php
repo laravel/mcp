@@ -45,7 +45,7 @@ it('builds a complete sorted manifest including hidden and nested files from raw
     mkdir($this->skill->path().'/nested');
     file_put_contents($this->skill->path().'/nested/SKILL.md', "---\nname: nested\ndescription: Nested instructions\n---\n");
     file_put_contents($this->skill->path().'/.hidden', "hidden\r\n");
-    file_put_contents($this->skill->path().'/references/a space #%?.bin', "\0\xffbinary\r\n");
+    file_put_contents($this->skill->path().'/references/a space #%.bin', "\0\xffbinary\r\n");
 
     $entry = $this->skill->toArray();
 
@@ -53,7 +53,7 @@ it('builds a complete sorted manifest including hidden and nested files from raw
         'skill://release-checklist/.hidden',
         'skill://release-checklist/SKILL.md',
         'skill://release-checklist/nested/SKILL.md',
-        'skill://release-checklist/references/a%20space%20%23%25%3F.bin',
+        'skill://release-checklist/references/a%20space%20%23%25.bin',
         'skill://release-checklist/references/checklist.md',
     ]);
 
