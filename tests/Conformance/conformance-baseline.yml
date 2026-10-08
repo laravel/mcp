@@ -8,16 +8,6 @@ server:
   - tasks-dispatch-and-envelope
   - tasks-required-task-error
   - tasks-mrtr-composition
-  - input-required-result-basic-elicitation
-  - input-required-result-basic-sampling
-  - input-required-result-basic-list-roots
-  - input-required-result-request-state
-  - input-required-result-multiple-input-requests
-  - input-required-result-multi-round
-  - input-required-result-non-tool-request
-  - input-required-result-result-type
-  - input-required-result-tampered-state
-  - input-required-result-capability-check
   - tools-call-with-progress
   - tools-call-embedded-resource
   - tools-call-mixed-content
@@ -29,8 +19,6 @@ server:
   - http-custom-header-server-validation
   - json-schema-2020-12
   - sep-2164-resource-not-found
-  - input-required-result-missing-input-response
-  - input-required-result-ignore-extra-params
 
 client:
   - tools_call
