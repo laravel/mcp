@@ -32,21 +32,21 @@ abstract class Primitive implements Arrayable
     {
         $attribute = $this->resolveAttribute(Name::class);
 
-        return $attribute?->value ?? ($this->name !== '' ? $this->name : Str::kebab(class_basename($this)));
+        return $attribute->value ?? ($this->name !== '' ? $this->name : Str::kebab(class_basename($this)));
     }
 
     public function title(): string
     {
         $attribute = $this->resolveAttribute(Title::class);
 
-        return $attribute?->value ?? ($this->title !== '' ? $this->title : Str::headline(class_basename($this)));
+        return $attribute->value ?? ($this->title !== '' ? $this->title : Str::headline(class_basename($this)));
     }
 
     public function description(): string
     {
         $attribute = $this->resolveAttribute(Description::class);
 
-        return $attribute?->value ?? ($this->description !== '' ? $this->description : Str::headline(class_basename($this)));
+        return $attribute->value ?? ($this->description !== '' ? $this->description : Str::headline(class_basename($this)));
     }
 
     /**
