@@ -67,6 +67,17 @@ return [
         'max_output_bytes' => 65_536,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | MCP Clients
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure named MCP clients that connect to external MCP
+    | servers. Every client may define a URL for the remote server, or a
+    | command and arguments for local servers plus connection options.
+    |
+    */
+
     'clients' => [
         'github' => [
             'url' => env('MCP_GITHUB_URL', 'https://api.githubcopilot.com/mcp/'),
