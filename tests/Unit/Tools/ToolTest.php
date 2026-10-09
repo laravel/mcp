@@ -31,6 +31,22 @@ it('can have a custom title', function (): void {
     expect($tool->toArray()['title'])->toBe('Custom Title Tool');
 });
 
+it('includes its title in the annotations', function (): void {
+    $tool = new TestTool;
+    expect($tool->toArray()['annotations'])->toBe(['title' => 'Test Tool']);
+});
+
+it('includes its title next to the other annotations', function (): void {
+    $tool = new KitchenSinkTool;
+    expect($tool->toArray()['annotations'])->toEqual([
+        'title' => 'The Kitchen Sink',
+        'readOnlyHint' => true,
+        'idempotentHint' => true,
+        'destructiveHint' => false,
+        'openWorldHint' => false,
+    ]);
+});
+
 it('can be read only', function (): void {
     $tool = new ReadOnlyTool;
     $annotations = $tool->annotations();

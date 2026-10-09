@@ -77,7 +77,7 @@ class ToolSearch
                     $score += str_contains($schemaText, $term) ? 1 : 0;
                 }
 
-                $annotations = $definition['annotations'] ?? [];
+                $annotations = $tool->annotations();
 
                 return [
                     'index' => $index,
@@ -86,7 +86,7 @@ class ToolSearch
                         'name' => $tool->name(),
                         'description' => $tool->description(),
                         'inputSchema' => $schema,
-                        ...is_array($annotations) && $annotations !== [] ? ['annotations' => $annotations] : [],
+                        ...$annotations !== [] ? ['annotations' => $annotations] : [],
                     ],
                 ];
             })
