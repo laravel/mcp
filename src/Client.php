@@ -7,6 +7,7 @@ namespace Laravel\Mcp;
 use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Laravel\Mcp\Client\ClientManager;
 use Laravel\Mcp\Client\Contracts\Transport;
 use Laravel\Mcp\Client\Exceptions\AuthorizationRequiredException;
@@ -43,6 +44,12 @@ class Client
 
     protected ?string $name = null;
 
+    /** @var array<int, string>|null */
+    protected ?array $onlyTools = null;
+
+    /** @var array<int, string> */
+    protected array $exceptTools = [];
+
     public function __construct(
         protected Transport $transport,
         public ?Implementation $clientInfo = null,
@@ -69,10 +76,11 @@ class Client
 
     /**
      * @param  array<int, string>  $args
+     * @param  array<string, string>  $env
      */
-    public static function local(string $command, array $args = []): static
+    public static function local(string $command, array $args = [], array $env = []): static
     {
-        return new static(new StdioTransport($command, $args));
+        return new static(new StdioTransport($command, $args, $env));
     }
 
     public static function web(string $url): WebClient
@@ -99,6 +107,32 @@ class Client
         $this->transport->setTimeoutSeconds($seconds);
 
         return $this;
+    }
+
+    /**
+     * @param  array<int, string>  $tools
+     */
+    public function onlyTools(array $tools): static
+    {
+        $this->onlyTools = $tools;
+
+        return $this;
+    }
+
+    /**
+     * @param  array<int, string>  $tools
+     */
+    public function exceptTools(array $tools): static
+    {
+        $this->exceptTools = $tools;
+
+        return $this;
+    }
+
+    public function allowsTool(string $name): bool
+    {
+        return ($this->onlyTools === null || Str::is($this->onlyTools, $name))
+            && ! Str::is($this->exceptTools, $name);
     }
 
     public function connect(): static
@@ -186,7 +220,8 @@ class Client
     public function tools(?int $limit = null, ?iterable $default = null): Collection
     {
         try {
-            return (new ListTools(client: $this, limit: $limit))->handle($this->protocol);
+            return (new ListTools(client: $this, limit: $limit))->handle($this->protocol)
+                ->filter(fn (Tool $tool): bool => $this->allowsTool($tool->name));
         } catch (AuthorizationRequiredException $authorizationRequiredException) {
             if ($default === null) {
                 throw $authorizationRequiredException;
@@ -203,6 +238,10 @@ class Client
     {
         $name = $tool instanceof Tool ? $tool->name : $tool;
         $mirroredParameters = $tool instanceof Tool ? $tool->mirroredParameters() : null;
+
+        if (! $this->allowsTool($name)) {
+            throw new ClientException("MCP tool [{$name}] is not allowed on this client.");
+        }
 
         try {
             return (new CallTool($name, $arguments, $mirroredParameters))->handle($this->protocol);
@@ -284,6 +323,8 @@ class Client
             'transport' => $this->transport->recipe(),
             'protocolVersion' => $this->protocol->pinnedProtocolVersion()?->value,
             'cache' => $this->protocol->cache(),
+            'onlyTools' => $this->onlyTools,
+            'exceptTools' => $this->exceptTools,
         ];
     }
 
@@ -301,11 +342,15 @@ class Client
             $this->clientInfo = $resolved->clientInfo;
             $pinned = $resolved->protocol->pinnedProtocolVersion();
             $cache = $resolved->protocol->cache();
+            $this->onlyTools = $resolved->onlyTools;
+            $this->exceptTools = $resolved->exceptTools;
         } else {
             $this->clientInfo = Arr::get($data, 'clientInfo');
             $this->transport = TransportFactory::fromRecipe(Arr::get($data, 'transport'));
             $pinned = ProtocolVersion::tryFrom((string) Arr::get($data, 'protocolVersion'));
             $cache = Arr::get($data, 'cache');
+            $this->onlyTools = Arr::get($data, 'onlyTools');
+            $this->exceptTools = Arr::get($data, 'exceptTools', []);
         }
 
         $this->clientInfo ??= $this->defaultClientInfo();
