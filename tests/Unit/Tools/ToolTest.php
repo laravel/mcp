@@ -47,6 +47,21 @@ it('includes its title next to the other annotations', function (): void {
     ]);
 });
 
+it('lets a tool override the annotations title', function (): void {
+    $tool = new class extends Tool
+    {
+        protected string $title = 'Top Level';
+
+        public function annotations(): array
+        {
+            return ['title' => 'Annotated'];
+        }
+    };
+
+    expect($tool->toArray()['title'])->toBe('Top Level')
+        ->and($tool->toArray()['annotations']['title'])->toBe('Annotated');
+});
+
 it('can be read only', function (): void {
     $tool = new ReadOnlyTool;
     $annotations = $tool->annotations();
