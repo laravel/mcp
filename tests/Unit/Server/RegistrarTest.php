@@ -923,6 +923,7 @@ it('handles oauth discovery with multi-segment paths', function (): void {
         'response_types_supported' => ['code'],
         'code_challenge_methods_supported' => ['S256'],
         'grant_types_supported' => ['authorization_code', 'refresh_token'],
+        'token_endpoint_auth_methods_supported' => ['none'],
     ]);
 });
 
