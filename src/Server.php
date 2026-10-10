@@ -210,7 +210,7 @@ abstract class Server
                 throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', ErrorCode::PARSE_ERROR->value);
             }
 
-            $request = isset($jsonRequest['id'])
+            $request = is_array($jsonRequest) && array_key_exists('id', $jsonRequest)
                 ? JsonRpcRequest::from($jsonRequest)
                 : JsonRpcNotification::from($jsonRequest);
 

@@ -246,6 +246,29 @@ it('can handle a notification message', function (): void {
     expect($transport->sent)->toHaveCount(0);
 });
 
+it('rejects a request with a null id instead of treating it as a notification', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => null,
+        'method' => 'tools/list',
+    ]);
+
+    ($transport->handler)($payload);
+
+    expect($transport->sent)->toHaveCount(1);
+
+    $response = json_decode((string) $transport->sent[0], true);
+
+    expect($response['error']['code'])->toBe(-32600)
+        ->and($response['error']['message'])->toBe('Invalid Request: The [id] member must be a string, number.')
+        ->and($response)->not->toHaveKey('result');
+});
+
 it('can handle an unknown method', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
