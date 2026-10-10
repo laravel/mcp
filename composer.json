@@ -29,7 +29,9 @@
         "illuminate/support": "^11.45.3|^12.41.1|^13.0",
         "illuminate/validation": "^11.45.3|^12.41.1|^13.0",
         "illuminate/json-schema": "^12.41.1|^13.0",
-        "symfony/process": "^7.4.5|^8.0.5"
+        "symfony/mime": "^7.4|^8.0",
+        "symfony/process": "^7.4.5|^8.0.5",
+        "symfony/yaml": "^7.4|^8.0"
     },
     "require-dev": {
         "jasonmccreary/double": "^1.0",
