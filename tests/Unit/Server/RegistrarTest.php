@@ -923,6 +923,7 @@ it('handles oauth discovery with multi-segment paths', function (): void {
         'response_types_supported' => ['code'],
         'code_challenge_methods_supported' => ['S256'],
         'grant_types_supported' => ['authorization_code', 'refresh_token'],
+        'token_endpoint_auth_methods_supported' => ['none', 'client_secret_basic', 'client_secret_post'],
     ]);
 });
 
@@ -1152,6 +1153,7 @@ it('omits the registration endpoint from the metadata when registration is disab
         'authorization_endpoint' => url('/oauth/authorize'),
         'token_endpoint' => url('/oauth/token'),
         'scopes_supported' => ['mcp:use'],
+        'token_endpoint_auth_methods_supported' => ['none', 'client_secret_basic', 'client_secret_post'],
     ]);
 })->with([
     '/.well-known/oauth-authorization-server',
