@@ -154,6 +154,37 @@ it('skips header validation for a legacy request without protocol metadata', fun
     expect($response->json('result.tools'))->not->toBeEmpty();
 });
 
+it('accepts a legacy request carrying a negotiated protocol version header', function (string $version): void {
+    $response = $this->postJson('test-mcp', ['jsonrpc' => '2.0', 'id' => 3, 'method' => 'tools/list', 'params' => []], [
+        'MCP-Protocol-Version' => $version,
+    ]);
+
+    $response->assertStatus(200);
+
+    expect($response->json('result.tools'))->not->toBeEmpty();
+})->with(['2025-11-25', '2025-06-18']);
+
+it('answers a legacy request carrying an unsupported protocol version header with a 400', function (): void {
+    $response = $this->postJson('test-mcp', ['jsonrpc' => '2.0', 'id' => 3, 'method' => 'tools/list', 'params' => []], [
+        'MCP-Protocol-Version' => '1900-01-01',
+    ]);
+
+    $response->assertStatus(400);
+
+    expect($response->json())->toEqual([
+        'jsonrpc' => '2.0',
+        'id' => 3,
+        'error' => [
+            'code' => -32022,
+            'message' => 'Unsupported protocol version',
+            'data' => [
+                'supported' => ['2025-11-25', '2025-06-18'],
+                'requested' => '1900-01-01',
+            ],
+        ],
+    ]);
+});
+
 it('requires the name header even when the body carries no usable name', function (): void {
     $message = callToolMessage();
     $message['params']['name'] = 123;

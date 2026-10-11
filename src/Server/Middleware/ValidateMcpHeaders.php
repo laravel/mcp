@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\MetaKey;
+use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Transport\HeaderValue;
 use Laravel\Mcp\Transport\JsonRpcRequest;
@@ -35,7 +36,7 @@ class ValidateMcpHeaders
         );
 
         if ($message->isLegacy()) {
-            return $next($request);
+            return $this->unsupportedLegacyVersion($request, $body['id']) ?? $next($request);
         }
 
         $mismatch = $this->mismatch($request, RequestHeader::PROTOCOL_VERSION, $message->meta()[MetaKey::PROTOCOL_VERSION->value] ?? null, true)
@@ -52,6 +53,32 @@ class ValidateMcpHeaders
             'error' => [
                 'code' => ErrorCode::HEADER_MISMATCH->value,
                 'message' => $mismatch,
+            ],
+        ], 400);
+    }
+
+    /**
+     * Legacy clients never send the method and name headers, but they do send
+     * the negotiated protocol version after the handshake.
+     */
+    protected function unsupportedLegacyVersion(Request $request, mixed $id): ?Response
+    {
+        $version = $request->header(RequestHeader::PROTOCOL_VERSION->value);
+
+        if (! is_string($version) || $version === '' || in_array($version, ProtocolVersion::initializeSupported(), true)) {
+            return null;
+        }
+
+        return response()->json([
+            'jsonrpc' => '2.0',
+            'id' => $id,
+            'error' => [
+                'code' => ErrorCode::UNSUPPORTED_PROTOCOL_VERSION->value,
+                'message' => 'Unsupported protocol version',
+                'data' => [
+                    'supported' => ProtocolVersion::initializeSupported(),
+                    'requested' => $version,
+                ],
             ],
         ], 400);
     }
