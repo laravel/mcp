@@ -1,6 +1,33 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v1.0.1...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v1.0.2...main)
+
+## [v1.0.2](https://github.com/laravel/mcp/compare/v1.0.1...v1.0.2) - 2026-10-11
+
+### What's Changed
+
+* Migration from Mockery to Double by [@jasonmccreary](https://github.com/jasonmccreary) in https://github.com/laravel/mcp/pull/350
+* Allow oauthRoutes() to skip dynamic client registration by [@ngunyimacharia](https://github.com/ngunyimacharia) in https://github.com/laravel/mcp/pull/352
+* Bump to Double v1 by [@jasonmccreary](https://github.com/jasonmccreary) in https://github.com/laravel/mcp/pull/353
+* Fix handling of trailing slash in discovery urls by [@jimbojsb](https://github.com/jimbojsb) in https://github.com/laravel/mcp/pull/354
+* Stop sending structured content twice in execute_tools results by [@smotim](https://github.com/smotim) in https://github.com/laravel/mcp/pull/358
+* Check isError before reading tool results in MCP app examples by [@lazerg](https://github.com/lazerg) in https://github.com/laravel/mcp/pull/362
+* Add config-driven MCP clients with GitHub, Linear and Playwright presets by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/357
+* Include the tool title in annotations.title by [@Bjornftw](https://github.com/Bjornftw) in https://github.com/laravel/mcp/pull/364
+* Reject requests with a null id by [@ggrigon](https://github.com/ggrigon) in https://github.com/laravel/mcp/pull/365
+* Advertise token endpoint auth methods in OAuth metadata by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/366
+* Reject legacy requests with an unsupported protocol version header by [@ggrigon](https://github.com/ggrigon) in https://github.com/laravel/mcp/pull/367
+
+### New Contributors
+
+* [@jasonmccreary](https://github.com/jasonmccreary) made their first contribution in https://github.com/laravel/mcp/pull/350
+* [@ngunyimacharia](https://github.com/ngunyimacharia) made their first contribution in https://github.com/laravel/mcp/pull/352
+* [@jimbojsb](https://github.com/jimbojsb) made their first contribution in https://github.com/laravel/mcp/pull/354
+* [@smotim](https://github.com/smotim) made their first contribution in https://github.com/laravel/mcp/pull/358
+* [@Bjornftw](https://github.com/Bjornftw) made their first contribution in https://github.com/laravel/mcp/pull/364
+* [@ggrigon](https://github.com/ggrigon) made their first contribution in https://github.com/laravel/mcp/pull/365
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.0.1...v1.0.2
 
 ## [v1.0.1](https://github.com/laravel/mcp/compare/v1.0.0...v1.0.1) - 2026-09-24
 
@@ -126,6 +153,7 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
 
 
 
@@ -449,6 +477,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -459,6 +488,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
