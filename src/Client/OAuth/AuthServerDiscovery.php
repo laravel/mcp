@@ -48,6 +48,29 @@ class AuthServerDiscovery
         return new DiscoveryResult($serverMetadata, $scopesSupported);
     }
 
+    public function requireAdvertised(string $resourceUrl, string $resourceMetadataUrl): void
+    {
+        $this->requireFetchable($resourceMetadataUrl, $resourceUrl);
+
+        if ($resourceMetadataUrl === $this->wellKnown($resourceUrl, 'oauth-protected-resource')) {
+            return;
+        }
+
+        $this->requireFetchable($resourceUrl, $resourceUrl);
+
+        $response = $this->oAuthRequest()->accept('application/json, text/event-stream')->post($resourceUrl, [
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'ping',
+        ]);
+
+        $advertised = WwwAuthenticateChallenge::parse($response->header('WWW-Authenticate'))->resourceMetadataUrl;
+
+        if (! in_array($response->status(), [401, 403], true) || $advertised === null || ! hash_equals($advertised, $resourceMetadataUrl)) {
+            throw new OAuthException("The protected resource metadata URL [{$resourceMetadataUrl}] was not advertised by the resource [{$resourceUrl}].");
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
