@@ -4,14 +4,23 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\JsonSchema\JsonSchema as JsonSchemaFactory;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\InteractsWithData;
 use Illuminate\Support\Traits\Macroable;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
+use Laravel\Mcp\Enums\ElicitationAction;
+use Laravel\Mcp\Enums\MetaKey;
+use Laravel\Mcp\Exceptions\InputRequiredException;
+use Laravel\Mcp\Server\Elicitations\ElicitResponse;
 
 /**
  * @implements Arrayable<string, mixed>
@@ -22,14 +31,20 @@ class Request implements Arrayable
     use InteractsWithData;
     use Macroable;
 
+    protected int $elicitations = 0;
+
     /**
      * @param  array<string, mixed>  $arguments
      * @param  array<string, mixed>|null  $meta
+     * @param  array<string, mixed>  $inputResponses
+     * @param  array<string, mixed>  $state
      */
     public function __construct(
         protected array $arguments = [],
         protected ?array $meta = null,
         protected ?string $uri = null,
+        protected array $inputResponses = [],
+        protected array $state = [],
     ) {
         //
     }
@@ -109,6 +124,109 @@ class Request implements Arrayable
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    public function inputResponses(): array
+    {
+        return $this->inputResponses;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function state(): array
+    {
+        return $this->state;
+    }
+
+    public function shareStateWith(self $request): void
+    {
+        $this->state = &$request->state;
+        $this->elicitations = &$request->elicitations;
+    }
+
+    public function remember(string $key, Closure $callback): mixed
+    {
+        if (! array_key_exists($key, $this->state)) {
+            $value = $callback();
+
+            foreach (is_array($value) ? Arr::flatten($value) : [$value] as $leaf) {
+                if (! is_null($leaf) && ! is_scalar($leaf)) {
+                    throw new InvalidArgumentException("The remembered [{$key}] value must be JSON serializable.");
+                }
+            }
+
+            $this->state[$key] = $value;
+        }
+
+        return $this->state[$key];
+    }
+
+    /**
+     * @param  Closure(JsonSchema): array<string, mixed>|array<string, mixed>  $schema
+     */
+    public function ask(string $message, Closure|array $schema, ?string $key = null): ElicitResponse
+    {
+        $requestedSchema = $schema instanceof Closure
+            ? JsonSchemaFactory::object($schema)->toArray()
+            : $schema;
+
+        ElicitResponse::assertFormSchema($requestedSchema);
+
+        $properties = (array) ($requestedSchema['properties'] ?? []);
+        $required = (array) ($requestedSchema['required'] ?? []);
+
+        $requestedSchema['type'] ??= 'object';
+        $requestedSchema['properties'] = (object) $properties;
+
+        $response = ElicitResponse::from($this->resolveInput([
+            'method' => 'elicitation/create',
+            'params' => [
+                'mode' => 'form',
+                'message' => $message,
+                'requestedSchema' => $requestedSchema,
+            ],
+        ], $key));
+
+        return $response->accepted()
+            ? new ElicitResponse(ElicitationAction::Accept, $response->validate(ElicitResponse::rulesFor($properties, $required)))
+            : $response;
+    }
+
+    public function canAsk(): bool
+    {
+        return $this->clientSupports('elicitation.form');
+    }
+
+    public function clientSupports(string $capability): bool
+    {
+        $capabilities = $this->meta[MetaKey::CLIENT_CAPABILITIES->value] ?? [];
+
+        if ($capability === 'elicitation.form' && data_get($capabilities, 'elicitation') === []) {
+            return true;
+        }
+
+        $declared = data_get($capabilities, $capability);
+
+        return is_bool($declared) ? $declared : is_array($declared);
+    }
+
+    /**
+     * @param  array{method: string, params: array<string, mixed>}  $inputRequest
+     * @return array<string, mixed>
+     */
+    protected function resolveInput(array $inputRequest, ?string $key): array
+    {
+        $key ??= hash('sha256', json_encode([$inputRequest['method'], Arr::except($inputRequest['params'], 'message')]).$this->elicitations++);
+
+        if (array_key_exists($key, $this->inputResponses)) {
+            return $this->inputResponses[$key];
+        }
+
+        throw new InputRequiredException([$key => $inputRequest], $this->inputResponses, $this->state);
+    }
+
+    /**
      * @param  array<string, mixed>  $arguments
      */
     public function setArguments(array $arguments): void
@@ -122,6 +240,14 @@ class Request implements Arrayable
     public function setMeta(?array $meta): void
     {
         $this->meta = $meta;
+    }
+
+    /**
+     * @param  array<string, mixed>  $inputResponses
+     */
+    public function setInputResponses(array $inputResponses): void
+    {
+        $this->inputResponses = $inputResponses;
     }
 
     public function setUri(?string $uri): void
