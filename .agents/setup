@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+# -E (errtrace) makes the ERR trap fire for failures inside functions too.
+set -Eeuo pipefail
+
+# Orb setup for laravel/mcp.
+#
+# Installs the PHP 8.2 toolchain, Composer, the package's vendor dependencies,
+# and warms the npx cache for the MCP conformance runner. Idempotent: safe to
+# re-run on a restored snapshot without reinstalling or re-resolving.
+
+log() { printf '[orb-setup] %s\n' "$*" >&2; }
+
+on_error() {
+    log "==> FAILED (exit $?)"
+}
+trap on_error ERR
+
+step() {
+    local label="$1" started
+    shift
+    started=$(date +%s)
+    log "==> $label"
+    # Run the step as a standalone command so `set -e` propagates failures;
+    # calling it inside `if` would suppress errexit for the helper's whole
+    # body and let a failed command be masked by a later success.
+    "$@"
+    log "==> $label — done in $(( $(date +%s) - started ))s"
+}
+
+install_system_packages() {
+    local packages=(
+        ca-certificates curl git unzip
+        php-cli php-mbstring php-xml php-curl php-zip php-sqlite3 php-pcov
+    )
+    local missing=() pkg status
+
+    for pkg in "${packages[@]}"; do
+        status="$(dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null || true)"
+        [[ "$status" == *"install ok installed"* ]] || missing+=("$pkg")
+    done
+
+    if ((${#missing[@]} == 0)); then
+        log "    system packages already installed"
+        return 0
+    fi
+
+    log "    installing: ${missing[*]}"
+    sudo apt-get update -qq
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${missing[@]}"
+    # Enable the pcov coverage driver for the CLI (idempotent).
+    sudo phpenmod pcov
+}
+
+install_composer() {
+    if command -v composer >/dev/null 2>&1; then
+        log "    $(composer --version) already installed"
+        return 0
+    fi
+
+    log "    installing composer to /usr/local/bin"
+    local installer="/tmp/composer-setup.php"
+    curl -fsSL https://getcomposer.org/installer -o "$installer"
+    sudo php "$installer" --install-dir=/usr/local/bin --filename=composer
+    rm -f "$installer"
+}
+
+install_dependencies() {
+    # The repository does not commit composer.lock; it is created here and
+    # survives in snapshots. Install from the lock while it still matches
+    # composer.json; re-resolve when it is missing or drifted. Composer 2
+    # only warns on a stale lock during install, so use `composer validate`,
+    # which exits 2 on lock errors but leaves ordinary manifest warnings at
+    # exit 0, to tell the two cases apart.
+    if [[ ! -f composer.lock ]] ||
+        ! composer validate --no-check-all --no-check-publish --no-interaction >/dev/null 2>&1; then
+        log "    no usable composer.lock; resolving dependencies"
+        composer update --prefer-dist --no-interaction --no-progress
+        return 0
+    fi
+
+    log "    composer.lock in sync; installing from lock file"
+    composer install --prefer-dist --no-interaction --no-progress
+}
+
+warm_conformance_runner() {
+    if ! command -v npx >/dev/null 2>&1; then
+        log "    npx not found; the conformance runner will download on demand"
+        return 0
+    fi
+
+    log "    warming npx cache for @modelcontextprotocol/conformance"
+    if ! timeout --kill-after=5s 180 npx --yes @modelcontextprotocol/conformance@alpha --help >/dev/null 2>&1; then
+        log "    conformance warm-up did not complete; run.sh will download on demand"
+    fi
+}
+
+write_agent_notes() {
+    local notes="$HOME/.config/amp/AGENTS.md"
+    local marker="<!-- laravel/mcp orb toolchain -->"
+
+    mkdir -p "$(dirname "$notes")"
+
+    if [[ -f "$notes" ]] && grep -Fq "$marker" "$notes"; then
+        return 0
+    fi
+
+    cat >> "$notes" <<EOF
+
+$marker
+- laravel/mcp toolchain: PHP 8.2 with pcov coverage, Composer 2. On PHP 8.2, composer resolves Laravel 12.
+- Verify changes with \`composer test\` (pint + rector + pest coverage + phpstan). \`composer test:conformance\` runs the npx-based MCP conformance suites and needs network access.
+EOF
+    log "    appended toolchain notes to $notes"
+}
+
+main() {
+    cd "$(dirname "${BASH_SOURCE[0]}")/.."
+    log "starting orb setup for laravel/mcp in $(pwd)"
+    step "Install system packages" install_system_packages
+    step "Install Composer" install_composer
+    step "Install PHP dependencies" install_dependencies
+    step "Warm MCP conformance runner" warm_conformance_runner
+    step "Write agent notes" write_agent_notes
+    log "setup complete"
+}
+
+main "$@"
