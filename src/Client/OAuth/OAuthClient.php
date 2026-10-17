@@ -35,6 +35,10 @@ class OAuthClient
 
     public function redirect(?string $returnTo = null): RedirectResponse
     {
+        if ($this->resourceMetadataUrl !== null) {
+            $this->discovery->requireAdvertised($this->resourceUrl, $this->resourceMetadataUrl);
+        }
+
         $discovered = $this->discover();
         $metadata = $discovered->server;
 

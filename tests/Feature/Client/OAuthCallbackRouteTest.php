@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Laravel\Mcp\Client;
+use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\TokenSet;
 use Laravel\Mcp\Facades\Mcp;
 use Laravel\Mcp\WebClient;
@@ -175,6 +177,9 @@ it('passes the stored return destination to the handler and fallback redirect', 
 
 it('forwards challenge metadata and scope from the connect route into discovery', function (): void {
     Http::fake([
+        'https://mcp.test/mcp' => Http::response('', 401, [
+            'WWW-Authenticate' => 'Bearer resource_metadata="https://mcp.test/.well-known/custom-resource"',
+        ]),
         'https://mcp.test/.well-known/custom-resource' => Http::response([
             'authorization_servers' => ['https://auth.test'],
         ]),
@@ -291,4 +296,112 @@ it('allows the published client metadata to be customised without weakening it',
         ->and($document['redirect_uris'])->toBe(['https://app.example.com/mcp/oauth/github/callback'])
         ->and($document['token_endpoint_auth_method'])->toBe('none')
         ->and($document)->not->toHaveKey('client_secret');
+});
+
+it('rejects caller supplied metadata the resource does not advertise', function (string $metadataUrl, int $status): void {
+    $this->withoutExceptionHandling();
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://mcp.test/mcp' => Http::response('', $status, [
+            'WWW-Authenticate' => 'Bearer resource_metadata="https://trusted.test/resource"',
+        ]),
+    ]);
+
+    Mcp::registerClient('github', fn (): WebClient => Client::web('https://mcp.test/mcp')->withOAuth(
+        clientId: 'confidential-client',
+        clientSecret: 'confidential-secret',
+    ));
+    Mcp::oAuthRoutesFor('github', fn (): null => null);
+
+    expect(fn () => $this->withSession([])->get('/mcp/github/connect?'.http_build_query([
+        'resource_metadata' => $metadataUrl,
+    ])))->toThrow(OAuthException::class, 'was not advertised by the resource');
+
+    expect(session()->has('mcp.oauth.'.sha1('https://mcp.test/mcp')))->toBeFalse();
+
+    Http::assertNotSent(fn (ClientRequest $request): bool => $request->url() !== 'https://mcp.test/mcp');
+})->with([
+    'https://attacker.test/resource',
+    'https://mcp.test/attacker-controlled',
+    'https://trusted.test/resource?issuer=attacker',
+    'https://trusted.test/%72esource',
+])->with([401, 403, 200]);
+
+it('rejects caller supplied metadata when the resource sends no challenge', function (): void {
+    $this->withoutExceptionHandling();
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://mcp.test/mcp' => Http::response('', 401),
+    ]);
+
+    registerGithubClient();
+    Mcp::oAuthRoutesFor('github', fn (): null => null);
+
+    expect(fn () => $this->withSession([])->get('/mcp/github/connect?resource_metadata=https://attacker.test/resource'))
+        ->toThrow(OAuthException::class, 'was not advertised by the resource');
+});
+
+it('completes the confidential flow with advertised cross origin metadata', function (string $authMethod): void {
+    $this->withoutExceptionHandling();
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://mcp.test/mcp' => fn (ClientRequest $request) => $request->method() === 'POST' && $request['method'] === 'ping'
+            ? Http::response('', 401, ['WWW-Authenticate' => 'Bearer resource_metadata="https://metadata.test/resource"'])
+            : Http::response('', 405),
+        'https://metadata.test/resource' => Http::response([
+            'resource' => 'https://mcp.test/mcp',
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'token_endpoint' => 'https://auth.test/token',
+            'code_challenge_methods_supported' => ['S256'],
+            'token_endpoint_auth_methods_supported' => [$authMethod],
+        ]),
+        'https://auth.test/token' => Http::response(['access_token' => 'access-token']),
+    ]);
+
+    Mcp::registerClient('github', fn (): WebClient => Client::web('https://mcp.test/mcp')->withOAuth(
+        clientId: 'confidential-client',
+        clientSecret: 'confidential-secret',
+    ));
+    Mcp::oAuthRoutesFor('github', fn (TokenSet $token): RedirectResponse => redirect('/connected/'.$token->accessToken));
+
+    $response = $this->withSession([])->get('/mcp/github/connect?resource_metadata=https://metadata.test/resource');
+    $response->assertRedirectContains('https://auth.test/authorize');
+
+    parse_str((string) parse_url((string) $response->headers->get('Location'), PHP_URL_QUERY), $query);
+
+    $this->get('/mcp/oauth/github/callback?'.http_build_query(['code' => 'auth-code', 'state' => $query['state']]))
+        ->assertRedirect('/connected/access-token');
+
+    Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://auth.test/token' && $request['code'] === 'auth-code');
+})->with(['client_secret_post', 'client_secret_basic']);
+
+it('skips the advertisement check for the default well known metadata url', function (): void {
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'token_endpoint' => 'https://auth.test/token',
+            'code_challenge_methods_supported' => ['S256'],
+        ]),
+    ]);
+
+    registerGithubClient();
+    Mcp::oAuthRoutesFor('github', fn (): null => null);
+
+    $this->withSession([])
+        ->get('/mcp/github/connect?resource_metadata=https://mcp.test/.well-known/oauth-protected-resource/mcp')
+        ->assertRedirectContains('https://auth.test/authorize');
+
+    Http::assertNotSent(fn (ClientRequest $request): bool => $request->url() === 'https://mcp.test/mcp');
 });
