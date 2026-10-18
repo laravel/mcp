@@ -27,7 +27,26 @@ it('answers the legacy initialize handshake', function (string $version): void {
         ->and($response['result']['protocolVersion'])->toBe($version)
         ->and($response['result']['serverInfo']['name'])->toBe('Laravel MCP Server')
         ->and($response['result'])->toHaveKeys(['capabilities', 'instructions']);
-})->with(['2025-06-18', '2025-03-26']);
+
+    ($transport->handler)(json_encode(['jsonrpc' => '2.0', 'method' => 'notifications/initialized']));
+
+    expect($transport->sent)->toHaveCount(1);
+
+    ($transport->handler)(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list']));
+
+    $response = json_decode((string) $transport->sent[1], true);
+
+    expect(array_column($response['result']['tools'], 'name'))->toContain('say-hi-tool');
+
+    $message = callToolMessage();
+    unset($message['params']['_meta']);
+
+    ($transport->handler)(json_encode($message));
+
+    $response = json_decode((string) $transport->sent[2], true);
+
+    expect($response['result']['content'][0]['text'])->toBe('Hello, John Doe!');
+})->with(['2025-11-25', '2025-06-18', '2025-03-26']);
 
 it('falls back to the latest legacy version for an unknown initialize version', function (): void {
     $transport = new ArrayTransport;
