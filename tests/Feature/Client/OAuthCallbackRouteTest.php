@@ -471,7 +471,24 @@ it('follows same origin redirects on the advertisement probe', function (string 
         ->assertRedirectContains('https://auth.test/authorize');
 })->with(['/mcp/', 'https://mcp.test/mcp/', 'HTTPS://MCP.TEST/mcp/']);
 
-it('does not follow cross origin redirects on the advertisement probe', function (string $location): void {
+it('follows cross origin redirects chosen by the resource on the advertisement probe', function (string $location): void {
+    Http::preventStrayRequests();
+    fakeAdvertisedMetadata([
+        'https://mcp.test/mcp' => Http::response('', 307, ['Location' => $location]),
+        'https://www.mcp.test/mcp' => Http::response('', 401, [
+            'WWW-Authenticate' => 'Bearer resource_metadata="https://metadata.test/resource"',
+        ]),
+    ]);
+
+    registerGithubClient();
+    Mcp::oAuthRoutesFor('github', fn (): null => null);
+
+    $this->withSession([])
+        ->get('/mcp/github/connect?resource_metadata=https://metadata.test/resource')
+        ->assertRedirectContains('https://auth.test/authorize');
+})->with(['https://www.mcp.test/mcp', '//www.mcp.test/mcp']);
+
+it('rejects redirects to insecure or internal hosts on the advertisement probe', function (string $location, string $message): void {
     $this->withoutExceptionHandling();
 
     Http::preventStrayRequests();
@@ -482,16 +499,15 @@ it('does not follow cross origin redirects on the advertisement probe', function
     registerGithubClient();
     Mcp::oAuthRoutesFor('github', fn (): null => null);
 
-    expect(fn () => $this->withSession([])->get('/mcp/github/connect?resource_metadata=https://attacker.test/resource'))
-        ->toThrow(OAuthException::class, 'was not advertised by the resource');
+    expect(fn () => $this->withSession([])->get('/mcp/github/connect?resource_metadata=https://metadata.test/resource'))
+        ->toThrow(OAuthException::class, $message);
 
     Http::assertSentCount(1);
 })->with([
-    'https://attacker.test/mcp',
-    'http://mcp.test/mcp/',
-    'https://mcp.test:8443/mcp/',
-    '//attacker.test/mcp',
-    'http://:80',
+    ['http://mcp.test/mcp/', 'must be served over HTTPS'],
+    ['https://127.0.0.1/mcp', 'private or internal host'],
+    ['https://10.0.0.1/mcp', 'private or internal host'],
+    ['http://:80', 'was not advertised by the resource'],
 ]);
 
 it('stops following redirects on the advertisement probe after five hops', function (): void {

@@ -37,17 +37,12 @@ class OAuthClient
         $this->resourceUrl = Str::before($this->resourceUrl, '#');
     }
 
-    public function requireAdvertisedResourceMetadata(): static
+    public function redirect(?string $returnTo = null): RedirectResponse
     {
         if ($this->resourceMetadataUrl !== null) {
             $this->discovery->requireAdvertised($this->resourceUrl, $this->resourceMetadataUrl, $this->resourceHeaders);
         }
 
-        return $this;
-    }
-
-    public function redirect(?string $returnTo = null): RedirectResponse
-    {
         $discovered = $this->discover();
         $metadata = $discovered->server;
 

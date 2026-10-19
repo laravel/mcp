@@ -112,18 +112,11 @@ class AuthServerDiscovery
             } catch (InvalidArgumentException) {
                 return $response;
             }
-        } while (++$redirects <= 5 && $this->isSameOrigin($url, $resourceUrl));
+
+            $this->requireFetchable($url, $resourceUrl);
+        } while (++$redirects <= 5);
 
         return $response;
-    }
-
-    protected function isSameOrigin(string $url, string $resourceUrl): bool
-    {
-        $parts = parse_url($url);
-
-        return is_array($parts)
-            && isset($parts['scheme'], $parts['host'])
-            && strtolower($this->originFromParts($parts)) === strtolower($this->origin($resourceUrl));
     }
 
     /**
