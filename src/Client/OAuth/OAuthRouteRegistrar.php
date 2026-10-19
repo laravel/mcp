@@ -48,7 +48,7 @@ class OAuthRouteRegistrar
             return $this->webClient($client)->oAuthClient(
                 is_string($resourceMetadata) && $resourceMetadata !== '' ? $resourceMetadata : null,
                 is_string($scope) && $scope !== '' ? $scope : null,
-            )->redirect();
+            )->requireAdvertisedResourceMetadata()->redirect();
         });
 
         assert($connect instanceof Route);

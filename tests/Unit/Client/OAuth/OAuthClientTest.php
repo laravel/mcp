@@ -369,9 +369,6 @@ it('requires a redirect uri before redirecting', function (): void {
 
 it('uses the server advertised resource metadata url when provided', function (): void {
     Http::fake([
-        'https://mcp.test/mcp' => Http::response('', 401, [
-            'WWW-Authenticate' => 'Bearer resource_metadata="https://mcp.test/.well-known/custom-resource"',
-        ]),
         'https://mcp.test/.well-known/custom-resource' => Http::response([
             'authorization_servers' => ['https://auth.test'],
         ]),
@@ -392,13 +389,11 @@ it('uses the server advertised resource metadata url when provided', function ()
     expect($target)->toStartWith('https://auth.test/authorize?');
 
     Http::assertSent(fn ($request): bool => $request->url() === 'https://mcp.test/.well-known/custom-resource');
+    Http::assertNotSent(fn ($request): bool => $request->url() === 'https://mcp.test/mcp');
 });
 
 it('throws instead of falling back to the origin when an explicit resource metadata url fails', function (): void {
     Http::fake([
-        'https://mcp.test/mcp' => Http::response('', 401, [
-            'WWW-Authenticate' => 'Bearer resource_metadata="https://mcp.test/.well-known/custom-resource"',
-        ]),
         'https://mcp.test/.well-known/custom-resource' => Http::response('', 404),
         'https://mcp.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://mcp.test',
@@ -419,9 +414,6 @@ it('throws instead of falling back to the origin when an explicit resource metad
 
 it('throws when an explicit resource metadata url returns invalid json', function (): void {
     Http::fake([
-        'https://mcp.test/mcp' => Http::response('', 401, [
-            'WWW-Authenticate' => 'Bearer resource_metadata="https://mcp.test/.well-known/custom-resource"',
-        ]),
         'https://mcp.test/.well-known/custom-resource' => Http::response('not json', 200, ['Content-Type' => 'text/plain']),
     ]);
 
