@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Http;
@@ -405,3 +406,139 @@ it('skips the advertisement check for the default well known metadata url', func
 
     Http::assertNotSent(fn (ClientRequest $request): bool => $request->url() === 'https://mcp.test/mcp');
 });
+
+it('rejects advertised metadata when the resource does not challenge', function (): void {
+    $this->withoutExceptionHandling();
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://mcp.test/mcp' => Http::response('', 200, [
+            'WWW-Authenticate' => 'Bearer resource_metadata="https://metadata.test/resource"',
+        ]),
+    ]);
+
+    registerGithubClient();
+    Mcp::oAuthRoutesFor('github', fn (): null => null);
+
+    expect(fn () => $this->withSession([])->get('/mcp/github/connect?resource_metadata=https://metadata.test/resource'))
+        ->toThrow(OAuthException::class, 'was not advertised by the resource');
+
+    Http::assertNotSent(fn (ClientRequest $request): bool => $request->url() === 'https://metadata.test/resource');
+});
+
+it('sends the client custom headers on the advertisement probe', function (): void {
+    Http::preventStrayRequests();
+    fakeAdvertisedMetadata([
+        'https://mcp.test/mcp' => Http::response('', 401, [
+            'WWW-Authenticate' => 'Bearer resource_metadata="https://metadata.test/resource"',
+        ]),
+    ]);
+
+    Mcp::registerClient('github', fn (): WebClient => Client::web('https://mcp.test/mcp')
+        ->withHeaders([
+            'X-Api-Key' => 'gateway-key',
+            'authorization' => 'Bearer custom',
+            'Mcp-Session-Id' => 'session',
+        ])
+        ->withToken('stored-token')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback'));
+    Mcp::oAuthRoutesFor('github', fn (): null => null);
+
+    $this->withSession([])
+        ->get('/mcp/github/connect?resource_metadata=https://metadata.test/resource')
+        ->assertRedirectContains('https://auth.test/authorize');
+
+    Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://mcp.test/mcp'
+        && $request->header('X-Api-Key') === ['gateway-key']
+        && ! $request->hasHeader('Authorization')
+        && ! $request->hasHeader('Mcp-Session-Id'));
+});
+
+it('follows same origin redirects on the advertisement probe', function (string $location): void {
+    Http::preventStrayRequests();
+    fakeAdvertisedMetadata([
+        'https://mcp.test/mcp' => Http::response('', 307, ['Location' => $location]),
+        'https://mcp.test/mcp/' => Http::response('', 401, [
+            'WWW-Authenticate' => 'Bearer resource_metadata="https://metadata.test/resource"',
+        ]),
+    ]);
+
+    registerGithubClient();
+    Mcp::oAuthRoutesFor('github', fn (): null => null);
+
+    $this->withSession([])
+        ->get('/mcp/github/connect?resource_metadata=https://metadata.test/resource')
+        ->assertRedirectContains('https://auth.test/authorize');
+})->with(['/mcp/', 'https://mcp.test/mcp/', 'HTTPS://MCP.TEST/mcp/']);
+
+it('does not follow cross origin redirects on the advertisement probe', function (string $location): void {
+    $this->withoutExceptionHandling();
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://mcp.test/mcp' => Http::response('', 302, ['Location' => $location]),
+    ]);
+
+    registerGithubClient();
+    Mcp::oAuthRoutesFor('github', fn (): null => null);
+
+    expect(fn () => $this->withSession([])->get('/mcp/github/connect?resource_metadata=https://attacker.test/resource'))
+        ->toThrow(OAuthException::class, 'was not advertised by the resource');
+
+    Http::assertSentCount(1);
+})->with([
+    'https://attacker.test/mcp',
+    'http://mcp.test/mcp/',
+    'https://mcp.test:8443/mcp/',
+    '//attacker.test/mcp',
+    'http://:80',
+]);
+
+it('stops following redirects on the advertisement probe after five hops', function (): void {
+    $this->withoutExceptionHandling();
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://mcp.test/*' => Http::response('', 302, ['Location' => '/loop']),
+    ]);
+
+    registerGithubClient();
+    Mcp::oAuthRoutesFor('github', fn (): null => null);
+
+    expect(fn () => $this->withSession([])->get('/mcp/github/connect?resource_metadata=https://metadata.test/resource'))
+        ->toThrow(OAuthException::class, 'was not advertised by the resource');
+
+    Http::assertSentCount(6);
+});
+
+it('reports an unreachable resource during the advertisement probe as an oauth error', function (): void {
+    $this->withoutExceptionHandling();
+
+    Http::preventStrayRequests();
+    Http::fake([
+        'https://mcp.test/mcp' => fn () => throw new ConnectionException('Connection timed out'),
+    ]);
+
+    registerGithubClient();
+    Mcp::oAuthRoutesFor('github', fn (): null => null);
+
+    expect(fn () => $this->withSession([])->get('/mcp/github/connect?resource_metadata=https://metadata.test/resource'))
+        ->toThrow(OAuthException::class, 'Unable to reach the resource [https://mcp.test/mcp]');
+});
+
+function fakeAdvertisedMetadata(array $resource): void
+{
+    Http::fake([
+        ...$resource,
+        'https://metadata.test/resource' => Http::response([
+            'resource' => 'https://mcp.test/mcp',
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'token_endpoint' => 'https://auth.test/token',
+            'code_challenge_methods_supported' => ['S256'],
+        ]),
+    ]);
+}

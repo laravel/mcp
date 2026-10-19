@@ -4,7 +4,12 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\OAuth;
 
+use GuzzleHttp\Psr7\Uri;
+use GuzzleHttp\Psr7\UriResolver;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
+use InvalidArgumentException;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\Concerns\InteractsWithOAuthEndpoints;
 
@@ -48,7 +53,10 @@ class AuthServerDiscovery
         return new DiscoveryResult($serverMetadata, $scopesSupported);
     }
 
-    public function requireAdvertised(string $resourceUrl, string $resourceMetadataUrl): void
+    /**
+     * @param  array<string, string>  $headers
+     */
+    public function requireAdvertised(string $resourceUrl, string $resourceMetadataUrl, array $headers = []): void
     {
         $this->requireFetchable($resourceMetadataUrl, $resourceUrl);
 
@@ -58,17 +66,64 @@ class AuthServerDiscovery
 
         $this->requireFetchable($resourceUrl, $resourceUrl);
 
-        $response = $this->oAuthRequest()->accept('application/json, text/event-stream')->post($resourceUrl, [
-            'jsonrpc' => '2.0',
-            'id' => 1,
-            'method' => 'ping',
-        ]);
+        $response = $this->probe($resourceUrl, array_filter(
+            $headers,
+            static fn (string $name): bool => strcasecmp($name, 'Authorization') !== 0 && ! str_starts_with(strtolower($name), 'mcp-'),
+            ARRAY_FILTER_USE_KEY,
+        ));
 
         $advertised = WwwAuthenticateChallenge::parse($response->header('WWW-Authenticate'))->resourceMetadataUrl;
 
         if (! in_array($response->status(), [401, 403], true) || $advertised === null || ! hash_equals($advertised, $resourceMetadataUrl)) {
             throw new OAuthException("The protected resource metadata URL [{$resourceMetadataUrl}] was not advertised by the resource [{$resourceUrl}].");
         }
+    }
+
+    /**
+     * @param  array<string, string>  $headers
+     */
+    protected function probe(string $resourceUrl, array $headers): Response
+    {
+        $url = $resourceUrl;
+        $redirects = 0;
+
+        do {
+            try {
+                $response = $this->oAuthRequest()
+                    ->withHeaders($headers)
+                    ->accept('application/json, text/event-stream')
+                    ->post($url, [
+                        'jsonrpc' => '2.0',
+                        'id' => 1,
+                        'method' => 'ping',
+                    ]);
+            } catch (ConnectionException $connectionException) {
+                throw new OAuthException("Unable to reach the resource [{$resourceUrl}] to verify its protected resource metadata.", $connectionException->getCode(), previous: $connectionException);
+            }
+
+            $location = $response->header('Location');
+
+            if (! $response->redirect() || $location === '') {
+                return $response;
+            }
+
+            try {
+                $url = (string) UriResolver::resolve(new Uri($url), new Uri($location));
+            } catch (InvalidArgumentException) {
+                return $response;
+            }
+        } while (++$redirects <= 5 && $this->isSameOrigin($url, $resourceUrl));
+
+        return $response;
+    }
+
+    protected function isSameOrigin(string $url, string $resourceUrl): bool
+    {
+        $parts = parse_url($url);
+
+        return is_array($parts)
+            && isset($parts['scheme'], $parts['host'])
+            && strtolower($this->originFromParts($parts)) === strtolower($this->origin($resourceUrl));
     }
 
     /**
