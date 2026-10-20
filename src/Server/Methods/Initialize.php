@@ -16,10 +16,12 @@ class Initialize implements Method
     {
         $requested = $request->params['protocolVersion'] ?? null;
 
+        $supported = ProtocolVersion::initializeSupported();
+
         return JsonRpcResponse::result($request->id, [
-            'protocolVersion' => in_array($requested, ProtocolVersion::initializeSupported(), true)
+            'protocolVersion' => in_array($requested, $supported, true)
                 ? $requested
-                : ProtocolVersion::initializeSupported()[0],
+                : $supported[0],
             'capabilities' => $context->serverCapabilities ?: (object) [],
             'serverInfo' => $context->implementation->toArray(),
             'instructions' => $context->instructions,

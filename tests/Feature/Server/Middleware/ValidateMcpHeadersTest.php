@@ -154,15 +154,30 @@ it('skips header validation for a legacy request without protocol metadata', fun
     expect($response->json('result.tools'))->not->toBeEmpty();
 });
 
-it('accepts a legacy request carrying a negotiated protocol version header', function (string $version): void {
-    $response = $this->postJson('test-mcp', ['jsonrpc' => '2.0', 'id' => 3, 'method' => 'tools/list', 'params' => []], [
-        'MCP-Protocol-Version' => $version,
-    ]);
+it('serves tools after the legacy initialize handshake', function (string $version, bool $withHeader): void {
+    $this->postJson('test-mcp', [...initializeMessage(), 'params' => [
+        'protocolVersion' => $version,
+        'capabilities' => (object) [],
+        'clientInfo' => ['name' => 'test-client', 'version' => '1.0.0'],
+    ]])->assertOk()->assertJsonPath('result.protocolVersion', $version);
+
+    $headers = $withHeader ? ['MCP-Protocol-Version' => $version] : [];
+
+    $this->postJson('test-mcp', ['jsonrpc' => '2.0', 'method' => 'notifications/initialized'], $headers)
+        ->assertStatus(202);
+
+    $response = $this->postJson('test-mcp', ['jsonrpc' => '2.0', 'id' => 3, 'method' => 'tools/list', 'params' => []], $headers);
 
     $response->assertStatus(200);
 
-    expect($response->json('result.tools'))->not->toBeEmpty();
-})->with(['2025-11-25', '2025-06-18']);
+    expect(array_column($response->json('result.tools'), 'name'))->toContain('say-hi-tool');
+
+    $message = callToolMessage();
+    unset($message['params']['_meta']);
+
+    $this->postJson('test-mcp', $message, $headers)
+        ->assertOk()->assertJsonPath('result.content.0.text', 'Hello, John Doe!');
+})->with(['2025-11-25', '2025-06-18', '2025-03-26'])->with([true, false]);
 
 it('answers a legacy request carrying an unsupported protocol version header with a 400', function (): void {
     $response = $this->postJson('test-mcp', ['jsonrpc' => '2.0', 'id' => 3, 'method' => 'tools/list', 'params' => []], [
@@ -178,7 +193,7 @@ it('answers a legacy request carrying an unsupported protocol version header wit
             'code' => -32022,
             'message' => 'Unsupported protocol version',
             'data' => [
-                'supported' => ['2025-11-25', '2025-06-18'],
+                'supported' => ['2025-11-25', '2025-06-18', '2025-03-26'],
                 'requested' => '1900-01-01',
             ],
         ],

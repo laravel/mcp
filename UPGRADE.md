@@ -31,7 +31,7 @@ The server now speaks protocol revision `2026-07-28` by default. The `initialize
 
 If your application only defines `Tool`, `Resource`, `Prompt`, and `Server` classes, no changes are required as long as your MCP client supports the `2026-07-28` revision. Both `Laravel\Mcp\Client` and the MCP Inspector support this revision.
 
-Clients that still open with `initialize` continue to work. The server answers the handshake with `2025-11-25` or `2025-06-18`, whichever the client requested, and serves the rest of that client's requests without requiring `_meta` or the MCP HTTP headers. Clients requesting `2025-03-26` or `2024-11-05` are offered `2025-11-25` instead. A request that carries `io.modelcontextprotocol/protocolVersion` or `io.modelcontextprotocol/clientCapabilities` in `_meta` is always treated as a `2026-07-28` request and validated as such.
+Clients that still open with `initialize` continue to work. The server answers the handshake with `2025-11-25`, `2025-06-18`, or `2025-03-26`, whichever the client requested, and serves the rest of that client's requests without requiring `_meta` or the MCP HTTP headers. Clients requesting `2024-11-05` are offered `2025-11-25` instead. A request that carries `io.modelcontextprotocol/protocolVersion` or `io.modelcontextprotocol/clientCapabilities` in `_meta` is always treated as a `2026-07-28` request and validated as such.
 
 ## MCP HTTP Headers
 

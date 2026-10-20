@@ -14,7 +14,7 @@ it('defines the handshake for each protocol version explicitly', function (): vo
 it('lists versions supported by each protocol flow', function (): void {
     expect(ProtocolVersion::serverSupported())->toBe(['2026-07-28'])
         ->and(ProtocolVersion::clientSupported())->toBe(['2026-07-28', '2025-11-25', '2025-06-18'])
-        ->and(ProtocolVersion::initializeSupported())->toBe(['2025-11-25', '2025-06-18']);
+        ->and(ProtocolVersion::initializeSupported())->toBe(['2025-11-25', '2025-06-18', '2025-03-26']);
 });
 
 it('picks the version this client prefers regardless of the order the server lists', function (): void {
