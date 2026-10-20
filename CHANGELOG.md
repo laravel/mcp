@@ -1,6 +1,21 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v1.0.2...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v1.1.0...main)
+
+## [v1.1.0](https://github.com/laravel/mcp/compare/v1.0.2...v1.1.0) - 2026-10-20
+
+### What's Changed
+
+* Remove security policy in favor of the org-wide default by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/369
+* Bump shivammathur/setup-php from 2.37.2 to 2.40.0 in the github-actions group by [@dependabot](https://github.com/dependabot)[bot] in https://github.com/laravel/mcp/pull/370
+* Fix initialization compatibility with MCP 2025-03-26 clients by [@MohannadElemary](https://github.com/MohannadElemary) in https://github.com/laravel/mcp/pull/372
+* Verify the resource advertises caller supplied OAuth metadata by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/371
+
+### New Contributors
+
+* [@MohannadElemary](https://github.com/MohannadElemary) made their first contribution in https://github.com/laravel/mcp/pull/372
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.0.2...v1.1.0
 
 ## [v1.0.2](https://github.com/laravel/mcp/compare/v1.0.1...v1.0.2) - 2026-10-11
 
@@ -153,6 +168,7 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
 
 
 
@@ -478,6 +494,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -488,6 +505,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
