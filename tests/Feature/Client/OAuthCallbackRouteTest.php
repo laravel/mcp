@@ -480,12 +480,19 @@ it('follows cross origin redirects chosen by the resource on the advertisement p
         ]),
     ]);
 
-    registerGithubClient();
+    Mcp::registerClient('github', fn (): WebClient => Client::web('https://mcp.test/mcp')
+        ->withHeaders(['X-Api-Key' => 'gateway-key'])
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback'));
     Mcp::oAuthRoutesFor('github', fn (): null => null);
 
     $this->withSession([])
         ->get('/mcp/github/connect?resource_metadata=https://metadata.test/resource')
         ->assertRedirectContains('https://auth.test/authorize');
+
+    Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://mcp.test/mcp'
+        && $request->header('X-Api-Key') === ['gateway-key']);
+    Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://www.mcp.test/mcp'
+        && ! $request->hasHeader('X-Api-Key'));
 })->with(['https://www.mcp.test/mcp', '//www.mcp.test/mcp']);
 
 it('rejects redirects to insecure or internal hosts on the advertisement probe', function (string $location, string $message): void {

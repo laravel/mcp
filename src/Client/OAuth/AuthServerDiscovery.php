@@ -6,6 +6,8 @@ namespace Laravel\Mcp\Client\OAuth;
 
 use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Psr7\Exception\MalformedUriException;
+use GuzzleHttp\Psr7\Uri;
+use GuzzleHttp\Psr7\UriComparator;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
@@ -89,6 +91,17 @@ class AuthServerDiscovery
         try {
             return $this->oAuthRequest()
                 ->withHeaders($headers)
+                ->withRequestMiddleware(static function (RequestInterface $request) use ($headers, $resourceUrl): RequestInterface {
+                    if (! UriComparator::isCrossOrigin(new Uri($resourceUrl), $request->getUri())) {
+                        return $request;
+                    }
+
+                    foreach (array_keys($headers) as $name) {
+                        $request = $request->withoutHeader($name);
+                    }
+
+                    return $request;
+                })
                 ->withOptions(['allow_redirects' => [
                     'max' => 5,
                     'strict' => true,
