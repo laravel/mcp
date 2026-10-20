@@ -81,6 +81,14 @@ class HttpTransport implements Transport, UsesProtocol
         $this->customHeaders = array_merge($this->customHeaders, $headers);
     }
 
+    /**
+     * @return array<string, string>
+     */
+    public function customHeaders(): array
+    {
+        return $this->customHeaders;
+    }
+
     public function url(): string
     {
         return $this->url;
