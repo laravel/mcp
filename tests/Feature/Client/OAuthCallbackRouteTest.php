@@ -502,12 +502,12 @@ it('rejects redirects to insecure or internal hosts on the advertisement probe',
     expect(fn () => $this->withSession([])->get('/mcp/github/connect?resource_metadata=https://metadata.test/resource'))
         ->toThrow(OAuthException::class, $message);
 
-    Http::assertSentCount(1);
+    Http::assertNotSent(fn (ClientRequest $request): bool => $request->url() !== 'https://mcp.test/mcp');
 })->with([
     ['http://mcp.test/mcp/', 'must be served over HTTPS'],
     ['https://127.0.0.1/mcp', 'private or internal host'],
     ['https://10.0.0.1/mcp', 'private or internal host'],
-    ['http://:80', 'was not advertised by the resource'],
+    ['http://:80', 'Unable to reach the resource'],
 ]);
 
 it('stops following redirects on the advertisement probe after five hops', function (): void {
@@ -522,9 +522,9 @@ it('stops following redirects on the advertisement probe after five hops', funct
     Mcp::oAuthRoutesFor('github', fn (): null => null);
 
     expect(fn () => $this->withSession([])->get('/mcp/github/connect?resource_metadata=https://metadata.test/resource'))
-        ->toThrow(OAuthException::class, 'was not advertised by the resource');
+        ->toThrow(OAuthException::class, 'Unable to reach the resource');
 
-    Http::assertSentCount(6);
+    Http::assertNotSent(fn (ClientRequest $request): bool => str_starts_with($request->url(), 'https://metadata.test'));
 });
 
 it('reports an unreachable resource during the advertisement probe as an oauth error', function (): void {

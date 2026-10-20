@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\OAuth;
 
-use GuzzleHttp\Psr7\Uri;
-use GuzzleHttp\Psr7\UriResolver;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
-use InvalidArgumentException;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\Concerns\InteractsWithOAuthEndpoints;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\UriInterface;
 
 class AuthServerDiscovery
 {
@@ -84,39 +84,25 @@ class AuthServerDiscovery
      */
     protected function probe(string $resourceUrl, array $headers): Response
     {
-        $url = $resourceUrl;
-        $redirects = 0;
-
-        do {
-            try {
-                $response = $this->oAuthRequest()
-                    ->withHeaders($headers)
-                    ->accept('application/json, text/event-stream')
-                    ->post($url, [
-                        'jsonrpc' => '2.0',
-                        'id' => 1,
-                        'method' => 'ping',
-                    ]);
-            } catch (ConnectionException $connectionException) {
-                throw new OAuthException("Unable to reach the resource [{$resourceUrl}] to verify its protected resource metadata.", $connectionException->getCode(), previous: $connectionException);
-            }
-
-            $location = $response->header('Location');
-
-            if (! $response->redirect() || $location === '') {
-                return $response;
-            }
-
-            try {
-                $url = (string) UriResolver::resolve(new Uri($url), new Uri($location));
-            } catch (InvalidArgumentException) {
-                return $response;
-            }
-
-            $this->requireFetchable($url, $resourceUrl);
-        } while (++$redirects <= 5);
-
-        return $response;
+        try {
+            return $this->oAuthRequest()
+                ->withHeaders($headers)
+                ->withOptions(['allow_redirects' => [
+                    'max' => 5,
+                    'strict' => true,
+                    'on_redirect' => function (RequestInterface $request, ResponseInterface $response, UriInterface $uri) use ($resourceUrl): void {
+                        $this->requireFetchable((string) $uri, $resourceUrl);
+                    },
+                ]])
+                ->accept('application/json, text/event-stream')
+                ->post($resourceUrl, [
+                    'jsonrpc' => '2.0',
+                    'id' => 1,
+                    'method' => 'ping',
+                ]);
+        } catch (ConnectionException $connectionException) {
+            throw new OAuthException("Unable to reach the resource [{$resourceUrl}] to verify its protected resource metadata.", $connectionException->getCode(), previous: $connectionException);
+        }
     }
 
     /**
