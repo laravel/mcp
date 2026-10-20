@@ -22,18 +22,26 @@ class OAuthClient
 
     protected ?string $returnTo = null;
 
+    /**
+     * @param  array<string, string>  $resourceHeaders
+     */
     public function __construct(
         protected OAuthConfig $config,
         protected string $resourceUrl,
         protected ?string $resourceMetadataUrl = null,
         protected ?string $challengeScope = null,
         protected AuthServerDiscovery $discovery = new AuthServerDiscovery,
+        protected array $resourceHeaders = [],
     ) {
         $this->resourceUrl = Str::before($this->resourceUrl, '#');
     }
 
     public function redirect(?string $returnTo = null): RedirectResponse
     {
+        if ($this->resourceMetadataUrl !== null) {
+            $this->discovery->requireAdvertised($this->resourceUrl, $this->resourceMetadataUrl, $this->resourceHeaders);
+        }
+
         $discovered = $this->discover();
         $metadata = $discovered->server;
 

@@ -77,7 +77,13 @@ class WebClient extends Client
             }
         }
 
-        return new OAuthClient($config, $this->httpTransport->url(), $resourceMetadataUrl, $challengeScope);
+        return new OAuthClient(
+            $config,
+            $this->httpTransport->url(),
+            $resourceMetadataUrl,
+            $challengeScope,
+            resourceHeaders: $this->httpTransport->customHeaders(),
+        );
     }
 
     /**
