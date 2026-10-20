@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\OAuth;
 
+use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Psr7\Exception\MalformedUriException;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
@@ -101,7 +102,7 @@ class AuthServerDiscovery
                     'id' => 1,
                     'method' => 'ping',
                 ]);
-        } catch (ConnectionException|MalformedUriException $exception) {
+        } catch (ConnectionException|TransferException|MalformedUriException $exception) {
             throw new OAuthException("Unable to reach the resource [{$resourceUrl}] to verify its protected resource metadata.", $exception->getCode(), previous: $exception);
         }
     }
