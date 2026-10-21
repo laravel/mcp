@@ -387,6 +387,27 @@ it('rejects non-string redirect URIs before creating a client', function (): voi
     $this->assertDatabaseCount('oauth_clients', 0);
 });
 
+it('rejects too many or too long redirect URIs before creating a client', function (array $redirectUris): void {
+    prepareOauthRegistration();
+
+    $this->postJson('/oauth/register', [
+        'redirect_uris' => $redirectUris,
+    ])->assertBadRequest()->assertJson(['error' => 'invalid_redirect_uri']);
+
+    $this->assertDatabaseCount('oauth_clients', 0);
+})->with([
+    'too many' => [array_map(fn (int $i): string => "https://example.com/callback/{$i}", range(1, 11))],
+    'too long' => [['https://example.com/'.str_repeat('a', 1005)]],
+]);
+
+it('accepts up to ten redirect URIs', function (): void {
+    prepareOauthRegistration();
+
+    $this->postJson('/oauth/register', [
+        'redirect_uris' => array_map(fn (int $i): string => "https://example.com/callback/{$i}", range(1, 10)),
+    ])->assertCreated();
+});
+
 it('keeps redirect errors ahead of metadata errors', function (): void {
     prepareOauthRegistration();
 
