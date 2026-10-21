@@ -1,6 +1,15 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v0.9.6...0.x)
+## [Unreleased](https://github.com/laravel/mcp/compare/v0.9.7...0.x)
+
+## [v0.9.7](https://github.com/laravel/mcp/compare/v0.9.6...v0.9.7) - 2026-10-21
+
+### What's Changed
+
+* Verify the resource advertises caller supplied OAuth metadata by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/374
+* Limit the number and length of redirect URIs in dynamic client registration by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/375
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v0.9.6...v0.9.7
 
 ## [v0.9.6](https://github.com/laravel/mcp/compare/v0.9.5...v0.9.6) - 2026-09-24
 
@@ -91,6 +100,7 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
 
 
 
@@ -416,6 +426,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -426,6 +437,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
