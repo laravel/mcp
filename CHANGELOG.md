@@ -1,6 +1,14 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v1.1.0...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v1.1.1...main)
+
+## [v1.1.1](https://github.com/laravel/mcp/compare/v1.1.0...v1.1.1) - 2026-10-21
+
+### What's Changed
+
+* Limit redirect URIs in dynamic client registration by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/373
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.1.0...v1.1.1
 
 ## [v1.1.0](https://github.com/laravel/mcp/compare/v1.0.2...v1.1.0) - 2026-10-20
 
@@ -168,6 +176,7 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
 
 
 
@@ -495,6 +504,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -505,6 +515,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
