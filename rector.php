@@ -6,6 +6,7 @@ use Rector\CodingStyle\Rector\ClassLike\NewlineBetweenClassLikeStmtsRector;
 use Rector\Config\RectorConfig;
 use Rector\DeadCode\Rector\StmtsAwareInterface\RemoveDeadInstanceOfAssertRector;
 use Rector\Php55\Rector\String_\StringClassNameToClassConstantRector;
+use Rector\Php80\Rector\Ternary\TernaryToNullsafeCoalesceRector;
 use Rector\Php81\Rector\Property\ReadOnlyPropertyRector;
 
 return RectorConfig::configure()
@@ -20,6 +21,7 @@ return RectorConfig::configure()
             __DIR__.'/src/Server/Http/Controllers/OAuthRegisterController.php',
         ],
         RemoveDeadInstanceOfAssertRector::class,
+        TernaryToNullsafeCoalesceRector::class,
     ])
     ->withPreparedSets(
         deadCode: true,
