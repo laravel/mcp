@@ -12,6 +12,9 @@ class DynamicClientRegistration
 {
     use InteractsWithOAuthEndpoints;
 
+    /**
+     * @param  array<string, mixed>  $options
+     */
     public function register(
         string $registrationEndpoint,
         string $redirectUri,
@@ -19,8 +22,9 @@ class DynamicClientRegistration
         string $clientName = 'Laravel MCP Client',
         string $applicationType = 'web',
         TokenEndpointAuthMethod $tokenEndpointAuthMethod = TokenEndpointAuthMethod::ClientSecretPost,
+        array $options = [],
     ): ClientRegistration {
-        $response = $this->oAuthRequest()
+        $response = $this->oAuthRequest($options)
             ->asJson()
             ->post($registrationEndpoint, array_filter([
                 'client_name' => $clientName,

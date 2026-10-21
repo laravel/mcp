@@ -9,11 +9,14 @@ use Illuminate\Support\Facades\Http;
 
 trait InteractsWithOAuthEndpoints
 {
-    protected function oAuthRequest(): PendingRequest
+    /**
+     * @param  array<string, mixed>  $options
+     */
+    protected function oAuthRequest(array $options = []): PendingRequest
     {
         return Http::acceptJson()
             ->timeout(5)
             ->connectTimeout(2)
-            ->withOptions(['allow_redirects' => false]);
+            ->withOptions([...$options, 'allow_redirects' => false]);
     }
 }

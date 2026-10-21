@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
+use Laravel\Mcp\Client\OAuth\AuthServerDiscovery;
 use Laravel\Mcp\Client\OAuth\OAuthClient;
 use Laravel\Mcp\Client\OAuth\OAuthConfig;
 use Laravel\Mcp\Client\OAuth\TokenSet;
@@ -185,6 +186,92 @@ it('exchanges an authorization code for a token set', function (): void {
         && ($request['code'] ?? null) === 'auth-code'
         && ($request['code_verifier'] ?? null) === 'the-verifier'
         && ($request['resource'] ?? null) === 'https://mcp.test/mcp');
+});
+
+it('refuses to send the authorization code to a token endpoint that now resolves internally', function (): void {
+    app()->instance(AuthServerDiscovery::RESOLVER_BINDING, fn (string $host): array => ['169.254.169.254']);
+
+    Http::fake();
+
+    Session::put('mcp.oauth.'.sha1('https://mcp.test/mcp'), [
+        'state' => 'the-state',
+        'verifier' => 'the-verifier',
+        'client_id' => 'client-123',
+        'client_secret' => null,
+        'token_endpoint' => 'https://auth.test/token',
+        'redirect_uri' => 'https://app.test/callback',
+        'return_to' => null,
+    ]);
+
+    app()->instance('request', Request::create('https://app.test/callback', 'GET', [
+        'code' => 'auth-code',
+        'state' => 'the-state',
+    ]));
+
+    expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123')
+        ->oAuthClient()
+        ->exchangeCallback())
+        ->toThrow(OAuthException::class, 'cannot use a private or internal host');
+
+    Http::assertNothingSent();
+});
+
+it('pins the token request to the validated address', function (): void {
+    fakeDiscovery();
+
+    $pinned = [];
+
+    Http::fake(function ($request, array $options) use (&$pinned): void {
+        $pinned[$request->url()] = $options['curl'][CURLOPT_RESOLVE][0] ?? null;
+    });
+
+    Http::fake([
+        'https://auth.test/token' => Http::response(['access_token' => 'access-token']),
+    ]);
+
+    Session::put('mcp.oauth.'.sha1('https://mcp.test/mcp'), [
+        'state' => 'the-state',
+        'verifier' => 'the-verifier',
+        'client_id' => 'client-123',
+        'client_secret' => null,
+        'token_endpoint' => 'https://auth.test/token',
+        'redirect_uri' => 'https://app.test/callback',
+        'return_to' => null,
+    ]);
+
+    app()->instance('request', Request::create('https://app.test/callback', 'GET', [
+        'code' => 'auth-code',
+        'state' => 'the-state',
+    ]));
+
+    Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123')
+        ->oAuthClient()
+        ->exchangeCallback();
+
+    expect($pinned['https://auth.test/token'])->toBe('auth.test:443:93.184.216.34');
+});
+
+it('pins the registration request to the validated address', function (): void {
+    fakeDiscovery();
+
+    $pinned = [];
+
+    Http::fake(function ($request, array $options) use (&$pinned): void {
+        $pinned[$request->url()] = $options['curl'][CURLOPT_RESOLVE][0] ?? null;
+    });
+
+    Http::fake([
+        'https://auth.test/register' => Http::response(['client_id' => 'dcr-999']),
+    ]);
+
+    Client::web('https://mcp.test/mcp')
+        ->withOAuth(redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect();
+
+    expect($pinned['https://auth.test/register'])->toBe('auth.test:443:93.184.216.34');
 });
 
 it('rejects a mismatched state parameter', function (): void {
@@ -554,6 +641,24 @@ it('rejects an authorization server served over plain http', function (): void {
         ->redirect())
         ->toThrow(OAuthException::class, 'must be served over HTTPS');
 });
+
+it('rejects a non http authorization server on a localhost host', function (string $issuer): void {
+    Http::fake([
+        'http://localhost/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'authorization_servers' => [$issuer],
+        ]),
+    ]);
+
+    expect(fn (): RedirectResponse => Client::web('http://localhost/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect())
+        ->toThrow(OAuthException::class, 'must be served over HTTPS');
+})->with([
+    'javascript' => 'javascript://localhost/%0aalert(1)',
+    'file' => 'file://localhost/etc/passwd',
+    'data' => 'data://localhost/text',
+]);
 
 it('falls back to openid connect discovery when oauth metadata is absent', function (): void {
     Http::fake([

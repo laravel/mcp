@@ -6,26 +6,40 @@ namespace Laravel\Mcp\Client\OAuth;
 
 use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Psr7\Exception\MalformedUriException;
+use GuzzleHttp\Psr7\Uri;
+use GuzzleHttp\Psr7\UriResolver;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\Concerns\InteractsWithOAuthEndpoints;
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\UriInterface;
 
 class AuthServerDiscovery
 {
     use InteractsWithOAuthEndpoints;
 
+    public const RESOLVER_BINDING = 'mcp.oauth.resolver';
+
+    protected const MAX_REDIRECTS = 5;
+
+    protected const NON_PUBLIC_IPV6_PREFIXES = [
+        'ff',
+        '2002',
+        '20010000',
+        '0064ff9b0000000000000000',
+        '0064ff9b0001',
+    ];
+
+    /**
+     * @var array<string, array<int, string>>
+     */
+    protected array $resolved = [];
+
     public function discover(string $resourceUrl, ?string $resourceMetadataUrl = null): DiscoveryResult
     {
         $metadataUrl = $resourceMetadataUrl ?? $this->wellKnown($resourceUrl, 'oauth-protected-resource');
 
-        $this->requireFetchable($metadataUrl, $resourceUrl);
-
-        $resourceMetadata = $this->fetchResourceMetadata($metadataUrl, explicit: $resourceMetadataUrl !== null);
+        $resourceMetadata = $this->fetchResourceMetadata($metadataUrl, $resourceUrl, explicit: $resourceMetadataUrl !== null);
 
         $this->requireResourceMatches($resourceMetadata, $resourceUrl);
 
@@ -34,7 +48,7 @@ class AuthServerDiscovery
         $this->requireSecure($issuer);
         $this->requireNotInternal($issuer, $resourceUrl);
 
-        $serverMetadata = $this->fetchMetadata($issuer);
+        $serverMetadata = $this->fetchMetadata($issuer, $resourceUrl);
 
         if (! hash_equals($issuer, $serverMetadata->issuer)) {
             throw new OAuthException("Authorization server issuer [{$serverMetadata->issuer}] did not match the expected issuer [{$issuer}].");
@@ -66,8 +80,6 @@ class AuthServerDiscovery
             return;
         }
 
-        $this->requireFetchable($resourceUrl, $resourceUrl);
-
         $response = $this->probe($resourceUrl, array_filter(
             $headers,
             static fn (string $name): bool => strcasecmp($name, 'Authorization') !== 0 && ! str_starts_with(strtolower($name), 'mcp-'),
@@ -82,37 +94,68 @@ class AuthServerDiscovery
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    public function pin(string $url, string $resourceUrl): array
+    {
+        $this->requireFetchable($url, $resourceUrl);
+
+        $parts = $this->parse($url);
+        $host = $this->normalizedHost($parts['host']);
+
+        if ($this->isLocalhost($host) || $this->isIpAddress($host) || ! defined('CURLOPT_RESOLVE')) {
+            return [];
+        }
+
+        $port = $parts['port'] ?? ($parts['scheme'] === 'https' ? 443 : 80);
+
+        $addresses = array_map(
+            static fn (string $address): string => str_contains($address, ':') ? "[{$address}]" : $address,
+            $this->resolve($host),
+        );
+
+        return ['curl' => [CURLOPT_RESOLVE => ["{$host}:{$port}:".implode(',', $addresses)]]];
+    }
+
+    /**
      * @param  array<string, string>  $headers
      */
     protected function probe(string $resourceUrl, array $headers): Response
     {
+        $url = $resourceUrl;
+
         try {
-            return $this->oAuthRequest()
-                ->withHeaders($headers)
-                ->withOptions(['allow_redirects' => [
-                    'max' => 5,
-                    'strict' => true,
-                    'on_redirect' => function (RequestInterface $request, ResponseInterface $response, UriInterface $uri) use ($resourceUrl): void {
-                        $this->requireFetchable((string) $uri, $resourceUrl);
-                    },
-                ]])
-                ->accept('application/json, text/event-stream')
-                ->post($resourceUrl, [
-                    'jsonrpc' => '2.0',
-                    'id' => 1,
-                    'method' => 'ping',
-                ]);
+            for ($hop = 0; $hop <= self::MAX_REDIRECTS; $hop++) {
+                $response = $this->oAuthRequest($this->pin($url, $resourceUrl))
+                    ->withHeaders($headers)
+                    ->accept('application/json, text/event-stream')
+                    ->post($url, [
+                        'jsonrpc' => '2.0',
+                        'id' => 1,
+                        'method' => 'ping',
+                    ]);
+
+                $location = $response->header('Location');
+
+                if (! $response->redirect() || $location === '') {
+                    return $response;
+                }
+
+                $url = (string) UriResolver::resolve(new Uri($url), new Uri($location));
+            }
         } catch (ConnectionException|TransferException|MalformedUriException $exception) {
             throw new OAuthException("Unable to reach the resource [{$resourceUrl}] to verify its protected resource metadata.", $exception->getCode(), previous: $exception);
         }
+
+        throw new OAuthException("Unable to reach the resource [{$resourceUrl}] to verify its protected resource metadata.");
     }
 
     /**
      * @return array<string, mixed>
      */
-    protected function fetchResourceMetadata(string $metadataUrl, bool $explicit = false): array
+    protected function fetchResourceMetadata(string $metadataUrl, string $resourceUrl, bool $explicit = false): array
     {
-        $response = $this->oAuthRequest()->get($metadataUrl);
+        $response = $this->oAuthRequest($this->pin($metadataUrl, $resourceUrl))->get($metadataUrl);
 
         if (! $response->successful()) {
             if ($explicit) {
@@ -161,10 +204,10 @@ class AuthServerDiscovery
         return null;
     }
 
-    protected function fetchMetadata(string $issuer): AuthServerMetadata
+    protected function fetchMetadata(string $issuer, string $resourceUrl): AuthServerMetadata
     {
         foreach ($this->metadataUrls($issuer) as $metadataUrl) {
-            $response = $this->oAuthRequest()->get($metadataUrl);
+            $response = $this->oAuthRequest($this->pin($metadataUrl, $resourceUrl))->get($metadataUrl);
 
             if (! $response->successful()) {
                 continue;
@@ -227,7 +270,7 @@ class AuthServerDiscovery
             return;
         }
 
-        if ($this->isLocalhost($this->normalizedHost($parts['host']))) {
+        if ($parts['scheme'] === 'http' && $this->isLocalhost($this->normalizedHost($parts['host']))) {
             return;
         }
 
@@ -242,14 +285,22 @@ class AuthServerDiscovery
 
     protected function requireNotInternal(string $url, string $resourceUrl): void
     {
-        $parts = $this->parse($url);
-        $resourceParts = $this->parse($resourceUrl);
-        $host = $this->normalizedHost($parts['host']);
-        $resourceHost = $this->normalizedHost($resourceParts['host']);
+        $host = $this->normalizedHost($this->parse($url)['host']);
+        $resourceHost = $this->normalizedHost($this->parse($resourceUrl)['host']);
 
-        if ($this->isInternalHost($host) && (! $this->isLocalhost($host) || ! $this->isLocalhost($resourceHost))) {
-            throw new OAuthException("OAuth endpoint [{$url}] cannot use a private or internal host.");
+        if (! $this->isLocalhost($host) && ! $this->isIpAddress($host) && $this->resolve($host) === []) {
+            throw new OAuthException("OAuth endpoint [{$url}] host could not be resolved.");
         }
+
+        if (! $this->isInternalHost($host) || $host === $resourceHost) {
+            return;
+        }
+
+        if ($this->isLocalhost($host) && $this->isLocalhost($resourceHost)) {
+            return;
+        }
+
+        throw new OAuthException("OAuth endpoint [{$url}] cannot use a private or internal host.");
     }
 
     protected function isInternalHost(string $host): bool
@@ -258,11 +309,64 @@ class AuthServerDiscovery
             return true;
         }
 
-        if (filter_var($host, FILTER_VALIDATE_IP) === false) {
+        $addresses = $this->isIpAddress($host) ? [$host] : $this->resolve($host);
+
+        if ($addresses === []) {
+            return true;
+        }
+
+        return array_filter($addresses, fn (string $address): bool => ! $this->isPublicAddress($address)) !== [];
+    }
+
+    protected function isIpAddress(string $host): bool
+    {
+        return filter_var($host, FILTER_VALIDATE_IP) !== false;
+    }
+
+    protected function isPublicAddress(string $address): bool
+    {
+        if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
             return false;
         }
 
-        return filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+        $packed = (string) inet_pton($address);
+
+        if (strlen($packed) === 4) {
+            $long = (int) ip2long($address);
+
+            return ($long & 0xFFC00000) !== 0x64400000 && ($long & 0xF0000000) !== 0xE0000000;
+        }
+
+        return array_filter(
+            self::NON_PUBLIC_IPV6_PREFIXES,
+            fn (string $prefix): bool => str_starts_with(bin2hex($packed), $prefix),
+        ) === [];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function resolve(string $host): array
+    {
+        return $this->resolved[$host] ??= $this->lookup($host);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function lookup(string $host): array
+    {
+        if (app()->bound(self::RESOLVER_BINDING)) {
+            return app(self::RESOLVER_BINDING)($host);
+        }
+
+        $addresses = @gethostbynamel($host) ?: [];
+
+        foreach (@dns_get_record($host, DNS_AAAA) ?: [] as $record) {
+            $addresses[] = $record['ipv6'];
+        }
+
+        return array_values(array_unique($addresses));
     }
 
     protected function isLocalhost(string $host): bool

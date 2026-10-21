@@ -69,6 +69,12 @@
                     This application will be able to:<br/>Use available MCP functionality.
                 </p>
 
+                @if (is_string($redirectUri = request()->query('redirect_uri')) && $redirectUri !== '')
+                <p class="text-xs text-muted-foreground text-center break-all">
+                    You will be redirected to {{ $redirectUri }}
+                </p>
+                @endif
+
                 @if ($client->client_uri ?? null)
                 <a href="{{ $client->client_uri }}" target="_blank" rel="noopener noreferrer" class="text-sm text-primary underline text-center">
                     {{ $client->client_uri }}

@@ -268,6 +268,7 @@ class OAuthClient
             $this->resolveScope(),
             applicationType: $this->applicationType($redirectUri),
             tokenEndpointAuthMethod: $this->resolveTokenAuthMethod($metadata, 'confidential'),
+            options: $this->discovery->pin($metadata->registrationEndpoint, $this->resourceUrl),
         );
     }
 
@@ -282,7 +283,7 @@ class OAuthClient
         ?string $clientSecret,
         TokenEndpointAuthMethod $authMethod,
     ): TokenSet {
-        $request = $this->oAuthRequest()->asForm();
+        $request = $this->oAuthRequest($this->discovery->pin($tokenEndpoint, $this->resourceUrl))->asForm();
 
         $credentials = match ($authMethod) {
             TokenEndpointAuthMethod::ClientSecretBasic => [],
