@@ -3,6 +3,7 @@
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Http\Client\ResponseSequence;
 use Illuminate\Support\Facades\Http;
+use Laravel\Mcp\Client\OAuth\AuthServerDiscovery;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
@@ -18,6 +19,8 @@ uses(TestCase::class)
 
         config()->set('app.debug', true);
         config()->set('cache.default', 'array');
+
+        app()->instance(AuthServerDiscovery::RESOLVER_BINDING, fn (string $host): array => ['93.184.216.34']);
     })->in('Unit', 'Feature');
 
 /*

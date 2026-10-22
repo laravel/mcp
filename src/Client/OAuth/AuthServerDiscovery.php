@@ -19,6 +19,21 @@ class AuthServerDiscovery
 {
     use InteractsWithOAuthEndpoints;
 
+    public const RESOLVER_BINDING = 'mcp.oauth.resolver';
+
+    protected const NON_PUBLIC_IPV6_PREFIXES = [
+        'ff',
+        '2002',
+        '20010000',
+        '0064ff9b0000000000000000',
+        '0064ff9b0001',
+    ];
+
+    /**
+     * @var array<string, array<int, string>>
+     */
+    protected array $resolved = [];
+
     public function discover(string $resourceUrl, ?string $resourceMetadataUrl = null): DiscoveryResult
     {
         $metadataUrl = $resourceMetadataUrl ?? $this->wellKnown($resourceUrl, 'oauth-protected-resource');
@@ -42,7 +57,7 @@ class AuthServerDiscovery
 
         $this->requireSecure($serverMetadata->authorizationEndpoint);
         $this->requireSecure($serverMetadata->tokenEndpoint);
-        $this->requireNotInternal($serverMetadata->authorizationEndpoint, $resourceUrl);
+        $this->requireNotInternal($serverMetadata->authorizationEndpoint, $resourceUrl, resolve: false);
         $this->requireNotInternal($serverMetadata->tokenEndpoint, $resourceUrl);
 
         if ($serverMetadata->registrationEndpoint !== null) {
@@ -227,7 +242,7 @@ class AuthServerDiscovery
             return;
         }
 
-        if ($this->isLocalhost($this->normalizedHost($parts['host']))) {
+        if ($parts['scheme'] === 'http' && $this->isLocalhost($this->normalizedHost($parts['host']))) {
             return;
         }
 
@@ -240,16 +255,48 @@ class AuthServerDiscovery
         $this->requireNotInternal($url, $resourceUrl);
     }
 
-    protected function requireNotInternal(string $url, string $resourceUrl): void
+    protected function requireNotInternal(string $url, string $resourceUrl, bool $resolve = true): void
+    {
+        $host = $this->normalizedHost($this->parse($url)['host']);
+        $resourceHost = $this->normalizedHost($this->parse($resourceUrl)['host']);
+
+        $literal = $this->isLocalhost($host) || $this->isIpAddress($host);
+
+        if (! $literal && (! $resolve || $this->usesProxy())) {
+            return;
+        }
+
+        if (! $literal && $this->resolve($host) === []) {
+            throw new OAuthException("OAuth endpoint [{$url}] host could not be resolved.");
+        }
+
+        if (! $this->isInternalHost($host) || $this->authority($url) === $this->authority($resourceUrl)) {
+            return;
+        }
+
+        if ($this->isLocalhost($host) && $this->isLocalhost($resourceHost)) {
+            return;
+        }
+
+        throw new OAuthException("OAuth endpoint [{$url}] cannot use a private or internal host.");
+    }
+
+    protected function usesProxy(): bool
+    {
+        foreach (['HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy'] as $variable) {
+            if (getenv($variable)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function authority(string $url): string
     {
         $parts = $this->parse($url);
-        $resourceParts = $this->parse($resourceUrl);
-        $host = $this->normalizedHost($parts['host']);
-        $resourceHost = $this->normalizedHost($resourceParts['host']);
 
-        if ($this->isInternalHost($host) && (! $this->isLocalhost($host) || ! $this->isLocalhost($resourceHost))) {
-            throw new OAuthException("OAuth endpoint [{$url}] cannot use a private or internal host.");
-        }
+        return $this->normalizedHost($parts['host']).':'.($parts['port'] ?? ($parts['scheme'] === 'https' ? 443 : 80));
     }
 
     protected function isInternalHost(string $host): bool
@@ -258,11 +305,64 @@ class AuthServerDiscovery
             return true;
         }
 
-        if (filter_var($host, FILTER_VALIDATE_IP) === false) {
+        $addresses = $this->isIpAddress($host) ? [$host] : $this->resolve($host);
+
+        if ($addresses === []) {
+            return true;
+        }
+
+        return array_filter($addresses, fn (string $address): bool => ! $this->isPublicAddress($address)) !== [];
+    }
+
+    protected function isIpAddress(string $host): bool
+    {
+        return filter_var($host, FILTER_VALIDATE_IP) !== false;
+    }
+
+    protected function isPublicAddress(string $address): bool
+    {
+        if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
             return false;
         }
 
-        return filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+        $packed = (string) inet_pton($address);
+
+        if (strlen($packed) === 4) {
+            $long = (int) ip2long($address);
+
+            return ($long & 0xFFC00000) !== 0x64400000 && ($long & 0xF0000000) !== 0xE0000000;
+        }
+
+        return array_filter(
+            self::NON_PUBLIC_IPV6_PREFIXES,
+            fn (string $prefix): bool => str_starts_with(bin2hex($packed), $prefix),
+        ) === [];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function resolve(string $host): array
+    {
+        return $this->resolved[$host] ??= $this->lookup($host);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function lookup(string $host): array
+    {
+        if (app()->bound(self::RESOLVER_BINDING)) {
+            return app(self::RESOLVER_BINDING)($host);
+        }
+
+        $addresses = @gethostbynamel($host) ?: [];
+
+        foreach (@dns_get_record($host, DNS_AAAA) ?: [] as $record) {
+            $addresses[] = $record['ipv6'];
+        }
+
+        return array_values(array_unique($addresses));
     }
 
     protected function isLocalhost(string $host): bool
