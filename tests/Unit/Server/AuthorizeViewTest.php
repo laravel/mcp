@@ -8,6 +8,8 @@ function renderAuthorize(Request $request, array $client = []): string
     Route::delete('/oauth/authorize', fn (): null => null)->name('passport.authorizations.deny');
     Route::post('/oauth/authorize', fn (): null => null)->name('passport.authorizations.approve');
 
+    app()->instance('request', $request);
+
     return view('mcp::authorize', [
         'client' => (object) ['id' => 'client-1', 'name' => 'Example', ...$client],
         'user' => (object) ['email' => 'user@example.com'],
@@ -17,7 +19,7 @@ function renderAuthorize(Request $request, array $client = []): string
     ])->render();
 }
 
-it('shows the requested redirect uri and its host', function (): void {
+it('shows the requested redirect uri', function (): void {
     $this->withoutVite();
 
     $html = renderAuthorize(Request::create('/oauth/authorize', 'GET', ['redirect_uri' => 'https://app.example.com/callback']));
