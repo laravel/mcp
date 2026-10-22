@@ -321,11 +321,19 @@ class AuthServerDiscovery
 
     protected function isPublicAddress(string $address): bool
     {
-        if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+        if (! $this->isIpAddress($address)) {
             return false;
         }
 
         $packed = (string) inet_pton($address);
+
+        if (str_starts_with($packed, str_repeat("\0", 10)."\xFF\xFF")) {
+            return $this->isPublicAddress((string) inet_ntop(substr($packed, 12)));
+        }
+
+        if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+            return false;
+        }
 
         if (strlen($packed) === 4) {
             $long = (int) ip2long($address);

@@ -52,6 +52,15 @@ it('rejects hosts that resolve to non public addresses', function (string $addre
     'teredo' => '2001:0:4136:e378:8000:63bf:3fff:fdd2',
 ]);
 
+it('allows hosts that resolve to an ipv4 mapped public address', function (): void {
+    resolveHosts(['mcp.test' => ['93.184.216.34'], 'auth.test' => ['::ffff:93.184.216.34']]);
+
+    fakeAuthServer();
+
+    expect((new AuthServerDiscovery)->discover('https://mcp.test/mcp')->server->issuer)
+        ->toBe('https://auth.test');
+});
+
 it('rejects hosts that do not resolve', function (): void {
     resolveHosts(['mcp.test' => ['93.184.216.34']]);
 
