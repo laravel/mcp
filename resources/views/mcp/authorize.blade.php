@@ -69,6 +69,13 @@
                     This application will be able to:<br/>Use available MCP functionality.
                 </p>
 
+                @php($redirectUri = ($request ?? request())->query('redirect_uri') ?: (array_values((array) ($client->redirect_uris ?? []))[0] ?? null))
+                @if (is_string($redirectUri) && $redirectUri !== '')
+                <p class="text-xs text-muted-foreground text-center break-all">
+                    You will be redirected to <span class="font-medium text-foreground">{{ parse_url($redirectUri, PHP_URL_HOST) ?: $redirectUri }}</span><br/>{{ $redirectUri }}
+                </p>
+                @endif
+
                 @if ($client->client_uri ?? null)
                 <a href="{{ $client->client_uri }}" target="_blank" rel="noopener noreferrer" class="text-sm text-primary underline text-center">
                     {{ $client->client_uri }}
