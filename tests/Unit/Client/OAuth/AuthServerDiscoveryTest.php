@@ -9,22 +9,27 @@ function resolveHosts(array $hosts): void
     app()->instance(AuthServerDiscovery::RESOLVER_BINDING, fn (string $host): array => $hosts[$host] ?? []);
 }
 
+function pinned(string $url, string $resourceUrl): ?array
+{
+    return (new AuthServerDiscovery)->request($url, $resourceUrl)->getOptions()['curl'] ?? null;
+}
+
 it('pins a validated host to its resolved addresses', function (): void {
     resolveHosts(['auth.test' => ['93.184.216.34', '2606:2800:220:1::1']]);
 
-    expect((new AuthServerDiscovery)->pin('https://auth.test/token', 'https://mcp.test/mcp'))
-        ->toBe(['curl' => [CURLOPT_RESOLVE => ['auth.test:443:93.184.216.34,[2606:2800:220:1::1]']]]);
+    expect(pinned('https://auth.test/token', 'https://mcp.test/mcp'))
+        ->toBe([CURLOPT_RESOLVE => ['auth.test:443:93.184.216.34,[2606:2800:220:1::1]']]);
 });
 
 it('pins the explicit port of the endpoint', function (): void {
     resolveHosts(['auth.test' => ['93.184.216.34']]);
 
-    expect((new AuthServerDiscovery)->pin('https://auth.test:8443/token', 'https://mcp.test/mcp'))
-        ->toBe(['curl' => [CURLOPT_RESOLVE => ['auth.test:8443:93.184.216.34']]]);
+    expect(pinned('https://auth.test:8443/token', 'https://mcp.test/mcp'))
+        ->toBe([CURLOPT_RESOLVE => ['auth.test:8443:93.184.216.34']]);
 });
 
 it('does not pin loopback hosts or ip literals', function (string $url): void {
-    expect((new AuthServerDiscovery)->pin($url, $url))->toBe([]);
+    expect(pinned($url, $url))->toBeNull();
 })->with([
     'localhost' => 'http://localhost:8000/token',
     'ipv4 loopback' => 'http://127.0.0.1/token',
@@ -34,7 +39,7 @@ it('does not pin loopback hosts or ip literals', function (string $url): void {
 it('rejects hosts that resolve to non public addresses', function (string $address): void {
     resolveHosts(['auth.test' => ['93.184.216.34', $address]]);
 
-    expect(fn (): array => (new AuthServerDiscovery)->pin('https://auth.test/token', 'https://mcp.test/mcp'))
+    expect(fn (): ?array => pinned('https://auth.test/token', 'https://mcp.test/mcp'))
         ->toThrow(OAuthException::class, 'cannot use a private or internal host');
 })->with([
     'rfc1918 10/8' => '10.0.0.5',
@@ -58,15 +63,15 @@ it('rejects hosts that resolve to non public addresses', function (string $addre
 it('rejects hosts that do not resolve', function (): void {
     resolveHosts([]);
 
-    expect(fn (): array => (new AuthServerDiscovery)->pin('https://auth.test/token', 'https://mcp.test/mcp'))
+    expect(fn (): ?array => pinned('https://auth.test/token', 'https://mcp.test/mcp'))
         ->toThrow(OAuthException::class, 'could not be resolved');
 });
 
 it('allows an internal endpoint on the same host as the resource', function (): void {
     resolveHosts(['intranet.test' => ['10.0.0.5']]);
 
-    expect((new AuthServerDiscovery)->pin('https://intranet.test/token', 'https://intranet.test/mcp'))
-        ->toBe(['curl' => [CURLOPT_RESOLVE => ['intranet.test:443:10.0.0.5']]]);
+    expect(pinned('https://intranet.test/token', 'https://intranet.test/mcp'))
+        ->toBe([CURLOPT_RESOLVE => ['intranet.test:443:10.0.0.5']]);
 });
 
 it('uses a single lookup so a rebound host cannot change what was validated', function (): void {
@@ -78,11 +83,11 @@ it('uses a single lookup so a rebound host cannot change what was validated', fu
 
     $discovery = new AuthServerDiscovery;
 
-    $first = $discovery->pin('https://auth.test/token', 'https://mcp.test/mcp');
-    $second = $discovery->pin('https://auth.test/token', 'https://mcp.test/mcp');
+    $first = $discovery->request('https://auth.test/token', 'https://mcp.test/mcp')->getOptions()['curl'];
+    $second = $discovery->request('https://auth.test/token', 'https://mcp.test/mcp')->getOptions()['curl'];
 
     expect($first)->toBe($second)
-        ->and($first['curl'][CURLOPT_RESOLVE])->toBe(['auth.test:443:93.184.216.34'])
+        ->and($first[CURLOPT_RESOLVE])->toBe(['auth.test:443:93.184.216.34'])
         ->and($lookups)->toBe(1);
 });
 
@@ -166,4 +171,81 @@ it('rejects a resource probe that redirects too many times', function (): void {
         ->toThrow(OAuthException::class, 'Unable to reach the resource');
 
     Http::assertSentCount(6);
+});
+
+it('rejects an internal endpoint on another port of the resource host', function (): void {
+    resolveHosts(['intranet.test' => ['10.0.0.5']]);
+
+    expect(fn (): ?array => pinned('https://intranet.test:2375/token', 'https://intranet.test/mcp'))
+        ->toThrow(OAuthException::class, 'cannot use a private or internal host');
+});
+
+it('does not resolve the authorization endpoint the browser opens', function (): void {
+    resolveHosts([
+        'mcp.test' => ['93.184.216.34'],
+        'auth.test' => ['93.184.216.34'],
+        'login.corp.test' => ['10.0.0.5'],
+    ]);
+
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://login.corp.test/authorize',
+            'token_endpoint' => 'https://auth.test/token',
+        ]),
+    ]);
+
+    expect((new AuthServerDiscovery)->discover('https://mcp.test/mcp')->server->authorizationEndpoint)
+        ->toBe('https://login.corp.test/authorize');
+});
+
+it('skips resolution and pinning when an http proxy is configured', function (): void {
+    resolveHosts([]);
+    putenv('HTTPS_PROXY=http://proxy.test:3128');
+
+    try {
+        expect(pinned('https://auth.test/token', 'https://mcp.test/mcp'))->toBeNull()
+            ->and(fn (): ?array => pinned('https://127.0.0.1:9200/token', 'https://mcp.test/mcp'))
+            ->toThrow(OAuthException::class, 'cannot use a private or internal host');
+    } finally {
+        putenv('HTTPS_PROXY');
+    }
+});
+
+it('only sends custom headers to the origin of the resource', function (): void {
+    resolveHosts(['mcp.test' => ['93.184.216.34'], 'meta.test' => ['93.184.216.34'], 'edge.test' => ['93.184.216.35']]);
+
+    $sent = [];
+
+    Http::fake(function ($request) use (&$sent): void {
+        $sent[$request->toPsrRequest()->getUri()->getHost()] = $request->header('X-Api-Key');
+    });
+
+    Http::fake([
+        'https://mcp.test/mcp' => Http::response('', 302, ['Location' => 'https://edge.test/mcp']),
+        'https://edge.test/mcp' => Http::response('', 401),
+    ]);
+
+    expect(fn () => (new AuthServerDiscovery)->requireAdvertised('https://mcp.test/mcp', 'https://meta.test/prm', ['X-Api-Key' => 'secret']))
+        ->toThrow(OAuthException::class);
+
+    expect($sent)->toBe(['mcp.test' => ['secret'], 'edge.test' => []]);
+});
+
+it('follows a see other redirect of the resource probe with a get', function (): void {
+    resolveHosts(['mcp.test' => ['93.184.216.34'], 'meta.test' => ['93.184.216.34']]);
+
+    Http::fake([
+        'https://mcp.test/mcp' => Http::response('', 303, ['Location' => '/status']),
+        'https://mcp.test/status' => Http::response('', 401, [
+            'WWW-Authenticate' => 'Bearer resource_metadata="https://meta.test/prm"',
+        ]),
+    ]);
+
+    (new AuthServerDiscovery)->requireAdvertised('https://mcp.test/mcp', 'https://meta.test/prm');
+
+    Http::assertSent(fn ($request): bool => $request->url() === 'https://mcp.test/status' && $request->method() === 'GET');
 });
