@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Route;
@@ -17,7 +19,22 @@ it('denies framing of the authorization pages', function (string $name): void {
     'passport.authorizations.authorize',
     'passport.authorizations.approve',
     'passport.authorizations.deny',
+    'passport.device',
+    'passport.device.authorizations.authorize',
+    'passport.device.authorizations.approve',
+    'passport.device.authorizations.deny',
 ]);
+
+it('replaces a weaker frame options header', function (): void {
+    $request = Request::create('/oauth/authorize');
+    $request->setRouteResolver(fn (): Route => (new Route('GET', '/oauth/authorize', []))->name('passport.authorizations.authorize'));
+
+    $response = (new AddAuthorizationFramingHeaders)->handle($request, fn (): Response => response('consent', 200, [
+        'X-Frame-Options' => 'SAMEORIGIN',
+    ]));
+
+    expect($response->headers->all('x-frame-options'))->toBe(['DENY']);
+});
 
 it('keeps the content security policy the application already set', function (): void {
     $request = Request::create('/oauth/authorize');

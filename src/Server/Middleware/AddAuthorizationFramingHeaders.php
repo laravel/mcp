@@ -17,7 +17,7 @@ class AddAuthorizationFramingHeaders
     {
         $response = $next($request);
 
-        if (! $request->routeIs('passport.authorizations.*')) {
+        if (! $request->routeIs('passport.authorizations.*', 'passport.device', 'passport.device.authorizations.*')) {
             return $response;
         }
 
