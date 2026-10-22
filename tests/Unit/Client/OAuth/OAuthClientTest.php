@@ -555,6 +555,24 @@ it('rejects an authorization server served over plain http', function (): void {
         ->toThrow(OAuthException::class, 'must be served over HTTPS');
 });
 
+it('rejects a non http authorization server on a localhost host', function (string $issuer): void {
+    Http::fake([
+        'http://localhost/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'authorization_servers' => [$issuer],
+        ]),
+    ]);
+
+    expect(fn (): RedirectResponse => Client::web('http://localhost/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect())
+        ->toThrow(OAuthException::class, 'must be served over HTTPS');
+})->with([
+    'javascript' => 'javascript://localhost/%0aalert(1)',
+    'file' => 'file://localhost/etc/passwd',
+    'data' => 'data://localhost/text',
+]);
+
 it('falls back to openid connect discovery when oauth metadata is absent', function (): void {
     Http::fake([
         'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
