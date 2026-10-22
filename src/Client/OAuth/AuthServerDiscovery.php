@@ -6,20 +6,22 @@ namespace Laravel\Mcp\Client\OAuth;
 
 use GuzzleHttp\Exception\TransferException;
 use GuzzleHttp\Psr7\Exception\MalformedUriException;
+use GuzzleHttp\Psr7\Uri;
+use GuzzleHttp\Psr7\UriResolver;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\Concerns\InteractsWithOAuthEndpoints;
-use Psr\Http\Message\RequestInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\UriInterface;
 
 class AuthServerDiscovery
 {
     use InteractsWithOAuthEndpoints;
 
     public const RESOLVER_BINDING = 'mcp.oauth.resolver';
+
+    protected const MAX_REDIRECTS = 5;
 
     protected const NON_PUBLIC_IPV6_PREFIXES = [
         'ff',
@@ -38,9 +40,7 @@ class AuthServerDiscovery
     {
         $metadataUrl = $resourceMetadataUrl ?? $this->wellKnown($resourceUrl, 'oauth-protected-resource');
 
-        $this->requireFetchable($metadataUrl, $resourceUrl);
-
-        $resourceMetadata = $this->fetchResourceMetadata($metadataUrl, explicit: $resourceMetadataUrl !== null);
+        $resourceMetadata = $this->fetchResourceMetadata($metadataUrl, $resourceUrl, explicit: $resourceMetadataUrl !== null);
 
         $this->requireResourceMatches($resourceMetadata, $resourceUrl);
 
@@ -49,7 +49,7 @@ class AuthServerDiscovery
         $this->requireSecure($issuer);
         $this->requireNotInternal($issuer, $resourceUrl);
 
-        $serverMetadata = $this->fetchMetadata($issuer);
+        $serverMetadata = $this->fetchMetadata($issuer, $resourceUrl);
 
         if (! hash_equals($issuer, $serverMetadata->issuer)) {
             throw new OAuthException("Authorization server issuer [{$serverMetadata->issuer}] did not match the expected issuer [{$issuer}].");
@@ -81,8 +81,6 @@ class AuthServerDiscovery
             return;
         }
 
-        $this->requireFetchable($resourceUrl, $resourceUrl);
-
         $response = $this->probe($resourceUrl, array_filter(
             $headers,
             static fn (string $name): bool => strcasecmp($name, 'Authorization') !== 0 && ! str_starts_with(strtolower($name), 'mcp-'),
@@ -96,38 +94,79 @@ class AuthServerDiscovery
         }
     }
 
-    /**
-     * @param  array<string, string>  $headers
-     */
-    protected function probe(string $resourceUrl, array $headers): Response
+    public function request(string $url, string $resourceUrl): PendingRequest
     {
-        try {
-            return $this->oAuthRequest()
-                ->withHeaders($headers)
-                ->withOptions(['allow_redirects' => [
-                    'max' => 5,
-                    'strict' => true,
-                    'on_redirect' => function (RequestInterface $request, ResponseInterface $response, UriInterface $uri) use ($resourceUrl): void {
-                        $this->requireFetchable((string) $uri, $resourceUrl);
-                    },
-                ]])
-                ->accept('application/json, text/event-stream')
-                ->post($resourceUrl, [
-                    'jsonrpc' => '2.0',
-                    'id' => 1,
-                    'method' => 'ping',
-                ]);
-        } catch (ConnectionException|TransferException|MalformedUriException $exception) {
-            throw new OAuthException("Unable to reach the resource [{$resourceUrl}] to verify its protected resource metadata.", $exception->getCode(), previous: $exception);
-        }
+        return $this->oAuthRequest($this->pin($url, $resourceUrl));
     }
 
     /**
      * @return array<string, mixed>
      */
-    protected function fetchResourceMetadata(string $metadataUrl, bool $explicit = false): array
+    protected function pin(string $url, string $resourceUrl): array
     {
-        $response = $this->oAuthRequest()->get($metadataUrl);
+        $this->requireFetchable($url, $resourceUrl);
+
+        $parts = $this->parse($url);
+        $host = $this->normalizedHost($parts['host']);
+
+        if ($this->isLocalhost($host) || $this->isIpAddress($host) || $this->usesProxy() || ! defined('CURLOPT_RESOLVE')) {
+            return [];
+        }
+
+        $port = $parts['port'] ?? ($parts['scheme'] === 'https' ? 443 : 80);
+
+        $addresses = array_map(
+            static fn (string $address): string => str_contains($address, ':') ? "[{$address}]" : $address,
+            $this->resolve($host),
+        );
+
+        return ['curl' => [CURLOPT_RESOLVE => ["{$host}:{$port}:".implode(',', $addresses)]]];
+    }
+
+    /**
+     * @param  array<string, string>  $headers
+     */
+    protected function probe(string $resourceUrl, array $headers): Response
+    {
+        $url = $resourceUrl;
+        $post = true;
+
+        try {
+            for ($hop = 0; $hop <= self::MAX_REDIRECTS; $hop++) {
+                $request = $this->request($url, $resourceUrl)
+                    ->withHeaders($this->origin($url) === $this->origin($resourceUrl) ? $headers : [])
+                    ->accept('application/json, text/event-stream');
+
+                $response = $post
+                    ? $request->post($url, [
+                        'jsonrpc' => '2.0',
+                        'id' => 1,
+                        'method' => 'ping',
+                    ])
+                    : $request->get($url);
+
+                $location = $response->header('Location');
+
+                if (! $response->redirect() || $location === '') {
+                    return $response;
+                }
+
+                $post = $post && $response->status() !== 303;
+                $url = (string) UriResolver::resolve(new Uri($url), new Uri($location));
+            }
+        } catch (ConnectionException|TransferException|MalformedUriException $exception) {
+            throw new OAuthException("Unable to reach the resource [{$resourceUrl}] to verify its protected resource metadata.", $exception->getCode(), previous: $exception);
+        }
+
+        throw new OAuthException("Unable to reach the resource [{$resourceUrl}] to verify its protected resource metadata.");
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function fetchResourceMetadata(string $metadataUrl, string $resourceUrl, bool $explicit = false): array
+    {
+        $response = $this->request($metadataUrl, $resourceUrl)->get($metadataUrl);
 
         if (! $response->successful()) {
             if ($explicit) {
@@ -176,10 +215,10 @@ class AuthServerDiscovery
         return null;
     }
 
-    protected function fetchMetadata(string $issuer): AuthServerMetadata
+    protected function fetchMetadata(string $issuer, string $resourceUrl): AuthServerMetadata
     {
         foreach ($this->metadataUrls($issuer) as $metadataUrl) {
-            $response = $this->oAuthRequest()->get($metadataUrl);
+            $response = $this->request($metadataUrl, $resourceUrl)->get($metadataUrl);
 
             if (! $response->successful()) {
                 continue;

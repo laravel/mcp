@@ -10,14 +10,11 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Illuminate\Support\Uri;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
-use Laravel\Mcp\Client\OAuth\Concerns\InteractsWithOAuthEndpoints;
 use Laravel\Mcp\Client\OAuth\Enums\TokenEndpointAuthMethod;
 use SensitiveParameter;
 
 class OAuthClient
 {
-    use InteractsWithOAuthEndpoints;
-
     protected ?DiscoveryResult $discovered = null;
 
     protected ?string $returnTo = null;
@@ -268,6 +265,7 @@ class OAuthClient
             $this->resolveScope(),
             applicationType: $this->applicationType($redirectUri),
             tokenEndpointAuthMethod: $this->resolveTokenAuthMethod($metadata, 'confidential'),
+            request: $this->discovery->request($metadata->registrationEndpoint, $this->resourceUrl),
         );
     }
 
@@ -282,7 +280,7 @@ class OAuthClient
         ?string $clientSecret,
         TokenEndpointAuthMethod $authMethod,
     ): TokenSet {
-        $request = $this->oAuthRequest()->asForm();
+        $request = $this->discovery->request($tokenEndpoint, $this->resourceUrl)->asForm();
 
         $credentials = match ($authMethod) {
             TokenEndpointAuthMethod::ClientSecretBasic => [],
