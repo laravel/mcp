@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
@@ -9,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
+use Laravel\Mcp\Client\OAuth\AuthServerDiscovery;
 use Laravel\Mcp\Client\OAuth\OAuthClient;
 use Laravel\Mcp\Client\OAuth\OAuthConfig;
 use Laravel\Mcp\Client\OAuth\TokenSet;
@@ -185,6 +187,60 @@ it('exchanges an authorization code for a token set', function (): void {
         && ($request['code'] ?? null) === 'auth-code'
         && ($request['code_verifier'] ?? null) === 'the-verifier'
         && ($request['resource'] ?? null) === 'https://mcp.test/mcp');
+});
+
+it('rejects a stored token endpoint that now resolves to an internal host', function (): void {
+    AuthServerDiscovery::resolveHostsUsing(fn (string $host): array => $host === 'auth.test' ? ['10.0.0.5'] : ['93.184.216.34']);
+
+    Http::fake();
+
+    Session::put('mcp.oauth.'.sha1('https://mcp.test/mcp'), [
+        'state' => 'the-state',
+        'verifier' => 'the-verifier',
+        'client_id' => 'client-123',
+        'client_secret' => null,
+        'token_endpoint' => 'https://auth.test/token',
+        'redirect_uri' => 'https://app.test/callback',
+        'return_to' => null,
+    ]);
+
+    app()->instance('request', Request::create('https://app.test/callback', 'GET', [
+        'code' => 'auth-code',
+        'state' => 'the-state',
+    ]));
+
+    expect(fn (): TokenSet => Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123')
+        ->oAuthClient()
+        ->exchangeCallback())
+        ->toThrow(OAuthException::class, 'cannot use a private, internal, or unresolvable host');
+
+    Http::assertNothingSent();
+});
+
+it('pins the token and registration requests to the checked addresses', function (): void {
+    $pins = [];
+
+    Http::fake(function (ClientRequest $request, array $options) use (&$pins): void {
+        $pins[$request->url()] = $options['curl'][CURLOPT_RESOLVE] ?? null;
+    });
+
+    fakeDiscovery();
+
+    Http::fake([
+        'https://auth.test/register' => Http::response(['client_id' => 'dcr-999']),
+        'https://auth.test/token' => Http::response(['access_token' => 'access-token', 'token_type' => 'Bearer']),
+    ]);
+
+    $oauth = Client::web('https://mcp.test/mcp')
+        ->withOAuth(redirectUri: 'https://app.test/callback')
+        ->oAuthClient();
+
+    $oauth->redirect();
+    $oauth->refreshCredentials('refresh-token', 'dcr-999');
+
+    expect($pins['https://auth.test/register'])->toBe(['auth.test:443:93.184.216.34'])
+        ->and($pins['https://auth.test/token'])->toBe(['auth.test:443:93.184.216.34']);
 });
 
 it('rejects a mismatched state parameter', function (): void {
@@ -456,7 +512,7 @@ it('rejects protected resource metadata urls on internal hosts', function (): vo
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
         ->oAuthClient('https://127.0.0.1/.well-known/oauth-protected-resource')
         ->redirect())
-        ->toThrow(OAuthException::class, 'private or internal host');
+        ->toThrow(OAuthException::class, 'private, internal, or unresolvable host');
 });
 
 it('rejects protected resource metadata urls served over plain http', function (): void {

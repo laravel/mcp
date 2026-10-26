@@ -20,7 +20,10 @@ uses(TestCase::class)
         config()->set('app.debug', true);
         config()->set('cache.default', 'array');
 
-        app()->instance(AuthServerDiscovery::RESOLVER_BINDING, fn (string $host): array => ['93.184.216.34']);
+        AuthServerDiscovery::resolveHostsUsing(fn (string $host): array => ['93.184.216.34']);
+    })
+    ->afterEach(function (): void {
+        AuthServerDiscovery::resolveHostsUsing(null);
     })->in('Unit', 'Feature');
 
 /*

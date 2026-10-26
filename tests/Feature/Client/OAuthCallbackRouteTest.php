@@ -505,8 +505,8 @@ it('rejects redirects to insecure or internal hosts on the advertisement probe',
     Http::assertNotSent(fn (ClientRequest $request): bool => $request->url() !== 'https://mcp.test/mcp');
 })->with([
     ['http://mcp.test/mcp/', 'must be served over HTTPS'],
-    ['https://127.0.0.1/mcp', 'private or internal host'],
-    ['https://10.0.0.1/mcp', 'private or internal host'],
+    ['https://127.0.0.1/mcp', 'private, internal, or unresolvable host'],
+    ['https://10.0.0.1/mcp', 'private, internal, or unresolvable host'],
     ['http://:80', 'Unable to reach the resource'],
 ]);
 
