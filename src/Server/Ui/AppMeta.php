@@ -12,6 +12,8 @@ use Laravel\Mcp\Server\Ui\Enums\Library;
  */
 class AppMeta implements Arrayable
 {
+    protected bool $withoutDomain = false;
+
     /**
      * @param  array<int, Library>  $libraries
      */
@@ -47,8 +49,25 @@ class AppMeta implements Arrayable
     public function domain(string $domain): static
     {
         $this->domain = $domain;
+        $this->withoutDomain = false;
 
         return $this;
+    }
+
+    /**
+     * Leave ui.domain out so the host uses its default sandbox origin.
+     */
+    public function withoutDomain(): static
+    {
+        $this->domain = null;
+        $this->withoutDomain = true;
+
+        return $this;
+    }
+
+    public function usesDomain(): bool
+    {
+        return ! $this->withoutDomain;
     }
 
     public function prefersBorder(bool $prefersBorder = true): static
