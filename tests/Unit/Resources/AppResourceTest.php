@@ -181,3 +181,34 @@ it('configures ui meta via attribute', function (): void {
         'domain' => 'sandbox.example.com',
     ]);
 });
+
+it('does not include the domain when app meta is without a domain', function (): void {
+    $resource = new class extends AppResource
+    {
+        public function appMeta(): AppMeta
+        {
+            return AppMeta::make()->prefersBorder()->withoutDomain();
+        }
+
+        public function handle(Request $request): Response
+        {
+            return Response::text('<html></html>');
+        }
+    };
+
+    expect($resource->resolvedAppMeta())->toBe(['prefersBorder' => true])
+        ->and($resource->toArray()['_meta']['ui'])->not->toHaveKey('domain');
+});
+
+it('does not include the domain when the attribute disables it', function (): void {
+    $resource = new #[AppMetaAttribute(prefersBorder: true, domain: false)] class extends AppResource
+    {
+        public function handle(Request $request): Response
+        {
+            return Response::text('<html></html>');
+        }
+    };
+
+    expect($resource->resolvedAppMeta())->toBe(['prefersBorder' => true])
+        ->and($resource->toArray()['_meta']['ui'])->not->toHaveKey('domain');
+});
