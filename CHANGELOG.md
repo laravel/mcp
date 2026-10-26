@@ -1,6 +1,22 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v1.1.1...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v1.1.2...main)
+
+## [v1.1.2](https://github.com/laravel/mcp/compare/v1.1.1...v1.1.2) - 2026-10-26
+
+### What's Changed
+
+* Limit OAuth requests to HTTP and HTTPS and cap response size by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/380
+* Show the redirect URI on the OAuth authorize page by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/377
+* Prevent the OAuth authorize page from being framed by default by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/376
+* Allow MCP Apps without a ui.domain by [@nbullorini](https://github.com/nbullorini) in https://github.com/laravel/mcp/pull/381
+* Check resolved addresses of OAuth discovery hosts by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/378
+
+### New Contributors
+
+* [@nbullorini](https://github.com/nbullorini) made their first contribution in https://github.com/laravel/mcp/pull/381
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.1.1...v1.1.2
 
 ## [v1.1.1](https://github.com/laravel/mcp/compare/v1.1.0...v1.1.1) - 2026-10-21
 
@@ -176,6 +192,7 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
 
 
 
@@ -505,6 +522,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -515,6 +533,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
