@@ -24,7 +24,7 @@ it('limits discovery requests to http and https with a capped response size', fu
 
     (new AuthServerDiscovery)->discover('https://mcp.test/mcp');
 
-    expect($options)->toHaveCount(2)->each->toBe([
+    expect($options)->toHaveCount(2)->each->toMatchArray([
         CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
         CURLOPT_MAXFILESIZE => 1_048_576,
     ]);

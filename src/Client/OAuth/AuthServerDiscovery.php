@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\OAuth;
 
+use Closure;
 use GuzzleHttp\Exception\TransferException;
+use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Psr7\Exception\MalformedUriException;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\Concerns\InteractsWithOAuthEndpoints;
 use Psr\Http\Message\RequestInterface;
@@ -18,6 +22,31 @@ use Psr\Http\Message\UriInterface;
 class AuthServerDiscovery
 {
     use InteractsWithOAuthEndpoints;
+
+    protected const NON_PUBLIC_IPV6_PREFIXES = [
+        'ff',
+        '2002',
+        '20010000',
+        '0064ff9b0001',
+        'fec',
+        'fed',
+        'fee',
+        'fef',
+        '000000000000000000000000',
+        '0000000000000000ffff0000',
+    ];
+
+    /**
+     * @var array<string, array<int, string>>
+     */
+    protected array $resolved = [];
+
+    protected static ?Closure $hostResolver = null;
+
+    public static function resolveHostsUsing(?Closure $callback): void
+    {
+        static::$hostResolver = $callback;
+    }
 
     public function discover(string $resourceUrl, ?string $resourceMetadataUrl = null): DiscoveryResult
     {
@@ -42,7 +71,7 @@ class AuthServerDiscovery
 
         $this->requireSecure($serverMetadata->authorizationEndpoint);
         $this->requireSecure($serverMetadata->tokenEndpoint);
-        $this->requireNotInternal($serverMetadata->authorizationEndpoint, $resourceUrl);
+        $this->requireNotInternal($serverMetadata->authorizationEndpoint, $resourceUrl, resolve: false);
         $this->requireNotInternal($serverMetadata->tokenEndpoint, $resourceUrl);
 
         if ($serverMetadata->registrationEndpoint !== null) {
@@ -81,13 +110,30 @@ class AuthServerDiscovery
         }
     }
 
+    public function pin(PendingRequest $request): PendingRequest
+    {
+        return $request->withMiddleware(fn (callable $handler): Closure => function (RequestInterface $request, array $options) use ($handler): PromiseInterface {
+            $uri = $request->getUri();
+            $addresses = $this->resolved[$this->normalizedHost($uri->getHost())] ?? [];
+
+            if ($addresses !== [] && defined('CURLOPT_RESOLVE')) {
+                $port = $uri->getPort() ?? ($uri->getScheme() === 'https' ? 443 : 80);
+                $addresses = array_map(fn (string $address): string => str_contains($address, ':') ? "[{$address}]" : $address, $addresses);
+
+                $options['curl'][CURLOPT_RESOLVE] = ["{$uri->getHost()}:{$port}:".implode(',', $addresses)];
+            }
+
+            return $handler($request, $options);
+        });
+    }
+
     /**
      * @param  array<string, string>  $headers
      */
     protected function probe(string $resourceUrl, array $headers): Response
     {
         try {
-            return $this->oAuthRequest()
+            return $this->pin($this->oAuthRequest())
                 ->withHeaders($headers)
                 ->withOptions(['allow_redirects' => [
                     'max' => 5,
@@ -112,7 +158,7 @@ class AuthServerDiscovery
      */
     protected function fetchResourceMetadata(string $metadataUrl, bool $explicit = false): array
     {
-        $response = $this->oAuthRequest()->get($metadataUrl);
+        $response = $this->pin($this->oAuthRequest())->get($metadataUrl);
 
         if (! $response->successful()) {
             if ($explicit) {
@@ -164,7 +210,7 @@ class AuthServerDiscovery
     protected function fetchMetadata(string $issuer): AuthServerMetadata
     {
         foreach ($this->metadataUrls($issuer) as $metadataUrl) {
-            $response = $this->oAuthRequest()->get($metadataUrl);
+            $response = $this->pin($this->oAuthRequest())->get($metadataUrl);
 
             if (! $response->successful()) {
                 continue;
@@ -227,29 +273,54 @@ class AuthServerDiscovery
             return;
         }
 
-        if ($this->isLocalhost($this->normalizedHost($parts['host']))) {
+        if ($parts['scheme'] === 'http' && $this->isLocalhost($this->normalizedHost($parts['host']))) {
             return;
         }
 
         throw new OAuthException("OAuth endpoint [{$url}] must be served over HTTPS.");
     }
 
-    protected function requireFetchable(string $url, string $resourceUrl): void
+    public function requireFetchable(string $url, string $resourceUrl): void
     {
         $this->requireSecure($url);
         $this->requireNotInternal($url, $resourceUrl);
     }
 
-    protected function requireNotInternal(string $url, string $resourceUrl): void
+    protected function requireNotInternal(string $url, string $resourceUrl, bool $resolve = true): void
     {
-        $parts = $this->parse($url);
-        $resourceParts = $this->parse($resourceUrl);
-        $host = $this->normalizedHost($parts['host']);
-        $resourceHost = $this->normalizedHost($resourceParts['host']);
+        $host = $this->normalizedHost($this->parse($url)['host']);
 
-        if ($this->isInternalHost($host) && (! $this->isLocalhost($host) || ! $this->isLocalhost($resourceHost))) {
-            throw new OAuthException("OAuth endpoint [{$url}] cannot use a private or internal host.");
+        if (! $this->isLocalhost($host) && ! $this->isIpAddress($host)) {
+            if (! $resolve || ($this->usesProxy() && ! $this->isLocalName($host))) {
+                return;
+            }
+
+            if ($this->resolve($host) === []) {
+                throw new OAuthException("OAuth endpoint [{$url}] cannot use a private, internal, or unresolvable host.");
+            }
         }
+
+        if (! $this->isInternalHost($host) || $this->isPrivateHost($this->normalizedHost($this->parse($resourceUrl)['host']))) {
+            return;
+        }
+
+        throw new OAuthException("OAuth endpoint [{$url}] cannot use a private, internal, or unresolvable host.");
+    }
+
+    protected function isLocalName(string $host): bool
+    {
+        return Str::endsWith('.'.rtrim($host, '.'), ['.localhost', '.local', '.internal', '.test']);
+    }
+
+    protected function usesProxy(): bool
+    {
+        foreach (['HTTPS_PROXY', 'https_proxy', 'ALL_PROXY', 'all_proxy'] as $variable) {
+            if (getenv($variable)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function isInternalHost(string $host): bool
@@ -258,11 +329,76 @@ class AuthServerDiscovery
             return true;
         }
 
-        if (filter_var($host, FILTER_VALIDATE_IP) === false) {
+        $addresses = $this->isIpAddress($host) ? [$host] : $this->resolve($host);
+
+        return array_filter($addresses, fn (string $address): bool => ! $this->isPublicAddress($address)) !== [];
+    }
+
+    protected function isPrivateHost(string $host): bool
+    {
+        if ($this->isLocalhost($host)) {
+            return true;
+        }
+
+        $addresses = $this->isIpAddress($host) ? [$host] : $this->resolve($host);
+
+        return $addresses !== [] && array_filter($addresses, $this->isPublicAddress(...)) === [];
+    }
+
+    protected function isIpAddress(string $host): bool
+    {
+        return filter_var($host, FILTER_VALIDATE_IP) !== false;
+    }
+
+    protected function isPublicAddress(string $address): bool
+    {
+        if (! $this->isIpAddress($address)) {
             return false;
         }
 
-        return filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+        $packed = (string) inet_pton($address);
+
+        if (str_starts_with($packed, str_repeat("\0", 10)."\xFF\xFF") || str_starts_with($packed, "\x00\x64\xFF\x9B".str_repeat("\0", 8))) {
+            return $this->isPublicAddress((string) inet_ntop(substr($packed, 12)));
+        }
+
+        if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE | FILTER_FLAG_GLOBAL_RANGE) === false) {
+            return false;
+        }
+
+        if (strlen($packed) === 4) {
+            $long = (int) ip2long($address);
+
+            return ($long & 0xFFC00000) !== 0x64400000 && ($long & 0xF0000000) !== 0xE0000000;
+        }
+
+        return ! Str::startsWith(bin2hex($packed), self::NON_PUBLIC_IPV6_PREFIXES);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function resolve(string $host): array
+    {
+        return $this->resolved[$host] ??= $this->lookup($host);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function lookup(string $host): array
+    {
+        if (static::$hostResolver instanceof Closure) {
+            return (static::$hostResolver)($host);
+        }
+
+        $addresses = @gethostbynamel($host) ?: [];
+
+        foreach (@dns_get_record($host, DNS_AAAA) ?: [] as $record) {
+            $addresses[] = $record['ipv6'];
+        }
+
+        return array_values(array_unique($addresses));
     }
 
     protected function isLocalhost(string $host): bool
