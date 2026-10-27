@@ -76,6 +76,16 @@ it('does not challenge on routes that are not mcp servers', function (): void {
         ->assertHeaderMissing('WWW-Authenticate');
 });
 
+it('does not resolve the resource metadata url on routes that are not mcp servers', function (): void {
+    AddWwwAuthenticateHeader::resolveResourceMetadataUrlUsing(fn (): string => throw new RuntimeException('The resolver should not be called.'));
+
+    Route::middleware(Authenticate::class)->post('not-mcp', fn () => response()->json([]));
+
+    $this->postJson('not-mcp', [])
+        ->assertStatus(401)
+        ->assertHeaderMissing('WWW-Authenticate');
+});
+
 it('does not challenge when the middleware is excluded from the route', function (): void {
     Route::middleware(Authenticate::class)->group(function (): void {
         Mcp::web('opted-out-mcp', ExampleServer::class)->withoutMiddleware(AddWwwAuthenticateHeader::class);
