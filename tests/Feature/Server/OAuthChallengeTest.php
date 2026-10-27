@@ -54,6 +54,20 @@ it('challenges when authentication is applied through the auth alias', function 
         ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="'.url('/.well-known/oauth-protected-resource/aliased-mcp').'"');
 });
 
+it('challenges with the resource metadata url of the resolver', function (): void {
+    AddWwwAuthenticateHeader::resolveResourceMetadataUrlUsing(
+        fn (Request $request): string => 'https://acme.example.com/.well-known/oauth-protected-resource/'.$request->path()
+    );
+
+    Route::middleware(SubstituteBindings::class)->group(function (): void {
+        Mcp::web('tenant-mcp', ExampleServer::class)->middleware(Authenticate::class);
+    });
+
+    $this->postJson('tenant-mcp', [])
+        ->assertStatus(401)
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="https://acme.example.com/.well-known/oauth-protected-resource/tenant-mcp"');
+});
+
 it('does not challenge on routes that are not mcp servers', function (): void {
     Route::middleware(Authenticate::class)->post('not-mcp', fn () => response()->json([]));
 
