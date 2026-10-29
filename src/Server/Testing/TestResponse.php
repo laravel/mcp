@@ -134,6 +134,47 @@ class TestResponse
         return $this;
     }
 
+    public function assertStructuredContentCount(int $count, ?string $key = null): static
+    {
+        $actual = $this->structuredContent();
+
+        Assert::assertNotNull($actual, 'The response does not contain any structured content.');
+
+        $value = is_null($key) ? $actual : data_get($actual, $key);
+
+        Assert::assertIsArray($value, "The structured content at [{$key}] is not an array.");
+
+        Assert::assertCount($count, $value, "The expected structured content count [{$count}] does not match the actual count.");
+
+        return $this;
+    }
+
+    /**
+     * @param  mixed|Closure(mixed): bool  $expect
+     */
+    public function assertStructuredContentPath(string $path, mixed $expect): static
+    {
+        $actual = $this->structuredContent();
+
+        Assert::assertNotNull($actual, 'The response does not contain any structured content.');
+
+        $value = data_get($actual, $path);
+
+        if ($expect instanceof Closure) {
+            Assert::assertTrue($expect($value), "The structured content at [{$path}] does not pass the given truth test.");
+
+            return $this;
+        }
+
+        Assert::assertSame(
+            $this->toJsonRepresentation($expect),
+            $value,
+            "The expected structured content at [{$path}] does not match the actual value."
+        );
+
+        return $this;
+    }
+
     public function assertNotificationCount(int $count): static
     {
         Assert::assertCount($count, $this->notifications, "The expected number of notifications [{$count}] does not match the actual count.");
