@@ -18,6 +18,8 @@ Laravel MCP allows you to rapidly build MCP servers for your Laravel application
 
 Documentation for Laravel MCP can be found on the [Laravel website](https://laravel.com/docs/mcp).
 
+Documentation for serving Agent Skills through the MCP Skills extension can be found in [Serving Agent Skills](docs/skills.md).
+
 ## Contributing
 
 Thank you for considering contributing to Laravel MCP! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
