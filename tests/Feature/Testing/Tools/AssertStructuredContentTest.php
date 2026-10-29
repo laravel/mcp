@@ -224,3 +224,102 @@ it('fails to assert the structured content path when it is not present', functio
 
     $response->assertStructuredContentPath('id', 123);
 })->throws(ExpectationFailedException::class);
+
+it('may assert the structured content paths', function (): void {
+    $response = BookingServer::tool(ListBookingsTool::class);
+
+    $response->assertStructuredContentPaths([
+        'data.0.id' => 123,
+        'data.1.status' => BookingStatus::Confirmed,
+        'meta.total' => 2,
+    ]);
+});
+
+it('fails to assert the structured content paths are wrong', function (): void {
+    $response = BookingServer::tool(ListBookingsTool::class);
+
+    $response->assertStructuredContentPaths([
+        'data.0.id' => 123,
+        'meta.total' => 3,
+    ]);
+})->throws(ExpectationFailedException::class);
+
+it('may assert the structured content path canonicalizing', function (): void {
+    $response = BookingServer::tool(ListBookingsTool::class);
+
+    $response->assertStructuredContentPathCanonicalizing('data.*.id', [124, 123]);
+});
+
+it('fails to assert the structured content path canonicalizing is wrong', function (): void {
+    $response = BookingServer::tool(ListBookingsTool::class);
+
+    $response->assertStructuredContentPathCanonicalizing('data.*.id', [124, 125]);
+})->throws(ExpectationFailedException::class);
+
+it('may assert the exact structured content regardless of key order', function (): void {
+    $response = BookingServer::tool(GetBookingTool::class);
+
+    $response->assertExactStructuredContent([
+        'status' => 'confirmed',
+        'id' => 123,
+        'type' => 'booking',
+    ]);
+});
+
+it('fails to assert the exact structured content is wrong', function (): void {
+    $response = BookingServer::tool(GetBookingTool::class);
+
+    $response->assertExactStructuredContent([
+        'id' => 123,
+        'status' => 'confirmed',
+    ]);
+})->throws(ExpectationFailedException::class);
+
+it('may assert a structured content fragment', function (): void {
+    $response = BookingServer::tool(ListBookingsTool::class);
+
+    $response->assertStructuredContentFragment(['id' => 124]);
+});
+
+it('fails to assert a structured content fragment that is not present', function (): void {
+    $response = BookingServer::tool(ListBookingsTool::class);
+
+    $response->assertStructuredContentFragment(['id' => 125]);
+})->throws(ExpectationFailedException::class);
+
+it('fails to assert a structured content fragment when it is not present', function (): void {
+    $response = BookingServer::tool(GetBookingWithoutStructuredContentTool::class);
+
+    $response->assertStructuredContentFragment(['id' => 123]);
+})->throws(ExpectationFailedException::class);
+
+it('may assert a structured content path is missing', function (): void {
+    $response = BookingServer::tool(ListBookingsTool::class);
+
+    $response->assertStructuredContentMissingPath('data.2');
+});
+
+it('fails to assert a structured content path is missing when it is present', function (): void {
+    $response = BookingServer::tool(ListBookingsTool::class);
+
+    $response->assertStructuredContentMissingPath('meta.total');
+})->throws(ExpectationFailedException::class);
+
+it('may assert the structured content structure', function (): void {
+    $response = BookingServer::tool(ListBookingsTool::class);
+
+    $response->assertStructuredContentStructure([
+        'data' => [
+            '*' => ['id', 'status'],
+        ],
+        'meta' => ['total'],
+    ]);
+});
+
+it('fails to assert the structured content structure is wrong', function (): void {
+    $response = BookingServer::tool(ListBookingsTool::class);
+
+    $response->assertStructuredContentStructure([
+        'meta' => ['per_page'],
+    ]);
+})->throws(ExpectationFailedException::class);
