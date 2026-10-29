@@ -219,7 +219,7 @@ it('fails to assert the structured content path with closure', function (): void
     $response->assertStructuredContentPath('meta.total', fn (int $total): bool => $total === 3);
 })->throws(ExpectationFailedException::class);
 
-it('serializes the expected value before asserting the structured content path', function (): void {
+it('may assert the structured content path with an enum', function (): void {
     $response = BookingServer::tool(ListBookingsTool::class);
 
     $response->assertStructuredContentPath('data.0.status', BookingStatus::Confirmed);

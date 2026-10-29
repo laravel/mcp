@@ -18,6 +18,8 @@ use Laravel\Mcp\Transport\JsonRpcResponse;
 use PHPUnit\Framework\Assert;
 use RuntimeException;
 
+use function Illuminate\Support\enum_value;
+
 class TestResponse
 {
     use Conditionable;
@@ -167,7 +169,7 @@ class TestResponse
         }
 
         Assert::assertSame(
-            $this->toJsonRepresentation($expect),
+            enum_value($expect),
             $value,
             "The expected structured content at [{$path}] does not match the actual value."
         );
