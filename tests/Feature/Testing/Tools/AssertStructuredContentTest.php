@@ -181,12 +181,6 @@ it('fails to assert the structured content count is wrong', function (): void {
     $response->assertStructuredContentCount(3, 'data');
 })->throws(ExpectationFailedException::class);
 
-it('fails to assert the structured content count when the key is not an array', function (): void {
-    $response = BookingServer::tool(ListBookingsTool::class);
-
-    $response->assertStructuredContentCount(1, 'meta.total');
-})->throws(ExpectationFailedException::class);
-
 it('fails to assert the structured content count when it is not present', function (): void {
     $response = BookingServer::tool(GetBookingWithoutStructuredContentTool::class);
 

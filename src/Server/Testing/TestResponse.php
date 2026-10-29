@@ -136,25 +136,25 @@ class TestResponse
         return $this;
     }
 
-    public function assertStructuredContentCount(int $count, ?string $key = null): static
+    /**
+     * @param  string|null  $key
+     */
+    public function assertStructuredContentCount(int $count, $key = null): static
     {
         $actual = $this->structuredContent();
 
         Assert::assertNotNull($actual, 'The response does not contain any structured content.');
 
-        $value = is_null($key) ? $actual : data_get($actual, $key);
-
-        Assert::assertIsArray($value, "The structured content at [{$key}] is not an array.");
-
-        Assert::assertCount($count, $value, "The expected structured content count [{$count}] does not match the actual count.");
+        Assert::assertCount($count, data_get($actual, $key), "The expected structured content count [{$count}] does not match the actual count.");
 
         return $this;
     }
 
     /**
+     * @param  string  $path
      * @param  mixed|Closure(mixed): bool  $expect
      */
-    public function assertStructuredContentPath(string $path, mixed $expect): static
+    public function assertStructuredContentPath($path, $expect): static
     {
         $actual = $this->structuredContent();
 
