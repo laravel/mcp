@@ -202,11 +202,33 @@ class TestResponse
     }
 
     /**
+     * @param  array<string, array<array-key, mixed>>  $paths
+     */
+    public function assertStructuredContentPathsCanonicalizing(array $paths): static
+    {
+        foreach ($paths as $path => $expected) {
+            $this->assertStructuredContentPathCanonicalizing($path, $expected);
+        }
+
+        return $this;
+    }
+
+    /**
      * @param  array<array-key, mixed>  $data
      */
     public function assertExactStructuredContent(array $data): static
     {
         $this->assertableStructuredContent()->assertExact($data);
+
+        return $this;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $data
+     */
+    public function assertSimilarStructuredContent(array $data): static
+    {
+        $this->assertableStructuredContent()->assertSimilar($data);
 
         return $this;
     }
@@ -221,9 +243,54 @@ class TestResponse
         return $this;
     }
 
+    /**
+     * @param  array<array-key, array<array-key, mixed>>  $data
+     */
+    public function assertStructuredContentFragments(array $data): static
+    {
+        foreach ($data as $fragment) {
+            $this->assertStructuredContentFragment($fragment);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $data
+     * @param  bool  $exact
+     */
+    public function assertStructuredContentMissing(array $data, $exact = false): static
+    {
+        $this->assertableStructuredContent()->assertMissing($data, $exact);
+
+        return $this;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $data
+     */
+    public function assertStructuredContentMissingExact(array $data): static
+    {
+        $this->assertableStructuredContent()->assertMissingExact($data);
+
+        return $this;
+    }
+
     public function assertStructuredContentMissingPath(string $path): static
     {
         $this->assertableStructuredContent()->assertMissingPath($path);
+
+        return $this;
+    }
+
+    /**
+     * @param  array<int, string>  $paths
+     */
+    public function assertStructuredContentMissingPaths(array $paths): static
+    {
+        foreach ($paths as $path) {
+            $this->assertStructuredContentMissingPath($path);
+        }
 
         return $this;
     }
@@ -235,6 +302,55 @@ class TestResponse
     public function assertStructuredContentStructure(?array $structure = null, ?array $responseData = null): static
     {
         $this->assertableStructuredContent()->assertStructure($structure, $responseData);
+
+        return $this;
+    }
+
+    /**
+     * @param  array<array-key, mixed>|null  $structure
+     * @param  array<array-key, mixed>|null  $responseData
+     */
+    public function assertExactStructuredContentStructure(?array $structure = null, ?array $responseData = null): static
+    {
+        $this->assertableStructuredContent()->assertStructure($structure, $responseData, true);
+
+        return $this;
+    }
+
+    /**
+     * @param  string|null  $key
+     */
+    public function assertStructuredContentIsArray($key = null): static
+    {
+        $data = $this->assertableStructuredContent()->json($key);
+
+        $encodedData = json_encode($data, JSON_THROW_ON_ERROR);
+
+        Assert::assertTrue(
+            is_array($data)
+            && str_starts_with($encodedData, '[')
+            && str_ends_with($encodedData, ']'),
+            'The structured content is not an array.'
+        );
+
+        return $this;
+    }
+
+    /**
+     * @param  string|null  $key
+     */
+    public function assertStructuredContentIsObject($key = null): static
+    {
+        $data = $this->assertableStructuredContent()->json($key);
+
+        $encodedData = json_encode($data, JSON_THROW_ON_ERROR);
+
+        Assert::assertTrue(
+            is_array($data)
+            && str_starts_with($encodedData, '{')
+            && str_ends_with($encodedData, '}'),
+            'The structured content is not an object.'
+        );
 
         return $this;
     }
