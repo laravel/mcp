@@ -9,6 +9,7 @@ use Illuminate\Container\Container;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
+use Illuminate\Testing\AssertableJsonString;
 use Illuminate\Testing\Fluent\AssertableJson;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
@@ -17,6 +18,8 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use PHPUnit\Framework\Assert;
 use RuntimeException;
+
+use function Illuminate\Support\enum_value;
 
 class TestResponse
 {
@@ -129,6 +132,224 @@ class TestResponse
             $this->toJsonRepresentation($structuredContent),
             $actual,
             'The expected structured content does not match the actual structured content.'
+        );
+
+        return $this;
+    }
+
+    /**
+     * @param  string|null  $key
+     */
+    public function assertStructuredContentCount(int $count, $key = null): static
+    {
+        $actual = $this->structuredContent();
+
+        Assert::assertNotNull($actual, 'The response does not contain any structured content.');
+
+        Assert::assertCount($count, data_get($actual, $key), "The expected structured content count [{$count}] does not match the actual count.");
+
+        return $this;
+    }
+
+    /**
+     * @param  string  $path
+     * @param  mixed|Closure(mixed): bool  $expect
+     */
+    public function assertStructuredContentPath($path, $expect): static
+    {
+        $actual = $this->structuredContent();
+
+        Assert::assertNotNull($actual, 'The response does not contain any structured content.');
+
+        $value = data_get($actual, $path);
+
+        if ($expect instanceof Closure) {
+            Assert::assertTrue($expect($value), "The structured content at [{$path}] does not pass the given truth test.");
+
+            return $this;
+        }
+
+        Assert::assertSame(
+            enum_value($expect),
+            $value,
+            "The expected structured content at [{$path}] does not match the actual value."
+        );
+
+        return $this;
+    }
+
+    /**
+     * @param  array<string, mixed>  $paths
+     */
+    public function assertStructuredContentPaths(array $paths): static
+    {
+        foreach ($paths as $path => $expected) {
+            $this->assertStructuredContentPath($path, $expected);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param  string  $path
+     * @param  array<array-key, mixed>  $expect
+     */
+    public function assertStructuredContentPathCanonicalizing($path, array $expect): static
+    {
+        $this->assertableStructuredContent()->assertPathCanonicalizing($path, $expect);
+
+        return $this;
+    }
+
+    /**
+     * @param  array<string, array<array-key, mixed>>  $paths
+     */
+    public function assertStructuredContentPathsCanonicalizing(array $paths): static
+    {
+        foreach ($paths as $path => $expected) {
+            $this->assertStructuredContentPathCanonicalizing($path, $expected);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $data
+     */
+    public function assertExactStructuredContent(array $data): static
+    {
+        $this->assertableStructuredContent()->assertExact($data);
+
+        return $this;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $data
+     */
+    public function assertSimilarStructuredContent(array $data): static
+    {
+        $this->assertableStructuredContent()->assertSimilar($data);
+
+        return $this;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $data
+     */
+    public function assertStructuredContentFragment(array $data): static
+    {
+        $this->assertableStructuredContent()->assertFragment($data);
+
+        return $this;
+    }
+
+    /**
+     * @param  array<array-key, array<array-key, mixed>>  $data
+     */
+    public function assertStructuredContentFragments(array $data): static
+    {
+        foreach ($data as $fragment) {
+            $this->assertStructuredContentFragment($fragment);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $data
+     * @param  bool  $exact
+     */
+    public function assertStructuredContentMissing(array $data, $exact = false): static
+    {
+        $this->assertableStructuredContent()->assertMissing($data, $exact);
+
+        return $this;
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $data
+     */
+    public function assertStructuredContentMissingExact(array $data): static
+    {
+        $this->assertableStructuredContent()->assertMissingExact($data);
+
+        return $this;
+    }
+
+    public function assertStructuredContentMissingPath(string $path): static
+    {
+        $this->assertableStructuredContent()->assertMissingPath($path);
+
+        return $this;
+    }
+
+    /**
+     * @param  array<int, string>  $paths
+     */
+    public function assertStructuredContentMissingPaths(array $paths): static
+    {
+        foreach ($paths as $path) {
+            $this->assertStructuredContentMissingPath($path);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param  array<array-key, mixed>|null  $structure
+     * @param  array<array-key, mixed>|null  $responseData
+     */
+    public function assertStructuredContentStructure(?array $structure = null, ?array $responseData = null): static
+    {
+        $this->assertableStructuredContent()->assertStructure($structure, $responseData);
+
+        return $this;
+    }
+
+    /**
+     * @param  array<array-key, mixed>|null  $structure
+     * @param  array<array-key, mixed>|null  $responseData
+     */
+    public function assertExactStructuredContentStructure(?array $structure = null, ?array $responseData = null): static
+    {
+        $this->assertableStructuredContent()->assertStructure($structure, $responseData, true);
+
+        return $this;
+    }
+
+    /**
+     * @param  string|null  $key
+     */
+    public function assertStructuredContentIsArray($key = null): static
+    {
+        $data = $this->assertableStructuredContent()->json($key);
+
+        $encodedData = json_encode($data, JSON_THROW_ON_ERROR);
+
+        Assert::assertTrue(
+            is_array($data)
+            && str_starts_with($encodedData, '[')
+            && str_ends_with($encodedData, ']'),
+            'The structured content is not an array.'
+        );
+
+        return $this;
+    }
+
+    /**
+     * @param  string|null  $key
+     */
+    public function assertStructuredContentIsObject($key = null): static
+    {
+        $data = $this->assertableStructuredContent()->json($key);
+
+        $encodedData = json_encode($data, JSON_THROW_ON_ERROR);
+
+        Assert::assertTrue(
+            is_array($data)
+            && str_starts_with($encodedData, '{')
+            && str_ends_with($encodedData, '}'),
+            'The structured content is not an object.'
         );
 
         return $this;
@@ -411,6 +632,15 @@ class TestResponse
         $decoded = $this->toJsonRepresentation($structuredContent);
 
         return $decoded;
+    }
+
+    protected function assertableStructuredContent(): AssertableJsonString
+    {
+        $actual = $this->structuredContent();
+
+        Assert::assertNotNull($actual, 'The response does not contain any structured content.');
+
+        return new AssertableJsonString($actual);
     }
 
     protected function toJsonRepresentation(mixed $value): mixed
