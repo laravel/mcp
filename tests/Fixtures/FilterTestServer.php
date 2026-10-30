@@ -8,7 +8,7 @@ use Laravel\Mcp\Server;
 
 class FilterTestServer extends Server
 {
-    public array $tools = [
+    protected array $tools = [
         TaggedTool::class,
         SayHiTool::class,
     ];

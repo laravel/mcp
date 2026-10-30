@@ -80,8 +80,8 @@ class StartCommand extends Command
     protected function getOptions(): array
     {
         return [
-            ['tool', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL, 'Only serve tools matching these fully-qualified class names.'],
-            ['tag', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL, 'Only serve tools carrying these tags.'],
+            ['tool', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Only serve tools matching these fully-qualified class names.'],
+            ['tag', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Only serve tools carrying these tags.'],
         ];
     }
 }

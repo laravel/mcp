@@ -51,3 +51,11 @@ it('uses union semantics when both --tool and --tag filters are given', function
     expect($toolNames)->toContain('tagged-tool')
         ->toContain('say-hi-tool');
 })->skip(PHP_OS_FAMILY === 'Windows');
+
+it('exits with an error when --tool is given without a value', function (): void {
+    $process = remote(['mcp:start', 'filter-test', '--tool']);
+    $process->setInput(json_encode(listToolsMessage()));
+    $process->run();
+
+    expect($process->getExitCode())->not->toBe(0);
+})->skip(PHP_OS_FAMILY === 'Windows');
