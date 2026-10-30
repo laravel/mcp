@@ -27,10 +27,10 @@ class StartCommand extends Command
         assert(is_string($handle));
 
         /** @var array<int, string> $toolClasses */
-        $toolClasses = $this->option('tool');
+        $toolClasses = array_values(array_filter((array) $this->option('tool')));
 
         /** @var array<int, string> $tags */
-        $tags = $this->option('tag');
+        $tags = array_values(array_filter((array) $this->option('tag')));
 
         if ($toolClasses !== [] || $tags !== []) {
             $serverClass = $registrar->getLocalServerClass($handle);
@@ -88,8 +88,8 @@ class StartCommand extends Command
     protected function getOptions(): array
     {
         return [
-            ['tool', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Only serve tools matching these fully-qualified class names.'],
-            ['tag', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Only serve tools carrying these tags.'],
+            ['tool', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Only serve tools whose class matches one of these FQCNs (union with --tag).'],
+            ['tag', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Only serve tools carrying one of these tags (union with --tool).'],
         ];
     }
 }
