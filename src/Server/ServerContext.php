@@ -19,6 +19,8 @@ class ServerContext
      * @param  array<int|string, Tool|string|array<int, Tool|string>>  $tools
      * @param  array<int, Resource|string>  $resources
      * @param  array<int, Prompt|string>  $prompts
+     * @param  array<int, string>  $allowedToolClasses
+     * @param  array<int, string>  $allowedToolTags
      */
     public function __construct(
         public array $supportedProtocolVersions,
@@ -76,7 +78,7 @@ class ServerContext
 
         if ($this->allowedToolClasses !== [] || $this->allowedToolTags !== []) {
             $tools = $tools->filter(
-                fn (Tool $tool): bool => in_array(get_class($tool), $this->allowedToolClasses, true)
+                fn (Tool $tool): bool => in_array($tool::class, $this->allowedToolClasses, true)
                     || array_intersect($tool->tags(), $this->allowedToolTags) !== []
             )->values();
         }

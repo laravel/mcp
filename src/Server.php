@@ -112,7 +112,7 @@ abstract class Server
     protected array $tools = [];
 
     /**
-     * @var array<int, class-string<Tool>>
+     * @var array<int, string>
      */
     protected array $allowedToolClasses = [];
 
@@ -196,7 +196,7 @@ abstract class Server
     }
 
     /**
-     * @param  array<int, class-string<Tool>>  $classes
+     * @param  array<int, string>  $classes
      * @param  array<int, string>  $tags
      */
     public function withToolFilter(array $classes = [], array $tags = []): static
