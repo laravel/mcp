@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Container\Container;
+use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Registrar;
+use Laravel\Mcp\Server\Transport\StdioTransport;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputOption;
 
 #[AsCommand(
     name: 'mcp:start',
@@ -20,6 +24,32 @@ class StartCommand extends Command
         $handle = $this->argument('handle');
 
         assert(is_string($handle));
+
+        /** @var array<int, string> $toolClasses */
+        $toolClasses = $this->option('tool');
+
+        /** @var array<int, string> $tags */
+        $tags = $this->option('tag');
+
+        if ($toolClasses !== [] || $tags !== []) {
+            $serverClass = $registrar->getLocalServerClass($handle);
+
+            if ($serverClass === null) {
+                $this->components->error("MCP Server with name [{$handle}] not found. Did you register it using [Mcp::local()]?");
+
+                return static::FAILURE;
+            }
+
+            $transport = new StdioTransport;
+
+            /** @var Server $server */
+            $server = Container::getInstance()->make($serverClass, ['transport' => $transport]);
+            $server->withToolFilter($toolClasses, $tags);
+            $server->start();
+            $transport->run();
+
+            return static::SUCCESS;
+        }
 
         $server = $registrar->getLocalServer($handle);
 
@@ -41,6 +71,17 @@ class StartCommand extends Command
     {
         return [
             ['handle', InputArgument::REQUIRED, 'The handle of the MCP server to start.'],
+        ];
+    }
+
+    /**
+     * @return array<int, array<int, int|string|null>>
+     */
+    protected function getOptions(): array
+    {
+        return [
+            ['tool', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL, 'Only serve tools matching these fully-qualified class names.', []],
+            ['tag', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL, 'Only serve tools carrying these tags.', []],
         ];
     }
 }

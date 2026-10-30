@@ -33,6 +33,9 @@ class Registrar
     /** @var array<string, callable> */
     protected array $localServers = [];
 
+    /** @var array<string, class-string<Server>> */
+    protected array $localServerClasses = [];
+
     /** @var array<string, Route> */
     protected array $httpServers = [];
 
@@ -67,7 +70,13 @@ class Registrar
      */
     public function local(string $handle, string $serverClass): void
     {
+        $this->localServerClasses[$handle] = $serverClass;
         $this->localServers[$handle] = fn (): mixed => static::startServer($serverClass, fn (): StdioTransport => new StdioTransport);
+    }
+
+    public function getLocalServerClass(string $handle): ?string
+    {
+        return $this->localServerClasses[$handle] ?? null;
     }
 
     /**

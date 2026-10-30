@@ -17,6 +17,19 @@ abstract class Tool extends Primitive
     use HasAnnotations;
 
     /**
+     * @var array<int, string>
+     */
+    protected array $tags = [];
+
+    /**
+     * @return array<int, string>
+     */
+    public function tags(): array
+    {
+        return $this->tags;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function schema(JsonSchema $schema): array

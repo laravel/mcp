@@ -112,6 +112,16 @@ abstract class Server
     protected array $tools = [];
 
     /**
+     * @var array<int, class-string<Tool>>
+     */
+    protected array $allowedToolClasses = [];
+
+    /**
+     * @var array<int, string>
+     */
+    protected array $allowedToolTags = [];
+
+    /**
      * @var array<int, Resource|class-string<Resource>>
      */
     protected array $resources = [];
@@ -183,6 +193,18 @@ abstract class Server
     public function addMethod(string $method, string $handler): void
     {
         $this->methods[$method] = $handler;
+    }
+
+    /**
+     * @param  array<int, class-string<Tool>>  $classes
+     * @param  array<int, string>  $tags
+     */
+    public function withToolFilter(array $classes = [], array $tags = []): static
+    {
+        $this->allowedToolClasses = $classes;
+        $this->allowedToolTags = $tags;
+
+        return $this;
     }
 
     public function start(): void
@@ -272,6 +294,8 @@ abstract class Server
             tools: $this->tools,
             resources: $this->resources,
             prompts: $this->prompts,
+            allowedToolClasses: $this->allowedToolClasses,
+            allowedToolTags: $this->allowedToolTags,
         );
     }
 

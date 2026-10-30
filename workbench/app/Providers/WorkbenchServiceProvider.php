@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Facades\Mcp;
 use Tests\Conformance\ConformanceServer;
 use Tests\Fixtures\ExampleServer;
+use Tests\Fixtures\FilterTestServer;
 use Tests\Fixtures\ServerWithDynamicTools;
 
 class WorkbenchServiceProvider extends ServiceProvider
@@ -30,6 +31,7 @@ class WorkbenchServiceProvider extends ServiceProvider
     {
         // Used in tests
         Mcp::local('test-mcp', ExampleServer::class);
+        Mcp::local('filter-test', FilterTestServer::class);
         Mcp::web('test-mcp', ExampleServer::class);
         Mcp::web('test-mcp-dynamic-tools', ServerWithDynamicTools::class);
 

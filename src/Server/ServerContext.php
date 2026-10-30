@@ -30,6 +30,8 @@ class ServerContext
         protected array $tools,
         protected array $resources,
         protected array $prompts,
+        protected array $allowedToolClasses = [],
+        protected array $allowedToolTags = [],
     ) {
         //
     }
@@ -70,6 +72,13 @@ class ServerContext
             if (is_string($duplicate)) {
                 throw new InvalidArgumentException("Duplicate server tool name [{$duplicate}].");
             }
+        }
+
+        if ($this->allowedToolClasses !== [] || $this->allowedToolTags !== []) {
+            $tools = $tools->filter(
+                fn (Tool $tool): bool => in_array(get_class($tool), $this->allowedToolClasses, true)
+                    || array_intersect($tool->tags(), $this->allowedToolTags) !== []
+            )->values();
         }
 
         return $tools;
