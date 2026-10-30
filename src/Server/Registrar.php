@@ -74,6 +74,9 @@ class Registrar
         $this->localServers[$handle] = fn (): mixed => static::startServer($serverClass, fn (): StdioTransport => new StdioTransport);
     }
 
+    /**
+     * @return class-string<Server>|null
+     */
     public function getLocalServerClass(string $handle): ?string
     {
         return $this->localServerClasses[$handle] ?? null;

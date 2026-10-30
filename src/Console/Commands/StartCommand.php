@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Container\Container;
+use Illuminate\Contracts\Container\BindingResolutionException;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Registrar;
 use Laravel\Mcp\Server\Transport\StdioTransport;
@@ -42,8 +43,15 @@ class StartCommand extends Command
 
             $transport = new StdioTransport;
 
-            /** @var Server $server */
-            $server = Container::getInstance()->make($serverClass, ['transport' => $transport]);
+            try {
+                /** @var Server $server */
+                $server = Container::getInstance()->make($serverClass, ['transport' => $transport]);
+            } catch (BindingResolutionException $e) {
+                $this->components->error("MCP Server [{$serverClass}] could not be resolved: {$e->getMessage()}");
+
+                return static::FAILURE;
+            }
+
             $server->withToolFilter($toolClasses, $tags);
             $server->start();
             $transport->run();

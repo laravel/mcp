@@ -80,7 +80,7 @@ class ServerContext
             $tools = $tools->filter(
                 fn (Tool $tool): bool => in_array($tool::class, $this->allowedToolClasses, true)
                     || array_intersect($tool->tags(), $this->allowedToolTags) !== []
-            )->values();
+            );
         }
 
         return $tools;
