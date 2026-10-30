@@ -27,10 +27,26 @@ class StartCommand extends Command
         assert(is_string($handle));
 
         /** @var array<int, string> $toolClasses */
-        $toolClasses = array_values(array_filter((array) $this->option('tool')));
+        $toolClasses = (array) $this->option('tool');
 
         /** @var array<int, string> $tags */
-        $tags = array_values(array_filter((array) $this->option('tag')));
+        $tags = (array) $this->option('tag');
+
+        foreach ($toolClasses as $class) {
+            if ($class === '') {
+                $this->components->error('Each --tool value must be a non-empty fully-qualified class name.');
+
+                return static::FAILURE;
+            }
+        }
+
+        foreach ($tags as $tag) {
+            if ($tag === '') {
+                $this->components->error('Each --tag value must be a non-empty tag name.');
+
+                return static::FAILURE;
+            }
+        }
 
         if ($toolClasses !== [] || $tags !== []) {
             $serverClass = $registrar->getLocalServerClass($handle);
