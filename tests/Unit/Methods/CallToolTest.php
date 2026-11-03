@@ -22,6 +22,7 @@ use Tests\Fixtures\StructuredContentTool;
 use Tests\Fixtures\StructuredContentWithMetaTool;
 use Tests\Fixtures\ToolWithBothMetaTool;
 use Tests\Fixtures\ToolWithResultMetaTool;
+use Tests\Fixtures\ToolWithRules;
 
 it('returns a valid call tool response', function (): void {
     $request = JsonRpcRequest::from([
@@ -901,4 +902,58 @@ it('returns a resource link content block in the wire payload', function (): voi
             ],
             'isError' => false,
         ]);
+});
+
+it('validates the arguments against the tool rules before handling', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'tool-with-rules',
+            'arguments' => ['name' => '', 'times' => 5],
+        ],
+    ]);
+
+    $context = $this->getServerContext(['tools' => [ToolWithRules::class]]);
+
+    $this->instance('mcp.request', $request->toRequest());
+    $response = (new CallTool)->handle($request, $context);
+
+    expect($response->toArray()['result'])->toEqual([
+        'content' => [
+            [
+                'type' => 'text',
+                'text' => 'The name field is required. The selected times is invalid.',
+            ],
+        ],
+        'isError' => true,
+    ]);
+});
+
+it('handles the tool when the arguments satisfy the rules', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'tool-with-rules',
+            'arguments' => ['name' => 'Taylor', 'times' => 2],
+        ],
+    ]);
+
+    $context = $this->getServerContext(['tools' => [ToolWithRules::class]]);
+
+    $this->instance('mcp.request', $request->toRequest());
+    $response = (new CallTool)->handle($request, $context);
+
+    expect($response->toArray()['result'])->toEqual([
+        'content' => [
+            [
+                'type' => 'text',
+                'text' => 'Hello, Taylor! Hello, Taylor! ',
+            ],
+        ],
+        'isError' => false,
+    ]);
 });

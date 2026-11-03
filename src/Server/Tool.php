@@ -7,10 +7,12 @@ namespace Laravel\Mcp\Server;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\JsonSchema\JsonSchema as JsonSchemaFactory;
+use Illuminate\JsonSchema\JsonSchemaTypeFactory;
 use Laravel\Mcp\Server\Attributes\RendersApp;
 use Laravel\Mcp\Server\Concerns\HasAnnotations;
 use Laravel\Mcp\Server\Tools\Annotations\ToolAnnotation;
 use Laravel\Mcp\Server\Ui\Enums\Visibility;
+use Laravel\Mcp\Support\RuleSchema;
 
 abstract class Tool extends Primitive
 {
@@ -20,6 +22,16 @@ abstract class Tool extends Primitive
      * @return array<string, mixed>
      */
     public function schema(JsonSchema $schema): array
+    {
+        return [];
+    }
+
+    /**
+     * Get the validation rules that apply to the tool's arguments.
+     *
+     * @return array<string, mixed>
+     */
+    public function rules(): array
     {
         return [];
     }
@@ -62,9 +74,7 @@ abstract class Tool extends Primitive
             ...$this->annotations(),
         ];
 
-        $schema = JsonSchemaFactory::object(
-            $this->schema(...),
-        )->toArray();
+        $schema = $this->inputSchema();
 
         $outputSchema = JsonSchemaFactory::object(
             $this->outputSchema(...),
@@ -98,6 +108,22 @@ abstract class Tool extends Primitive
 
         // @phpstan-ignore return.type
         return $this->mergeMeta($this->mergeIcons($result));
+    }
+
+    /**
+     * Get the tool's input schema, derived from the rules when no schema is defined.
+     *
+     * @return array<string, mixed>
+     */
+    protected function inputSchema(): array
+    {
+        $properties = $this->schema(new JsonSchemaTypeFactory);
+
+        if ($properties === [] && ($rules = $this->rules()) !== []) {
+            return RuleSchema::from($rules)->toArray();
+        }
+
+        return JsonSchemaFactory::object($properties)->toArray();
     }
 
     /**
