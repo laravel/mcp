@@ -924,7 +924,7 @@ it('validates the arguments against the tool rules before handling', function ()
         'content' => [
             [
                 'type' => 'text',
-                'text' => 'The name field is required. The selected times is invalid.',
+                'text' => 'Tell me who to greet. The selected times is invalid.',
             ],
         ],
         'isError' => true,

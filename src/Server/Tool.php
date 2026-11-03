@@ -37,6 +37,16 @@ abstract class Tool extends Primitive
     }
 
     /**
+     * Get the error messages for the tool's validation rules.
+     *
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [];
+    }
+
+    /**
      * Define the output schema for this tool's results.
      *
      * @return array<string, mixed>

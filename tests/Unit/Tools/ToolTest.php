@@ -263,8 +263,9 @@ class ToolWithOutputSchema extends TestTool
 
 class ToolWithoutOutputSchema extends TestTool {}
 
-it('returns no rules by default', function (): void {
-    expect((new TestTool)->rules())->toBe([]);
+it('returns no rules or messages by default', function (): void {
+    expect((new TestTool)->rules())->toBe([])
+        ->and((new TestTool)->messages())->toBe([]);
 });
 
 it('builds the input schema from the rules when no schema is defined', function (): void {

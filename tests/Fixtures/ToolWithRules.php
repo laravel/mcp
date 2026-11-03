@@ -25,4 +25,11 @@ class ToolWithRules extends Tool
             'times' => ['integer', Rule::in([1, 2, 3])],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'name.required' => 'Tell me who to greet.',
+        ];
+    }
 }

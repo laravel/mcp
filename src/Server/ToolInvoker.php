@@ -31,7 +31,7 @@ class ToolInvoker implements Errable
             $container = Container::getInstance();
 
             if (($rules = $tool->rules()) !== []) {
-                $container->make(Request::class)->validate($rules);
+                $container->make(Request::class)->validate($rules, $tool->messages());
             }
 
             // @phpstan-ignore-next-line
