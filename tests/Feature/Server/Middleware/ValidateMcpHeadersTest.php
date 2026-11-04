@@ -216,6 +216,16 @@ it('answers a legacy request carrying an unsupported protocol version header wit
     ]);
 });
 
+it('answers a legacy request carrying an invalid UTF-8 protocol version header with a 400', function (): void {
+    $response = $this->postJson('test-mcp', ['jsonrpc' => '2.0', 'id' => 3, 'method' => 'tools/list', 'params' => []], [
+        'MCP-Protocol-Version' => "\xFF",
+    ]);
+
+    $response->assertStatus(400);
+
+    expect($response->json('error.data.requested'))->toBe('=?base64?/w==?=');
+});
+
 it('requires the name header even when the body carries no usable name', function (): void {
     $message = callToolMessage();
     $message['params']['name'] = 123;

@@ -77,7 +77,7 @@ class ValidateMcpHeaders
                 'message' => 'Unsupported protocol version',
                 'data' => [
                     'supported' => ProtocolVersion::initializeSupported(),
-                    'requested' => $version,
+                    'requested' => (string) new HeaderValue($version),
                 ],
             ],
         ], 400);
