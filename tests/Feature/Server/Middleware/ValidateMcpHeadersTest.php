@@ -72,6 +72,22 @@ it('decodes a base64 sentinel name header before comparing it', function (): voi
     $response->assertStatus(200);
 });
 
+it('rejects a base64 name header that decodes to invalid UTF-8', function (): void {
+    $message = callToolMessage();
+
+    $response = $this->postJson('test-mcp', $message, [
+        ...mcpHeaders($message),
+        'Mcp-Name' => '=?base64?/w==?=',
+    ]);
+
+    $response->assertStatus(400);
+
+    expect($response->json('error'))->toEqual([
+        'code' => -32020,
+        'message' => "Header mismatch: The [Mcp-Name] header value [=?base64?/w==?=] does not match the request body value [{$message['params']['name']}].",
+    ]);
+});
+
 it('does not require a name header for methods without a named target', function (): void {
     $message = listToolsMessage();
 

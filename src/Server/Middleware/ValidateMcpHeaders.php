@@ -99,6 +99,6 @@ class ValidateMcpHeaders
             return null;
         }
 
-        return "Header mismatch: The [{$header->value}] header value [{$headerValue->value}] does not match the request body value [{$expected}].";
+        return "Header mismatch: The [{$header->value}] header value [{$headerValue}] does not match the request body value [{$expected}].";
     }
 }
