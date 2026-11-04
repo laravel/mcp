@@ -6,7 +6,7 @@ namespace Laravel\Passport;
 
 class ClientRepository
 {
-    public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+    public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false): \stdClass
     {
         return (object) [
             'id' => 'test-client-id',
