@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Laravel\Passport;
 
+use stdClass;
+
 class ClientRepository
 {
-    public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false): \stdClass
+    public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false): stdClass
     {
         return (object) [
             'id' => 'test-client-id',
