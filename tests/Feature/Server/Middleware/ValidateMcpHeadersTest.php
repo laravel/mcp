@@ -72,6 +72,62 @@ it('decodes a base64 sentinel name header before comparing it', function (): voi
     $response->assertStatus(200);
 });
 
+it('rejects a base64 name header that decodes to invalid UTF-8', function (): void {
+    $message = callToolMessage();
+
+    $response = $this->postJson('test-mcp', $message, [
+        ...mcpHeaders($message),
+        'Mcp-Name' => '=?base64?/w==?=',
+    ]);
+
+    $response->assertStatus(400);
+
+    expect($response->json('error'))->toEqual([
+        'code' => -32020,
+        'message' => "Header mismatch: The [Mcp-Name] header value [=?base64?/w==?=] does not match the request body value [{$message['params']['name']}].",
+    ]);
+});
+
+it('rejects a header carrying invalid UTF-8 bytes', function (string $header): void {
+    $message = callToolMessage();
+
+    $response = $this->postJson('test-mcp', $message, [
+        ...mcpHeaders($message),
+        $header => "\xFF",
+    ]);
+
+    $response->assertStatus(400);
+
+    expect($response->json('error.code'))->toBe(-32020)
+        ->and($response->json('error.message'))->toContain('header value [=?base64?/w==?=]');
+})->with(['MCP-Protocol-Version', 'Mcp-Method', 'Mcp-Name']);
+
+it('quotes a non-ASCII name header decoded in the mismatch message', function (): void {
+    $message = callToolMessage();
+
+    $response = $this->postJson('test-mcp', $message, [
+        ...mcpHeaders($message),
+        'Mcp-Name' => '=?base64?SGVsbG8sIOS4lueVjA==?=',
+    ]);
+
+    $response->assertStatus(400);
+
+    expect($response->json('error.message'))->toBe("Header mismatch: The [Mcp-Name] header value [Hello, 世界] does not match the request body value [{$message['params']['name']}].");
+});
+
+it('encodes a decoded name header carrying control characters in the mismatch message', function (): void {
+    $message = callToolMessage();
+
+    $response = $this->postJson('test-mcp', $message, [
+        ...mcpHeaders($message),
+        'Mcp-Name' => '=?base64?'.base64_encode("a\nb").'?=',
+    ]);
+
+    $response->assertStatus(400);
+
+    expect($response->json('error.message'))->toBe('Header mismatch: The [Mcp-Name] header value [=?base64?'.base64_encode("a\nb")."?=] does not match the request body value [{$message['params']['name']}].");
+});
+
 it('does not require a name header for methods without a named target', function (): void {
     $message = listToolsMessage();
 
@@ -200,6 +256,27 @@ it('answers a legacy request carrying an unsupported protocol version header wit
     ]);
 });
 
+it('answers a legacy request carrying an invalid UTF-8 protocol version header with a 400', function (): void {
+    $response = $this->postJson('test-mcp', ['jsonrpc' => '2.0', 'id' => 3, 'method' => 'tools/list', 'params' => []], [
+        'MCP-Protocol-Version' => "\xFF",
+    ]);
+
+    $response->assertStatus(400);
+
+    expect($response->json())->toEqual([
+        'jsonrpc' => '2.0',
+        'id' => 3,
+        'error' => [
+            'code' => -32022,
+            'message' => 'Unsupported protocol version',
+            'data' => [
+                'supported' => ['2025-11-25', '2025-06-18', '2025-03-26'],
+                'requested' => '=?base64?/w==?=',
+            ],
+        ],
+    ]);
+});
+
 it('requires the name header even when the body carries no usable name', function (): void {
     $message = callToolMessage();
     $message['params']['name'] = 123;
@@ -227,7 +304,10 @@ it('does not decode the base64 sentinel on headers other than the name', functio
 
     $response->assertStatus(400);
 
-    expect($response->json('error.code'))->toBe(-32020);
+    expect($response->json('error'))->toEqual([
+        'code' => -32020,
+        'message' => 'Header mismatch: The [Mcp-Method] header value [=?base64?'.base64_encode('tools/call').'?=] does not match the request body value [tools/call].',
+    ]);
 });
 
 it('answers an internal error with a 500', function (): void {
