@@ -593,7 +593,7 @@ it('falls back to the redirect host when no client name is provided', function (
     {
         public ?string $capturedName = null;
 
-        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false): stdClass
         {
             $this->capturedName = $name;
 
@@ -643,7 +643,7 @@ it('preserves a falsy client name for oauth registration', function (): void {
     {
         public ?string $capturedName = null;
 
-        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false): stdClass
         {
             $this->capturedName = $name;
 
@@ -675,7 +675,7 @@ it('falls back to the legacy name field for oauth registration', function (): vo
     {
         public ?string $capturedName = null;
 
-        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false): stdClass
         {
             $this->capturedName = $name;
 
@@ -707,7 +707,7 @@ it('prefers client_name over name for oauth registration', function (): void {
     {
         public ?string $capturedName = null;
 
-        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false): stdClass
         {
             $this->capturedName = $name;
 
