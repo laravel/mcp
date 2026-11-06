@@ -532,7 +532,7 @@ it('reports an unreachable resource during the advertisement probe as an oauth e
 
     Http::preventStrayRequests();
     Http::fake([
-        'https://mcp.test/mcp' => fn () => throw new ConnectionException('Connection timed out'),
+        'https://mcp.test/mcp' => fn (): never => throw new ConnectionException('Connection timed out'),
     ]);
 
     registerGithubClient();

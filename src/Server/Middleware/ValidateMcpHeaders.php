@@ -77,7 +77,7 @@ class ValidateMcpHeaders
                 'message' => 'Unsupported protocol version',
                 'data' => [
                     'supported' => ProtocolVersion::initializeSupported(),
-                    'requested' => $version,
+                    'requested' => $this->printable(new HeaderValue($version)),
                 ],
             ],
         ], 400);
@@ -99,6 +99,11 @@ class ValidateMcpHeaders
             return null;
         }
 
-        return "Header mismatch: The [{$header->value}] header value [{$headerValue->value}] does not match the request body value [{$expected}].";
+        return "Header mismatch: The [{$header->value}] header value [{$this->printable($headerValue)}] does not match the request body value [{$expected}].";
+    }
+
+    protected function printable(HeaderValue $value): string
+    {
+        return preg_match('/\A\P{Cc}*\z/u', $value->value) === 1 ? $value->value : (string) $value;
     }
 }

@@ -18,7 +18,7 @@ trait ResolvesPrompts
 
         return $context->prompts()->first(
             fn ($prompt): bool => $prompt->name() === $name,
-            fn () => throw new InvalidArgumentException("Prompt [{$name}] not found.")
+            fn (): never => throw new InvalidArgumentException("Prompt [{$name}] not found.")
         );
     }
 }
