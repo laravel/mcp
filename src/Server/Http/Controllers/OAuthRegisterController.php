@@ -6,12 +6,11 @@ namespace Laravel\Mcp\Server\Http\Controllers;
 
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Container\BindingResolutionException;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
+use Laravel\Mcp\Server\OAuth\PassportClients;
+use Laravel\Mcp\Server\OAuth\RedirectUriPolicy;
 use Laravel\Mcp\Server\Registrar;
 use Throwable;
 
@@ -35,19 +34,7 @@ class OAuthRegisterController
                     return;
                 }
 
-                if (! in_array(parse_url($value, PHP_URL_SCHEME), ['http', 'https'], true)) {
-                    return;
-                }
-
-                if (in_array('*', config('mcp.redirect_domains', []), true)) {
-                    return;
-                }
-
-                if ($this->hasLocalhostDomain() && $this->isLocalhostUrl($value)) {
-                    return;
-                }
-
-                if (! Str::startsWith($value, $this->allowedDomains())) {
+                if (! $this->redirectUriPolicy()->isPermitted($value)) {
                     $fail($attribute.' is not a permitted redirect domain.');
                 }
             }],
@@ -111,17 +98,7 @@ class OAuthRegisterController
 
     protected function grantMcpScope(mixed $client): void
     {
-        if (! $client instanceof Model) {
-            return;
-        }
-
-        $scopes = $client->refresh()->getAttribute('scopes');
-
-        if (! is_array($scopes) || in_array(Registrar::OAUTH_SCOPE, $scopes, true)) {
-            return;
-        }
-
-        $client->forceFill(['scopes' => [...$scopes, Registrar::OAUTH_SCOPE]])->save();
+        $this->passportClients()->grantMcpScope($client);
     }
 
     /**
@@ -130,19 +107,7 @@ class OAuthRegisterController
      */
     protected function persistClientMetadata(mixed $client, array $validated): array
     {
-        if (! $client instanceof Model) {
-            return [];
-        }
-
-        $columns = $client->getConnection()->getSchemaBuilder()->getColumnListing($client->getTable());
-        $supported = array_intersect(['logo_uri', 'client_uri'], $columns);
-        $metadata = array_filter(Arr::only($validated, $supported));
-
-        if ($metadata !== []) {
-            $client->forceFill($metadata)->save();
-        }
-
-        return array_filter($client->only($supported));
+        return $this->passportClients()->persistMetadata($client, $validated);
     }
 
     /**
@@ -159,65 +124,16 @@ class OAuthRegisterController
 
     protected function isValidRedirectUri(string $value): bool
     {
-        $scheme = parse_url($value, PHP_URL_SCHEME);
-
-        if (! is_string($scheme)) {
-            return false;
-        }
-
-        if (parse_url($value, PHP_URL_USER) !== null || parse_url($value, PHP_URL_PASS) !== null) {
-            return false;
-        }
-
-        if (in_array($scheme, ['http', 'https'], true)) {
-            return Str::isUrl($value, ['http', 'https']);
-        }
-
-        /** @var array<int, string> */
-        $allowedSchemes = config('mcp.custom_schemes', []);
-        $host = parse_url($value, PHP_URL_HOST);
-
-        return in_array($scheme, $allowedSchemes, true) && is_string($host) && $host !== '';
+        return $this->redirectUriPolicy()->isValid($value);
     }
 
-    protected function isLocalhostUrl(string $url): bool
+    protected function redirectUriPolicy(): RedirectUriPolicy
     {
-        $parts = parse_url($url);
-
-        if ($parts === false || ($parts['scheme'] ?? null) !== 'http' || isset($parts['user']) || isset($parts['pass'])) {
-            return false;
-        }
-
-        return in_array($parts['host'] ?? null, ['localhost', '127.0.0.1', '[::1]'], true);
+        return RedirectUriPolicy::fromConfig();
     }
 
-    /**
-     * Get the allowed redirect domains.
-     *
-     * @return array<int, string>
-     */
-    protected function allowedDomains(): array
+    protected function passportClients(): PassportClients
     {
-        /** @var array<int, string> */
-        $allowedDomains = config('mcp.redirect_domains', []);
-
-        return collect($allowedDomains)
-            ->map(fn (string $domain): string => Str::endsWith($domain, '/')
-                ? $domain
-                : "{$domain}/"
-            )
-            ->all();
-    }
-
-    private function hasLocalhostDomain(): bool
-    {
-        /** @var array<int, string> */
-        $domains = config('mcp.redirect_domains', []);
-
-        return collect($domains)->contains(fn (string $domain): bool => in_array(
-            rtrim(Str::after($domain, '://'), '/'),
-            ['localhost', '127.0.0.1', '[::1]'],
-            true,
-        ));
+        return new PassportClients;
     }
 }
