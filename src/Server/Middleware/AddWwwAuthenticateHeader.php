@@ -11,6 +11,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AddWwwAuthenticateHeader
 {
+    protected static ?Closure $resourceMetadataUrlResolver = null;
+
+    public static function resolveResourceMetadataUrlUsing(?Closure $callback): void
+    {
+        static::$resourceMetadataUrlResolver = $callback;
+    }
+
     /**
      * Handle an incoming request.
      *
@@ -25,6 +32,15 @@ class AddWwwAuthenticateHeader
 
         $route = $request->route();
         if (! $route instanceof Route || ! in_array(self::class, app('router')->gatherRouteMiddleware($route), true)) {
+            return $response;
+        }
+
+        if (static::$resourceMetadataUrlResolver instanceof Closure) {
+            $response->header(
+                'WWW-Authenticate',
+                'Bearer realm="mcp", resource_metadata="'.(static::$resourceMetadataUrlResolver)($request).'"'
+            );
+
             return $response;
         }
 
