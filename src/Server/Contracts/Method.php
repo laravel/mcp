@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Contracts;
 
+use Laravel\Mcp\Exceptions\InputRequiredException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;
@@ -15,6 +16,7 @@ interface Method
      * @return iterable<JsonRpcResponse>|JsonRpcResponse
      *
      * @throws JsonRpcException
+     * @throws InputRequiredException
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): iterable|JsonRpcResponse;
 }
