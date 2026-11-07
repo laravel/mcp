@@ -9,6 +9,7 @@ use Laravel\Mcp\Server\Tools\Annotations\IsDestructive;
 use Laravel\Mcp\Server\Tools\Annotations\IsIdempotent;
 use Laravel\Mcp\Server\Tools\Annotations\IsOpenWorld;
 use Laravel\Mcp\Server\Tools\Annotations\IsReadOnly;
+use Tests\Fixtures\ToolWithRules;
 
 test('the default name is in kebab case', function (): void {
     $tool = new AnotherComplexToolName;
@@ -261,3 +262,40 @@ class ToolWithOutputSchema extends TestTool
 }
 
 class ToolWithoutOutputSchema extends TestTool {}
+
+it('returns no rules or messages by default', function (): void {
+    expect((new TestTool)->rules())->toBe([])
+        ->and((new TestTool)->messages())->toBe([]);
+});
+
+it('builds the input schema from the rules when no schema is defined', function (): void {
+    $tool = new ToolWithRules;
+
+    expect($tool->toArray()['inputSchema'])->toBe([
+        'properties' => [
+            'name' => ['maxLength' => 20, 'type' => 'string'],
+            'times' => ['enum' => [1, 2, 3], 'type' => 'integer'],
+        ],
+        'type' => 'object',
+        'required' => ['name'],
+    ]);
+});
+
+it('prefers the schema over the rules when both are defined', function (): void {
+    $tool = new class extends TestTool
+    {
+        public function schema(JsonSchema $schema): array
+        {
+            return ['message' => $schema->string()->required()];
+        }
+
+        public function rules(): array
+        {
+            return ['other' => 'required|string'];
+        }
+    };
+
+    expect($tool->toArray()['inputSchema']['properties'])
+        ->toHaveKey('message')
+        ->not->toHaveKey('other');
+});

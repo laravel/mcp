@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server;
 use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Server\Content\StructuredContentText;
@@ -26,8 +27,16 @@ class ToolInvoker implements Errable
 
     public function invoke(Tool $tool, JsonRpcRequest $request): Generator|JsonRpcResponse
     {
-        // @phpstan-ignore-next-line
-        $response = $this->callHandler(fn (): mixed => Container::getInstance()->call([$tool, 'handle']), $request);
+        $response = $this->callHandler(function () use ($tool): mixed {
+            $container = Container::getInstance();
+
+            if (($rules = $tool->rules()) !== []) {
+                $container->make(Request::class)->validate($rules, $tool->messages());
+            }
+
+            // @phpstan-ignore-next-line
+            return $container->call([$tool, 'handle']);
+        }, $request);
 
         return is_iterable($response)
             ? $this->toJsonRpcStreamedResponse($request, $response, $this->serializable($tool))
