@@ -24,7 +24,6 @@ server:
   - prompts-get-embedded-resource
   - completion-complete
   - server-stateless
-  - dns-rebinding-protection
   - http-header-validation
   - http-custom-header-server-validation
   - json-schema-2020-12
