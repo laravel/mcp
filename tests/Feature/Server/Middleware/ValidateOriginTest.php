@@ -65,6 +65,24 @@ it('accepts a request from a configured origin', function (): void {
     $this->postJson('test-mcp', $message, [...mcpHeaders($message), 'Origin' => 'https://evil.example'])->assertStatus(403);
 });
 
+it('accepts a configured origin given as a string', function (): void {
+    config(['mcp.allowed_origins' => 'https://client.example']);
+
+    $message = listToolsMessage();
+
+    $this->postJson('test-mcp', $message, [...mcpHeaders($message), 'Origin' => 'https://client.example'])->assertStatus(200);
+    $this->postJson('test-mcp', $message, [...mcpHeaders($message), 'Origin' => 'https://evil.example'])->assertStatus(403);
+});
+
+it('ignores configured origins that are not strings', function (): void {
+    config(['mcp.allowed_origins' => [null, 42, 'https://client.example']]);
+
+    $message = listToolsMessage();
+
+    $this->postJson('test-mcp', $message, [...mcpHeaders($message), 'Origin' => 'https://client.example'])->assertStatus(200);
+    $this->postJson('test-mcp', $message, [...mcpHeaders($message), 'Origin' => 'https://evil.example'])->assertStatus(403);
+});
+
 it('accepts any origin when all origins are allowed', function (): void {
     config(['mcp.allowed_origins' => ['*']]);
 

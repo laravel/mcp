@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Laravel\Mcp\Enums\ErrorCode;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -45,8 +46,7 @@ class ValidateOrigin
             return true;
         }
 
-        /** @var array<int, string> $configured */
-        $configured = config('mcp.allowed_origins', []);
+        $configured = array_filter(Arr::wrap(config('mcp.allowed_origins', [])), is_string(...));
 
         if (in_array('*', $configured, true)) {
             return true;
