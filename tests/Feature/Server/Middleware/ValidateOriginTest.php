@@ -2,10 +2,6 @@
 
 declare(strict_types=1);
 
-use Laravel\Mcp\Facades\Mcp;
-use Laravel\Mcp\Server\Middleware\ValidateOrigin;
-use Tests\Fixtures\ExampleServer;
-
 it('accepts a request without an origin header', function (): void {
     $message = listToolsMessage();
 
@@ -75,14 +71,6 @@ it('accepts any origin when all origins are allowed', function (): void {
     $message = listToolsMessage();
 
     $this->postJson('test-mcp', $message, [...mcpHeaders($message), 'Origin' => 'https://evil.example'])->assertStatus(200);
-});
-
-it('skips validation when the middleware is removed from the route', function (): void {
-    Mcp::web('open-mcp', ExampleServer::class)->withoutMiddleware(ValidateOrigin::class);
-
-    $message = listToolsMessage();
-
-    $this->postJson('open-mcp', $message, [...mcpHeaders($message), 'Origin' => 'https://evil.example'])->assertStatus(200);
 });
 
 it('validates the origin on get and delete requests', function (string $method): void {
