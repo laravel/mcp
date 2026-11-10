@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Transport;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use JsonException;
+use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\JsonRpcException;
@@ -82,9 +83,9 @@ class JsonRpcRequest
     public function validate(array $rules): array
     {
         try {
-            return Validator::validate($this->params, $rules);
+            return Validator::make($this->params, $rules)->validate();
         } catch (ValidationException $validationException) {
-            throw new JsonRpcException(ValidationMessages::from($validationException), -32602, $this->id);
+            throw new JsonRpcException(ValidationMessages::from($validationException), ErrorCode::INVALID_PARAMS->value, $this->id);
         }
     }
 
