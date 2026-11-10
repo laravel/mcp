@@ -379,3 +379,23 @@ it('returns plain message in prompt error when APP_DEBUG is false', function ():
             ->and($jsonRpcException->getMessage())->toBe('An internal server error occurred.');
     }
 });
+
+it('rejects a wrongly typed name parameter', function (mixed $name): void {
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        implementation: new Implementation('Test Server', '1.0.0'),
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [],
+        resources: [],
+        prompts: [],
+    );
+
+    expect(fn (): mixed => (new GetPrompt)->handle(new JsonRpcRequest(1, 'prompts/get', ['name' => $name]), $context))
+        ->toThrow(JsonRpcException::class, 'The name field must be a string.');
+})->with([
+    'array' => [['x']],
+    'int' => [1],
+]);

@@ -6,7 +6,6 @@ namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
-use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use JsonException;
 use Laravel\Mcp\Enums\ErrorCode;
@@ -44,7 +43,6 @@ use Laravel\Mcp\Server\Testing\PendingTestResponse;
 use Laravel\Mcp\Server\Testing\TestListResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
 use Laravel\Mcp\Server\Tool;
-use Laravel\Mcp\Support\ValidationMessages;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -213,7 +211,7 @@ abstract class Server
                 throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', ErrorCode::PARSE_ERROR->value);
             }
 
-            if (! is_array($jsonRequest)) {
+            if (! is_array($jsonRequest) || ($jsonRequest !== [] && array_is_list($jsonRequest))) {
                 throw new JsonRpcException('Invalid Request: The request must be a JSON object.', ErrorCode::INVALID_REQUEST->value);
             }
 
@@ -242,12 +240,6 @@ abstract class Server
             $this->handleMessage($request, $context);
         } catch (JsonRpcException $e) {
             $this->send($e->toJsonRpcResponse(), $context);
-        } catch (ValidationException $e) {
-            $this->send(JsonRpcResponse::error(
-                $requestId,
-                ErrorCode::INVALID_PARAMS->value,
-                ValidationMessages::from($e),
-            ), $context);
         } catch (Throwable $e) {
             report($e);
 
@@ -378,7 +370,7 @@ abstract class Server
             $message = JsonRpcResponse::error(
                 $response->content['id'],
                 ErrorCode::INTERNAL_ERROR->value,
-                'Something went wrong while processing the request.',
+                config('app.debug', false) ? $jsonException->getMessage() : 'Something went wrong while processing the request.',
             )->toJson();
         }
 

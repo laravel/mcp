@@ -7,7 +7,6 @@ namespace Laravel\Mcp\Server\Methods;
 use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Container\BindingResolutionException;
-use Illuminate\Support\Facades\Validator;
 use InvalidArgumentException;
 use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Exceptions\JsonRpcException;
@@ -36,7 +35,7 @@ class ReadResource implements Method
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
-        Validator::validate($request->params, [
+        $request->validate([
             'uri' => ['nullable', 'string'],
         ]);
 

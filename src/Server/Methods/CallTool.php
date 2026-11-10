@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
-use Illuminate\Support\Facades\Validator;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Contracts\Method;
@@ -23,7 +22,7 @@ class CallTool implements Errable, Method
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
-        Validator::validate($request->params, [
+        $request->validate([
             'name' => ['nullable', 'string'],
         ]);
 

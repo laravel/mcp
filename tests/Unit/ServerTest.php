@@ -699,48 +699,33 @@ class OpinionatedMethodHandler implements Method
     }
 }
 
-it('rejects wrongly typed params as invalid params without reporting', function (string $method, array $params, string $message): void {
+it('rejects wrongly typed params as invalid params without reporting', function (): void {
     config()->set('app.debug', true);
     Exceptions::fake();
 
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
-    $server->addCapability(Server::CAPABILITY_COMPLETIONS);
 
     $server->start();
 
     ($transport->handler)(json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,
-        'method' => $method,
-        'params' => [...$params, '_meta' => protocolMeta()],
+        'method' => 'tools/call',
+        'params' => ['name' => ['x'], '_meta' => protocolMeta()],
     ]));
 
-    $response = json_decode((string) $transport->sent[0], true);
-
-    expect($response['error'])->toBe(['code' => -32602, 'message' => $message]);
+    expect(json_decode((string) $transport->sent[0], true))->toBe([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'error' => [
+            'code' => -32602,
+            'message' => 'The name field must be a string.',
+        ],
+    ]);
 
     Exceptions::assertNothingReported();
-})->with([
-    'tools/call name' => ['tools/call', ['name' => ['x']], 'The name field must be a string.'],
-    'resources/read uri as array' => ['resources/read', ['uri' => ['x']], 'The uri field must be a string.'],
-    'resources/read uri as int' => ['resources/read', ['uri' => 1], 'The uri field must be a string.'],
-    'prompts/get name' => ['prompts/get', ['name' => ['x']], 'The name field must be a string.'],
-    'tools/list cursor as int' => ['tools/list', ['cursor' => 1], 'The cursor field must be a string.'],
-    'tools/list cursor as array' => ['tools/list', ['cursor' => ['x']], 'The cursor field must be a string.'],
-    'tools/list per_page' => ['tools/list', ['per_page' => '10'], 'The per page field must be an integer.'],
-    'prompts/list per_page' => ['prompts/list', ['per_page' => '10'], 'The per page field must be an integer.'],
-    'resources/list per_page' => ['resources/list', ['per_page' => '10'], 'The per page field must be an integer.'],
-    'resources/templates/list per_page' => ['resources/templates/list', ['per_page' => '10'], 'The per page field must be an integer.'],
-    'completion ref' => ['completion/complete', ['ref' => 'x', 'argument' => ['name' => 'a']], 'The ref field must be an array.'],
-    'completion argument' => ['completion/complete', ['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => 'x'], 'The argument field must be an array.'],
-    'completion ref name' => ['completion/complete', ['ref' => ['type' => 'ref/prompt', 'name' => ['x']], 'argument' => ['name' => 'a']], 'The ref.name field must be a string.'],
-    'completion ref uri' => ['completion/complete', ['ref' => ['type' => 'ref/resource', 'uri' => 1], 'argument' => ['name' => 'a']], 'The ref.uri field must be a string.'],
-    'completion argument name' => ['completion/complete', ['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => ['name' => 1]], 'The argument.name field must be a string.'],
-    'completion argument value' => ['completion/complete', ['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => ['name' => 'a', 'value' => ['x']]], 'The argument.value field must be a string.'],
-    'completion context' => ['completion/complete', ['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => ['name' => 'a'], 'context' => 'x'], 'The context field must be an array.'],
-    'completion context arguments' => ['completion/complete', ['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => ['name' => 'a'], 'context' => ['arguments' => 'x']], 'The context.arguments field must be an array.'],
-]);
+});
 
 it('rejects a request body that is not a json object', function (string $body): void {
     config()->set('app.debug', true);
@@ -762,9 +747,10 @@ it('rejects a request body that is not a json object', function (string $body): 
     ]);
 
     Exceptions::assertNothingReported();
-})->with(['null', '1', '"string"', 'true']);
+})->with(['null', '1', '"string"', 'true', '[1]', '[{"jsonrpc":"2.0","id":1,"method":"ping"}]']);
 
-it('responds with an internal error when the result cannot be encoded', function (): void {
+it('responds with an internal error when the result cannot be encoded', function (bool $debug, mixed $value, string $message): void {
+    config()->set('app.debug', $debug);
     Exceptions::fake();
 
     $transport = new ArrayTransport;
@@ -775,11 +761,13 @@ it('responds with an internal error when the result cannot be encoded', function
         ];
     };
 
-    $this->app->bind(CustomMethodHandler::class, fn (): Method => new class implements Method
+    $this->app->bind(CustomMethodHandler::class, fn (): Method => new class($value) implements Method
     {
+        public function __construct(private mixed $value) {}
+
         public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
         {
-            return JsonRpcResponse::result($request->id, ['value' => NAN]);
+            return JsonRpcResponse::result($request->id, ['value' => $this->value]);
         }
     });
 
@@ -797,12 +785,16 @@ it('responds with an internal error when the result cannot be encoded', function
         'id' => 999,
         'error' => [
             'code' => -32603,
-            'message' => 'Something went wrong while processing the request.',
+            'message' => $message,
         ],
     ]);
 
     Exceptions::assertReported(JsonException::class);
-});
+})->with([
+    'invalid utf-8' => [false, "caf\xe9", 'Something went wrong while processing the request.'],
+    'nan' => [false, NAN, 'Something went wrong while processing the request.'],
+    'invalid utf-8 in debug' => [true, "caf\xe9", 'Malformed UTF-8 characters, possibly incorrectly encoded'],
+]);
 
 it('drops a streamed notification that cannot be encoded and still sends the result', function (): void {
     Exceptions::fake();

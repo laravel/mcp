@@ -785,3 +785,23 @@ it('uri is correctly set and isolated for consecutive requests', function (strin
         'secondUri' => 'file://static/resource',
     ],
 ]);
+
+it('rejects a wrongly typed uri parameter', function (mixed $uri): void {
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        implementation: new Implementation('Test Server', '1.0.0'),
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [],
+        resources: [],
+        prompts: [],
+    );
+
+    expect(fn (): mixed => (new ReadResource)->handle(new JsonRpcRequest(1, 'resources/read', ['uri' => $uri]), $context))
+        ->toThrow(JsonRpcException::class, 'The uri field must be a string.');
+})->with([
+    'array' => [['x']],
+    'int' => [1],
+]);

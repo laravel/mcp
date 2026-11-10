@@ -7,7 +7,6 @@ namespace Laravel\Mcp\Server\Methods;
 use Exception;
 use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\Validator;
 use InvalidArgumentException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server;
@@ -38,7 +37,7 @@ class CompletionComplete implements Method
             );
         }
 
-        Validator::validate($request->params, [
+        $request->validate([
             'ref' => ['nullable', 'array'],
             'ref.name' => ['nullable', 'string'],
             'ref.uri' => ['nullable', 'string'],
@@ -47,6 +46,7 @@ class CompletionComplete implements Method
             'argument.value' => ['string'],
             'context' => ['nullable', 'array'],
             'context.arguments' => ['array'],
+            'context.arguments.*' => ['string'],
         ]);
 
         $ref = $request->get('ref');
