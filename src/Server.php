@@ -371,8 +371,12 @@ abstract class Server
         } catch (JsonException $jsonException) {
             report($jsonException);
 
+            if (! array_key_exists('id', $response->content)) {
+                return;
+            }
+
             $message = JsonRpcResponse::error(
-                $response->content['id'] ?? null,
+                $response->content['id'],
                 ErrorCode::INTERNAL_ERROR->value,
                 'Something went wrong while processing the request.',
             )->toJson();

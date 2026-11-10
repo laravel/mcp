@@ -803,3 +803,42 @@ it('responds with an internal error when the result cannot be encoded', function
 
     Exceptions::assertReported(JsonException::class);
 });
+
+it('drops a streamed notification that cannot be encoded and still sends the result', function (): void {
+    Exceptions::fake();
+
+    $transport = new ArrayTransport;
+    $server = new class($transport) extends Server
+    {
+        protected array $methods = [
+            'test/method' => CustomMethodHandler::class,
+        ];
+    };
+
+    $this->app->bind(CustomMethodHandler::class, fn (): Method => new class implements Method
+    {
+        public function handle(JsonRpcRequest $request, ServerContext $context): iterable
+        {
+            yield JsonRpcResponse::notification('notifications/progress', ['progress' => NAN]);
+            yield JsonRpcResponse::result($request->id, ['value' => 'ok']);
+        }
+    });
+
+    $server->start();
+
+    ($transport->handler)(json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 999,
+        'method' => 'test/method',
+        'params' => ['_meta' => protocolMeta()],
+    ]));
+
+    expect($transport->sent)->toHaveCount(1);
+
+    $response = json_decode((string) $transport->sent[0], true);
+
+    expect($response['id'])->toBe(999)
+        ->and($response['result']['value'])->toBe('ok');
+
+    Exceptions::assertReported(JsonException::class);
+});
