@@ -37,6 +37,18 @@ class CompletionComplete implements Method
             );
         }
 
+        $request->validate([
+            'ref' => ['nullable', 'array'],
+            'ref.name' => ['nullable', 'string'],
+            'ref.uri' => ['nullable', 'string'],
+            'argument' => ['nullable', 'array'],
+            'argument.name' => ['nullable', 'string'],
+            'argument.value' => ['string'],
+            'context' => ['nullable', 'array'],
+            'context.arguments' => ['array'],
+            'context.arguments.*' => ['string'],
+        ]);
+
         $ref = $request->get('ref');
         $argument = $request->get('argument');
 

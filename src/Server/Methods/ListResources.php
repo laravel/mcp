@@ -14,6 +14,11 @@ class ListResources implements Method
 {
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
+        $request->validate([
+            'cursor' => ['nullable', 'string'],
+            'per_page' => ['nullable', 'integer:strict', 'min:1'],
+        ]);
+
         $paginator = new CursorPaginator(
             items: $context->resources(),
             perPage: $context->perPage($request->get('per_page')),

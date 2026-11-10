@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Exceptions;
 use Laravel\Mcp\Enums\IconTheme;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server;
@@ -697,3 +698,139 @@ class OpinionatedMethodHandler implements Method
         ]);
     }
 }
+
+it('rejects wrongly typed params as invalid params without reporting', function (): void {
+    config()->set('app.debug', true);
+    Exceptions::fake();
+
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    ($transport->handler)(json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => ['name' => ['x'], '_meta' => protocolMeta()],
+    ]));
+
+    expect(json_decode((string) $transport->sent[0], true))->toBe([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'error' => [
+            'code' => -32602,
+            'message' => 'The name field must be a string.',
+        ],
+    ]);
+
+    Exceptions::assertNothingReported();
+});
+
+it('rejects a request body that is not a json object', function (string $body): void {
+    config()->set('app.debug', true);
+    Exceptions::fake();
+
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    ($transport->handler)($body);
+
+    expect(json_decode((string) $transport->sent[0], true))->toBe([
+        'jsonrpc' => '2.0',
+        'error' => [
+            'code' => -32600,
+            'message' => 'Invalid Request: The request must be a JSON object.',
+        ],
+    ]);
+
+    Exceptions::assertNothingReported();
+})->with(['null', '1', '"string"', 'true', '[1]', '[{"jsonrpc":"2.0","id":1,"method":"ping"}]']);
+
+it('responds with an internal error when the result cannot be encoded', function (bool $debug, mixed $value, string $message): void {
+    config()->set('app.debug', $debug);
+    Exceptions::fake();
+
+    $transport = new ArrayTransport;
+    $server = new class($transport) extends Server
+    {
+        protected array $methods = [
+            'test/method' => CustomMethodHandler::class,
+        ];
+    };
+
+    $this->app->bind(CustomMethodHandler::class, fn (): Method => new class($value) implements Method
+    {
+        public function __construct(private mixed $value) {}
+
+        public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
+        {
+            return JsonRpcResponse::result($request->id, ['value' => $this->value]);
+        }
+    });
+
+    $server->start();
+
+    ($transport->handler)(json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 999,
+        'method' => 'test/method',
+        'params' => ['_meta' => protocolMeta()],
+    ]));
+
+    expect(json_decode((string) $transport->sent[0], true))->toBe([
+        'jsonrpc' => '2.0',
+        'id' => 999,
+        'error' => [
+            'code' => -32603,
+            'message' => $message,
+        ],
+    ]);
+
+    Exceptions::assertReported(JsonException::class);
+})->with([
+    'invalid utf-8' => [false, "caf\xe9", 'Something went wrong while processing the request.'],
+    'nan' => [false, NAN, 'Something went wrong while processing the request.'],
+    'invalid utf-8 in debug' => [true, "caf\xe9", 'Malformed UTF-8 characters, possibly incorrectly encoded'],
+]);
+
+it('drops a streamed notification that cannot be encoded and still sends the result', function (): void {
+    Exceptions::fake();
+
+    $transport = new ArrayTransport;
+    $server = new class($transport) extends Server
+    {
+        protected array $methods = [
+            'test/method' => CustomMethodHandler::class,
+        ];
+    };
+
+    $this->app->bind(CustomMethodHandler::class, fn (): Method => new class implements Method
+    {
+        public function handle(JsonRpcRequest $request, ServerContext $context): iterable
+        {
+            yield JsonRpcResponse::notification('notifications/progress', ['progress' => NAN]);
+            yield JsonRpcResponse::result($request->id, ['value' => 'ok']);
+        }
+    });
+
+    $server->start();
+
+    ($transport->handler)(json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 999,
+        'method' => 'test/method',
+        'params' => ['_meta' => protocolMeta()],
+    ]));
+
+    expect($transport->sent)->toHaveCount(1);
+
+    $response = json_decode((string) $transport->sent[0], true);
+
+    expect($response['id'])->toBe(999)
+        ->and($response['result']['value'])->toBe('ok');
+
+    Exceptions::assertReported(JsonException::class);
+});

@@ -22,6 +22,10 @@ class CallTool implements Errable, Method
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
+        $request->validate([
+            'name' => ['nullable', 'string'],
+        ]);
+
         if (is_null($request->get('name'))) {
             throw new JsonRpcException(
                 'Missing [name] parameter.',

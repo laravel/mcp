@@ -28,6 +28,10 @@ class GetPrompt implements Method
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
+        $request->validate([
+            'name' => ['nullable', 'string'],
+        ]);
+
         try {
             $prompt = $this->resolvePrompt($request->get('name'), $context);
         } catch (InvalidArgumentException $invalidArgumentException) {

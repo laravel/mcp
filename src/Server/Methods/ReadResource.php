@@ -35,6 +35,10 @@ class ReadResource implements Method
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
+        $request->validate([
+            'uri' => ['nullable', 'string'],
+        ]);
+
         $uri = $request->get('uri');
 
         try {
