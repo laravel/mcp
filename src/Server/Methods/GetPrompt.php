@@ -29,7 +29,7 @@ class GetPrompt implements Method
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
         try {
-            $prompt = $this->resolvePrompt($request->get('name'), $context);
+            $prompt = $this->resolvePrompt($request->getString('name'), $context);
         } catch (InvalidArgumentException $invalidArgumentException) {
             throw new JsonRpcException($invalidArgumentException->getMessage(), -32602, $request->id);
         }

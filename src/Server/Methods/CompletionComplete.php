@@ -37,8 +37,8 @@ class CompletionComplete implements Method
             );
         }
 
-        $ref = $request->get('ref');
-        $argument = $request->get('argument');
+        $ref = $request->getObject('ref');
+        $argument = $request->getObject('argument');
 
         if (is_null($ref) || is_null($argument)) {
             throw new JsonRpcException(
@@ -47,6 +47,15 @@ class CompletionComplete implements Method
                 $request->id,
             );
         }
+
+        // Reject wrongly typed members before they reach the resolvers and the completion handler...
+        $request->getString('ref.name');
+        $request->getString('ref.uri');
+
+        $argumentName = $request->getString('argument.name');
+        $argumentValue = $request->getString('argument.value') ?? '';
+        $request->getObject('context');
+        $contextArguments = $request->getObject('context.arguments') ?? [];
 
         try {
             $primitive = $this->resolvePrimitive($ref, $context);
@@ -62,9 +71,6 @@ class CompletionComplete implements Method
             ]);
         }
 
-        $argumentName = Arr::get($argument, 'name');
-        $argumentValue = Arr::get($argument, 'value', '');
-
         if (is_null($argumentName)) {
             throw new JsonRpcException(
                 'Missing argument name.',
@@ -72,8 +78,6 @@ class CompletionComplete implements Method
                 $request->id,
             );
         }
-
-        $contextArguments = Arr::get($request->get('context'), 'arguments', []);
 
         try {
             $result = $this->invokeCompletion($primitive, $argumentName, $argumentValue, $contextArguments);

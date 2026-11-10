@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Exceptions;
 use Laravel\Mcp\Enums\IconTheme;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server;
@@ -697,3 +698,108 @@ class OpinionatedMethodHandler implements Method
         ]);
     }
 }
+
+it('rejects wrongly typed params as invalid params without reporting', function (string $method, array $params, string $message): void {
+    config()->set('app.debug', true);
+    Exceptions::fake();
+
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+    $server->addCapability(Server::CAPABILITY_COMPLETIONS);
+
+    $server->start();
+
+    ($transport->handler)(json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => $method,
+        'params' => [...$params, '_meta' => protocolMeta()],
+    ]));
+
+    $response = json_decode((string) $transport->sent[0], true);
+
+    expect($response['error'])->toBe(['code' => -32602, 'message' => $message]);
+
+    Exceptions::assertNothingReported();
+})->with([
+    'tools/call name' => ['tools/call', ['name' => ['x']], 'Invalid params: The [name] member must be a string.'],
+    'resources/read uri as array' => ['resources/read', ['uri' => ['x']], 'Invalid params: The [uri] member must be a string.'],
+    'resources/read uri as int' => ['resources/read', ['uri' => 1], 'Invalid params: The [uri] member must be a string.'],
+    'prompts/get name' => ['prompts/get', ['name' => ['x']], 'Invalid params: The [name] member must be a string.'],
+    'tools/list cursor as int' => ['tools/list', ['cursor' => 1], 'Invalid params: The [cursor] member must be a string.'],
+    'tools/list cursor as array' => ['tools/list', ['cursor' => ['x']], 'Invalid params: The [cursor] member must be a string.'],
+    'tools/list per_page' => ['tools/list', ['per_page' => '10'], 'Invalid params: The [per_page] member must be an integer.'],
+    'prompts/list per_page' => ['prompts/list', ['per_page' => '10'], 'Invalid params: The [per_page] member must be an integer.'],
+    'resources/list per_page' => ['resources/list', ['per_page' => '10'], 'Invalid params: The [per_page] member must be an integer.'],
+    'resources/templates/list per_page' => ['resources/templates/list', ['per_page' => '10'], 'Invalid params: The [per_page] member must be an integer.'],
+    'completion ref' => ['completion/complete', ['ref' => 'x', 'argument' => ['name' => 'a']], 'Invalid params: The [ref] member must be an object.'],
+    'completion argument' => ['completion/complete', ['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => 'x'], 'Invalid params: The [argument] member must be an object.'],
+    'completion ref name' => ['completion/complete', ['ref' => ['type' => 'ref/prompt', 'name' => ['x']], 'argument' => ['name' => 'a']], 'Invalid params: The [ref.name] member must be a string.'],
+    'completion ref uri' => ['completion/complete', ['ref' => ['type' => 'ref/resource', 'uri' => 1], 'argument' => ['name' => 'a']], 'Invalid params: The [ref.uri] member must be a string.'],
+    'completion argument name' => ['completion/complete', ['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => ['name' => 1]], 'Invalid params: The [argument.name] member must be a string.'],
+    'completion argument value' => ['completion/complete', ['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => ['name' => 'a', 'value' => ['x']]], 'Invalid params: The [argument.value] member must be a string.'],
+    'completion context' => ['completion/complete', ['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => ['name' => 'a'], 'context' => 'x'], 'Invalid params: The [context] member must be an object.'],
+    'completion context arguments' => ['completion/complete', ['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => ['name' => 'a'], 'context' => ['arguments' => 'x']], 'Invalid params: The [context.arguments] member must be an object.'],
+]);
+
+it('rejects a request body that is not a json object', function (string $body): void {
+    config()->set('app.debug', true);
+    Exceptions::fake();
+
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    ($transport->handler)($body);
+
+    expect(json_decode((string) $transport->sent[0], true))->toBe([
+        'jsonrpc' => '2.0',
+        'error' => [
+            'code' => -32600,
+            'message' => 'Invalid Request: The request must be a JSON object.',
+        ],
+    ]);
+
+    Exceptions::assertNothingReported();
+})->with(['null', '1', '"string"', 'true']);
+
+it('responds with an internal error when the result cannot be encoded', function (): void {
+    Exceptions::fake();
+
+    $transport = new ArrayTransport;
+    $server = new class($transport) extends Server
+    {
+        protected array $methods = [
+            'test/method' => CustomMethodHandler::class,
+        ];
+    };
+
+    $this->app->bind(CustomMethodHandler::class, fn (): Method => new class implements Method
+    {
+        public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
+        {
+            return JsonRpcResponse::result($request->id, ['value' => NAN]);
+        }
+    });
+
+    $server->start();
+
+    ($transport->handler)(json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 999,
+        'method' => 'test/method',
+        'params' => ['_meta' => protocolMeta()],
+    ]));
+
+    expect(json_decode((string) $transport->sent[0], true))->toBe([
+        'jsonrpc' => '2.0',
+        'id' => 999,
+        'error' => [
+            'code' => -32603,
+            'message' => 'Something went wrong while processing the request.',
+        ],
+    ]);
+
+    Exceptions::assertReported(JsonException::class);
+});

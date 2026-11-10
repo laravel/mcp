@@ -16,7 +16,7 @@ class ListPrompts implements Method
     {
         $paginator = new CursorPaginator(
             items: $context->prompts(),
-            perPage: $context->perPage($request->get('per_page')),
+            perPage: $context->perPage($request->getInteger('per_page')),
             cursor: $request->cursor(),
         );
 

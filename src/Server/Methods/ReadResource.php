@@ -35,7 +35,15 @@ class ReadResource implements Method
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
-        $uri = $request->get('uri');
+        $uri = $request->getString('uri');
+
+        if (is_null($uri)) {
+            throw new JsonRpcException(
+                'Missing [uri] parameter.',
+                ErrorCode::INVALID_PARAMS->value,
+                $request->id,
+            );
+        }
 
         try {
             $resource = $this->resolveResource($uri, $context);
