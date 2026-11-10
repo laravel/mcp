@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Transport;
 
-use Illuminate\Support\Arr;
 use JsonException;
-use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\JsonRpcException;
@@ -62,70 +60,14 @@ class JsonRpcRequest
         return is_array($value) && ($value === [] || ! array_is_list($value));
     }
 
-    /**
-     * @throws JsonRpcException
-     */
     public function cursor(): ?string
     {
-        return $this->getString('cursor');
+        return $this->get('cursor');
     }
 
     public function get(string $key, mixed $default = null): mixed
     {
         return $this->params[$key] ?? $default;
-    }
-
-    /**
-     * @throws JsonRpcException
-     */
-    public function getString(string $key): ?string
-    {
-        $value = Arr::get($this->params, $key);
-
-        if ($value !== null && ! is_string($value)) {
-            throw $this->invalidParam($key, 'a string');
-        }
-
-        return $value;
-    }
-
-    /**
-     * @throws JsonRpcException
-     */
-    public function getInteger(string $key): ?int
-    {
-        $value = Arr::get($this->params, $key);
-
-        if ($value !== null && ! is_int($value)) {
-            throw $this->invalidParam($key, 'an integer');
-        }
-
-        return $value;
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     *
-     * @throws JsonRpcException
-     */
-    public function getObject(string $key): ?array
-    {
-        $value = Arr::get($this->params, $key);
-
-        if ($value !== null && ! self::isObject($value)) {
-            throw $this->invalidParam($key, 'an object');
-        }
-
-        return $value;
-    }
-
-    private function invalidParam(string $key, string $type): JsonRpcException
-    {
-        return new JsonRpcException(
-            "Invalid params: The [{$key}] member must be {$type}.",
-            ErrorCode::INVALID_PARAMS->value,
-            $this->id,
-        );
     }
 
     /**

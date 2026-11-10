@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Methods;
 use Generator;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Container\BindingResolutionException;
+use Illuminate\Support\Facades\Validator;
 use InvalidArgumentException;
 use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Exceptions\JsonRpcException;
@@ -35,15 +36,11 @@ class ReadResource implements Method
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
-        $uri = $request->getString('uri');
+        Validator::validate($request->params, [
+            'uri' => ['nullable', 'string'],
+        ]);
 
-        if (is_null($uri)) {
-            throw new JsonRpcException(
-                'Missing [uri] parameter.',
-                ErrorCode::INVALID_PARAMS->value,
-                $request->id,
-            );
-        }
+        $uri = $request->get('uri');
 
         try {
             $resource = $this->resolveResource($uri, $context);

@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
 use Illuminate\Container\Container;
+use Illuminate\Support\Facades\Validator;
 use InvalidArgumentException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Response;
@@ -28,8 +29,12 @@ class GetPrompt implements Method
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
+        Validator::validate($request->params, [
+            'name' => ['nullable', 'string'],
+        ]);
+
         try {
-            $prompt = $this->resolvePrompt($request->getString('name'), $context);
+            $prompt = $this->resolvePrompt($request->get('name'), $context);
         } catch (InvalidArgumentException $invalidArgumentException) {
             throw new JsonRpcException($invalidArgumentException->getMessage(), -32602, $request->id);
         }

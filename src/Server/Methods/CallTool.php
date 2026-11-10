@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
+use Illuminate\Support\Facades\Validator;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Contracts\Method;
@@ -22,9 +23,11 @@ class CallTool implements Errable, Method
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
-        $name = $request->getString('name');
+        Validator::validate($request->params, [
+            'name' => ['nullable', 'string'],
+        ]);
 
-        if (is_null($name)) {
+        if (is_null($request->get('name'))) {
             throw new JsonRpcException(
                 'Missing [name] parameter.',
                 -32602,
@@ -35,9 +38,9 @@ class CallTool implements Errable, Method
         $tool = $context
             ->tools()
             ->first(
-                fn ($tool): bool => $tool->name() === $name,
+                fn ($tool): bool => $tool->name() === $request->params['name'],
                 fn (): never => throw new JsonRpcException(
-                    "Tool [{$name}] not found.",
+                    "Tool [{$request->params['name']}] not found.",
                     -32602,
                     $request->id,
                 ));

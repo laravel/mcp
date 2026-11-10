@@ -6,6 +6,7 @@ namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use JsonException;
 use Laravel\Mcp\Enums\ErrorCode;
@@ -43,6 +44,7 @@ use Laravel\Mcp\Server\Testing\PendingTestResponse;
 use Laravel\Mcp\Server\Testing\TestListResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Support\ValidationMessages;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -240,6 +242,12 @@ abstract class Server
             $this->handleMessage($request, $context);
         } catch (JsonRpcException $e) {
             $this->send($e->toJsonRpcResponse(), $context);
+        } catch (ValidationException $e) {
+            $this->send(JsonRpcResponse::error(
+                $requestId,
+                ErrorCode::INVALID_PARAMS->value,
+                ValidationMessages::from($e),
+            ), $context);
         } catch (Throwable $e) {
             report($e);
 

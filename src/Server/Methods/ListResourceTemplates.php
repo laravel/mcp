@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Methods;
 
+use Illuminate\Support\Facades\Validator;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Pagination\CursorPaginator;
 use Laravel\Mcp\Server\ServerContext;
@@ -14,9 +15,14 @@ class ListResourceTemplates implements Method
 {
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
+        Validator::validate($request->params, [
+            'cursor' => ['nullable', 'string'],
+            'per_page' => ['nullable', 'integer:strict'],
+        ]);
+
         $paginator = new CursorPaginator(
             items: $context->resourceTemplates(),
-            perPage: $context->perPage($request->getInteger('per_page')),
+            perPage: $context->perPage($request->get('per_page')),
             cursor: $request->cursor(),
         );
 
