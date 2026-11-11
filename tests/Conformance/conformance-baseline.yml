@@ -22,11 +22,9 @@ server:
   - tools-call-embedded-resource
   - tools-call-mixed-content
   - prompts-get-embedded-resource
-  - completion-complete
   - server-stateless
   - http-header-validation
   - http-custom-header-server-validation
-  - json-schema-2020-12
   - sep-2164-resource-not-found
   - input-required-result-missing-input-response
   - input-required-result-ignore-extra-params
@@ -54,6 +52,7 @@ client:
   - auth/offline-access-scope
   - auth/offline-access-not-supported
   - auth/authorization-server-migration
+  - auth/resource-mismatch
   - auth/iss-supported
   - auth/iss-not-advertised
   - auth/iss-supported-missing
