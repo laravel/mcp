@@ -33,7 +33,7 @@
     },
     "require-dev": {
         "jasonmccreary/double": "^1.0",
-        "laravel/pint": "^1.20",
+        "laravel/pint": "^1.20,!=1.32.2",
         "orchestra/testbench": "^10.8|^11.0",
         "pestphp/pest": "^3.8.5|^4.3.2",
         "phpstan/phpstan": "^2.1.27",
