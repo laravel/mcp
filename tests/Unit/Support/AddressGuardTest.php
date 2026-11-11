@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client\OAuth\AuthServerDiscovery;
 use Laravel\Mcp\Support\AddressGuard;
@@ -119,6 +121,92 @@ it('pins requests to the addresses that were checked', function (): void {
         ['client.example.com:8443:93.184.216.34,[2606:4700::1111]'],
         null,
     ]);
+});
+
+it('pins hosts regardless of case and trailing dots', function (): void {
+    AddressGuard::resolveHostsUsing(fn (string $host): array => ['93.184.216.34']);
+
+    $pins = [];
+
+    Http::fake(function (Request $request, array $options) use (&$pins) {
+        $pins[] = $options['curl'][CURLOPT_RESOLVE] ?? null;
+
+        return Http::response();
+    });
+
+    $guard = new AddressGuard;
+
+    expect($guard->isPublicHost('Client.Example.COM.'))->toBeTrue();
+
+    $guard->pin(Http::withOptions([]))->get('https://CLIENT.example.com./metadata.json');
+
+    expect($pins)->toBe([['client.example.com.:443:93.184.216.34']]);
+});
+
+it('guards requests by checking and pinning the host when sending', function (): void {
+    AddressGuard::resolveHostsUsing(fn (string $host): array => ['93.184.216.34']);
+
+    $pins = [];
+
+    Http::fake(function (Request $request, array $options) use (&$pins) {
+        $pins[] = $options['curl'][CURLOPT_RESOLVE] ?? null;
+
+        return Http::response();
+    });
+
+    (new AddressGuard)->guard(Http::withOptions([]))->get('https://client.example.com/metadata.json');
+
+    expect($pins)->toBe([['client.example.com:443:93.184.216.34']]);
+});
+
+it('refuses to send guarded requests to special use addresses', function (string $url): void {
+    AddressGuard::resolveHostsUsing(fn (string $host): array => $host === 'internal.example.com' ? ['10.0.0.1'] : []);
+
+    $sent = 0;
+
+    Http::fake(function () use (&$sent) {
+        $sent++;
+
+        return Http::response();
+    });
+
+    expect(fn (): Response => (new AddressGuard)->guard(Http::withOptions([]))->get($url))
+        ->toThrow(ConnectionException::class, 'Refusing to fetch')
+        ->and($sent)->toBe(0);
+})->with([
+    'private' => 'https://internal.example.com/metadata.json',
+    'unresolvable' => 'https://nowhere.example.com/metadata.json',
+    'ip literal' => 'https://169.254.169.254/latest/meta-data',
+]);
+
+it('guards every redirect hop', function (): void {
+    AddressGuard::resolveHostsUsing(fn (string $host): array => $host === 'internal.example.com' ? ['10.0.0.1'] : ['93.184.216.34']);
+
+    Http::fake([
+        'client.example.com/*' => Http::response('', 302, ['Location' => 'https://internal.example.com/metadata.json']),
+        '*' => Http::response(['secret' => true]),
+    ]);
+
+    expect(fn (): Response => (new AddressGuard)->guard(Http::withOptions([]))->get('https://client.example.com/metadata.json'))
+        ->toThrow(ConnectionException::class, 'Refusing to fetch [https://internal.example.com/metadata.json]');
+});
+
+it('only lets guarded requests reach loopback when allowed', function (): void {
+    AddressGuard::resolveHostsUsing(fn (string $host): array => ['127.0.0.1']);
+
+    Http::fake();
+
+    expect(fn (): Response => (new AddressGuard)->guard(Http::withOptions([]))->get('http://localhost/metadata.json'))
+        ->toThrow(ConnectionException::class)
+        ->and((new AddressGuard)->guard(Http::withOptions([]), allowLoopback: true)->get('http://localhost/metadata.json')->successful())
+        ->toBeTrue();
+});
+
+it('resolves hosts with the given lookup', function (): void {
+    $guard = new AddressGuard(fn (string $host): array => ['10.0.0.1']);
+
+    expect($guard->resolve('client.example.com'))->toBe(['10.0.0.1'])
+        ->and($guard->isPublicHost('client.example.com'))->toBeFalse();
 });
 
 it('is shared with the authorization server discovery host resolver', function (): void {

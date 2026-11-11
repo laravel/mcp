@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Support;
 
 use Closure;
+use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Str;
 use Psr\Http\Message\RequestInterface;
 
+/**
+ * @internal
+ */
 class AddressGuard
 {
     public const NON_PUBLIC_IPV6_PREFIXES = [
@@ -32,16 +36,13 @@ class AddressGuard
 
     protected static ?Closure $hostResolver = null;
 
+    public function __construct(protected ?Closure $lookupUsing = null) {}
+
     public static function resolveHostsUsing(?Closure $callback): void
     {
         static::$hostResolver = $callback;
     }
 
-    /**
-     * Determine if every address the host resolves to is public.
-     *
-     * Unresolvable hosts are rejected. Loopback hosts are only accepted when explicitly allowed.
-     */
     public function isPublicHost(string $host, bool $allowLoopback = false): bool
     {
         $host = $this->normalizedHost($host);
@@ -69,28 +70,6 @@ class AddressGuard
         }
 
         return true;
-    }
-
-    public function isInternalHost(string $host): bool
-    {
-        if ($this->isLocalhost($host)) {
-            return true;
-        }
-
-        $addresses = $this->isIpAddress($host) ? [$host] : $this->resolve($host);
-
-        return array_filter($addresses, fn (string $address): bool => ! $this->isPublicAddress($address)) !== [];
-    }
-
-    public function isPrivateHost(string $host): bool
-    {
-        if ($this->isLocalhost($host)) {
-            return true;
-        }
-
-        $addresses = $this->isIpAddress($host) ? [$host] : $this->resolve($host);
-
-        return $addresses !== [] && array_filter($addresses, $this->isPublicAddress(...)) === [];
     }
 
     public function isPublicAddress(string $address): bool
@@ -133,47 +112,59 @@ class AddressGuard
         return $packed === str_repeat("\0", 15)."\x01";
     }
 
-    public function isIpAddress(string $host): bool
-    {
-        return filter_var($host, FILTER_VALIDATE_IP) !== false;
-    }
-
-    public function isLocalhost(string $host): bool
-    {
-        return in_array($host, ['localhost', '127.0.0.1', '::1'], true);
-    }
-
-    public function normalizedHost(string $host): string
-    {
-        return strtolower(trim($host, '[]'));
-    }
-
     /**
      * @return array<int, string>
      */
     public function resolve(string $host): array
     {
-        return $this->resolved[$host] ??= $this->lookup($host);
+        return $this->resolved[$host] ??= $this->lookupUsing instanceof Closure
+            ? ($this->lookupUsing)($host)
+            : $this->lookup($host);
+    }
+
+    public function pin(PendingRequest $request): PendingRequest
+    {
+        return $request->withMiddleware(fn (callable $handler): Closure => fn (RequestInterface $request, array $options): PromiseInterface => $handler($request, $this->pinned($request, $options)));
+    }
+
+    public function guard(PendingRequest $request, bool $allowLoopback = false): PendingRequest
+    {
+        return $request->withMiddleware(fn (callable $handler): Closure => function (RequestInterface $request, array $options) use ($handler, $allowLoopback): PromiseInterface {
+            if (! defined('CURLOPT_RESOLVE') || ! $this->isPublicHost($request->getUri()->getHost(), $allowLoopback)) {
+                throw new ConnectException("Refusing to fetch [{$request->getUri()}] from a special-use or unresolvable address.", $request);
+            }
+
+            return $handler($request, $this->pinned($request, $options));
+        });
     }
 
     /**
-     * Pin requests to the addresses that were resolved and checked for their host.
+     * @param  array<string, mixed>  $options
+     * @return array<string, mixed>
      */
-    public function pin(PendingRequest $request): PendingRequest
+    protected function pinned(RequestInterface $request, array $options): array
     {
-        return $request->withMiddleware(fn (callable $handler): Closure => function (RequestInterface $request, array $options) use ($handler): PromiseInterface {
-            $uri = $request->getUri();
-            $addresses = $this->resolved[$this->normalizedHost($uri->getHost())] ?? [];
+        $uri = $request->getUri();
+        $addresses = $this->resolved[$this->normalizedHost($uri->getHost())] ?? [];
 
-            if ($addresses !== [] && defined('CURLOPT_RESOLVE')) {
-                $port = $uri->getPort() ?? ($uri->getScheme() === 'https' ? 443 : 80);
-                $addresses = array_map(fn (string $address): string => str_contains($address, ':') ? "[{$address}]" : $address, $addresses);
+        if ($addresses !== [] && defined('CURLOPT_RESOLVE')) {
+            $port = $uri->getPort() ?? ($uri->getScheme() === 'https' ? 443 : 80);
+            $addresses = array_map(fn (string $address): string => str_contains($address, ':') ? "[{$address}]" : $address, $addresses);
 
-                $options['curl'][CURLOPT_RESOLVE] = ["{$uri->getHost()}:{$port}:".implode(',', $addresses)];
-            }
+            $options['curl'][CURLOPT_RESOLVE] = ["{$uri->getHost()}:{$port}:".implode(',', $addresses)];
+        }
 
-            return $handler($request, $options);
-        });
+        return $options;
+    }
+
+    protected function isIpAddress(string $host): bool
+    {
+        return filter_var($host, FILTER_VALIDATE_IP) !== false;
+    }
+
+    protected function normalizedHost(string $host): string
+    {
+        return strtolower(trim($host, '[]'));
     }
 
     /**

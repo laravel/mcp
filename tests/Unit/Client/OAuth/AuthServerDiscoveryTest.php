@@ -231,3 +231,33 @@ it('still resolves hosts when only an http proxy is configured', function (): vo
         putenv('HTTP_PROXY');
     }
 });
+
+it('uses host lookups overridden by subclasses', function (): void {
+    fakeAuthServer();
+
+    $discovery = new class extends AuthServerDiscovery
+    {
+        protected function lookup(string $host): array
+        {
+            return $host === 'auth.test' ? ['10.9.9.9'] : ['93.184.216.34'];
+        }
+    };
+
+    expect(fn (): DiscoveryResult => $discovery->discover('https://mcp.test/mcp'))
+        ->toThrow(OAuthException::class, 'cannot use a private, internal, or unresolvable host');
+});
+
+it('uses address checks overridden by subclasses', function (): void {
+    resolveHosts(['mcp.test' => ['93.184.216.34'], 'auth.test' => ['10.9.9.9']]);
+    fakeAuthServer();
+
+    $discovery = new class extends AuthServerDiscovery
+    {
+        protected function isPublicAddress(string $address): bool
+        {
+            return $address === '10.9.9.9' || parent::isPublicAddress($address);
+        }
+    };
+
+    expect($discovery->discover('https://mcp.test/mcp')->server->issuer)->toBe('https://auth.test');
+});

@@ -297,17 +297,29 @@ class AuthServerDiscovery
 
     protected function isInternalHost(string $host): bool
     {
-        return $this->addressGuard()->isInternalHost($host);
+        if ($this->isLocalhost($host)) {
+            return true;
+        }
+
+        $addresses = $this->isIpAddress($host) ? [$host] : $this->resolve($host);
+
+        return array_filter($addresses, fn (string $address): bool => ! $this->isPublicAddress($address)) !== [];
     }
 
     protected function isPrivateHost(string $host): bool
     {
-        return $this->addressGuard()->isPrivateHost($host);
+        if ($this->isLocalhost($host)) {
+            return true;
+        }
+
+        $addresses = $this->isIpAddress($host) ? [$host] : $this->resolve($host);
+
+        return $addresses !== [] && array_filter($addresses, $this->isPublicAddress(...)) === [];
     }
 
     protected function isIpAddress(string $host): bool
     {
-        return $this->addressGuard()->isIpAddress($host);
+        return filter_var($host, FILTER_VALIDATE_IP) !== false;
     }
 
     protected function isPublicAddress(string $address): bool
@@ -323,19 +335,27 @@ class AuthServerDiscovery
         return $this->addressGuard()->resolve($host);
     }
 
+    /**
+     * @return array<int, string>
+     */
+    protected function lookup(string $host): array
+    {
+        return (new AddressGuard)->resolve($host);
+    }
+
     protected function isLocalhost(string $host): bool
     {
-        return $this->addressGuard()->isLocalhost($host);
+        return in_array($host, ['localhost', '127.0.0.1', '::1'], true);
     }
 
     protected function normalizedHost(string $host): string
     {
-        return $this->addressGuard()->normalizedHost($host);
+        return strtolower(trim($host, '[]'));
     }
 
     protected function addressGuard(): AddressGuard
     {
-        return $this->addressGuard ??= new AddressGuard;
+        return $this->addressGuard ??= new AddressGuard($this->lookup(...));
     }
 
     /**
