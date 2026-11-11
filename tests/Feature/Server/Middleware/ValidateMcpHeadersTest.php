@@ -61,6 +61,52 @@ it('rejects a protocol version header that contradicts the body meta', function 
     expect($response->json('error.code'))->toBe(-32020);
 });
 
+it('ignores whitespace surrounding a header value', function (string $header): void {
+    $message = callToolMessage();
+    $headers = mcpHeaders($message);
+
+    $headers[$header] = " \t{$headers[$header]}  ";
+
+    $response = $this->postJson('test-mcp', $message, $headers);
+
+    $response->assertStatus(200);
+})->with(['MCP-Protocol-Version', 'Mcp-Method', 'Mcp-Name']);
+
+it('rejects a request without metadata that sends a stateless protocol version header', function (): void {
+    $message = ['jsonrpc' => '2.0', 'id' => 3, 'method' => 'server/discover', 'params' => []];
+
+    $response = $this->postJson('test-mcp', $message, mcpHeaders($message));
+
+    $response->assertStatus(400);
+
+    expect($response->json())->toEqual([
+        'jsonrpc' => '2.0',
+        'id' => 3,
+        'error' => [
+            'code' => -32602,
+            'message' => 'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/protocolVersion] member.',
+        ],
+    ]);
+});
+
+it('answers the removed lifecycle methods with a 404 on a stateless request', function (string $method): void {
+    $message = [
+        'jsonrpc' => '2.0',
+        'id' => 9,
+        'method' => $method,
+        'params' => ['_meta' => protocolMeta()],
+    ];
+
+    $response = $this->postJson('test-mcp', $message, mcpHeaders($message));
+
+    $response->assertStatus(404);
+
+    expect($response->json('error'))->toEqual([
+        'code' => -32601,
+        'message' => "The method [{$method}] was not found.",
+    ]);
+})->with(['initialize', 'ping']);
+
 it('decodes a base64 sentinel name header before comparing it', function (): void {
     $message = callToolMessage();
 

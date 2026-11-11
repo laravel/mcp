@@ -48,6 +48,7 @@ class ReadResource implements Method
                 $invalidArgumentException->getMessage(),
                 ErrorCode::INVALID_PARAMS->value,
                 $request->id,
+                is_string($uri) && $uri !== '' ? ['uri' => $uri] : null,
             );
         }
 

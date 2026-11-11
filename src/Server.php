@@ -229,7 +229,7 @@ abstract class Server
                 $this->validateProtocolMeta($request, $context);
             }
 
-            if (! isset($this->methods[$request->method])) {
+            if (! $this->implementsMethod($request)) {
                 throw new JsonRpcException(
                     "The method [{$request->method}] was not found.",
                     ErrorCode::METHOD_NOT_FOUND->value,
@@ -323,6 +323,17 @@ abstract class Server
                 ],
             );
         }
+    }
+
+    protected function implementsMethod(JsonRpcRequest $request): bool
+    {
+        $handler = $this->methods[$request->method] ?? null;
+
+        if ($handler === null) {
+            return false;
+        }
+
+        return $request->isLegacy() || ! in_array($handler, [Initialize::class, Ping::class], true);
     }
 
     /**
