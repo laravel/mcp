@@ -23,18 +23,13 @@ server:
   - tools-call-mixed-content
   - prompts-get-embedded-resource
   - server-stateless
-  - http-header-validation
   - http-custom-header-server-validation
-  - sep-2164-resource-not-found
   - input-required-result-missing-input-response
   - input-required-result-ignore-extra-params
 
 client:
-  - tools_call
   - request-metadata
   - sep-2322-client-request-state
-  - http-custom-headers
-  - json-schema-2020-12-preservation
   - auth/metadata-default
   - auth/metadata-var1
   - auth/metadata-var2

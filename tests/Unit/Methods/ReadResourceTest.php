@@ -91,6 +91,34 @@ it('throws exception when resource is not found', function (): void {
     $readResource->handle($jsonRpcRequest, $context);
 });
 
+it('includes the requested uri in the not found error data', function (): void {
+    $jsonRpcRequest = new JsonRpcRequest(
+        id: 1,
+        method: 'resources/read',
+        params: ['uri' => 'file://resources/non-existent']
+    );
+
+    try {
+        (new ReadResource)->handle($jsonRpcRequest, $this->getServerContext());
+
+        $this->fail('Expected a JsonRpcException.');
+    } catch (JsonRpcException $jsonRpcException) {
+        expect($jsonRpcException->data())->toBe(['uri' => 'file://resources/non-existent']);
+    }
+});
+
+it('omits the error data when the uri is missing', function (): void {
+    $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/read', params: []);
+
+    try {
+        (new ReadResource)->handle($jsonRpcRequest, $this->getServerContext());
+
+        $this->fail('Expected a JsonRpcException.');
+    } catch (JsonRpcException $jsonRpcException) {
+        expect($jsonRpcException->data())->toBeNull();
+    }
+});
+
 it('throws -32603 with exception message when ModelNotFoundException is thrown with APP_DEBUG true', function (): void {
     config(['app.debug' => true]);
 
