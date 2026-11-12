@@ -358,7 +358,7 @@ abstract class Server
 
     protected function send(JsonRpcResponse $response, ServerContext $context, ?JsonRpcRequest $request = null): void
     {
-        if ($request instanceof JsonRpcRequest && array_key_exists('result', $response->content)) {
+        if ($request instanceof JsonRpcRequest && ! $request->isLegacy() && array_key_exists('result', $response->content)) {
             $result = (array) $response->content['result'];
             $result['_meta'][MetaKey::SERVER_INFO->value] = $context->implementation->toArray();
 

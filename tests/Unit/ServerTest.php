@@ -459,7 +459,22 @@ it('answers a legacy ping message', function (): void {
 
     expect($response['id'])->toBe(789)
         ->and($response)->not->toHaveKey('error')
-        ->and($response['result'])->toBeArray();
+        ->and($transport->sent[0])->toContain('"result":{}');
+});
+
+it('answers a legacy request without the modern result fields', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    ($transport->handler)(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list', 'params' => []]));
+
+    $result = json_decode((string) $transport->sent[0], true)['result'];
+
+    expect($result['tools'])->not->toBeEmpty()
+        ->and($result)->not->toHaveKey('resultType')
+        ->and($result)->not->toHaveKey('_meta');
 });
 
 it('lets addMethod override the built-in initialize handler', function (): void {
