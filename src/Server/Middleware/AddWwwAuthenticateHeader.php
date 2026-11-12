@@ -7,10 +7,18 @@ namespace Laravel\Mcp\Server\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
+use Illuminate\Support\Arr;
 use Symfony\Component\HttpFoundation\Response;
 
 class AddWwwAuthenticateHeader
 {
+    protected static ?Closure $resourceMetadataUrlResolver = null;
+
+    public static function resolveResourceMetadataUrlUsing(?Closure $callback): void
+    {
+        static::$resourceMetadataUrlResolver = $callback;
+    }
+
     /**
      * Handle an incoming request.
      *
@@ -28,22 +36,32 @@ class AddWwwAuthenticateHeader
             return $response;
         }
 
-        $isOauth = app('router')->has('mcp.oauth.protected-resource.nested');
-        if ($isOauth) {
-            $response->header(
-                'WWW-Authenticate',
-                'Bearer realm="mcp", resource_metadata="'.route('mcp.oauth.protected-resource.nested', ['path' => $request->path()]).'"'
-            );
+        $url = $this->resourceMetadataUrl($request, $route);
 
-            return $response;
-        }
-
-        // Sanctum, can't share discover URL
-        $response->header(
-            'WWW-Authenticate',
-            'Bearer realm="mcp", error="invalid_token"'
-        );
+        $response->header('WWW-Authenticate', $url === null
+            ? 'Bearer realm="mcp", error="invalid_token"'
+            : 'Bearer realm="mcp", resource_metadata="'.$url.'"');
 
         return $response;
+    }
+
+    protected function resourceMetadataUrl(Request $request, Route $route): ?string
+    {
+        if (static::$resourceMetadataUrlResolver instanceof Closure) {
+            $url = (static::$resourceMetadataUrlResolver)($request);
+
+            if (is_string($url) && $url !== '') {
+                return $url;
+            }
+        }
+
+        if (! app('router')->has('mcp.oauth.protected-resource.nested')) {
+            return null;
+        }
+
+        return route('mcp.oauth.protected-resource.nested', [
+            ...Arr::only($route->originalParameters(), $route->getCompiled()?->getHostVariables() ?? []),
+            'path' => $request->path(),
+        ]);
     }
 }
