@@ -9,16 +9,29 @@ use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
+use Laravel\Mcp\Server\Skills\SkillResource;
 use Laravel\Mcp\Server\Tools\ToolSearch;
+use LogicException;
 
 class ServerContext
 {
+    /**
+     * @var Collection<int, Resource>|null
+     */
+    protected ?Collection $resolvedResources = null;
+
+    /**
+     * @var Collection<int, Skill>|null
+     */
+    protected ?Collection $resolvedSkills = null;
+
     /**
      * @param  array<int, string>  $supportedProtocolVersions
      * @param  array<string, mixed>  $serverCapabilities
      * @param  array<int|string, Tool|string|array<int, Tool|string>>  $tools
      * @param  array<int, Resource|string>  $resources
      * @param  array<int, Prompt|string>  $prompts
+     * @param  array<int, Skill|string>  $skills
      */
     public function __construct(
         public array $supportedProtocolVersions,
@@ -30,6 +43,7 @@ class ServerContext
         protected array $tools,
         protected array $resources,
         protected array $prompts,
+        protected array $skills = [],
     ) {
         //
     }
@@ -80,11 +94,69 @@ class ServerContext
      */
     public function resources(): Collection
     {
+        return $this->resolvedResources ??= $this->resolveResources();
+    }
+
+    /**
+     * @return Collection<int, Resource>
+     */
+    protected function resolveResources(): Collection
+    {
         /** @var Collection<int,Resource> $resourceTemplates */
         $resourceTemplates = collect($this->resources)
             ->filter(fn (Resource|string $resource): bool => ! $this->isResourceTemplate($resource));
 
-        return $this->resolvePrimitives($resourceTemplates);
+        $resources = $this->resolvePrimitives($resourceTemplates);
+        /** @var array<string, SkillResource> $skillResources */
+        $skillResources = [];
+
+        foreach ($this->skills() as $skill) {
+            foreach ($skill->resources() as $resource) {
+                $uri = $resource->uri();
+
+                if ($resources->contains(fn (Resource $registered): bool => $registered->uri() === $uri)) {
+                    throw new LogicException("A resource is already registered at skill URI [{$uri}].");
+                }
+
+                if (isset($skillResources[$uri]) && realpath($skillResources[$uri]->sourcePath()) !== realpath($resource->sourcePath())) {
+                    throw new LogicException("Different skill files are registered at URI [{$uri}].");
+                }
+
+                if (! isset($skillResources[$uri]) || $uri === $skill->uri()) {
+                    $skillResources[$uri] = $resource;
+                }
+            }
+        }
+
+        return $resources->concat(array_values($skillResources));
+    }
+
+    /**
+     * @return Collection<int, Skill>
+     */
+    public function skills(): Collection
+    {
+        return $this->resolvedSkills ??= $this->resolveSkills();
+    }
+
+    /**
+     * @return Collection<int, Skill>
+     */
+    protected function resolveSkills(): Collection
+    {
+        /** @var Collection<int, Skill|string> $skills */
+        $skills = collect($this->skills);
+        $resolved = $this->resolvePrimitives($skills)
+            ->filter(fn (Skill $skill): bool => rescue(fn (): bool => $skill->resources() !== [], false))
+            ->values();
+
+        $duplicate = $resolved->map(fn (Skill $skill): string => $skill->uri())->duplicates()->first();
+
+        if (is_string($duplicate)) {
+            throw new LogicException("Duplicate server skill URI [{$duplicate}].");
+        }
+
+        return $resolved;
     }
 
     /**
