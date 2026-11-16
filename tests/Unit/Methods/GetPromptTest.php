@@ -3,6 +3,7 @@
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
+use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Methods\GetPrompt;
 use Laravel\Mcp\Server\Prompt;
@@ -399,3 +400,60 @@ it('rejects a wrongly typed name parameter', function (mixed $name): void {
     'array' => [['x']],
     'int' => [1],
 ]);
+
+it('returns embedded resources in prompt messages', function (): void {
+    $prompt = new class extends Prompt
+    {
+        protected string $description = 'Summarize the standup notes';
+
+        public function handle(Request $request): ResponseFactory
+        {
+            return Response::make([
+                Response::text('Summarize these notes.'),
+                Response::embeddedResource('file:///notes/standup.md', text: '# Standup', mimeType: 'text/markdown'),
+            ]);
+        }
+    };
+
+    $promptClass = $prompt::class;
+    app()->instance($promptClass, $prompt);
+
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'prompts/get',
+        'params' => ['name' => $prompt->name(), 'arguments' => []],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        implementation: new Implementation('Test Server', '1.0.0'),
+        instructions: '',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [],
+        resources: [],
+        prompts: [$promptClass],
+    );
+
+    $payload = (new GetPrompt)->handle($request, $context)->toArray();
+
+    expect($payload['result']['messages'])->toEqual([
+        [
+            'role' => 'user',
+            'content' => ['type' => 'text', 'text' => 'Summarize these notes.'],
+        ],
+        [
+            'role' => 'user',
+            'content' => [
+                'type' => 'resource',
+                'resource' => [
+                    'uri' => 'file:///notes/standup.md',
+                    'mimeType' => 'text/markdown',
+                    'text' => '# Standup',
+                ],
+            ],
+        ],
+    ]);
+});

@@ -15,12 +15,14 @@ use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Blob;
+use Laravel\Mcp\Server\Content\EmbeddedResource;
 use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\ResourceLink;
 use Laravel\Mcp\Server\Content\StructuredContentText;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
+use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Resource;
 use League\Flysystem\UnableToReadFile;
 
@@ -187,6 +189,38 @@ class Response
         };
 
         return new static($link);
+    }
+
+    /**
+     * @param  string|class-string<Resource>|Resource  $uri
+     * @param  array<string, mixed>  $annotations
+     */
+    public static function embeddedResource(
+        string|Resource $uri,
+        ?string $text = null,
+        ?string $blob = null,
+        ?string $mimeType = null,
+        array $annotations = [],
+    ): static {
+        if (is_string($uri) && is_subclass_of($uri, Resource::class)) {
+            $uri = Container::getInstance()->make($uri);
+        }
+
+        if ($uri instanceof HasUriTemplate) {
+            throw new InvalidArgumentException('Embedded resources require a concrete URI. Pass the resolved URI string for resource templates.');
+        }
+
+        if ($uri instanceof Resource) {
+            return new static(new EmbeddedResource(
+                uri: $uri->uri(),
+                text: $text,
+                blob: $blob,
+                mimeType: $mimeType ?? $uri->mimeType(),
+                annotations: array_merge($uri->annotations(), $annotations),
+            ));
+        }
+
+        return new static(new EmbeddedResource($uri, $text, $blob, $mimeType, $annotations));
     }
 
     public static function fromStorage(string $path, ?string $disk = null, ?string $mimeType = null): static
