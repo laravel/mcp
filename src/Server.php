@@ -50,6 +50,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
+use ReflectionMethod;
 use stdClass;
 use Throwable;
 
@@ -285,7 +286,7 @@ abstract class Server
             tools: $this->tools,
             resources: $this->resources,
             prompts: $this->prompts,
-            skills: collect($this->skills())->values()->all(),
+            skills: [fn (): iterable => $this->skills()],
         );
     }
 
@@ -470,11 +471,16 @@ abstract class Server
 
     protected function detectSkillsCapability(): void
     {
-        if (collect($this->skills())->isEmpty() && ! in_array(Extension::Skills, $this->extensions, true)) {
+        $declared = in_array(Extension::Skills, $this->extensions, true);
+
+        if (! $declared && $this->skills === [] && (new ReflectionMethod($this, 'skills'))->getDeclaringClass()->getName() === self::class) {
             return;
         }
 
-        $this->extensions[] = Extension::Skills;
+        if (! $declared) {
+            $this->extensions[] = Extension::Skills;
+        }
+
         $this->capabilities[self::CAPABILITY_RESOURCES] ??= (object) [];
 
         $this->methods['skills/list'] ??= ListSkills::class;

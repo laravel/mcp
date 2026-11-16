@@ -2,20 +2,18 @@
 
 namespace {{ namespace }};
 
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Server\Skill;
 
 class {{ class }} extends Skill
 {
-    protected string $name = '{{ name }}';
-
-    protected string $description = {{ description }};
-
-    public function instructions(): string
+    public function path(): string
     {
-        return <<<'MARKDOWN'
-        # {{ title }}
+        return resource_path('skills/{{ name }}');
+    }
 
-        Describe the steps the agent should follow.
-        MARKDOWN;
+    public function shouldRegister(Request $request): bool
+    {
+        return true;
     }
 }

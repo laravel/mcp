@@ -70,7 +70,7 @@ it('may publish a custom stub', function (): void {
     }
 });
 
-it('creates a skill class', function (): void {
+it('creates a skill directory and a skill class', function (): void {
     try {
         $this->artisan('make:mcp-skill', [
             'name' => 'HouseStyle',
@@ -83,7 +83,7 @@ it('creates a skill class', function (): void {
 
         expect($contents)->toContain('namespace App\Mcp\Skills;')
             ->and($contents)->toContain('class HouseStyle extends Skill')
-            ->and($contents)->toContain("protected string \$name = 'house-style';");
+            ->and($contents)->toContain("return resource_path('skills/house-style');");
 
         require_once $path;
 
@@ -91,8 +91,8 @@ it('creates a skill class', function (): void {
         $skill->validate();
 
         expect($skill->description())->toBe("Use when: you write the team's copy.")
-            ->and($skill->read('SKILL.md'))->toContain('# House Style')
-            ->and(is_dir(resource_path('skills/house-style')))->toBeFalse();
+            ->and($skill->uri())->toBe('skill://house-style/SKILL.md')
+            ->and($skill->eligibleForRegistration())->toBeTrue();
 
         $this->artisan('make:mcp-skill', ['name' => 'house-style', '--class' => true])
             ->expectsOutputToContain('already exists')

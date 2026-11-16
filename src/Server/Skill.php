@@ -9,6 +9,8 @@ use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\View\View;
 use Laravel\Mcp\Exceptions\InvalidSkillException;
+use Laravel\Mcp\Server\Attributes\Uri;
+use Laravel\Mcp\Server\Concerns\ReadsAttributes;
 use Laravel\Mcp\Server\Skills\Frontmatter;
 use Laravel\Mcp\Server\Skills\SkillDirectory;
 use Laravel\Mcp\Server\Skills\SkillResource;
@@ -21,6 +23,8 @@ use Throwable;
  */
 class Skill implements Arrayable
 {
+    use ReadsAttributes;
+
     protected string $name = '';
 
     protected string $description = '';
@@ -34,9 +38,9 @@ class Skill implements Arrayable
 
     protected ?string $uri = null;
 
-    protected ?string $directory = null;
+    protected ?string $path = null;
 
-    protected ?SkillDirectory $resolvedDirectory = null;
+    protected ?SkillDirectory $directory = null;
 
     /**
      * @param  array<string, mixed>|null  $frontmatter
@@ -58,18 +62,25 @@ class Skill implements Arrayable
     public static function fromDirectory(string $directory, ?string $uri = null): static
     {
         $skill = new static(uri: $uri);
-        $skill->directory = $directory;
+        $skill->path = $directory;
 
         return $skill;
     }
 
+    public function path(): ?string
+    {
+        return $this->path;
+    }
+
     public function directory(): ?SkillDirectory
     {
-        if ($this->directory === null) {
+        $path = $this->path();
+
+        if ($path === null) {
             return null;
         }
 
-        return $this->resolvedDirectory ??= new SkillDirectory($this->directory);
+        return $this->directory ??= new SkillDirectory($path);
     }
 
     public function identifier(): string
@@ -83,7 +94,9 @@ class Skill implements Arrayable
 
     public function uri(): string
     {
-        return $this->uri ?? 'skill://'.rawurlencode($this->directory()?->basename() ?? $this->name).'/SKILL.md';
+        return $this->resolveAttribute(Uri::class)->value
+            ?? $this->uri
+            ?? 'skill://'.rawurlencode($this->directory()?->basename() ?? $this->name).'/SKILL.md';
     }
 
     public function instructions(): View|Htmlable|Stringable|string

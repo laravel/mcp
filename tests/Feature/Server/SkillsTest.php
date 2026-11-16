@@ -244,6 +244,41 @@ it('can declare an empty skill catalog explicitly', function (): void {
         ->and(skillResponse($server, $this->transport, 'skills/get', ['uri' => 'skill://unknown/SKILL.md'])['error']['code'])->toBe(-32602);
 });
 
+it('declares the skills extension when the skills method is overridden without calling it', function (): void {
+    $server = new class($this->transport) extends Server
+    {
+        public int $calls = 0;
+
+        protected function skills(): iterable
+        {
+            $this->calls++;
+
+            return [];
+        }
+    };
+    $server->start();
+
+    $capabilities = skillResponse($server, $this->transport, 'server/discover')['result']['capabilities'];
+
+    expect($capabilities['extensions'])->toHaveKey('io.modelcontextprotocol/skills')
+        ->and($capabilities)->toHaveKey('resources')
+        ->and($server->calls)->toBe(0)
+        ->and(skillResponse($server, $this->transport, 'skills/list')['result']['skills'])->toBe([])
+        ->and($server->calls)->toBe(1);
+});
+
+it('declares the skills extension once when it is also declared explicitly', function (): void {
+    $server = new class($this->transport) extends Server
+    {
+        protected array $extensions = [Extension::Skills];
+
+        protected array $skills = [__DIR__.'/../../Fixtures/Skills'];
+    };
+    $server->start();
+
+    expect((fn (): array => $this->extensions)->call($server))->toBe([Extension::Skills]);
+});
+
 it('returns identical complete entries from list and get with required cache fields', function (): void {
     $this->server->start();
     $list = skillResponse($this->server, $this->transport, 'skills/list')['result'];

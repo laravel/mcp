@@ -31,14 +31,17 @@ class MakeSkillCommand extends Command
         }
 
         $class = Str::studly($name);
-        $path = $this->option('class')
-            ? app_path("Mcp/Skills/{$class}.php")
-            : resource_path("skills/{$name}/SKILL.md");
+        $targets = array_filter([
+            resource_path("skills/{$name}/SKILL.md") => 'mcp-skill.stub',
+            app_path("Mcp/Skills/{$class}.php") => $this->option('class') ? 'mcp-skill.class.stub' : null,
+        ]);
 
-        if ($files->exists($path) && ! $this->option('force')) {
-            $this->components->error("Skill [{$path}] already exists.");
+        foreach (array_keys($targets) as $path) {
+            if ($files->exists($path) && ! $this->option('force')) {
+                $this->components->error("Skill [{$path}] already exists.");
 
-            return static::FAILURE;
+                return static::FAILURE;
+            }
         }
 
         $description = $this->option('description');
@@ -46,20 +49,16 @@ class MakeSkillCommand extends Command
             ? $description
             : 'Describe when an agent should use this skill.';
 
-        $files->ensureDirectoryExists(dirname($path));
-        $files->put($path, str_replace(
-            ['{{ namespace }}', '{{ class }}', '{{ name }}', '{{ description }}', '{{ title }}'],
-            [
-                $this->laravel->getNamespace().'Mcp\\Skills',
-                $class,
-                $name,
-                $this->option('class') ? var_export($description, true) : Yaml::dump($description),
-                Str::headline($name),
-            ],
-            $files->get($this->getStub($this->option('class') ? 'mcp-skill.class.stub' : 'mcp-skill.stub')),
-        ));
+        foreach ($targets as $path => $stub) {
+            $files->ensureDirectoryExists(dirname($path));
+            $files->put($path, str_replace(
+                ['{{ namespace }}', '{{ class }}', '{{ name }}', '{{ description }}', '{{ title }}'],
+                [$this->laravel->getNamespace().'Mcp\\Skills', $class, $name, Yaml::dump($description), Str::headline($name)],
+                $files->get($this->getStub($stub)),
+            ));
 
-        $this->components->info(sprintf('Skill [%s] created successfully.', $path));
+            $this->components->info(sprintf('Skill [%s] created successfully.', $path));
+        }
 
         return static::SUCCESS;
     }
@@ -88,7 +87,7 @@ class MakeSkillCommand extends Command
     {
         return [
             ['description', 'd', InputOption::VALUE_REQUIRED, 'When an agent should use the skill'],
-            ['class', 'c', InputOption::VALUE_NONE, 'Create a skill class in app/Mcp/Skills instead of a skill directory'],
+            ['class', 'c', InputOption::VALUE_NONE, 'Also create a skill class in app/Mcp/Skills'],
             ['force', 'f', InputOption::VALUE_NONE, 'Overwrite the skill if it already exists'],
         ];
     }
