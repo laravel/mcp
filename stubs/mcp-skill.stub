@@ -1,0 +1,8 @@
+---
+name: {{ name }}
+description: {{ description }}
+---
+
+# {{ title }}
+
+Describe the steps the agent should follow.

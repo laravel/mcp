@@ -23,6 +23,34 @@ class SkillResource extends Resource
         $this->uri = $skill->fileUri($file);
     }
 
+    public function skill(): Skill
+    {
+        return $this->skill;
+    }
+
+    public function file(): string
+    {
+        return $this->file;
+    }
+
+    public function listed(): bool
+    {
+        return $this->file === 'SKILL.md';
+    }
+
+    public function source(): string
+    {
+        $directory = $this->skill->directory();
+
+        if (! $directory instanceof SkillDirectory) {
+            return 'inline:'.spl_object_id($this->skill);
+        }
+
+        $path = $directory->path.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $this->file);
+
+        return realpath($path) ?: $path;
+    }
+
     public function mimeType(): string
     {
         $extension = strtolower(pathinfo($this->file, PATHINFO_EXTENSION));
@@ -32,11 +60,6 @@ class SkillResource extends Resource
         }
 
         return MimeTypes::getDefault()->getMimeTypes($extension)[0] ?? 'application/octet-stream';
-    }
-
-    public function sourcePath(): string
-    {
-        return $this->skill->path().DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $this->file);
     }
 
     public function handle(): Response

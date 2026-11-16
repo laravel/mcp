@@ -6,5 +6,5 @@ namespace Tests\Fixtures;
 
 class SkillsServer extends ExampleServer
 {
-    public array $skills = [TestSkill::class];
+    public array $skills = [__DIR__.'/Skills'];
 }

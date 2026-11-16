@@ -14,8 +14,6 @@ class ListSkills implements Method
 {
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
-        $context->resources();
-
         $paginator = new CursorPaginator(
             items: $context->skills(),
             perPage: $context->perPage($request->get('per_page')),

@@ -28,8 +28,6 @@ class GetSkill implements Method
             throw new JsonRpcException("Skill [{$uri}] not found.", ErrorCode::INVALID_PARAMS->value, $request->id);
         }
 
-        $context->resources();
-
         return JsonRpcResponse::result($request->id, ['skill' => $skill->toArray()]);
     }
 }

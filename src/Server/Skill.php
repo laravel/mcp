@@ -4,42 +4,100 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
-use Laravel\Mcp\Server\Attributes\Uri;
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Contracts\View\View;
+use Laravel\Mcp\Exceptions\InvalidSkillException;
+use Laravel\Mcp\Server\Skills\Frontmatter;
+use Laravel\Mcp\Server\Skills\SkillDirectory;
 use Laravel\Mcp\Server\Skills\SkillResource;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 use RuntimeException;
-use stdClass;
-use Symfony\Component\Yaml\Yaml;
+use Stringable;
+use Throwable;
 
-class Skill extends Primitive
+/**
+ * @implements Arrayable<string, mixed>
+ */
+class Skill implements Arrayable
 {
-    public const MAX_RESOURCES = 512;
+    protected string $name = '';
 
-    public const MAX_SIZE = 16_777_216;
+    protected string $description = '';
 
-    protected string $uri = '';
+    protected View|Htmlable|Stringable|string $instructions = '';
 
-    protected string $path = '';
+    /**
+     * @var array<string, mixed>
+     */
+    protected array $frontmatter = [];
 
-    public static function fromDirectory(string $directory, string $uri = ''): self
+    protected ?string $uri = null;
+
+    protected ?string $directory = null;
+
+    protected ?SkillDirectory $resolvedDirectory = null;
+
+    /**
+     * @param  array<string, mixed>|null  $frontmatter
+     */
+    public function __construct(
+        ?string $name = null,
+        ?string $description = null,
+        View|Htmlable|Stringable|string|null $instructions = null,
+        ?array $frontmatter = null,
+        ?string $uri = null,
+    ) {
+        $this->name = $name ?? $this->name;
+        $this->description = $description ?? $this->description;
+        $this->instructions = $instructions ?? $this->instructions;
+        $this->frontmatter = $frontmatter ?? $this->frontmatter;
+        $this->uri = $uri ?? $this->uri;
+    }
+
+    public static function fromDirectory(string $directory, ?string $uri = null): static
     {
-        $skill = new self;
-        $skill->path = $directory;
-        $skill->uri = $uri;
+        $skill = new static(uri: $uri);
+        $skill->directory = $directory;
 
         return $skill;
     }
 
-    public function path(): string
+    public function directory(): ?SkillDirectory
     {
-        return $this->path;
+        if ($this->directory === null) {
+            return null;
+        }
+
+        return $this->resolvedDirectory ??= new SkillDirectory($this->directory);
+    }
+
+    public function identifier(): string
+    {
+        return match (true) {
+            $this->directory() instanceof SkillDirectory => $this->directory()->path,
+            static::class !== self::class => static::class,
+            default => $this->name,
+        };
     }
 
     public function uri(): string
     {
-        return $this->resolveAttribute(Uri::class)->value
-            ?? ($this->uri !== '' ? $this->uri : 'skill://'.rawurlencode(basename($this->directory())).'/SKILL.md');
+        return $this->uri ?? 'skill://'.rawurlencode($this->directory()?->basename() ?? $this->name).'/SKILL.md';
+    }
+
+    public function instructions(): View|Htmlable|Stringable|string
+    {
+        return $this->instructions;
+    }
+
+    public function eligibleForRegistration(): bool
+    {
+        if (method_exists($this, 'shouldRegister')) {
+            return (bool) Container::getInstance()->call([$this, 'shouldRegister']);
+        }
+
+        return true;
     }
 
     public function name(): string
@@ -57,95 +115,32 @@ class Skill extends Primitive
      */
     public function frontmatter(): array
     {
-        return $this->parseFrontmatter($this->read('SKILL.md'));
+        return Frontmatter::parse($this->read('SKILL.md'));
     }
 
     /**
-     * @return array<int, SkillResource>
+     * @return list<string>
      */
-    public function resources(): array
+    public function files(): array
     {
-        $frontmatter = $this->frontmatter();
-
-        return array_map(fn (string $file): SkillResource => new SkillResource(
-            $this,
-            $file,
-            $file === 'SKILL.md' ? $frontmatter['name'] : basename($file),
-            $file === 'SKILL.md' ? $frontmatter['description'] : '',
-        ), $this->files());
+        return $this->directory()?->files() ?? ['SKILL.md'];
     }
 
-    /**
-     * Read only regular files beneath the configured skill directory.
-     */
     public function read(string $file): string
     {
-        $directory = $this->directory();
-        $segments = explode('/', $file);
-        $path = $directory;
-
-        foreach ($segments as $segment) {
-            if (in_array($segment, ['', '.', '..'], true) || strpbrk($segment, "\\\0") !== false) {
-                throw new RuntimeException('Invalid skill file path.');
-            }
-
-            $path .= DIRECTORY_SEPARATOR.$segment;
-            clearstatcache(true, $path);
-
-            if (is_link($path)) {
-                throw new RuntimeException('Skill files must not contain symbolic links.');
-            }
+        if ($this->directory() instanceof SkillDirectory) {
+            return $this->directory()->read($file);
         }
 
-        $realPath = realpath($path);
-
-        if ($realPath === false || ! str_starts_with($realPath, $directory.DIRECTORY_SEPARATOR) || ! is_file($realPath) || ! is_readable($realPath)) {
-            throw new RuntimeException('The skill file is not a readable regular file.');
+        if ($file !== 'SKILL.md') {
+            throw new RuntimeException("The skill file [{$file}] does not exist.");
         }
 
-        $contents = file_get_contents($realPath, length: self::MAX_SIZE + 1);
-
-        if ($contents === false || strlen($contents) > self::MAX_SIZE) {
-            throw new RuntimeException('Skill files must not exceed 16 MiB.');
-        }
-
-        return $contents;
-    }
-
-    /**
-     * @return array{uri: string}
-     */
-    public function toMethodCall(): array
-    {
-        return ['uri' => $this->uri()];
-    }
-
-    /**
-     * @return array{uri: string, frontmatter: array<string, mixed>, resources: list<array{uri: string, digest: string, size: int}>}
-     */
-    public function toArray(): array
-    {
-        $contents = $this->read('SKILL.md');
-        $frontmatter = $this->parseFrontmatter($contents);
-        $resources = [];
-        $size = 0;
-
-        foreach ($this->files() as $file) {
-            $bytes = $file === 'SKILL.md' ? $contents : $this->read($file);
-            $size += strlen($bytes);
-
-            if ($size > self::MAX_SIZE) {
-                throw new RuntimeException('Skills must not exceed 16 MiB in total.');
-            }
-
-            $resources[] = [
-                'uri' => $this->fileUri($file),
-                'digest' => 'sha256:'.hash('sha256', $bytes),
-                'size' => strlen($bytes),
-            ];
-        }
-
-        return ['uri' => $this->uri(), 'frontmatter' => $frontmatter, 'resources' => $resources];
+        return Frontmatter::render([
+            ...$this->frontmatter,
+            'name' => $this->name,
+            'description' => $this->description,
+        ], $this->renderInstructions());
     }
 
     public function fileUri(string $file): string
@@ -153,156 +148,122 @@ class Skill extends Primitive
         return substr($this->uri(), 0, -strlen('SKILL.md')).implode('/', array_map(rawurlencode(...), explode('/', $file)));
     }
 
-    protected function directory(): string
+    public function validate(): void
     {
-        $path = rtrim($this->path(), '/\\');
-
-        if ($path === '') {
-            throw new RuntimeException('The skill path must not be empty.');
-        }
-
-        clearstatcache(true, $path);
-        $directory = realpath($path);
-
-        if ($directory === false || ! is_dir($directory) || is_link($path)) {
-            throw new RuntimeException('The skill path must be a directory, not a symbolic link.');
-        }
-
-        return $directory;
+        $this->inspect();
     }
 
     /**
-     * @return list<string>
+     * @return list<SkillResource>
      */
-    protected function files(): array
+    public function resources(): array
     {
-        $directory = $this->directory();
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::SELF_FIRST,
-        );
-        $files = [];
-        $size = 0;
+        [$files, $frontmatter] = $this->inspect();
 
-        foreach ($iterator as $file) {
-            if ($file->isLink() || (! $file->isDir() && ! $file->isFile())) {
-                throw new RuntimeException('Skill directories may contain only regular files and directories.');
-            }
-
-            if ($file->isDir()) {
-                continue;
-            }
-
-            $relative = str_replace(DIRECTORY_SEPARATOR, '/', substr($file->getPathname(), strlen($directory) + 1));
-
-            if (str_contains($relative, '\\') || ! $file->isReadable()) {
-                throw new RuntimeException('Skill files must be readable and must not contain backslashes in their paths.');
-            }
-
-            $files[] = $relative;
-            $size += $file->getSize();
-
-            if ($size > self::MAX_SIZE) {
-                throw new RuntimeException('Skills must not exceed 16 MiB in total.');
-            }
-
-            if (count($files) > self::MAX_RESOURCES) {
-                throw new RuntimeException('Skills must not contain more than 512 files.');
-            }
-        }
-
-        sort($files, SORT_STRING);
-
-        if (! in_array('SKILL.md', $files, true)) {
-            throw new RuntimeException('A skill must contain SKILL.md at its root.');
-        }
-
-        return $files;
+        return array_map(fn (string $file): SkillResource => new SkillResource(
+            $this,
+            $file,
+            $file === 'SKILL.md' ? $frontmatter['name'] : basename($file),
+            $file === 'SKILL.md' ? $frontmatter['description'] : '',
+        ), $files);
     }
 
     /**
-     * @return array<string, mixed>&array{name: string, description: string}
+     * @return array{uri: string, frontmatter: array<string, mixed>, resources: list<array{uri: string, digest: string, size: int}>}
      */
-    protected function parseFrontmatter(string $contents): array
+    public function toArray(): array
     {
-        if (! mb_check_encoding($contents, 'UTF-8') || preg_match('/\A---\r?\n(.*?)^---[ \t]*(?:\r?\n|\z)/ms', $contents, $matches) !== 1) {
-            throw new RuntimeException('SKILL.md must begin with YAML frontmatter and contain UTF-8 text.');
-        }
+        [$files] = $this->inspect();
+        $contents = $this->read('SKILL.md');
+        $resources = [];
+        $total = 0;
 
-        $frontmatter = Yaml::parse($matches[1], Yaml::PARSE_OBJECT_FOR_MAP | Yaml::PARSE_EXCEPTION_ON_INVALID_TYPE | Yaml::PARSE_DATETIME);
+        foreach ($files as $file) {
+            $digest = $file === 'SKILL.md'
+                ? ['digest' => 'sha256:'.hash('sha256', $contents), 'size' => strlen($contents)]
+                : $this->digest($file);
 
-        if (! $frontmatter instanceof stdClass) {
-            throw new RuntimeException('Skill frontmatter must be a YAML mapping.');
-        }
+            $total += $digest['size'];
 
-        $this->validateFrontmatterValue($frontmatter);
-
-        $frontmatter = get_object_vars($frontmatter);
-
-        if (! is_string($frontmatter['name'] ?? null) || ! is_string($frontmatter['description'] ?? null)) {
-            throw new RuntimeException('Skill frontmatter must contain a name and description.');
-        }
-
-        if (mb_strlen($frontmatter['name']) > 64 || preg_match('/\A[\p{Ll}\p{Lo}\p{N}]+(?:-[\p{Ll}\p{Lo}\p{N}]+)*\z/u', $frontmatter['name']) !== 1 || $frontmatter['name'] !== basename($this->directory())) {
-            throw new RuntimeException('The skill name must follow the Agent Skills naming rules and match its directory.');
-        }
-
-        if (trim($frontmatter['description']) === '' || mb_strlen($frontmatter['description']) > 1024) {
-            throw new RuntimeException('Skill descriptions must contain between 1 and 1024 characters.');
-        }
-
-        foreach (['license', 'compatibility', 'allowed-tools'] as $field) {
-            if (array_key_exists($field, $frontmatter) && ! is_string($frontmatter[$field])) {
-                throw new RuntimeException("The skill [{$field}] field must be a string.");
-            }
-        }
-
-        if (isset($frontmatter['compatibility']) && (trim($frontmatter['compatibility']) === '' || mb_strlen($frontmatter['compatibility']) > 500)) {
-            throw new RuntimeException('Skill compatibility must contain between 1 and 500 characters.');
-        }
-
-        if (array_key_exists('metadata', $frontmatter)) {
-            if (! $frontmatter['metadata'] instanceof stdClass) {
-                throw new RuntimeException('Skill metadata must be a mapping of strings to strings.');
+            if ($total > SkillDirectory::MAX_SIZE) {
+                throw InvalidSkillException::for($this, new RuntimeException('A skill must not exceed 16 MiB in total.'));
             }
 
-            foreach (get_object_vars($frontmatter['metadata']) as $value) {
-                if (! is_string($value)) {
-                    throw new RuntimeException('Skill metadata must be a mapping of strings to strings.');
-                }
-            }
+            $resources[] = ['uri' => $this->fileUri($file), ...$digest];
         }
 
+        return ['uri' => $this->uri(), 'frontmatter' => Frontmatter::parse($contents), 'resources' => $resources];
+    }
+
+    /**
+     * @return array{digest: string, size: int}
+     */
+    protected function digest(string $file): array
+    {
+        if ($this->directory() instanceof SkillDirectory) {
+            return $this->directory()->digest($file);
+        }
+
+        $contents = $this->read($file);
+
+        return ['digest' => 'sha256:'.hash('sha256', $contents), 'size' => strlen($contents)];
+    }
+
+    /**
+     * @return array{0: list<string>, 1: array<string, mixed>&array{name: string, description: string}}
+     */
+    protected function inspect(): array
+    {
+        try {
+            if ($this->directory() instanceof SkillDirectory && ! is_file($this->directory()->root().DIRECTORY_SEPARATOR.'SKILL.md')) {
+                throw new RuntimeException('A skill must contain a SKILL.md file at its root.');
+            }
+
+            $frontmatter = $this->frontmatter();
+            $files = $this->files();
+
+            if ($this->directory() instanceof SkillDirectory && $frontmatter['name'] !== $this->directory()->basename()) {
+                throw new RuntimeException("The skill name [{$frontmatter['name']}] must match its directory name [{$this->directory()->basename()}].");
+            }
+
+            if (! $this->directory() instanceof SkillDirectory && $frontmatter['name'] !== $this->name) {
+                throw new RuntimeException("The skill name [{$this->name}] could not be represented in its frontmatter.");
+            }
+
+            $this->ensureUriIsValid($frontmatter['name']);
+            json_encode($frontmatter, JSON_THROW_ON_ERROR);
+        } catch (Throwable $throwable) {
+            throw InvalidSkillException::for($this, $throwable);
+        }
+
+        return [$files, $frontmatter];
+    }
+
+    protected function ensureUriIsValid(string $name): void
+    {
         $uri = $this->uri();
 
-        if (preg_match('~\A[a-z][a-z0-9+.-]*://[^?#\s]+/SKILL\.md\z~i', $uri) !== 1 || rawurldecode(basename(substr($uri, 0, -strlen('/SKILL.md')))) !== $frontmatter['name']) {
-            throw new RuntimeException('The skill URI must end with the skill name followed by /SKILL.md.');
+        if (preg_match('~\A[a-z][a-z0-9+.-]*://[^?#\s]+/SKILL\.md\z~i', $uri) !== 1 || rawurldecode(basename(substr($uri, 0, -strlen('/SKILL.md')))) !== $name) {
+            throw new RuntimeException("The skill URI [{$uri}] must end with the skill name followed by /SKILL.md.");
         }
 
-        foreach (explode('/', substr($uri, strpos($uri, '://') + 3)) as $segment) {
+        foreach (explode('/', substr($uri, (int) strpos($uri, '://') + 3)) as $segment) {
             $decoded = rawurldecode($segment);
 
-            if (in_array($decoded, ['', '.', '..'], true) || preg_match('/[\\x00-\\x1F\\x7F\\\\\\/]/', $decoded) === 1 || preg_match('/%(?![a-f0-9]{2})/i', $segment) === 1) {
-                throw new RuntimeException('The skill URI must contain valid, unambiguous path segments.');
+            if (in_array($decoded, ['', '.', '..'], true) || preg_match('/[\x00-\x1F\x7F\\\\\/]/', $decoded) === 1 || preg_match('/%(?![a-f0-9]{2})/i', $segment) === 1) {
+                throw new RuntimeException("The skill URI [{$uri}] must contain valid, unambiguous path segments.");
             }
         }
-
-        // Reject YAML values that cannot be represented by the JSON transport.
-        json_encode($frontmatter, JSON_THROW_ON_ERROR);
-
-        return $frontmatter;
     }
 
-    private function validateFrontmatterValue(mixed $value): void
+    protected function renderInstructions(): string
     {
-        if (is_object($value) && ! $value instanceof stdClass) {
-            throw new RuntimeException('Skill frontmatter must use JSON-compatible values. Quote dates and timestamps to preserve them as strings.');
-        }
+        $instructions = $this->instructions();
 
-        if (is_array($value) || $value instanceof stdClass) {
-            foreach ((array) $value as $child) {
-                $this->validateFrontmatterValue($child);
-            }
-        }
+        return match (true) {
+            $instructions instanceof View => $instructions->render(),
+            $instructions instanceof Htmlable => $instructions->toHtml(),
+            default => (string) $instructions,
+        };
     }
 }

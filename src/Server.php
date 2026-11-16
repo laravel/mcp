@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
+use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
 use InvalidArgumentException;
@@ -44,6 +45,7 @@ use Laravel\Mcp\Server\Skill;
 use Laravel\Mcp\Server\Testing\PendingTestResponse;
 use Laravel\Mcp\Server\Testing\TestListResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
+use Laravel\Mcp\Server\Testing\TestSkillResponse;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
@@ -127,7 +129,7 @@ abstract class Server
     protected array $prompts = [];
 
     /**
-     * @var array<int, Skill|class-string<Skill>>
+     * @var array<int, Skill|Closure|string>
      */
     protected array $skills = [];
 
@@ -283,7 +285,7 @@ abstract class Server
             tools: $this->tools,
             resources: $this->resources,
             prompts: $this->prompts,
-            skills: $this->skills,
+            skills: collect($this->skills())->values()->all(),
         );
     }
 
@@ -385,7 +387,7 @@ abstract class Server
             return [];
         }
 
-        if (! in_array($request->method, ['skills/list', 'skills/get'], true)
+        if ($request->method === 'resources/read'
             && (isset($request->params['inputResponses']) || isset($request->params['requestState']))) {
             return [];
         }
@@ -458,9 +460,17 @@ abstract class Server
         }
     }
 
+    /**
+     * @return iterable<int, Skill|Closure|string>
+     */
+    protected function skills(): iterable
+    {
+        return $this->skills;
+    }
+
     protected function detectSkillsCapability(): void
     {
-        if ($this->skills === [] && ! in_array(Extension::Skills, $this->extensions, true)) {
+        if (collect($this->skills())->isEmpty() && ! in_array(Extension::Skills, $this->extensions, true)) {
             return;
         }
 
@@ -474,7 +484,7 @@ abstract class Server
     /**
      * @param  array<array-key, mixed>  $arguments
      */
-    public static function __callStatic(string $name, array $arguments): PendingTestResponse|TestResponse|TestListResponse
+    public static function __callStatic(string $name, array $arguments): PendingTestResponse|TestResponse|TestListResponse|TestSkillResponse
     {
         $pendingTestResponse = new PendingTestResponse(
             Container::getInstance(),

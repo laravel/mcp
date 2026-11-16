@@ -1,0 +1,21 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravel\Mcp\Server\Skill;
+
+class {{ class }} extends Skill
+{
+    protected string $name = '{{ name }}';
+
+    protected string $description = {{ description }};
+
+    public function instructions(): string
+    {
+        return <<<'MARKDOWN'
+        # {{ title }}
+
+        Describe the steps the agent should follow.
+        MARKDOWN;
+    }
+}
