@@ -17,13 +17,13 @@ trait InteractsWithOAuthEndpoints
         return Http::acceptJson()
             ->timeout(5)
             ->connectTimeout(2)
-            ->withOptions(['allow_redirects' => false, ...$this->oAuthCurlOptions()]);
+            ->withOptions(['allow_redirects' => false, ...$this->oAuthTransportOptions()]);
     }
 
     /**
      * @return array<string, mixed>
      */
-    protected function oAuthCurlOptions(): array
+    protected function oAuthTransportOptions(): array
     {
         if (! defined('CURLOPT_PROTOCOLS')) {
             return [];
@@ -32,7 +32,7 @@ trait InteractsWithOAuthEndpoints
         if (ClientInterface::MAJOR_VERSION >= 8) {
             return [
                 'protocols' => ['http', 'https'],
-                'progress' => fn (int $downloadTotal, int $downloaded): bool => $downloaded > $this->maxOAuthResponseSize,
+                'progress' => fn (int $downloadTotal, int $downloaded): bool => max($downloadTotal, $downloaded) > $this->maxOAuthResponseSize,
             ];
         }
 
