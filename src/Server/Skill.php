@@ -103,23 +103,19 @@ abstract class Skill implements Arrayable
     public function toArray(): array
     {
         [$files] = $this->inspect();
-        $contents = $this->read('SKILL.md');
-        $resources = [];
-        $total = 0;
 
-        foreach ($files as $file) {
-            $digest = $this->directory()->digest($file);
-
-            $total += $digest['size'];
-
-            if ($total > SkillDirectory::MAX_SIZE) {
-                throw InvalidSkillException::for($this, new RuntimeException('A skill must not exceed 16 MiB in total.'));
-            }
-
-            $resources[] = ['uri' => $this->fileUri($file), ...$digest];
+        try {
+            $contents = $this->read('SKILL.md');
+            $frontmatter = Frontmatter::parse($contents);
+            $resources = array_map(fn (string $file): array => [
+                'uri' => $this->fileUri($file),
+                ...($file === 'SKILL.md' ? SkillDirectory::hash($contents) : $this->directory()->digest($file)),
+            ], $files);
+        } catch (Throwable $throwable) {
+            throw InvalidSkillException::for($this, $throwable);
         }
 
-        return ['uri' => $this->uri(), 'frontmatter' => Frontmatter::parse($contents), 'resources' => $resources];
+        return ['uri' => $this->uri(), 'frontmatter' => $frontmatter, 'resources' => $resources];
     }
 
     /**

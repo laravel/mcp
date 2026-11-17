@@ -371,14 +371,89 @@ it('reports each invalid skill once with its class', function (): void {
     Exceptions::assertReported(fn (InvalidSkillException $exception): bool => str_contains($exception->getMessage(), 'The skill ['.DirectorySkill::class.'] is invalid.'));
 });
 
-it('reports conflicting skill configuration as an internal error on resource reads', function (): void {
+it('reports conflicting skill configuration as an internal error on listings without breaking resource reads', function (): void {
     config(['app.debug' => false]);
     $this->server->skills = [ReleaseChecklistSkill::class, ReleaseChecklistSkill::class];
     $this->server->start();
 
-    $response = skillResponse($this->server, $this->transport, 'resources/read', ['uri' => 'file://resources/last-log-line-resource']);
+    $response = skillResponse($this->server, $this->transport, 'resources/list');
     expect($response['error']['code'])->toBe(-32603)
-        ->and($response['error']['message'])->not->toContain('Duplicate');
+        ->and($response['error']['message'])->not->toContain('Duplicate')
+        ->and(skillResponse($this->server, $this->transport, 'resources/read', ['uri' => 'file://resources/last-log-line-resource'])['result']['contents'][0]['text'])
+        ->toBe('2025-07-02 12:00:00 Error: Something went wrong.');
+});
+
+it('reads registered resources without inspecting any skill directory', function (): void {
+    $skill = new class(fixtureSkillPath()) extends DirectorySkill
+    {
+        public int $inspections = 0;
+
+        public function resources(): array
+        {
+            $this->inspections++;
+
+            return parent::resources();
+        }
+    };
+    $this->server->skills = [$skill];
+    $this->server->start();
+
+    skillResponse($this->server, $this->transport, 'resources/read', ['uri' => 'file://resources/last-log-line-resource']);
+
+    expect($skill->inspections)->toBe(0);
+});
+
+it('inspects only the skill that serves a requested file', function (): void {
+    $other = new class(fixtureSkillPath(), 'skill://other/release-checklist/SKILL.md') extends DirectorySkill
+    {
+        public int $inspections = 0;
+
+        public function resources(): array
+        {
+            $this->inspections++;
+
+            return parent::resources();
+        }
+    };
+    $this->server->skills = [ReleaseChecklistSkill::class, $other];
+    $this->server->start();
+
+    $response = skillResponse($this->server, $this->transport, 'resources/read', ['uri' => 'skill://release-checklist/references/checklist.md']);
+
+    expect($response['result']['contents'][0]['text'])->toContain('Review the changelog')
+        ->and($other->inspections)->toBe(0);
+});
+
+it('skips a skill whose files change while its manifest is built', function (): void {
+    config(['app.debug' => false]);
+    Exceptions::fake();
+    (new Filesystem)->copyDirectory(fixtureSkillPath(), $this->temporary.'/release-checklist');
+    $vanishing = new class($this->temporary.'/release-checklist', 'skill://vanishing/release-checklist/SKILL.md') extends DirectorySkill
+    {
+        public int $inspections = 0;
+
+        protected function inspect(): array
+        {
+            if (++$this->inspections % 2 === 1) {
+                copy(fixtureSkillPath().'/references/checklist.md', $this->path().'/references/checklist.md');
+            }
+
+            $inspected = parent::inspect();
+
+            if ($this->inspections % 2 === 0) {
+                unlink($this->path().'/references/checklist.md');
+            }
+
+            return $inspected;
+        }
+    };
+    $this->server->skills = [ReleaseChecklistSkill::class, $vanishing];
+    $this->server->start();
+
+    expect(array_column(skillResponse($this->server, $this->transport, 'skills/list')['result']['skills'], 'uri'))->toBe(['skill://release-checklist/SKILL.md']);
+    Exceptions::assertReported(fn (InvalidSkillException $exception): bool => str_contains($exception->getMessage(), 'The skill file is not a readable regular file.'));
+
+    expect(skillResponse($this->server, $this->transport, 'skills/get', ['uri' => $vanishing->uri()])['error']['code'])->toBe(-32602);
 });
 
 it('retrieves skills and reads their files through the testing helpers', function (): void {

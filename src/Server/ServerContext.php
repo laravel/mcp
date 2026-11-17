@@ -19,6 +19,11 @@ class ServerContext
      */
     protected ?Collection $resolvedResources = null;
 
+    /**
+     * @var Collection<int, Resource>|null
+     */
+    protected ?Collection $registeredResources = null;
+
     protected ?SkillCatalog $skillCatalog = null;
 
     /**
@@ -90,21 +95,30 @@ class ServerContext
      */
     public function resources(): Collection
     {
-        return $this->resolvedResources ??= $this->resolveResources();
+        return $this->resolvedResources ??= $this->registeredResources()
+            ->concat($this->skillCatalog()->resources($this->registeredResources()));
+    }
+
+    public function resource(string $uri): ?Resource
+    {
+        return $this->registeredResources()->first(fn (Resource $resource): bool => $resource->uri() === $uri)
+            ?? $this->skillCatalog()->resource($uri);
     }
 
     /**
      * @return Collection<int, Resource>
      */
-    protected function resolveResources(): Collection
+    protected function registeredResources(): Collection
     {
-        /** @var Collection<int,Resource> $resourceTemplates */
-        $resourceTemplates = collect($this->resources)
+        if ($this->registeredResources instanceof Collection) {
+            return $this->registeredResources;
+        }
+
+        /** @var Collection<int,Resource> $resources */
+        $resources = collect($this->resources)
             ->filter(fn (Resource|string $resource): bool => ! $this->isResourceTemplate($resource));
 
-        $resources = $this->resolvePrimitives($resourceTemplates);
-
-        return $resources->concat($this->skillCatalog()->resources($resources));
+        return $this->registeredResources = $this->resolvePrimitives($resources);
     }
 
     /**

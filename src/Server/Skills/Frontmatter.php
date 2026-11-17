@@ -18,6 +18,8 @@ class Frontmatter
      */
     public static function parse(string $contents): array
     {
+        $contents = str_starts_with($contents, "\u{FEFF}") ? substr($contents, 3) : $contents;
+
         if (! mb_check_encoding($contents, 'UTF-8') || preg_match('/\A---\r?\n(.*?)^---[ \t]*(?:\r?\n|\z)/ms', $contents, $matches) !== 1) {
             throw new RuntimeException('SKILL.md must contain UTF-8 text and begin with YAML frontmatter.');
         }

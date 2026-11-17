@@ -24,10 +24,12 @@ class GetSkill implements Method
 
         $skill = $context->skills()->first(fn (Skill $skill): bool => $skill->uri() === $uri);
 
-        if ($skill === null) {
+        $manifest = $skill instanceof Skill ? $context->skillCatalog()->manifest($skill) : null;
+
+        if ($manifest === null) {
             throw new JsonRpcException("Skill [{$uri}] not found.", ErrorCode::INVALID_PARAMS->value, $request->id);
         }
 
-        return JsonRpcResponse::result($request->id, ['skill' => $skill->toArray()]);
+        return JsonRpcResponse::result($request->id, ['skill' => $manifest]);
     }
 }

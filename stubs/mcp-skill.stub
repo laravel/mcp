@@ -1,0 +1,13 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravel\Mcp\Server\Skill;
+
+class {{ class }} extends Skill
+{
+    public function path(): string
+    {
+        return '{{ path }}';
+    }
+}

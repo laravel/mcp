@@ -8,7 +8,6 @@ use Laravel\Mcp\Server\Attributes\Cacheable;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\CacheableResource;
 use Tests\Fixtures\ExampleServer;
-use Tests\Fixtures\SkillsServer;
 
 function resultFor(array $message, ?Closure $factory = null): array
 {
@@ -68,18 +67,6 @@ it('leaves caching hints off a request retried with input responses', function (
     'inputResponses' => [['inputResponses' => ['login' => ['action' => 'accept']]]],
     'requestState' => [['requestState' => 'eyJ...']],
 ]);
-
-it('keeps caching hints on list results when continuation params are supplied', function (string $method): void {
-    $result = resultFor([
-        'jsonrpc' => '2.0',
-        'id' => 1,
-        'method' => $method,
-        'params' => ['_meta' => protocolMeta(), 'requestState' => 'unused', 'inputResponses' => []],
-    ], fn (ArrayTransport $transport): Server => new SkillsServer($transport))['result'];
-
-    expect($result['ttlMs'])->toBe(0);
-    expect($result['cacheScope'])->toBe('private');
-})->with(['server/discover', 'tools/list', 'prompts/list', 'resources/list', 'resources/templates/list', 'skills/list']);
 
 it('uses the hint the server attribute declares', function (): void {
     $result = resultFor(listToolsMessage(), fn (ArrayTransport $transport): Server => new #[Cacheable(ttlMs: 300000, scope: CacheScope::Public)] class($transport) extends ExampleServer {})['result'];

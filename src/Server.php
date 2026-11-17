@@ -274,11 +274,11 @@ abstract class Server
             supportedProtocolVersions: $this->supportedProtocolVersion ?: ProtocolVersion::serverSupported(),
             serverCapabilities: $this->resolvedCapabilities(),
             implementation: new Implementation(
-                name: $name->value ?? $this->name,
-                version: $version->value ?? $this->version,
+                name: $name !== null ? $name->value : $this->name,
+                version: $version !== null ? $version->value : $this->version,
                 icons: $this->resolvedIcons(),
             ),
-            instructions: $instructions->value ?? $this->instructions,
+            instructions: $instructions !== null ? $instructions->value : $this->instructions,
             maxPaginationLength: $this->maxPaginationLength,
             defaultPaginationLength: $this->defaultPaginationLength,
             tools: $this->tools,
@@ -386,8 +386,7 @@ abstract class Server
             return [];
         }
 
-        if ($request->method === 'resources/read'
-            && (isset($request->params['inputResponses']) || isset($request->params['requestState']))) {
+        if (isset($request->params['inputResponses']) || isset($request->params['requestState'])) {
             return [];
         }
 

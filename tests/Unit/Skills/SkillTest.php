@@ -26,6 +26,41 @@ afterEach(function (): void {
     SkillDirectory::flushDigests();
 });
 
+it('describes SKILL.md with the frontmatter and digest of the same bytes', function (): void {
+    $original = file_get_contents($this->path.'/SKILL.md');
+    $skill = new class($this->path) extends DirectorySkill
+    {
+        public int $reads = 0;
+
+        public function read(string $file): string
+        {
+            $contents = parent::read($file);
+
+            if ($file === 'SKILL.md' && ++$this->reads === 2) {
+                file_put_contents($this->path().'/SKILL.md', str_replace('Prepare a release', 'Ship a release', $contents));
+            }
+
+            return $contents;
+        }
+    };
+
+    $entry = $skill->toArray();
+
+    expect($entry['frontmatter']['description'])->toBe('Prepare a release using the bundled checklist.')
+        ->and($entry['resources'][0]['uri'])->toBe('skill://release-checklist/SKILL.md')
+        ->and($entry['resources'][0])->toMatchArray(SkillDirectory::hash($original));
+});
+
+it('accepts a SKILL.md that starts with a byte order mark and digests its raw bytes', function (): void {
+    $contents = "\u{FEFF}".file_get_contents($this->path.'/SKILL.md');
+    file_put_contents($this->path.'/SKILL.md', $contents);
+
+    $entry = $this->skill->toArray();
+
+    expect($entry['frontmatter']['name'])->toBe('release-checklist')
+        ->and($entry['resources'][0])->toMatchArray(SkillDirectory::hash($contents));
+});
+
 it('preserves all frontmatter fields and JSON object and array shapes', function (): void {
     $entry = $this->skill->toArray();
 

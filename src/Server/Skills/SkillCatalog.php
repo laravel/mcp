@@ -11,6 +11,7 @@ use Laravel\Mcp\Exceptions\InvalidSkillException;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Skill;
 use LogicException;
+use RuntimeException;
 
 class SkillCatalog
 {
@@ -23,6 +24,16 @@ class SkillCatalog
      * @var list<array{0: Skill, 1: list<SkillResource>}>|null
      */
     protected ?array $entries = null;
+
+    /**
+     * @var list<Skill>|null
+     */
+    protected ?array $eligible = null;
+
+    /**
+     * @var array<string, SkillResource|null>
+     */
+    protected array $found = [];
 
     /**
      * @param  array<int, mixed>  $sources
@@ -70,6 +81,57 @@ class SkillCatalog
         return array_values($resources);
     }
 
+    public function resource(string $uri): ?SkillResource
+    {
+        if (array_key_exists($uri, $this->found)) {
+            return $this->found[$uri];
+        }
+
+        $match = null;
+
+        foreach ($this->eligible() as $skill) {
+            try {
+                if (! str_starts_with($uri, $skill->fileUri(''))) {
+                    continue;
+                }
+
+                $resources = $skill->resources();
+            } catch (RuntimeException $runtimeException) {
+                $this->report(InvalidSkillException::for($skill, $runtimeException));
+
+                continue;
+            }
+
+            foreach ($resources as $resource) {
+                if ($resource->uri() !== $uri) {
+                    continue;
+                }
+
+                if ($uri === $skill->uri()) {
+                    return $this->found[$uri] = $resource;
+                }
+
+                $match ??= $resource;
+            }
+        }
+
+        return $this->found[$uri] = $match;
+    }
+
+    /**
+     * @return array{uri: string, frontmatter: array<string, mixed>, resources: list<array{uri: string, digest: string, size: int}>}|null
+     */
+    public function manifest(Skill $skill): ?array
+    {
+        try {
+            return $skill->toArray();
+        } catch (InvalidSkillException $invalidSkillException) {
+            $this->report($invalidSkillException);
+
+            return null;
+        }
+    }
+
     public static function flushState(): void
     {
         static::$reported = [];
@@ -87,13 +149,7 @@ class SkillCatalog
         $entries = [];
         $uris = [];
 
-        foreach ($this->sources as $source) {
-            $skill = $this->resolve($source);
-
-            if (! $skill->eligibleForRegistration()) {
-                continue;
-            }
-
+        foreach ($this->eligible() as $skill) {
             try {
                 $resources = $skill->resources();
             } catch (InvalidSkillException $invalidSkillException) {
@@ -111,6 +167,17 @@ class SkillCatalog
         }
 
         return $this->entries = $entries;
+    }
+
+    /**
+     * @return list<Skill>
+     */
+    protected function eligible(): array
+    {
+        return $this->eligible ??= array_values(array_filter(
+            array_map($this->resolve(...), $this->sources),
+            fn (Skill $skill): bool => $skill->eligibleForRegistration(),
+        ));
     }
 
     protected function resolve(mixed $source): Skill

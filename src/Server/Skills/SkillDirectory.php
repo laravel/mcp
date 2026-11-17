@@ -152,14 +152,21 @@ class SkillDirectory
             return static::$digests[$key];
         }
 
-        $contents = $this->read($file);
-        $digest = ['digest' => 'sha256:'.hash('sha256', $contents), 'size' => strlen($contents)];
+        $digest = static::hash($this->read($file));
 
         if ($key !== null && $digest['size'] === $stat['size'] && max($stat['mtime'], $stat['ctime']) < time() - 1) {
             static::$digests[$key] = $digest;
         }
 
         return $digest;
+    }
+
+    /**
+     * @return array{digest: string, size: int}
+     */
+    public static function hash(string $contents): array
+    {
+        return ['digest' => 'sha256:'.hash('sha256', $contents), 'size' => strlen($contents)];
     }
 
     public static function flushDigests(): void
