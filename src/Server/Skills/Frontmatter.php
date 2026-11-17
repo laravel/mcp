@@ -43,16 +43,6 @@ class Frontmatter
     }
 
     /**
-     * @param  array<string, mixed>  $frontmatter
-     */
-    public static function render(array $frontmatter, string $body): string
-    {
-        $yaml = Yaml::dump($frontmatter, 8, 2, Yaml::DUMP_OBJECT_AS_MAP | Yaml::DUMP_EMPTY_ARRAY_AS_SEQUENCE | Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK);
-
-        return "---\n{$yaml}---\n\n".ltrim($body, "\r\n");
-    }
-
-    /**
      * @param  array<array-key, mixed>  $frontmatter
      */
     protected static function validate(array $frontmatter): void

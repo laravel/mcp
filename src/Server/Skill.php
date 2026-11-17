@@ -6,8 +6,6 @@ namespace Laravel\Mcp\Server;
 
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
-use Illuminate\Contracts\Support\Htmlable;
-use Illuminate\Contracts\View\View;
 use Laravel\Mcp\Exceptions\InvalidSkillException;
 use Laravel\Mcp\Server\Attributes\Uri;
 use Laravel\Mcp\Server\Concerns\ReadsAttributes;
@@ -15,93 +13,28 @@ use Laravel\Mcp\Server\Skills\Frontmatter;
 use Laravel\Mcp\Server\Skills\SkillDirectory;
 use Laravel\Mcp\Server\Skills\SkillResource;
 use RuntimeException;
-use Stringable;
 use Throwable;
 
 /**
  * @implements Arrayable<string, mixed>
  */
-class Skill implements Arrayable
+abstract class Skill implements Arrayable
 {
     use ReadsAttributes;
 
-    protected string $name = '';
-
-    protected string $description = '';
-
-    protected View|Htmlable|Stringable|string $instructions = '';
-
-    /**
-     * @var array<string, mixed>
-     */
-    protected array $frontmatter = [];
-
-    protected ?string $uri = null;
-
-    protected ?string $path = null;
-
     protected ?SkillDirectory $directory = null;
 
-    /**
-     * @param  array<string, mixed>|null  $frontmatter
-     */
-    public function __construct(
-        ?string $name = null,
-        ?string $description = null,
-        View|Htmlable|Stringable|string|null $instructions = null,
-        ?array $frontmatter = null,
-        ?string $uri = null,
-    ) {
-        $this->name = $name ?? $this->name;
-        $this->description = $description ?? $this->description;
-        $this->instructions = $instructions ?? $this->instructions;
-        $this->frontmatter = $frontmatter ?? $this->frontmatter;
-        $this->uri = $uri ?? $this->uri;
-    }
+    abstract public function path(): string;
 
-    public static function fromDirectory(string $directory, ?string $uri = null): static
+    public function directory(): SkillDirectory
     {
-        $skill = new static(uri: $uri);
-        $skill->path = $directory;
-
-        return $skill;
-    }
-
-    public function path(): ?string
-    {
-        return $this->path;
-    }
-
-    public function directory(): ?SkillDirectory
-    {
-        $path = $this->path();
-
-        if ($path === null) {
-            return null;
-        }
-
-        return $this->directory ??= new SkillDirectory($path);
-    }
-
-    public function identifier(): string
-    {
-        return match (true) {
-            $this->directory() instanceof SkillDirectory => $this->directory()->path,
-            static::class !== self::class => static::class,
-            default => $this->name,
-        };
+        return $this->directory ??= new SkillDirectory($this->path());
     }
 
     public function uri(): string
     {
         return $this->resolveAttribute(Uri::class)->value
-            ?? $this->uri
-            ?? 'skill://'.rawurlencode($this->directory()?->basename() ?? $this->name).'/SKILL.md';
-    }
-
-    public function instructions(): View|Htmlable|Stringable|string
-    {
-        return $this->instructions;
+            ?? 'skill://'.rawurlencode($this->directory()->basename()).'/SKILL.md';
     }
 
     public function eligibleForRegistration(): bool
@@ -136,34 +69,17 @@ class Skill implements Arrayable
      */
     public function files(): array
     {
-        return $this->directory()?->files() ?? ['SKILL.md'];
+        return $this->directory()->files();
     }
 
     public function read(string $file): string
     {
-        if ($this->directory() instanceof SkillDirectory) {
-            return $this->directory()->read($file);
-        }
-
-        if ($file !== 'SKILL.md') {
-            throw new RuntimeException("The skill file [{$file}] does not exist.");
-        }
-
-        return Frontmatter::render([
-            ...$this->frontmatter,
-            'name' => $this->name,
-            'description' => $this->description,
-        ], $this->renderInstructions());
+        return $this->directory()->read($file);
     }
 
     public function fileUri(string $file): string
     {
         return substr($this->uri(), 0, -strlen('SKILL.md')).implode('/', array_map(rawurlencode(...), explode('/', $file)));
-    }
-
-    public function validate(): void
-    {
-        $this->inspect();
     }
 
     /**
@@ -192,9 +108,7 @@ class Skill implements Arrayable
         $total = 0;
 
         foreach ($files as $file) {
-            $digest = $file === 'SKILL.md'
-                ? ['digest' => 'sha256:'.hash('sha256', $contents), 'size' => strlen($contents)]
-                : $this->digest($file);
+            $digest = $this->directory()->digest($file);
 
             $total += $digest['size'];
 
@@ -209,38 +123,20 @@ class Skill implements Arrayable
     }
 
     /**
-     * @return array{digest: string, size: int}
-     */
-    protected function digest(string $file): array
-    {
-        if ($this->directory() instanceof SkillDirectory) {
-            return $this->directory()->digest($file);
-        }
-
-        $contents = $this->read($file);
-
-        return ['digest' => 'sha256:'.hash('sha256', $contents), 'size' => strlen($contents)];
-    }
-
-    /**
      * @return array{0: list<string>, 1: array<string, mixed>&array{name: string, description: string}}
      */
     protected function inspect(): array
     {
         try {
-            if ($this->directory() instanceof SkillDirectory && ! is_file($this->directory()->root().DIRECTORY_SEPARATOR.'SKILL.md')) {
+            if (! is_file($this->directory()->root().DIRECTORY_SEPARATOR.'SKILL.md')) {
                 throw new RuntimeException('A skill must contain a SKILL.md file at its root.');
             }
 
             $frontmatter = $this->frontmatter();
             $files = $this->files();
 
-            if ($this->directory() instanceof SkillDirectory && $frontmatter['name'] !== $this->directory()->basename()) {
+            if ($frontmatter['name'] !== $this->directory()->basename()) {
                 throw new RuntimeException("The skill name [{$frontmatter['name']}] must match its directory name [{$this->directory()->basename()}].");
-            }
-
-            if (! $this->directory() instanceof SkillDirectory && $frontmatter['name'] !== $this->name) {
-                throw new RuntimeException("The skill name [{$this->name}] could not be represented in its frontmatter.");
             }
 
             $this->ensureUriIsValid($frontmatter['name']);
@@ -267,16 +163,5 @@ class Skill implements Arrayable
                 throw new RuntimeException("The skill URI [{$uri}] must contain valid, unambiguous path segments.");
             }
         }
-    }
-
-    protected function renderInstructions(): string
-    {
-        $instructions = $this->instructions();
-
-        return match (true) {
-            $instructions instanceof View => $instructions->render(),
-            $instructions instanceof Htmlable => $instructions->toHtml(),
-            default => (string) $instructions,
-        };
     }
 }

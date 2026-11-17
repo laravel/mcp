@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
-use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
@@ -28,7 +27,7 @@ class ServerContext
      * @param  array<int|string, Tool|string|array<int, Tool|string>>  $tools
      * @param  array<int, Resource|string>  $resources
      * @param  array<int, Prompt|string>  $prompts
-     * @param  array<int, Skill|Closure|string>  $skills
+     * @param  array<int, Skill|class-string<Skill>>  $skills
      */
     public function __construct(
         public array $supportedProtocolVersions,

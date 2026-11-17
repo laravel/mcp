@@ -6,5 +6,5 @@ namespace Tests\Fixtures;
 
 class SkillsServer extends ExampleServer
 {
-    public array $skills = [__DIR__.'/Skills'];
+    public array $skills = [ReleaseChecklistSkill::class];
 }

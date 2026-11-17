@@ -9,15 +9,9 @@ use Laravel\Mcp\Server\Skill;
 
 class HouseStyleSkill extends Skill
 {
-    protected string $name = 'house-style';
-
-    protected string $description = 'Use when you write copy for a customer.';
-
-    protected array $frontmatter = ['license' => 'MIT'];
-
-    public function instructions(): string
+    public function path(): string
     {
-        return "# House Style\n\nBe brief.\n";
+        return __DIR__.'/Skills/house-style';
     }
 
     public function shouldRegister(Repository $config): bool

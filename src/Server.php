@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp;
 
-use Closure;
 use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
 use InvalidArgumentException;
@@ -50,7 +49,6 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
-use ReflectionMethod;
 use stdClass;
 use Throwable;
 
@@ -130,7 +128,7 @@ abstract class Server
     protected array $prompts = [];
 
     /**
-     * @var array<int, Skill|Closure|string>
+     * @var array<int, Skill|class-string<Skill>>
      */
     protected array $skills = [];
 
@@ -286,7 +284,7 @@ abstract class Server
             tools: $this->tools,
             resources: $this->resources,
             prompts: $this->prompts,
-            skills: [fn (): iterable => $this->skills()],
+            skills: $this->skills,
         );
     }
 
@@ -461,19 +459,11 @@ abstract class Server
         }
     }
 
-    /**
-     * @return iterable<int, Skill|Closure|string>
-     */
-    protected function skills(): iterable
-    {
-        return $this->skills;
-    }
-
     protected function detectSkillsCapability(): void
     {
         $declared = in_array(Extension::Skills, $this->extensions, true);
 
-        if (! $declared && $this->skills === [] && (new ReflectionMethod($this, 'skills'))->getDeclaringClass()->getName() === self::class) {
+        if (! $declared && $this->skills === []) {
             return;
         }
 

@@ -40,13 +40,7 @@ class SkillResource extends Resource
 
     public function source(): string
     {
-        $directory = $this->skill->directory();
-
-        if (! $directory instanceof SkillDirectory) {
-            return 'inline:'.spl_object_id($this->skill);
-        }
-
-        $path = $directory->path.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $this->file);
+        $path = $this->skill->directory()->path.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, $this->file);
 
         return realpath($path) ?: $path;
     }

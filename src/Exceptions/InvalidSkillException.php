@@ -16,6 +16,6 @@ class InvalidSkillException extends RuntimeException
             return $previous;
         }
 
-        return new self("The skill [{$skill->identifier()}] is invalid. {$previous->getMessage()}", previous: $previous);
+        return new self(sprintf('The skill [%s] is invalid. %s', $skill::class, $previous->getMessage()), previous: $previous);
     }
 }

@@ -251,7 +251,7 @@ class PendingTestResponse
         return match (true) {
             $skill instanceof Skill => $skill,
             is_subclass_of($skill, Skill::class) => Container::getInstance()->make($skill),
-            default => Skill::fromDirectory($skill),
+            default => throw new InvalidArgumentException("The skill [{$skill}] must be a skill URI or a Skill class."),
         };
     }
 

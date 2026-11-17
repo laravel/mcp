@@ -8,20 +8,22 @@ use Laravel\Mcp\Enums\CacheScope;
 use Laravel\Mcp\Enums\Extension;
 use Laravel\Mcp\Exceptions\InvalidSkillException;
 use Laravel\Mcp\Facades\Mcp;
-use Laravel\Mcp\Request;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Cacheable;
 use Laravel\Mcp\Server\Skill;
 use Laravel\Mcp\Server\Skills\SkillCatalog;
 use Laravel\Mcp\Server\Skills\SkillDirectory;
 use Laravel\Mcp\Server\Testing\TestResponse;
+use Laravel\Mcp\Server\Testing\TestSkillResponse;
 use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Tests\Fixtures\ArrayTransport;
+use Tests\Fixtures\DirectorySkill;
 use Tests\Fixtures\EmptySkillListing;
 use Tests\Fixtures\ExampleServer;
 use Tests\Fixtures\HouseStyleSkill;
 use Tests\Fixtures\ReleaseChecklistSkill;
 use Tests\Fixtures\SkillsServer;
+use Tests\Fixtures\TeamReleaseChecklistSkill;
 
 function skillResponse(Server $server, ArrayTransport $transport, string $method, array $params = []): array
 {
@@ -80,73 +82,36 @@ it('leaves servers without skills unchanged', function (): void {
     expect(skillResponse($server, $this->transport, 'skills/list')['error']['code'])->toBe(-32601);
 });
 
-it('discovers every skill in a parent directory', function (): void {
-    $files = new Filesystem;
-    $files->copyDirectory(fixtureSkillPath(), $this->temporary.'/release-checklist');
-    $files->ensureDirectoryExists($this->temporary.'/hotfix');
-    file_put_contents($this->temporary.'/hotfix/SKILL.md', "---\nname: hotfix\ndescription: Ship a hotfix.\n---\n");
-    $files->ensureDirectoryExists($this->temporary.'/not-a-skill');
-    $files->ensureDirectoryExists($this->temporary.'/.archived');
-    file_put_contents($this->temporary.'/.archived/SKILL.md', "---\nname: archived\ndescription: Old.\n---\n");
-
-    $this->server->skills = [$this->temporary];
+it('registers skills from the skills property', function (string $class, string $uri): void {
+    $this->server->skills = [$class];
     $this->server->start();
 
-    expect(array_column(skillResponse($this->server, $this->transport, 'skills/list')['result']['skills'], 'uri'))->toBe([
-        'skill://hotfix/SKILL.md',
-        'skill://release-checklist/SKILL.md',
-    ]);
-});
-
-it('registers skills from the skills method', function (string $uri): void {
-    $server = new class($this->transport) extends Server
-    {
-        public string $skillUri = '';
-
-        protected function skills(): iterable
-        {
-            return [Skill::fromDirectory(fixtureSkillPath(), $this->skillUri ?: null)];
-        }
-    };
-    $server->skillUri = $uri;
-    $server->start();
-
-    expect(skillResponse($server, $this->transport, 'server/discover')['result']['capabilities']['extensions'])
+    expect(skillResponse($this->server, $this->transport, 'server/discover')['result']['capabilities']['extensions'])
         ->toHaveKey('io.modelcontextprotocol/skills');
 
-    $entry = skillResponse($server, $this->transport, 'skills/list')['result']['skills'][0];
-    expect($entry['uri'])->toBe($uri ?: 'skill://release-checklist/SKILL.md')
-        ->and(skillResponse($server, $this->transport, 'skills/get', ['uri' => $entry['uri']])['result']['skill'])->toBe($entry);
+    $entry = skillResponse($this->server, $this->transport, 'skills/list')['result']['skills'][0];
+    expect($entry['uri'])->toBe($uri)
+        ->and(skillResponse($this->server, $this->transport, 'skills/get', ['uri' => $entry['uri']])['result']['skill'])->toBe($entry);
 
     foreach ($entry['resources'] as $resource) {
-        $content = skillResponse($server, $this->transport, 'resources/read', ['uri' => $resource['uri']])['result']['contents'][0];
+        $content = skillResponse($this->server, $this->transport, 'resources/read', ['uri' => $resource['uri']])['result']['contents'][0];
         expect(strlen($content['text']))->toBe($resource['size'])
             ->and('sha256:'.hash('sha256', $content['text']))->toBe($resource['digest']);
     }
-})->with(['', 'skill://team/release-checklist/SKILL.md']);
-
-it('serves inline skills end to end', function (): void {
-    $this->server->skills = [new Skill('house-style', 'Use when you write copy for a customer.', "# House Style\n\nBe brief.\n")];
-    $this->server->start();
-
-    $entry = skillResponse($this->server, $this->transport, 'skills/get', ['uri' => 'skill://house-style/SKILL.md'])['result']['skill'];
-    $content = skillResponse($this->server, $this->transport, 'resources/read', ['uri' => 'skill://house-style/SKILL.md'])['result']['contents'][0];
-
-    expect($entry['frontmatter'])->toBe(['name' => 'house-style', 'description' => 'Use when you write copy for a customer.'])
-        ->and($content['mimeType'])->toBe('text/markdown')
-        ->and('sha256:'.hash('sha256', $content['text']))->toBe($entry['resources'][0]['digest'])
-        ->and(strlen($content['text']))->toBe($entry['resources'][0]['size']);
-});
+})->with([
+    [ReleaseChecklistSkill::class, 'skill://release-checklist/SKILL.md'],
+    [TeamReleaseChecklistSkill::class, 'skill://team/release-checklist/SKILL.md'],
+]);
 
 it('serves skill classes registered by class name', function (): void {
-    $this->server->skills = [HouseStyleSkill::class, ReleaseChecklistSkill::class];
+    $this->server->skills = [HouseStyleSkill::class, TeamReleaseChecklistSkill::class];
     $this->server->start();
 
     $skills = skillResponse($this->server, $this->transport, 'skills/list')['result']['skills'];
     $content = skillResponse($this->server, $this->transport, 'resources/read', ['uri' => 'skill://house-style/SKILL.md'])['result']['contents'][0];
 
     expect(array_column($skills, 'uri'))->toBe(['skill://house-style/SKILL.md', 'skill://team/release-checklist/SKILL.md'])
-        ->and($skills[0]['frontmatter'])->toBe(['license' => 'MIT', 'name' => 'house-style', 'description' => 'Use when you write copy for a customer.'])
+        ->and($skills[0]['frontmatter'])->toBe(['name' => 'house-style', 'description' => 'Use when you write copy for a customer.', 'license' => 'MIT'])
         ->and($content['text'])->toEndWith("---\n\n# House Style\n\nBe brief.\n")
         ->and(skillResponse($this->server, $this->transport, 'resources/read', ['uri' => 'skill://team/release-checklist/references/checklist.md'])['result']['contents'][0]['text'])
         ->toContain('Review the changelog');
@@ -165,74 +130,27 @@ it('applies should register to skill classes and instances', function (Closure $
     'instance' => [fn (): Skill => new HouseStyleSkill],
 ]);
 
-it('accepts skill classes that pass their definition to the parent constructor', function (): void {
-    $this->server->skills = [new class extends Skill
-    {
-        public function __construct()
-        {
-            parent::__construct('house-style', 'Use when writing copy.', '# House Style');
-        }
-    }];
-    $this->server->start();
-
-    expect(skillResponse($this->server, $this->transport, 'skills/get', ['uri' => 'skill://house-style/SKILL.md'])['result']['skill']['frontmatter'])
-        ->toBe(['name' => 'house-style', 'description' => 'Use when writing copy.']);
-});
-
-it('resolves relative skill directories from the resources path', function (): void {
+it('resolves relative skill paths from the resources path', function (): void {
     $files = new Filesystem;
     $files->copyDirectory(fixtureSkillPath(), resource_path('skills/release-checklist'));
 
     try {
-        $this->server->skills = ['skills', Skill::fromDirectory('skills/release-checklist', 'skill://copy/release-checklist/SKILL.md')];
+        $this->server->skills = [new DirectorySkill('skills/release-checklist', 'skill://copy/release-checklist/SKILL.md')];
         $this->server->start();
 
         expect(array_column(skillResponse($this->server, $this->transport, 'skills/list')['result']['skills'], 'uri'))
-            ->toBe(['skill://release-checklist/SKILL.md', 'skill://copy/release-checklist/SKILL.md'])
-            ->and(Skill::fromDirectory('skills/release-checklist')->directory()->path)->toBe(resource_path('skills/release-checklist'))
-            ->and(Skill::fromDirectory('/absolute/path')->directory()->path)->toBe('/absolute/path');
+            ->toBe(['skill://copy/release-checklist/SKILL.md'])
+            ->and((new DirectorySkill('skills/release-checklist'))->directory()->path)->toBe(resource_path('skills/release-checklist'))
+            ->and((new DirectorySkill('/absolute/path'))->directory()->path)->toBe('/absolute/path');
     } finally {
         $files->deleteDirectory(resource_path('skills'));
     }
 });
 
-it('evaluates closure sources lazily with dependency injection', function (): void {
-    $calls = 0;
-    $this->server->skills = [function (Request $request) use (&$calls): array {
-        $calls++;
-
-        return [fixtureSkillPath(), new Skill('house-style', 'Use when writing copy.')];
-    }];
-    $this->server->start();
-
-    skillResponse($this->server, $this->transport, 'tools/list');
-    expect($calls)->toBe(0);
-
-    expect(array_column(skillResponse($this->server, $this->transport, 'skills/list')['result']['skills'], 'uri'))
-        ->toBe(['skill://release-checklist/SKILL.md', 'skill://house-style/SKILL.md'])
-        ->and($calls)->toBe(1);
-});
-
-it('applies conditional registration through closures to listing getting and file reads', function (mixed $result): void {
-    $this->server->skills = [fn (): mixed => $result];
-    $this->server->start();
-
-    expect(skillResponse($this->server, $this->transport, 'skills/list')['result']['skills'])->toBe([])
-        ->and(skillResponse($this->server, $this->transport, 'skills/get', ['uri' => 'skill://release-checklist/SKILL.md'])['error']['code'])->toBe(-32602)
-        ->and(skillResponse($this->server, $this->transport, 'resources/read', ['uri' => 'skill://release-checklist/references/checklist.md'])['error']['code'])->toBe(-32602);
-})->with([[[]], [null]]);
-
-it('accepts a single skill returned from a closure', function (): void {
-    $this->server->skills = [fn (): Skill => new Skill('house-style', 'Use when writing copy.')];
-    $this->server->start();
-
-    expect(skillResponse($this->server, $this->transport, 'skills/list')['result']['skills'][0]['uri'])->toBe('skill://house-style/SKILL.md');
-});
-
-it('rejects unsupported skill sources', function (): void {
-    $this->server->skills = [123];
-    expect(fn () => $this->server->createContext()->skills())->toThrow(InvalidArgumentException::class, 'Skill sources must be');
-});
+it('rejects unsupported skill sources', function (mixed $source): void {
+    $this->server->skills = [$source];
+    expect(fn () => $this->server->createContext()->skills())->toThrow(InvalidArgumentException::class, 'Skill sources must be Skill classes or instances.');
+})->with([123, 'skills/release-checklist', ExampleServer::class]);
 
 it('can declare an empty skill catalog explicitly', function (): void {
     $server = new class($this->transport) extends Server
@@ -244,35 +162,12 @@ it('can declare an empty skill catalog explicitly', function (): void {
         ->and(skillResponse($server, $this->transport, 'skills/get', ['uri' => 'skill://unknown/SKILL.md'])['error']['code'])->toBe(-32602);
 });
 
-it('declares the skills extension when the skills method is overridden without calling it', function (): void {
-    $server = new class($this->transport) extends Server
-    {
-        public int $calls = 0;
-
-        protected function skills(): iterable
-        {
-            $this->calls++;
-
-            return [];
-        }
-    };
-    $server->start();
-
-    $capabilities = skillResponse($server, $this->transport, 'server/discover')['result']['capabilities'];
-
-    expect($capabilities['extensions'])->toHaveKey('io.modelcontextprotocol/skills')
-        ->and($capabilities)->toHaveKey('resources')
-        ->and($server->calls)->toBe(0)
-        ->and(skillResponse($server, $this->transport, 'skills/list')['result']['skills'])->toBe([])
-        ->and($server->calls)->toBe(1);
-});
-
 it('declares the skills extension once when it is also declared explicitly', function (): void {
     $server = new class($this->transport) extends Server
     {
         protected array $extensions = [Extension::Skills];
 
-        protected array $skills = [__DIR__.'/../../Fixtures/Skills'];
+        protected array $skills = [ReleaseChecklistSkill::class];
     };
     $server->start();
 
@@ -310,8 +205,8 @@ it('uses existing server cache configuration for skill methods', function (): vo
 it('paginates atomic skills and does not identify them by name', function (): void {
     $this->server->defaultPaginationLength = 1;
     $this->server->skills = [
-        Skill::fromDirectory(fixtureSkillPath(), 'skill://first/release-checklist/SKILL.md'),
-        Skill::fromDirectory(fixtureSkillPath(), 'skill://second/release-checklist/SKILL.md'),
+        new DirectorySkill(fixtureSkillPath(), 'skill://first/release-checklist/SKILL.md'),
+        new DirectorySkill(fixtureSkillPath(), 'skill://second/release-checklist/SKILL.md'),
     ];
     $this->server->start();
 
@@ -388,7 +283,7 @@ it('does not declare or implement optional directory reading', function (): void
 });
 
 it('rejects duplicate skill URIs while allowing equal names', function (): void {
-    $this->server->skills = [fixtureSkillPath(), Skill::fromDirectory(fixtureSkillPath())];
+    $this->server->skills = [ReleaseChecklistSkill::class, new DirectorySkill(fixtureSkillPath())];
     expect(fn () => $this->server->createContext()->skills())->toThrow(LogicException::class, 'Duplicate server skill URI');
 });
 
@@ -432,7 +327,7 @@ it('serves binary and percent encoded files without transforming their bytes and
     $path = $this->temporary.'/release-checklist';
     $bytes = file_get_contents(__DIR__.'/../../Fixtures/binary.png');
     file_put_contents($path.'/a file%.png', $bytes);
-    $this->server->skills = [$path];
+    $this->server->skills = [new DirectorySkill($path)];
     $this->server->start();
 
     $uri = 'skill://release-checklist/a%20file%25.png';
@@ -459,27 +354,26 @@ it('skips invalid skills without affecting other skills or resources', function 
         ->and(skillResponse($this->server, $this->transport, 'resources/read', ['uri' => 'file://resources/last-log-line-resource'])['result']['contents'][0]['text'])->toBe('2025-07-02 12:00:00 Error: Something went wrong.')
         ->and(skillResponse($this->server, $this->transport, 'resources/list')['result']['resources'])->not->toBeEmpty();
 })->with([
-    'empty path' => [''],
-    'missing directory' => ['/nonexistent/skill'],
-    'filesystem root' => [fn (): Skill => Skill::fromDirectory('/')],
-    'invalid inline skill' => [fn (): Skill => new Skill('Bad Name', 'Description')],
+    'empty path' => [fn (): Skill => new DirectorySkill('')],
+    'missing directory' => [fn (): Skill => new DirectorySkill('/nonexistent/skill')],
+    'filesystem root' => [fn (): Skill => new DirectorySkill('/')],
 ]);
 
-it('reports each invalid skill once with its path', function (): void {
+it('reports each invalid skill once with its class', function (): void {
     Exceptions::fake();
-    $this->server->skills[] = '/nonexistent/skill';
+    $this->server->skills[] = new DirectorySkill('/nonexistent/skill');
     $this->server->start();
 
     skillResponse($this->server, $this->transport, 'skills/list');
     skillResponse($this->server, $this->transport, 'resources/list');
 
     Exceptions::assertReportedCount(1);
-    Exceptions::assertReported(fn (InvalidSkillException $exception): bool => str_contains($exception->getMessage(), 'The skill [/nonexistent/skill] is invalid.'));
+    Exceptions::assertReported(fn (InvalidSkillException $exception): bool => str_contains($exception->getMessage(), 'The skill ['.DirectorySkill::class.'] is invalid.'));
 });
 
 it('reports conflicting skill configuration as an internal error on resource reads', function (): void {
     config(['app.debug' => false]);
-    $this->server->skills = [fixtureSkillPath(), fixtureSkillPath()];
+    $this->server->skills = [ReleaseChecklistSkill::class, ReleaseChecklistSkill::class];
     $this->server->start();
 
     $response = skillResponse($this->server, $this->transport, 'resources/read', ['uri' => 'file://resources/last-log-line-resource']);
@@ -495,14 +389,14 @@ it('retrieves skills and reads their files through the testing helpers', functio
         ->assertFrontmatter(['license' => 'MIT', 'metadata' => ['version' => '1.0']])
         ->assertFiles(['SKILL.md', 'references/checklist.md']);
 
-    SkillsServer::skill(fixtureSkillPath())->assertOk()->assertName('release-checklist');
-    SkillsServer::skill(Skill::fromDirectory(fixtureSkillPath()))->assertOk();
+    SkillsServer::skill(ReleaseChecklistSkill::class)->assertOk()->assertName('release-checklist');
+    SkillsServer::skill(new ReleaseChecklistSkill)->assertOk();
 
     SkillsServer::skillFile('skill://release-checklist/SKILL.md', 'references/checklist.md')
         ->assertOk()
         ->assertSee('Review the changelog and verify the release version.');
 
-    SkillsServer::skillFile(fixtureSkillPath())->assertSee('# Release checklist');
+    SkillsServer::skillFile(ReleaseChecklistSkill::class)->assertSee('# Release checklist');
 });
 
 it('accepts skill class names in the testing helpers', function (): void {
@@ -528,6 +422,9 @@ it('reports unregistered skills through the testing helpers', function (): void 
     expect(fn (): TestResponse => SkillsServer::skillFile('skill://other/release-checklist/SKILL.md'))
         ->toThrow(InvalidArgumentException::class, 'not registered');
 
-    SkillsServer::skillFile(new Skill('house-style', 'Use when writing copy.'))
+    SkillsServer::skillFile(HouseStyleSkill::class)
         ->assertHasErrors();
+
+    expect(fn (): TestSkillResponse => SkillsServer::skill('skills/release-checklist'))
+        ->toThrow(InvalidArgumentException::class, 'must be a skill URI or a Skill class');
 });
