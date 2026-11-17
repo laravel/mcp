@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server\Testing;
 
+use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
@@ -29,9 +30,10 @@ class TestListResponse
     {
         $itemNames = Arr::pluck($this->items, 'name');
         $classes = is_array($classes) ? $classes : [$classes];
+        $container = Container::getInstance();
 
         foreach ($classes as $class) {
-            $name = (new $class)->name();
+            $name = $container->make($class)->name();
 
             Assert::assertContains($name, $itemNames, "The expected class [{$class}] was not found in the response content.");
         }
@@ -49,9 +51,10 @@ class TestListResponse
     {
         $itemNames = Arr::pluck($this->items, 'name');
         $classes = is_array($classes) ? $classes : [$classes];
+        $container = Container::getInstance();
 
         foreach ($classes as $class) {
-            $name = (new $class)->name();
+            $name = $container->make($class)->name();
 
             Assert::assertNotContains($name, $itemNames, "The expected class [{$class}] was found in the response content.");
         }
