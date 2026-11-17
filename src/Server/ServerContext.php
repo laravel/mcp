@@ -10,6 +10,7 @@ use InvalidArgumentException;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Tools\ToolSearch;
+use Symfony\Component\HttpFoundation\HeaderBag;
 
 class ServerContext
 {
@@ -30,6 +31,7 @@ class ServerContext
         protected array $tools,
         protected array $resources,
         protected array $prompts,
+        public ?HeaderBag $headers = null,
     ) {
         //
     }

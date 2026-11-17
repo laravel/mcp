@@ -44,3 +44,21 @@ it('matches the body value it was decoded from', function (): void {
     expect(HeaderValue::fromHeader('=?base64?SGVsbG8sIOS4lueVjA==?=')->matches('Hello, 世界'))->toBeTrue()
         ->and(HeaderValue::fromHeader('get_weather')->matches('some-other-tool'))->toBeFalse();
 });
+
+it('keeps a sentinel wrapping unpadded base64 as it arrived', function (): void {
+    expect(HeaderValue::fromHeader('=?base64?SGVsbG8?=')->value)->toBe('=?base64?SGVsbG8?=');
+});
+
+it('keeps a sentinel wrapping base64 with whitespace as it arrived', function (): void {
+    expect(HeaderValue::fromHeader('=?base64?S G V s bG8=?=')->value)->toBe('=?base64?S G V s bG8=?=');
+});
+
+it('only treats visible ascii, space, and tab as safe', function (string $value, bool $safe): void {
+    expect(HeaderValue::isSafe($value))->toBe($safe);
+})->with([
+    ['us-west1', true],
+    ['us west'.chr(9).'1', true],
+    ['Hello, 世界', false],
+    ['a'.chr(10).'b', false],
+    [chr(255), false],
+]);

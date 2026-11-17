@@ -106,6 +106,10 @@ class ValidateMcpHeaders
             return $required ? "Header mismatch: The [{$header->value}] header is required." : null;
         }
 
+        if (! HeaderValue::isSafe($value)) {
+            return "Header mismatch: The [{$header->value}] header value contains invalid characters.";
+        }
+
         $headerValue = $header === RequestHeader::NAME
             ? HeaderValue::fromHeader($value)
             : new HeaderValue($value);

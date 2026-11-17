@@ -144,8 +144,10 @@ it('rejects a header carrying invalid UTF-8 bytes', function (string $header): v
 
     $response->assertStatus(400);
 
-    expect($response->json('error.code'))->toBe(-32020)
-        ->and($response->json('error.message'))->toContain('header value [=?base64?/w==?=]');
+    expect($response->json('error'))->toEqual([
+        'code' => -32020,
+        'message' => "Header mismatch: The [{$header}] header value contains invalid characters.",
+    ]);
 })->with(['MCP-Protocol-Version', 'Mcp-Method', 'Mcp-Name']);
 
 it('quotes a non-ASCII name header decoded in the mismatch message', function (): void {
