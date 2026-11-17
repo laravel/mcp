@@ -169,8 +169,8 @@ it('preserves quoted dates and timestamps in unknown frontmatter fields', functi
 });
 
 it('requires an existing directory and SKILL.md', function (): void {
-    expect(fn (): array => new DirectorySkill($this->directory.'/missing')->toArray())->toThrow(InvalidSkillException::class, 'must exist');
-    expect(fn (): array => new DirectorySkill('')->toArray())->toThrow(InvalidSkillException::class, 'must not be empty');
+    expect(fn (): array => (new DirectorySkill($this->directory.'/missing'))->toArray())->toThrow(InvalidSkillException::class, 'must exist');
+    expect(fn (): array => (new DirectorySkill(''))->toArray())->toThrow(InvalidSkillException::class, 'must not be empty');
     unlink($this->path.'/SKILL.md');
     expect(fn () => $this->skill->toArray())->toThrow(InvalidSkillException::class, 'SKILL.md file at its root');
 });
@@ -219,7 +219,7 @@ it('rejects a symbolic link used as the root', function (): void {
     }
 
     symlink($this->path, $this->directory.'/linked');
-    expect(fn (): array => new DirectorySkill($this->directory.'/linked')->toArray())->toThrow(InvalidSkillException::class, 'symbolic link');
+    expect(fn (): array => (new DirectorySkill($this->directory.'/linked'))->toArray())->toThrow(InvalidSkillException::class, 'symbolic link');
 });
 
 it('revalidates files and ancestor directories after resource discovery', function (bool $directory): void {
@@ -301,7 +301,7 @@ it('validates the name even when it matches the directory', function (string $na
     $path = $this->directory.'/'.$name;
     mkdir($path);
     file_put_contents($path.'/SKILL.md', "---\nname: '{$name}'\ndescription: Release\n---\n");
-    expect(fn (): array => new DirectorySkill($path)->toArray())->toThrow(InvalidSkillException::class, 'lowercase letters');
+    expect(fn (): array => (new DirectorySkill($path))->toArray())->toThrow(InvalidSkillException::class, 'lowercase letters');
 })->with(['Uppercase', '-leading', 'trailing-', 'double--hyphen', 'under_score', str_repeat('a', 65)]);
 
 it('accepts lowercase unicode names and counts description characters instead of bytes', function (): void {
@@ -309,7 +309,7 @@ it('accepts lowercase unicode names and counts description characters instead of
     $path = $this->directory.'/'.$name;
     mkdir($path);
     file_put_contents($path.'/SKILL.md', "---\nname: {$name}\ndescription: ".str_repeat('é', 1024)."\n---\n");
-    $entry = new DirectorySkill($path)->toArray();
+    $entry = (new DirectorySkill($path))->toArray();
     expect($entry['uri'])->toBe('skill://publicaci%C3%B3n/SKILL.md')
         ->and(mb_strlen($entry['frontmatter']['description']))->toBe(1024);
 });
