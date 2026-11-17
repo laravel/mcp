@@ -6,6 +6,7 @@ namespace Laravel\Mcp;
 
 use Illuminate\Container\Container;
 use Illuminate\Filesystem\FilesystemAdapter;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\Macroable;
@@ -43,6 +44,15 @@ class Response
     public static function notification(string $method, array $params = []): static
     {
         return new static(new Notification($method, $params));
+    }
+
+    public static function progress(int|float $progress, int|float|null $total = null, ?string $message = null): static
+    {
+        return static::notification('notifications/progress', Arr::whereNotNull([
+            'progress' => $progress,
+            'total' => $total,
+            'message' => $message,
+        ]));
     }
 
     public static function text(string $text): static
