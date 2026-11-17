@@ -10,6 +10,7 @@ use InvalidArgumentException;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Tools\ToolSearch;
+use Symfony\Component\HttpFoundation\HeaderBag;
 
 class ServerContext
 {
@@ -19,6 +20,7 @@ class ServerContext
      * @param  array<int|string, Tool|string|array<int, Tool|string>>  $tools
      * @param  array<int, Resource|string>  $resources
      * @param  array<int, Prompt|string>  $prompts
+     * @param  HeaderBag|null  $headers  The HTTP request headers, or null when the transport is not HTTP.
      */
     public function __construct(
         public array $supportedProtocolVersions,
@@ -30,6 +32,7 @@ class ServerContext
         protected array $tools,
         protected array $resources,
         protected array $prompts,
+        public ?HeaderBag $headers = null,
     ) {
         //
     }

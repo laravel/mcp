@@ -44,3 +44,7 @@ it('matches the body value it was decoded from', function (): void {
     expect(HeaderValue::fromHeader('=?base64?SGVsbG8sIOS4lueVjA==?=')->matches('Hello, 世界'))->toBeTrue()
         ->and(HeaderValue::fromHeader('get_weather')->matches('some-other-tool'))->toBeFalse();
 });
+
+it('keeps a sentinel wrapping unpadded base64 as it arrived', function (): void {
+    expect(HeaderValue::fromHeader('=?base64?SGVsbG8?=')->value)->toBe('=?base64?SGVsbG8?=');
+});

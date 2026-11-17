@@ -5,13 +5,18 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Methods;
 
 use Generator;
+use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Server\Contracts\Errable;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\ToolInvoker;
+use Laravel\Mcp\Support\MirroredParameters;
+use Laravel\Mcp\Transport\HeaderValue;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
+use Symfony\Component\HttpFoundation\HeaderBag;
 
 class CallTool implements Errable, Method
 {
@@ -44,6 +49,39 @@ class CallTool implements Errable, Method
                     $request->id,
                 ));
 
+        if ($context->headers instanceof HeaderBag) {
+            $this->validateMirroredHeaders($tool, $request, $context->headers);
+        }
+
         return (new ToolInvoker)->invoke($tool, $request);
+    }
+
+    /**
+     * Ensure every argument the tool mirrors through [x-mcp-header] matches its [Mcp-Param-*] header.
+     *
+     * @throws JsonRpcException
+     */
+    protected function validateMirroredHeaders(Tool $tool, JsonRpcRequest $request, HeaderBag $headers): void
+    {
+        $arguments = $request->get('arguments');
+        $arguments = is_array($arguments) ? $arguments : [];
+
+        foreach (MirroredParameters::fromSchema($tool->toArray()['inputSchema'] ?? [])->all() as $parameter) {
+            $header = trim((string) $headers->get($parameter->header()), " \t");
+            $value = $parameter->raw($arguments);
+            $expected = $value === null ? null : $parameter->stringify($value);
+
+            $mismatch = match (true) {
+                $value === null && $header === '' => null,
+                $value === null => "The [{$parameter->header()}] header is present but the request body has no [{$parameter->path}] argument.",
+                $header === '' => "The [{$parameter->header()}] header is required.",
+                $expected === null || ! HeaderValue::fromHeader($header)->matches($expected) => "The [{$parameter->header()}] header value does not match the request body value at [{$parameter->path}].",
+                default => null,
+            };
+
+            if ($mismatch !== null) {
+                throw new JsonRpcException("Header mismatch: {$mismatch}", ErrorCode::HEADER_MISMATCH->value, $request->id);
+            }
+        }
     }
 }

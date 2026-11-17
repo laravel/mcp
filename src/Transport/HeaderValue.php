@@ -23,11 +23,10 @@ class HeaderValue implements Stringable
             return new static($header);
         }
 
-        $decoded = base64_decode(substr(
-            $header,
-            strlen(self::BASE64_PREFIX),
-            -strlen(self::BASE64_SUFFIX),
-        ), true);
+        $encoded = substr($header, strlen(self::BASE64_PREFIX), -strlen(self::BASE64_SUFFIX));
+
+        // PHP's strict decoding still accepts missing padding, which the specification rejects...
+        $decoded = strlen($encoded) % 4 === 0 ? base64_decode($encoded, true) : false;
 
         return new static($decoded === false ? $header : $decoded);
     }
