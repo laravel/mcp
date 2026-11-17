@@ -86,3 +86,46 @@ it('implements transport interface', function (): void {
 
     expect($transport)->toBeInstanceOf(Transport::class);
 });
+
+it('reads every message from stdin until the client closes it', function (): void {
+    $received = tempnam(sys_get_temp_dir(), 'mcp');
+
+    $process = proc_open(
+        [PHP_BINARY, dirname(__DIR__, 3).'/Fixtures/stdio-server.php', $received],
+        [['pipe', 'r'], ['pipe', 'w'], ['pipe', 'w']],
+        $pipes,
+    );
+
+    $waitUntil = function (Closure $condition): bool {
+        $deadline = microtime(true) + 10;
+
+        while (! $condition()) {
+            if (microtime(true) > $deadline) {
+                return false;
+            }
+
+            usleep(10000);
+        }
+
+        return true;
+    };
+
+    $first = '{"jsonrpc":"2.0","id":1,"method":"ping"}'."\n";
+    $second = '{"jsonrpc":"2.0","id":2,"method":"ping"}'."\n";
+
+    fwrite($pipes[0], $first);
+    fwrite($pipes[0], $second);
+
+    expect($waitUntil(fn (): bool => file_get_contents($received) === $first.$second))->toBeTrue()
+        ->and(proc_get_status($process)['running'])->toBeTrue();
+
+    fclose($pipes[0]);
+
+    expect($waitUntil(fn (): bool => ! proc_get_status($process)['running']))->toBeTrue()
+        ->and(file_get_contents($received))->toBe($first.$second."stdin closed\n");
+
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    proc_close($process);
+    unlink($received);
+});

@@ -30,10 +30,10 @@ class StdioTransport implements Transport
 
     public function run(): void
     {
-        stream_set_blocking(STDIN, false);
+        $input = $this->inputStream();
 
-        while (! feof(STDIN)) {
-            if (($line = fgets(STDIN)) === false) {
+        while (! feof($input)) {
+            if (($line = fgets($input)) === false) {
                 usleep(10000);
 
                 continue;
@@ -48,5 +48,33 @@ class StdioTransport implements Transport
     public function stream(Closure $stream): void
     {
         $stream();
+    }
+
+    /**
+     * Get the stream to read messages from.
+     *
+     * On Windows, PHP reads a pipe opened without the "blocking" pipe option by polling it
+     * up to 3,200,000 times, sleeping one timer tick between polls, and then reports the end
+     * of input although the client still holds the pipe open, so an idle server would stop
+     * after some hours. A blocking pipe waits for the next message instead, and still ends
+     * as soon as the client closes it.
+     *
+     * @return resource
+     */
+    protected function inputStream()
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            $stream = fopen('php://stdin', 'rb', false, stream_context_create([
+                'pipe' => ['blocking' => true],
+            ]));
+
+            if ($stream !== false) {
+                return $stream;
+            }
+        }
+
+        stream_set_blocking(STDIN, false);
+
+        return STDIN;
     }
 }
