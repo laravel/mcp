@@ -59,5 +59,6 @@ it('limits requests to http and https with a capped response size on guzzle 8', 
     expect($options)->not->toHaveKey('curl')
         ->and($options['protocols'])->toBe(['http', 'https'])
         ->and($options['progress'](0, 1_048_576, 0, 0))->toBeFalse()
-        ->and($options['progress'](0, 1_048_577, 0, 0))->toBeTrue();
+        ->and($options['progress'](0, 1_048_577, 0, 0))->toBeTrue()
+        ->and($options['progress'](1_048_577, 0, 0, 0))->toBeTrue();
 })->skip(ClientInterface::MAJOR_VERSION < 8, 'Guzzle 7 uses raw cURL options.');
