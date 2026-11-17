@@ -47,7 +47,7 @@ class OAuthRegisterController
                     return;
                 }
 
-                if (! Str::startsWith($value, $this->allowedDomains())) {
+                if (! Str::is($this->allowedDomains(), $value)) {
                     $fail($attribute.' is not a permitted redirect domain.');
                 }
             }],
@@ -202,9 +202,9 @@ class OAuthRegisterController
         $allowedDomains = config('mcp.redirect_domains', []);
 
         return collect($allowedDomains)
-            ->map(fn (string $domain): string => Str::endsWith($domain, '/')
+            ->map(fn (string $domain): string => Str::contains($domain, '*')
                 ? $domain
-                : "{$domain}/"
+                : Str::finish($domain, '/').'*'
             )
             ->all();
     }
