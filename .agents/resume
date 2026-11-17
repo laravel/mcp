@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Fast, idempotent checks run whenever the orb wakes. Verifies that the
+# toolchain restored from the project snapshot is usable. Never installs.
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+problems=()
+
+command -v php >/dev/null 2>&1 || problems+=("php")
+command -v composer >/dev/null 2>&1 || problems+=("composer")
+[[ -x "$repo_root/vendor/bin/pest" ]] || problems+=("vendor/bin/pest")
+
+if ((${#problems[@]} > 0)); then
+    printf '[orb-resume] broken toolchain, missing: %s\n' "${problems[*]}" >&2
+    exit 1
+fi
+
+# Run the probes as standalone assignments first so `set -e` propagates a
+# failing php or composer invocation instead of hiding inside printf's args.
+php_version="$(php -r 'echo PHP_VERSION;')"
+composer_version="$(composer --version 2>/dev/null | awk '{print $3}')"
+
+printf '[orb-resume] toolchain ok: PHP %s, %s, vendor present\n' \
+    "$php_version" "$composer_version" >&2

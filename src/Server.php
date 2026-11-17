@@ -7,6 +7,7 @@ namespace Laravel\Mcp;
 use Illuminate\Container\Container;
 use Illuminate\Support\Arr;
 use InvalidArgumentException;
+use JsonException;
 use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\Extension;
 use Laravel\Mcp\Enums\MetaKey;
@@ -222,7 +223,11 @@ abstract class Server
                 throw new JsonRpcException('Parse error: Invalid JSON was received by the server.', ErrorCode::PARSE_ERROR->value);
             }
 
-            $request = isset($jsonRequest['id'])
+            if (! is_array($jsonRequest) || ($jsonRequest !== [] && array_is_list($jsonRequest))) {
+                throw new JsonRpcException('Invalid Request: The request must be a JSON object.', ErrorCode::INVALID_REQUEST->value);
+            }
+
+            $request = array_key_exists('id', $jsonRequest)
                 ? JsonRpcRequest::from($jsonRequest)
                 : JsonRpcNotification::from($jsonRequest);
 
@@ -236,7 +241,7 @@ abstract class Server
                 $this->validateProtocolMeta($request, $context);
             }
 
-            if (! isset($this->methods[$request->method])) {
+            if (! $this->implementsMethod($request)) {
                 throw new JsonRpcException(
                     "The method [{$request->method}] was not found.",
                     ErrorCode::METHOD_NOT_FOUND->value,
@@ -333,6 +338,17 @@ abstract class Server
         }
     }
 
+    protected function implementsMethod(JsonRpcRequest $request): bool
+    {
+        $handler = $this->methods[$request->method] ?? null;
+
+        if ($handler === null) {
+            return false;
+        }
+
+        return $request->isLegacy() || ! in_array($handler, [Initialize::class, Ping::class], true);
+    }
+
     /**
      * @throws JsonRpcException
      */
@@ -355,7 +371,7 @@ abstract class Server
 
     protected function send(JsonRpcResponse $response, ServerContext $context, ?JsonRpcRequest $request = null): void
     {
-        if ($request instanceof JsonRpcRequest && array_key_exists('result', $response->content)) {
+        if ($request instanceof JsonRpcRequest && ! $request->isLegacy() && array_key_exists('result', $response->content)) {
             $result = (array) $response->content['result'];
             $result['_meta'][MetaKey::SERVER_INFO->value] = $context->implementation->toArray();
 
@@ -366,7 +382,23 @@ abstract class Server
             ];
         }
 
-        $this->transport->send($response->toJson());
+        try {
+            $message = $response->toJson();
+        } catch (JsonException $jsonException) {
+            report($jsonException);
+
+            if (! array_key_exists('id', $response->content)) {
+                return;
+            }
+
+            $message = JsonRpcResponse::error(
+                $response->content['id'],
+                ErrorCode::INTERNAL_ERROR->value,
+                config('app.debug', false) ? $jsonException->getMessage() : 'Something went wrong while processing the request.',
+            )->toJson();
+        }
+
+        $this->transport->send($message);
     }
 
     /**

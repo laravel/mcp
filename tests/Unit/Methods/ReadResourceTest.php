@@ -91,6 +91,34 @@ it('throws exception when resource is not found', function (): void {
     $readResource->handle($jsonRpcRequest, $context);
 });
 
+it('includes the requested uri in the not found error data', function (): void {
+    $jsonRpcRequest = new JsonRpcRequest(
+        id: 1,
+        method: 'resources/read',
+        params: ['uri' => 'file://resources/non-existent']
+    );
+
+    try {
+        (new ReadResource)->handle($jsonRpcRequest, $this->getServerContext());
+
+        $this->fail('Expected a JsonRpcException.');
+    } catch (JsonRpcException $jsonRpcException) {
+        expect($jsonRpcException->data())->toBe(['uri' => 'file://resources/non-existent']);
+    }
+});
+
+it('omits the error data when the uri is missing', function (): void {
+    $jsonRpcRequest = new JsonRpcRequest(id: 1, method: 'resources/read', params: []);
+
+    try {
+        (new ReadResource)->handle($jsonRpcRequest, $this->getServerContext());
+
+        $this->fail('Expected a JsonRpcException.');
+    } catch (JsonRpcException $jsonRpcException) {
+        expect($jsonRpcException->data())->toBeNull();
+    }
+});
+
 it('throws -32603 with exception message when ModelNotFoundException is thrown with APP_DEBUG true', function (): void {
     config(['app.debug' => true]);
 
@@ -784,4 +812,24 @@ it('uri is correctly set and isolated for consecutive requests', function (strin
         'firstUri' => 'file://static/resource',
         'secondUri' => 'file://static/resource',
     ],
+]);
+
+it('rejects a wrongly typed uri parameter', function (mixed $uri): void {
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        implementation: new Implementation('Test Server', '1.0.0'),
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [],
+        resources: [],
+        prompts: [],
+    );
+
+    expect(fn (): mixed => (new ReadResource)->handle(new JsonRpcRequest(1, 'resources/read', ['uri' => $uri]), $context))
+        ->toThrow(JsonRpcException::class, 'The uri field must be a string.');
+})->with([
+    'array' => [['x']],
+    'int' => [1],
 ]);

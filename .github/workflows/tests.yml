@@ -24,10 +24,8 @@ jobs:
       matrix:
         os: [ ubuntu-22.04, windows-latest ]
         php: [8.2, 8.3, 8.4, 8.5]
-        laravel: [11, 12, 13]
+        laravel: [12, 13]
         exclude:
-          - php: 8.5
-            laravel: 11
           - php: 8.2
             laravel: 13
 
@@ -45,7 +43,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup PHP
-        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
           php-version: ${{ matrix.php }}
           extensions: dom, curl, libxml, mbstring, zip, fileinfo, pdo_sqlite, sqlite3

@@ -260,3 +260,30 @@ it('omits the name header when the body carries no usable name', function (): vo
         ->and($request->requiresName())->toBeTrue()
         ->and($request->name())->toBeNull();
 });
+
+it('validates params and returns the validated data', function (): void {
+    $request = new JsonRpcRequest(1, 'tools/list', ['cursor' => 'abc']);
+
+    expect($request->validate(['cursor' => ['nullable', 'string']]))->toBe(['cursor' => 'abc']);
+});
+
+it('throws invalid params carrying the request id when validation fails', function (): void {
+    $request = new JsonRpcRequest(7, 'tools/list', ['cursor' => 1]);
+
+    try {
+        $request->validate(['cursor' => ['nullable', 'string']]);
+    } catch (JsonRpcException $jsonRpcException) {
+        expect($jsonRpcException->toJsonRpcResponse()->toArray())->toBe([
+            'jsonrpc' => '2.0',
+            'id' => 7,
+            'error' => [
+                'code' => -32602,
+                'message' => 'The cursor field must be a string.',
+            ],
+        ]);
+
+        return;
+    }
+
+    $this->fail('Expected a JsonRpcException.');
+});

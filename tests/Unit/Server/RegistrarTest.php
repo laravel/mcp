@@ -387,6 +387,27 @@ it('rejects non-string redirect URIs before creating a client', function (): voi
     $this->assertDatabaseCount('oauth_clients', 0);
 });
 
+it('rejects too many or too long redirect URIs before creating a client', function (array $redirectUris): void {
+    prepareOauthRegistration();
+
+    $this->postJson('/oauth/register', [
+        'redirect_uris' => $redirectUris,
+    ])->assertBadRequest()->assertJson(['error' => 'invalid_redirect_uri']);
+
+    $this->assertDatabaseCount('oauth_clients', 0);
+})->with([
+    'too many' => [array_map(fn (int $i): string => "https://example.com/callback/{$i}", range(1, 11))],
+    'too long' => [['https://example.com/'.str_repeat('a', 1005)]],
+]);
+
+it('accepts up to ten redirect URIs', function (): void {
+    prepareOauthRegistration();
+
+    $this->postJson('/oauth/register', [
+        'redirect_uris' => array_map(fn (int $i): string => "https://example.com/callback/{$i}", range(1, 10)),
+    ])->assertCreated();
+});
+
 it('keeps redirect errors ahead of metadata errors', function (): void {
     prepareOauthRegistration();
 
@@ -572,7 +593,7 @@ it('falls back to the redirect host when no client name is provided', function (
     {
         public ?string $capturedName = null;
 
-        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false): stdClass
         {
             $this->capturedName = $name;
 
@@ -622,7 +643,7 @@ it('preserves a falsy client name for oauth registration', function (): void {
     {
         public ?string $capturedName = null;
 
-        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false): stdClass
         {
             $this->capturedName = $name;
 
@@ -654,7 +675,7 @@ it('falls back to the legacy name field for oauth registration', function (): vo
     {
         public ?string $capturedName = null;
 
-        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false): stdClass
         {
             $this->capturedName = $name;
 
@@ -686,7 +707,7 @@ it('prefers client_name over name for oauth registration', function (): void {
     {
         public ?string $capturedName = null;
 
-        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false)
+        public function createAuthorizationCodeGrantClient(string $name, array $redirectUris, bool $confidential = true, $user = null, bool $enableDeviceFlow = false): stdClass
         {
             $this->capturedName = $name;
 
@@ -923,6 +944,7 @@ it('handles oauth discovery with multi-segment paths', function (): void {
         'response_types_supported' => ['code'],
         'code_challenge_methods_supported' => ['S256'],
         'grant_types_supported' => ['authorization_code', 'refresh_token'],
+        'token_endpoint_auth_methods_supported' => ['none', 'client_secret_basic', 'client_secret_post'],
     ]);
 });
 
@@ -1152,6 +1174,7 @@ it('omits the registration endpoint from the metadata when registration is disab
         'authorization_endpoint' => url('/oauth/authorize'),
         'token_endpoint' => url('/oauth/token'),
         'scopes_supported' => ['mcp:use'],
+        'token_endpoint_auth_methods_supported' => ['none', 'client_secret_basic', 'client_secret_post'],
     ]);
 })->with([
     '/.well-known/oauth-authorization-server',

@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Exceptions;
 use Laravel\Mcp\Enums\IconTheme;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server;
@@ -13,21 +14,42 @@ use Tests\Fixtures\CustomMethodHandler;
 use Tests\Fixtures\ExampleServer;
 use Tests\Fixtures\ThrowingMethodHandler;
 
-it('answers the legacy initialize handshake', function (): void {
+it('answers the legacy initialize handshake', function (string $version): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
 
     $server->start();
 
-    ($transport->handler)(json_encode([...initializeMessage(), 'params' => ['protocolVersion' => '2025-06-18']]));
+    ($transport->handler)(json_encode([...initializeMessage(), 'params' => ['protocolVersion' => $version]]));
 
     $response = json_decode((string) $transport->sent[0], true);
 
     expect($response['id'])->toBe(456)
-        ->and($response['result']['protocolVersion'])->toBe('2025-06-18')
+        ->and($response['result']['protocolVersion'])->toBe($version)
         ->and($response['result']['serverInfo']['name'])->toBe('Laravel MCP Server')
-        ->and($response['result'])->toHaveKeys(['capabilities', 'instructions']);
-});
+        ->and($response['result'])->toHaveKeys(['capabilities', 'instructions'])
+        ->and($response['result'])->not->toHaveKeys(['resultType', '_meta']);
+
+    ($transport->handler)(json_encode(['jsonrpc' => '2.0', 'method' => 'notifications/initialized']));
+
+    expect($transport->sent)->toHaveCount(1);
+
+    ($transport->handler)(json_encode(['jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list']));
+
+    $response = json_decode((string) $transport->sent[1], true);
+
+    expect(array_column($response['result']['tools'], 'name'))->toContain('say-hi-tool');
+
+    $message = callToolMessage();
+    unset($message['params']['_meta']);
+
+    ($transport->handler)(json_encode($message));
+
+    $response = json_decode((string) $transport->sent[2], true);
+
+    expect($response['result']['content'][0]['text'])->toBe('Hello, John Doe!')
+        ->and($response['result'])->not->toHaveKeys(['resultType', '_meta']);
+})->with(['2025-11-25', '2025-06-18', '2025-03-26']);
 
 it('falls back to the latest legacy version for an unknown initialize version', function (): void {
     $transport = new ArrayTransport;
@@ -246,6 +268,29 @@ it('can handle a notification message', function (): void {
     expect($transport->sent)->toHaveCount(0);
 });
 
+it('rejects a request with a null id instead of treating it as a notification', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => null,
+        'method' => 'tools/list',
+    ]);
+
+    ($transport->handler)($payload);
+
+    expect($transport->sent)->toHaveCount(1);
+
+    $response = json_decode((string) $transport->sent[0], true);
+
+    expect($response['error']['code'])->toBe(-32600)
+        ->and($response['error']['message'])->toBe('Invalid Request: The [id] member must be a string, number.')
+        ->and($response)->not->toHaveKey('result');
+});
+
 it('can handle an unknown method', function (): void {
     $transport = new ArrayTransport;
     $server = new ExampleServer($transport);
@@ -416,7 +461,22 @@ it('answers a legacy ping message', function (): void {
 
     expect($response['id'])->toBe(789)
         ->and($response)->not->toHaveKey('error')
-        ->and($response['result'])->toBeArray();
+        ->and(json_decode((string) $transport->sent[0])->result)->toEqual(new stdClass);
+});
+
+it('answers a legacy request without the modern result fields', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    ($transport->handler)(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/list', 'params' => []]));
+
+    $result = json_decode((string) $transport->sent[0], true)['result'];
+
+    expect($result['tools'])->not->toBeEmpty()
+        ->and($result)->not->toHaveKey('resultType')
+        ->and($result)->not->toHaveKey('_meta');
 });
 
 it('lets addMethod override the built-in initialize handler', function (): void {
@@ -493,6 +553,24 @@ it('can handle a tool streaming multiple messages', function (): void {
     $messages = array_map(fn ($msg): mixed => json_decode((string) $msg, true), $transport->sent);
 
     expect($messages)->toEqual(expectedStreamingToolResponse());
+});
+
+it('streams a legacy tool call without the modern result fields', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    $message = callStreamingToolMessage();
+    unset($message['params']['_meta']);
+
+    ($transport->handler)(json_encode($message));
+
+    $result = json_decode((string) end($transport->sent), true)['result'];
+
+    expect($transport->sent)->toHaveCount(3)
+        ->and($result['content'][0]['text'])->toBe('Finished streaming 2 messages.')
+        ->and($result)->not->toHaveKeys(['resultType', '_meta']);
 });
 
 it('handles capability with non-array existing value', function (): void {
@@ -655,3 +733,139 @@ class OpinionatedMethodHandler implements Method
         ]);
     }
 }
+
+it('rejects wrongly typed params as invalid params without reporting', function (): void {
+    config()->set('app.debug', true);
+    Exceptions::fake();
+
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    ($transport->handler)(json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => ['name' => ['x'], '_meta' => protocolMeta()],
+    ]));
+
+    expect(json_decode((string) $transport->sent[0], true))->toBe([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'error' => [
+            'code' => -32602,
+            'message' => 'The name field must be a string.',
+        ],
+    ]);
+
+    Exceptions::assertNothingReported();
+});
+
+it('rejects a request body that is not a json object', function (string $body): void {
+    config()->set('app.debug', true);
+    Exceptions::fake();
+
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    ($transport->handler)($body);
+
+    expect(json_decode((string) $transport->sent[0], true))->toBe([
+        'jsonrpc' => '2.0',
+        'error' => [
+            'code' => -32600,
+            'message' => 'Invalid Request: The request must be a JSON object.',
+        ],
+    ]);
+
+    Exceptions::assertNothingReported();
+})->with(['null', '1', '"string"', 'true', '[1]', '[{"jsonrpc":"2.0","id":1,"method":"ping"}]']);
+
+it('responds with an internal error when the result cannot be encoded', function (bool $debug, mixed $value, string $message): void {
+    config()->set('app.debug', $debug);
+    Exceptions::fake();
+
+    $transport = new ArrayTransport;
+    $server = new class($transport) extends Server
+    {
+        protected array $methods = [
+            'test/method' => CustomMethodHandler::class,
+        ];
+    };
+
+    $this->app->bind(CustomMethodHandler::class, fn (): Method => new class($value) implements Method
+    {
+        public function __construct(private mixed $value) {}
+
+        public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
+        {
+            return JsonRpcResponse::result($request->id, ['value' => $this->value]);
+        }
+    });
+
+    $server->start();
+
+    ($transport->handler)(json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 999,
+        'method' => 'test/method',
+        'params' => ['_meta' => protocolMeta()],
+    ]));
+
+    expect(json_decode((string) $transport->sent[0], true))->toBe([
+        'jsonrpc' => '2.0',
+        'id' => 999,
+        'error' => [
+            'code' => -32603,
+            'message' => $message,
+        ],
+    ]);
+
+    Exceptions::assertReported(JsonException::class);
+})->with([
+    'invalid utf-8' => [false, "caf\xe9", 'Something went wrong while processing the request.'],
+    'nan' => [false, NAN, 'Something went wrong while processing the request.'],
+    'invalid utf-8 in debug' => [true, "caf\xe9", 'Malformed UTF-8 characters, possibly incorrectly encoded'],
+]);
+
+it('drops a streamed notification that cannot be encoded and still sends the result', function (): void {
+    Exceptions::fake();
+
+    $transport = new ArrayTransport;
+    $server = new class($transport) extends Server
+    {
+        protected array $methods = [
+            'test/method' => CustomMethodHandler::class,
+        ];
+    };
+
+    $this->app->bind(CustomMethodHandler::class, fn (): Method => new class implements Method
+    {
+        public function handle(JsonRpcRequest $request, ServerContext $context): iterable
+        {
+            yield JsonRpcResponse::notification('notifications/progress', ['progress' => NAN]);
+            yield JsonRpcResponse::result($request->id, ['value' => 'ok']);
+        }
+    });
+
+    $server->start();
+
+    ($transport->handler)(json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 999,
+        'method' => 'test/method',
+        'params' => ['_meta' => protocolMeta()],
+    ]));
+
+    expect($transport->sent)->toHaveCount(1);
+
+    $response = json_decode((string) $transport->sent[0], true);
+
+    expect($response['id'])->toBe(999)
+        ->and($response['result']['value'])->toBe('ok');
+
+    Exceptions::assertReported(JsonException::class);
+});

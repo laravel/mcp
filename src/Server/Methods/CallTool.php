@@ -22,6 +22,10 @@ class CallTool implements Errable, Method
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
+        $request->validate([
+            'name' => ['nullable', 'string'],
+        ]);
+
         if (is_null($request->get('name'))) {
             throw new JsonRpcException(
                 'Missing [name] parameter.',
@@ -34,7 +38,7 @@ class CallTool implements Errable, Method
             ->tools()
             ->first(
                 fn ($tool): bool => $tool->name() === $request->params['name'],
-                fn () => throw new JsonRpcException(
+                fn (): never => throw new JsonRpcException(
                     "Tool [{$request->params['name']}] not found.",
                     -32602,
                     $request->id,

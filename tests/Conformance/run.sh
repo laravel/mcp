@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-CONFORMANCE="${CONFORMANCE_PACKAGE:-@modelcontextprotocol/conformance@alpha}"
+CONFORMANCE="${CONFORMANCE_PACKAGE:-@modelcontextprotocol/conformance@0.2.0-alpha.12}"
 REVISION="${CONFORMANCE_REVISION:-2026-07-28}"
 PORT="${CONFORMANCE_PORT:-8001}"
 

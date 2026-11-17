@@ -17,6 +17,7 @@ use Laravel\Mcp\Console\Commands\MakeServerCommand;
 use Laravel\Mcp\Console\Commands\MakeToolCommand;
 use Laravel\Mcp\Console\Commands\StartCommand;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Server\Middleware\AddAuthorizationFramingHeaders;
 use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
 
 class McpServiceProvider extends ServiceProvider
@@ -52,6 +53,7 @@ class McpServiceProvider extends ServiceProvider
         $this->callAfterResolving(HttpKernelContract::class, function (mixed $kernel): void {
             if ($kernel instanceof HttpKernel) {
                 $kernel->pushMiddleware(AddWwwAuthenticateHeader::class);
+                $kernel->pushMiddleware(AddAuthorizationFramingHeaders::class);
             }
         });
     }

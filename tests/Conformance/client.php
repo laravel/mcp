@@ -43,14 +43,23 @@ try {
 
     $log(sprintf('listed %d tools', $tools->count()));
 
-    if ($scenario !== 'initialize') {
-        $tool = $tools->first();
+    $context = json_decode(getenv('MCP_CONFORMANCE_CONTEXT') ?: '{}', true) ?: [];
 
-        if ($tool !== null) {
-            $client->callTool($tool);
+    $calls = match (true) {
+        isset($context['toolCalls']) => $context['toolCalls'],
+        $scenario === 'tools_call' => [['name' => 'add_numbers', 'arguments' => ['a' => 1, 'b' => 2]]],
+        $scenario === 'json-schema-2020-12-preservation' => [[
+            'name' => 'json_schema_echo',
+            'arguments' => ['schema' => $tools->firstWhere('name', 'json_schema_2020_12_tool')?->inputSchema],
+        ]],
+        $scenario === 'initialize' || $tools->isEmpty() => [],
+        default => [['name' => $tools->first()->name, 'arguments' => []]],
+    };
 
-            $log(sprintf('called tool %s', $tool->name));
-        }
+    foreach ($calls as $call) {
+        $client->callTool($tools->firstWhere('name', $call['name']) ?? $call['name'], $call['arguments'] ?? []);
+
+        $log(sprintf('called tool %s', $call['name']));
     }
 
     $client->disconnect();

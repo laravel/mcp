@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Transport;
 
+use JsonException;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 
 class JsonRpcNotification
@@ -57,8 +58,11 @@ class JsonRpcNotification
         ];
     }
 
+    /**
+     * @throws JsonException
+     */
     public function toJson(int $options = 0): string
     {
-        return json_encode($this->toArray(), $options | JSON_UNESCAPED_UNICODE) ?: '';
+        return json_encode($this->toArray(), $options | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     }
 }

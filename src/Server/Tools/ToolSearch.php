@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Tools;
 
 use Illuminate\Container\Container;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use JsonException;
@@ -77,7 +78,7 @@ class ToolSearch
                     $score += str_contains($schemaText, $term) ? 1 : 0;
                 }
 
-                $annotations = $definition['annotations'] ?? [];
+                $annotations = $tool->annotations();
 
                 return [
                     'index' => $index,
@@ -86,7 +87,7 @@ class ToolSearch
                         'name' => $tool->name(),
                         'description' => $tool->description(),
                         'inputSchema' => $schema,
-                        ...is_array($annotations) && $annotations !== [] ? ['annotations' => $annotations] : [],
+                        ...$annotations !== [] ? ['annotations' => $annotations] : [],
                     ],
                 ];
             })
@@ -166,8 +167,10 @@ class ToolSearch
     {
         $params = ['name' => $name, 'arguments' => $arguments];
 
-        if ($parentRequest->meta() !== null) {
-            $params['_meta'] = $parentRequest->meta();
+        $meta = Arr::except($parentRequest->meta() ?? [], 'progressToken');
+
+        if ($meta !== []) {
+            $params['_meta'] = $meta;
         }
 
         $request = new JsonRpcRequest(

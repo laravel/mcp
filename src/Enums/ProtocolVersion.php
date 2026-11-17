@@ -44,6 +44,7 @@ enum ProtocolVersion: string
         return [
             self::V2025_11_25->value,
             self::V2025_06_18->value,
+            self::V2025_03_26->value,
         ];
     }
 
