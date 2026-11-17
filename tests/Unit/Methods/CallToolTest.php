@@ -941,6 +941,14 @@ it('returns an embedded resource content block in the wire payload', function ()
                 [
                     'type' => 'resource',
                     'resource' => [
+                        'uri' => 'file://resources/daily-plan.md',
+                        'mimeType' => 'text/markdown',
+                        'text' => "# Daily Plan\n\n- [ ] Task 1\n- [ ] Task 2\n- [ ] Task 3",
+                    ],
+                ],
+                [
+                    'type' => 'resource',
+                    'resource' => [
                         'uri' => 'file:///notes/standup.md',
                         'mimeType' => 'text/markdown',
                         'text' => '# Standup',

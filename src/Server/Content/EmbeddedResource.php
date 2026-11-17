@@ -16,17 +16,19 @@ class EmbeddedResource implements Content
     use HasMeta;
 
     /**
+     * @param  array<string, mixed>  $resource
      * @param  array<string, mixed>  $annotations
      */
     public function __construct(
-        protected string $uri,
-        protected ?string $text = null,
-        protected ?string $blob = null,
-        protected ?string $mimeType = null,
+        protected array $resource,
         protected array $annotations = [],
     ) {
-        if (($text === null) === ($blob === null)) {
-            throw new InvalidArgumentException('Embedded resources require either text or blob content, but not both.');
+        if (! is_string($resource['uri'] ?? null)) {
+            throw new InvalidArgumentException('Embedded resource contents require a [uri].');
+        }
+
+        if (array_key_exists('text', $resource) === array_key_exists('blob', $resource)) {
+            throw new InvalidArgumentException('Embedded resource contents require either [text] or [blob], but not both.');
         }
     }
 
@@ -58,7 +60,7 @@ class EmbeddedResource implements Content
 
     public function __toString(): string
     {
-        return $this->text ?? (string) $this->blob;
+        return (string) ($this->resource['text'] ?? $this->resource['uri']);
     }
 
     /**
@@ -68,12 +70,7 @@ class EmbeddedResource implements Content
     {
         $data = [
             'type' => 'resource',
-            'resource' => array_filter([
-                'uri' => $this->uri,
-                'mimeType' => $this->mimeType,
-                'text' => $this->text,
-                'blob' => $this->blob === null ? null : base64_encode($this->blob),
-            ], fn (mixed $value): bool => $value !== null),
+            'resource' => $this->resource,
         ];
 
         if ($this->annotations !== []) {

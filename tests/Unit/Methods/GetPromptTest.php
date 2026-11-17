@@ -410,7 +410,7 @@ it('returns embedded resources in prompt messages', function (): void {
         {
             return Response::make([
                 Response::text('Summarize these notes.'),
-                Response::embeddedResource('file:///notes/standup.md', text: '# Standup', mimeType: 'text/markdown'),
+                Response::text('# Standup')->asResource('file:///notes/standup.md', 'text/markdown'),
             ]);
         }
     };
