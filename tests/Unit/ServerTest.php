@@ -27,7 +27,8 @@ it('answers the legacy initialize handshake', function (string $version): void {
     expect($response['id'])->toBe(456)
         ->and($response['result']['protocolVersion'])->toBe($version)
         ->and($response['result']['serverInfo']['name'])->toBe('Laravel MCP Server')
-        ->and($response['result'])->toHaveKeys(['capabilities', 'instructions']);
+        ->and($response['result'])->toHaveKeys(['capabilities', 'instructions'])
+        ->and($response['result'])->not->toHaveKeys(['resultType', '_meta']);
 
     ($transport->handler)(json_encode(['jsonrpc' => '2.0', 'method' => 'notifications/initialized']));
 
@@ -46,7 +47,8 @@ it('answers the legacy initialize handshake', function (string $version): void {
 
     $response = json_decode((string) $transport->sent[2], true);
 
-    expect($response['result']['content'][0]['text'])->toBe('Hello, John Doe!');
+    expect($response['result']['content'][0]['text'])->toBe('Hello, John Doe!')
+        ->and($response['result'])->not->toHaveKeys(['resultType', '_meta']);
 })->with(['2025-11-25', '2025-06-18', '2025-03-26']);
 
 it('falls back to the latest legacy version for an unknown initialize version', function (): void {
@@ -459,7 +461,7 @@ it('answers a legacy ping message', function (): void {
 
     expect($response['id'])->toBe(789)
         ->and($response)->not->toHaveKey('error')
-        ->and($transport->sent[0])->toContain('"result":{}');
+        ->and(json_decode((string) $transport->sent[0])->result)->toEqual(new stdClass);
 });
 
 it('answers a legacy request without the modern result fields', function (): void {
@@ -551,6 +553,24 @@ it('can handle a tool streaming multiple messages', function (): void {
     $messages = array_map(fn ($msg): mixed => json_decode((string) $msg, true), $transport->sent);
 
     expect($messages)->toEqual(expectedStreamingToolResponse());
+});
+
+it('streams a legacy tool call without the modern result fields', function (): void {
+    $transport = new ArrayTransport;
+    $server = new ExampleServer($transport);
+
+    $server->start();
+
+    $message = callStreamingToolMessage();
+    unset($message['params']['_meta']);
+
+    ($transport->handler)(json_encode($message));
+
+    $result = json_decode((string) end($transport->sent), true)['result'];
+
+    expect($transport->sent)->toHaveCount(3)
+        ->and($result['content'][0]['text'])->toBe('Finished streaming 2 messages.')
+        ->and($result)->not->toHaveKeys(['resultType', '_meta']);
 });
 
 it('handles capability with non-array existing value', function (): void {
