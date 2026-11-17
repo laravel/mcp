@@ -131,6 +131,8 @@ it('applies should register to skill classes and instances', function (Closure $
 ]);
 
 it('resolves relative skill paths from the resources path', function (): void {
+    $this->beforeApplicationDestroyed(lockSharedFilesystem());
+
     $files = new Filesystem;
     $files->copyDirectory(fixtureSkillPath(), resource_path('skills/release-checklist'));
 
