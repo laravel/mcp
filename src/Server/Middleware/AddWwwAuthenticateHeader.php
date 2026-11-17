@@ -55,12 +55,14 @@ class AddWwwAuthenticateHeader
             }
         }
 
-        if (! app('router')->has('mcp.oauth.protected-resource.nested')) {
+        $metadata = app('router')->getRoutes()->getByName('mcp.oauth.protected-resource.nested');
+
+        if (! $metadata instanceof Route) {
             return null;
         }
 
         return route('mcp.oauth.protected-resource.nested', [
-            ...Arr::only($route->originalParameters(), $route->getCompiled()?->getHostVariables() ?? []),
+            ...Arr::only($route->originalParameters(), array_diff($metadata->parameterNames(), ['path'])),
             'path' => $request->path(),
         ]);
     }

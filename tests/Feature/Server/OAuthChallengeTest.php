@@ -96,6 +96,18 @@ it('challenges with the host parameters of the route', function (): void {
         ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="http://globex.example.com/.well-known/oauth-protected-resource/tenant-mcp"');
 });
 
+it('does not leak host parameters the metadata route does not declare', function (): void {
+    Route::domain('example.com')->group(fn () => app(Registrar::class)->oauthRoutes());
+
+    Route::domain('{tenant}.example.com')->group(function (): void {
+        Mcp::web('tenant-mcp', ExampleServer::class)->middleware(Authenticate::class);
+    });
+
+    $this->postJson('http://acme.example.com/tenant-mcp', [])
+        ->assertStatus(401)
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="http://example.com/.well-known/oauth-protected-resource/tenant-mcp"');
+});
+
 it('does not challenge on routes that are not mcp servers', function (): void {
     Route::middleware(Authenticate::class)->post('not-mcp', fn () => response()->json([]));
 
