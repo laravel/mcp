@@ -35,6 +35,10 @@ class ReadResource implements Method
      */
     public function handle(JsonRpcRequest $request, ServerContext $context): Generator|JsonRpcResponse
     {
+        $request->validate([
+            'uri' => ['nullable', 'string'],
+        ]);
+
         $uri = $request->get('uri');
 
         try {
@@ -44,6 +48,7 @@ class ReadResource implements Method
                 $invalidArgumentException->getMessage(),
                 ErrorCode::INVALID_PARAMS->value,
                 $request->id,
+                is_string($uri) && $uri !== '' ? ['uri' => $uri] : null,
             );
         }
 

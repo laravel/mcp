@@ -902,3 +902,90 @@ it('returns a resource link content block in the wire payload', function (): voi
             'isError' => false,
         ]);
 });
+
+it('rejects a wrongly typed name parameter', function (mixed $name): void {
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        implementation: new Implementation('Test Server', '1.0.0'),
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [],
+        resources: [],
+        prompts: [],
+    );
+
+    expect(fn (): mixed => (new CallTool)->handle(new JsonRpcRequest(1, 'tools/call', ['name' => $name]), $context))
+        ->toThrow(JsonRpcException::class, 'The name field must be a string.');
+})->with([
+    'array' => [['x']],
+    'int' => [1],
+]);
+
+it('sends progress notifications with the request progress token', function (?array $meta, array $expected): void {
+    $tool = new class extends Tool
+    {
+        protected string $description = 'Progress tool';
+
+        public function handle(Request $request): Generator
+        {
+            yield Response::progress(1, total: 2, message: 'Halfway');
+
+            yield Response::progress(2.5);
+
+            yield Response::notification('notifications/progress', ['progressToken' => 'forged', 'progress' => 3]);
+
+            yield Response::text('Done');
+        }
+    };
+
+    $this->instance($tool::class, $tool);
+
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => $tool->name(),
+            'arguments' => [],
+            ...$meta === null ? [] : ['_meta' => $meta],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        implementation: new Implementation('Test Server', '1.0.0'),
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [$tool::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $this->instance('mcp.request', $request->toRequest());
+
+    $messages = array_map(
+        fn (JsonRpcResponse $response): array => $response->toArray(),
+        iterator_to_array((new CallTool)->handle($request, $context)),
+    );
+
+    expect(array_slice($messages, 0, -1))->toBe($expected)
+        ->and(end($messages)['result']['content'])->toBe([['type' => 'text', 'text' => 'Done']]);
+})->with([
+    'string token' => [['progressToken' => 'abc'], [
+        ['jsonrpc' => '2.0', 'method' => 'notifications/progress', 'params' => ['progressToken' => 'abc', 'progress' => 1, 'total' => 2, 'message' => 'Halfway']],
+        ['jsonrpc' => '2.0', 'method' => 'notifications/progress', 'params' => ['progressToken' => 'abc', 'progress' => 2.5]],
+        ['jsonrpc' => '2.0', 'method' => 'notifications/progress', 'params' => ['progressToken' => 'abc', 'progress' => 3]],
+    ]],
+    'integer token' => [['progressToken' => 0], [
+        ['jsonrpc' => '2.0', 'method' => 'notifications/progress', 'params' => ['progressToken' => 0, 'progress' => 1, 'total' => 2, 'message' => 'Halfway']],
+        ['jsonrpc' => '2.0', 'method' => 'notifications/progress', 'params' => ['progressToken' => 0, 'progress' => 2.5]],
+        ['jsonrpc' => '2.0', 'method' => 'notifications/progress', 'params' => ['progressToken' => 0, 'progress' => 3]],
+    ]],
+    'no token' => [null, []],
+    'boolean token' => [['progressToken' => true], []],
+    'array token' => [['progressToken' => ['abc']], []],
+]);

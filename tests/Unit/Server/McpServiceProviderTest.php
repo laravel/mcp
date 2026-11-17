@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use Illuminate\Contracts\Http\Kernel;
 use Laravel\Mcp\Server\McpServiceProvider;
+use Laravel\Mcp\Server\Middleware\AddAuthorizationFramingHeaders;
 use Laravel\Passport\Passport;
 
 it('registers mcp scope during boot', function (): void {
@@ -20,4 +22,8 @@ it('registers mcp scope during boot', function (): void {
 
     expect(Passport::$scopes)->toHaveKey('mcp:use');
     expect(Passport::$scopes['custom'])->toBe('Custom scope');
+});
+
+it('registers the authorization framing middleware globally', function (): void {
+    expect(app(Kernel::class)->hasMiddleware(AddAuthorizationFramingHeaders::class))->toBeTrue();
 });

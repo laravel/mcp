@@ -51,13 +51,16 @@ abstract class Tool extends Primitive
      *     description?: string|null,
      *     inputSchema?: array<string, mixed>,
      *     outputSchema?: array<string, mixed>,
-     *     annotations?: array<string, mixed>|object,
+     *     annotations?: array<string, mixed>,
      *     _meta?: array<string, mixed>
      * }
      */
     public function toArray(): array
     {
-        $annotations = $this->annotations();
+        $annotations = [
+            'title' => $this->title(),
+            ...$this->annotations(),
+        ];
 
         $schema = JsonSchemaFactory::object(
             $this->schema(...),
@@ -74,7 +77,7 @@ abstract class Tool extends Primitive
             'title' => $this->title(),
             'description' => $this->description(),
             'inputSchema' => $schema,
-            'annotations' => $annotations === [] ? (object) [] : $annotations,
+            'annotations' => $annotations,
         ];
 
         if (isset($outputSchema['properties'])) {

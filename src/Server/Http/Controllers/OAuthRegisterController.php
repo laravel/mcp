@@ -27,8 +27,8 @@ class OAuthRegisterController
         $validator = Validator::make($request->all(), [
             'client_name' => ['nullable', 'string', 'min:1', 'max:255'],
             'name' => ['nullable', 'string', 'min:1', 'max:255'],
-            'redirect_uris' => ['required', 'array', 'min:1'],
-            'redirect_uris.*' => ['bail', 'required', 'string', function (string $attribute, $value, $fail): void {
+            'redirect_uris' => ['required', 'array', 'min:1', 'max:10'],
+            'redirect_uris.*' => ['bail', 'required', 'string', 'max:1024', function (string $attribute, $value, $fail): void {
                 if (! $this->isValidRedirectUri($value)) {
                     $fail($attribute.' is not a valid URL.');
 

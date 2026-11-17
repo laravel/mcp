@@ -25,7 +25,7 @@ class WebClient extends Client
     }
 
     /**
-     * @param  string|Closure(): string  $token
+     * @param  string|Closure(): ?string  $token
      */
     public function withToken(#[SensitiveParameter] string|Closure $token): static
     {
@@ -83,6 +83,7 @@ class WebClient extends Client
             clientIdMetadataUrl: $this->name === null
                 ? null
                 : $this->canonicalRouteUrl("mcp.oauth.{$this->name}.client-metadata"),
+            resourceHeaders: $this->httpTransport->customHeaders(),
         );
     }
 

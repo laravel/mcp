@@ -4,7 +4,14 @@
         createMcpApp(async (app) => {
             document.getElementById('run-btn').addEventListener('click', async () => {
                 const result = await app.callServerTool('tool-name', {});
-                document.getElementById('output').textContent = result.content[0]?.text ?? '';
+                const output = document.getElementById('output');
+
+                if (result.isError) {
+                    output.textContent = `Error: ${result.content[0]?.text ?? 'Unknown error'}`;
+                    return;
+                }
+
+                output.textContent = result.content[0]?.text ?? '';
             });
         });
         </script>

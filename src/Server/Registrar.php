@@ -20,6 +20,7 @@ use Laravel\Mcp\Server\Http\Controllers\OAuthRegisterController;
 use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
 use Laravel\Mcp\Server\Middleware\ReorderJsonAccept;
 use Laravel\Mcp\Server\Middleware\ValidateMcpHeaders;
+use Laravel\Mcp\Server\Middleware\ValidateOrigin;
 use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Server\Transport\StdioTransport;
 use Laravel\Passport\Passport;
@@ -42,14 +43,17 @@ class Registrar
     public function web(string $route, string $serverClass): Route
     {
         // https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#listening-for-messages-from-the-server
-        Router::get($route, fn (): Response => response('', 405)->header('Allow', 'POST'));
+        Router::get($route, fn (): Response => response('', 405)->header('Allow', 'POST'))
+            ->middleware(ValidateOrigin::class);
 
-        Router::delete($route, fn (): Response => response('', 405)->header('Allow', 'POST'));
+        Router::delete($route, fn (): Response => response('', 405)->header('Allow', 'POST'))
+            ->middleware(ValidateOrigin::class);
 
         $route = Router::post($route, static fn (): mixed => static::startServer(
             $serverClass,
             static fn (): HttpTransport => new HttpTransport(request()),
         ))->middleware([
+            ValidateOrigin::class,
             ReorderJsonAccept::class,
             ValidateMcpHeaders::class,
             AddWwwAuthenticateHeader::class,
@@ -169,6 +173,7 @@ class Registrar
             'code_challenge_methods_supported' => ['S256'],
             'scopes_supported' => [self::OAUTH_SCOPE],
             'grant_types_supported' => ['authorization_code', 'refresh_token'],
+            'token_endpoint_auth_methods_supported' => ['none', 'client_secret_basic', 'client_secret_post'],
         ], fn (mixed $value): bool => $value !== null);
     }
 

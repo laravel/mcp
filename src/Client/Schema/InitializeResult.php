@@ -34,12 +34,13 @@ class InitializeResult
         $instructions = Arr::get($payload, 'instructions');
 
         $version = is_string($protocolVersion) ? ProtocolVersion::tryFrom($protocolVersion) : null;
+        $supported = array_intersect(ProtocolVersion::initializeSupported(), ProtocolVersion::clientSupported());
 
-        if (! $version instanceof ProtocolVersion || ! in_array($version->value, ProtocolVersion::initializeSupported(), true)) {
+        if (! $version instanceof ProtocolVersion || ! in_array($version->value, $supported, true)) {
             throw new ClientException(sprintf(
                 'The server chose protocol version [%s]. This client supports [%s].',
                 is_string($protocolVersion) ? $protocolVersion : 'none',
-                implode(', ', ProtocolVersion::initializeSupported()),
+                implode(', ', $supported),
             ));
         }
 

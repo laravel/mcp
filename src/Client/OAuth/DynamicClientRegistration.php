@@ -12,6 +12,8 @@ class DynamicClientRegistration
 {
     use InteractsWithOAuthEndpoints;
 
+    public function __construct(protected AuthServerDiscovery $discovery = new AuthServerDiscovery) {}
+
     public function register(
         string $registrationEndpoint,
         string $redirectUri,
@@ -20,7 +22,7 @@ class DynamicClientRegistration
         string $applicationType = 'web',
         TokenEndpointAuthMethod $tokenEndpointAuthMethod = TokenEndpointAuthMethod::ClientSecretPost,
     ): ClientRegistration {
-        $response = $this->oAuthRequest()
+        $response = $this->discovery->pin($this->oAuthRequest())
             ->asJson()
             ->post($registrationEndpoint, array_filter([
                 'client_name' => $clientName,

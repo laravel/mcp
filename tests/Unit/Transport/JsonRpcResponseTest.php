@@ -107,3 +107,7 @@ it('converts empty array params in notification to object', function (): void {
 
     expect($response->toJson())->toEqual($expectedJson);
 });
+
+it('throws instead of returning an empty string when the response cannot be encoded', function (): void {
+    JsonRpcResponse::result(1, ['value' => NAN])->toJson();
+})->throws(JsonException::class);

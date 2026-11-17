@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Contracts\Support\Arrayable;
+use Laravel\Mcp\Server\Attributes\AppMeta as AppMetaAttribute;
 use Laravel\Mcp\Server\Ui\AppMeta;
 use Laravel\Mcp\Server\Ui\Csp;
 use Laravel\Mcp\Server\Ui\Enums\Library;
@@ -124,4 +125,26 @@ it('returns libraries via getLibraries', function (): void {
 
     expect($meta->getLibraries())
         ->toBe([Library::Tailwind, Library::Alpine]);
+});
+
+it('uses the domain by default', function (): void {
+    expect(AppMeta::make()->usesDomain())->toBeTrue();
+});
+
+it('can be created without a domain', function (): void {
+    $meta = AppMeta::make()->domain('sandbox.example.com')->withoutDomain();
+
+    expect($meta->usesDomain())->toBeFalse()
+        ->and($meta->toArray())->not->toHaveKey('domain');
+});
+
+it('uses an explicit domain set after withoutDomain', function (): void {
+    $meta = AppMeta::make()->withoutDomain()->domain('sandbox.example.com');
+
+    expect($meta->usesDomain())->toBeTrue()
+        ->and($meta->toArray()['domain'])->toBe('sandbox.example.com');
+});
+
+it('maps domain false on the attribute to withoutDomain', function (): void {
+    expect((new AppMetaAttribute(domain: false))->toAppMeta()->usesDomain())->toBeFalse();
 });

@@ -1,0 +1,64 @@
+<?php
+
+use GuzzleHttp\ClientInterface;
+use Illuminate\Support\Facades\Http;
+use Laravel\Mcp\Client\OAuth\AuthServerDiscovery;
+use Laravel\Mcp\Client\OAuth\DynamicClientRegistration;
+
+it('limits discovery requests to http and https with a capped response size', function (): void {
+    $options = [];
+
+    Http::fake(function ($request, array $requestOptions) use (&$options): void {
+        $options[] = $requestOptions['curl'] ?? null;
+    });
+
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'token_endpoint' => 'https://auth.test/token',
+        ]),
+    ]);
+
+    (new AuthServerDiscovery)->discover('https://mcp.test/mcp');
+
+    expect($options)->toHaveCount(2)->each->toMatchArray([
+        CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+        CURLOPT_MAXFILESIZE => 1_048_576,
+    ]);
+})->skip(ClientInterface::MAJOR_VERSION >= 8, 'Guzzle 8 rejects these cURL options.');
+
+it('limits registration requests to http and https', function (): void {
+    $options = null;
+
+    Http::fake(function ($request, array $requestOptions) use (&$options): void {
+        $options = $requestOptions['curl'] ?? null;
+    });
+
+    Http::fake(['https://auth.test/register' => Http::response(['client_id' => 'client-1'])]);
+
+    (new DynamicClientRegistration)->register('https://auth.test/register', 'https://app.test/callback');
+
+    expect($options[CURLOPT_PROTOCOLS])->toBe(CURLPROTO_HTTP | CURLPROTO_HTTPS);
+})->skip(ClientInterface::MAJOR_VERSION >= 8, 'Guzzle 8 rejects these cURL options.');
+
+it('limits requests to http and https with a capped response size on guzzle 8', function (): void {
+    $options = null;
+
+    Http::fake(function ($request, array $requestOptions) use (&$options): void {
+        $options = $requestOptions;
+    });
+
+    Http::fake(['https://auth.test/register' => Http::response(['client_id' => 'client-1'])]);
+
+    (new DynamicClientRegistration)->register('https://auth.test/register', 'https://app.test/callback');
+
+    expect($options)->not->toHaveKey('curl')
+        ->and($options['protocols'])->toBe(['http', 'https'])
+        ->and($options['progress'](0, 1_048_576, 0, 0))->toBeFalse()
+        ->and($options['progress'](0, 1_048_577, 0, 0))->toBeTrue()
+        ->and($options['progress'](1_048_577, 0, 0, 0))->toBeTrue();
+})->skip(ClientInterface::MAJOR_VERSION < 8, 'Guzzle 7 uses raw cURL options.');

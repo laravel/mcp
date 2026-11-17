@@ -389,3 +389,20 @@ it('passes empty context when context is not provided', function (): void {
         ->and($response->toArray()['result']['completion']['values'])
         ->toBe(['test']);
 });
+
+it('rejects wrongly typed completion params', function (array $params, string $message): void {
+    $server = new CompletionMethodTestServer(new FakeTransporter);
+
+    expect(fn (): mixed => (new CompletionComplete)->handle(new JsonRpcRequest('1', 'completion/complete', $params), $server->createContext()))
+        ->toThrow(JsonRpcException::class, $message);
+})->with([
+    'ref' => [['ref' => 'x', 'argument' => ['name' => 'a']], 'The ref field must be an array.'],
+    'argument' => [['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => 'x'], 'The argument field must be an array.'],
+    'ref name' => [['ref' => ['type' => 'ref/prompt', 'name' => ['x']], 'argument' => ['name' => 'a']], 'The ref.name field must be a string.'],
+    'ref uri' => [['ref' => ['type' => 'ref/resource', 'uri' => 1], 'argument' => ['name' => 'a']], 'The ref.uri field must be a string.'],
+    'argument name' => [['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => ['name' => 1]], 'The argument.name field must be a string.'],
+    'argument value' => [['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => ['name' => 'a', 'value' => ['x']]], 'The argument.value field must be a string.'],
+    'context' => [['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => ['name' => 'a'], 'context' => 'x'], 'The context field must be an array.'],
+    'context arguments' => [['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => ['name' => 'a'], 'context' => ['arguments' => 'x']], 'The context.arguments field must be an array.'],
+    'context argument value' => [['ref' => ['type' => 'ref/prompt', 'name' => 'p'], 'argument' => ['name' => 'a'], 'context' => ['arguments' => ['b' => ['x']]]], 'The context.arguments.b field must be a string.'],
+]);
