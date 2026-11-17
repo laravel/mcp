@@ -22,7 +22,7 @@ class ListResources implements Method
         ]);
 
         $paginator = new CursorPaginator(
-            items: $context->resources()->reject(fn (Resource $resource): bool => $resource instanceof SkillResource && ! $resource->listed()),
+            items: $context->resources()->reject(fn (Resource $resource): bool => $resource instanceof SkillResource && $resource->file !== 'SKILL.md'),
             perPage: $context->perPage($request->get('per_page')),
             cursor: $request->cursor(),
         );

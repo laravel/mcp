@@ -5,14 +5,13 @@ use Laravel\Mcp\Server\Contracts\Annotation;
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Testing\TestListResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
-use Laravel\Mcp\Server\Testing\TestSkillResponse;
 use Symfony\Component\Console\Attribute\AsCommand;
 
 arch('strict and safe')
     ->expect('Laravel\Mcp')
     ->toUseStrictTypes()
     ->not->toUse(['die', 'dd', 'dump', 'var_dump'])
-    ->ignoring([TestResponse::class, TestListResponse::class, TestSkillResponse::class]);
+    ->ignoring([TestResponse::class, TestListResponse::class]);
 
 arch('mcp methods extend base class')
     ->expect('Laravel\Mcp\Server\Methods')

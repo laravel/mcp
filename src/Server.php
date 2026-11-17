@@ -45,7 +45,6 @@ use Laravel\Mcp\Server\Skill;
 use Laravel\Mcp\Server\Testing\PendingTestResponse;
 use Laravel\Mcp\Server\Testing\TestListResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
-use Laravel\Mcp\Server\Testing\TestSkillResponse;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Transport\JsonRpcNotification;
@@ -290,8 +289,8 @@ abstract class Server
             tools: $this->tools,
             resources: $this->resources,
             prompts: $this->prompts,
-            skills: $this->skills,
             headers: $this->transport instanceof HttpTransport ? $this->transport->headers() : null,
+            skills: $this->skills,
         );
     }
 
@@ -494,26 +493,20 @@ abstract class Server
 
     protected function detectSkillsCapability(): void
     {
-        $declared = in_array(Extension::Skills, $this->extensions, true);
-
-        if (! $declared && $this->skills === []) {
+        if ($this->skills === []) {
             return;
         }
 
-        if (! $declared) {
-            $this->extensions[] = Extension::Skills;
-        }
-
+        $this->extensions[] = Extension::Skills;
         $this->capabilities[self::CAPABILITY_RESOURCES] ??= (object) [];
-
-        $this->methods['skills/list'] ??= ListSkills::class;
-        $this->methods['skills/get'] ??= GetSkill::class;
+        $this->methods['skills/list'] = ListSkills::class;
+        $this->methods['skills/get'] = GetSkill::class;
     }
 
     /**
      * @param  array<array-key, mixed>  $arguments
      */
-    public static function __callStatic(string $name, array $arguments): PendingTestResponse|TestResponse|TestListResponse|TestSkillResponse
+    public static function __callStatic(string $name, array $arguments): PendingTestResponse|TestResponse|TestListResponse
     {
         $pendingTestResponse = new PendingTestResponse(
             Container::getInstance(),

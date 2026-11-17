@@ -18,18 +18,12 @@ class GetSkill implements Method
     {
         $uri = $request->get('uri');
 
-        if (! is_string($uri) || $uri === '') {
-            throw new JsonRpcException('The [uri] parameter must be a non-empty string.', ErrorCode::INVALID_PARAMS->value, $request->id);
-        }
-
         $skill = $context->skills()->first(fn (Skill $skill): bool => $skill->uri() === $uri);
 
-        $manifest = $skill instanceof Skill ? $context->skillCatalog()->manifest($skill) : null;
-
-        if ($manifest === null) {
-            throw new JsonRpcException("Skill [{$uri}] not found.", ErrorCode::INVALID_PARAMS->value, $request->id);
+        if (! $skill instanceof Skill) {
+            throw new JsonRpcException('The [uri] parameter must be the URI of a registered skill.', ErrorCode::INVALID_PARAMS->value, $request->id);
         }
 
-        return JsonRpcResponse::result($request->id, ['skill' => $manifest]);
+        return JsonRpcResponse::result($request->id, ['skill' => $skill->toArray()]);
     }
 }

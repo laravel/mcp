@@ -6,10 +6,6 @@ compatibility: Requires a project with a changelog.
 metadata:
   version: "1.0"
 allowed-tools: Read
-custom:
-  enabled: true
-  options: {}
-  steps: []
 ---
 
 # Release checklist

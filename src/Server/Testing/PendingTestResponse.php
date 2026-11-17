@@ -13,8 +13,6 @@ use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Primitive;
 use Laravel\Mcp\Server\Prompt;
 use Laravel\Mcp\Server\Resource;
-use Laravel\Mcp\Server\Skill;
-use Laravel\Mcp\Server\Skills\SkillResource;
 use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Support\UriTemplate;
@@ -158,39 +156,6 @@ class PendingTestResponse
     }
 
     /**
-     * @param  Skill|class-string<Skill>|string  $skill
-     */
-    public function skill(Skill|string $skill): TestSkillResponse
-    {
-        $uri = $this->skillUri($skill);
-        $server = $this->initializeServer();
-
-        $response = $this->executeRequest($server, new JsonRpcRequest(uniqid(), 'skills/get', ['uri' => $uri]));
-
-        if (! $response instanceof JsonRpcResponse) {
-            throw new InvalidArgumentException('Expected a JsonRpcResponse for [skills/get].');
-        }
-
-        return new TestSkillResponse($uri, $response);
-    }
-
-    /**
-     * @param  Skill|class-string<Skill>|string  $skill
-     */
-    public function skillFile(Skill|string $skill, string $file = 'SKILL.md'): TestResponse
-    {
-        $skill = is_string($skill) && str_contains($skill, '://')
-            ? $this->initializeServer()->createContext()->skills()->first(fn (Skill $registered): bool => $registered->uri() === $skill)
-            : $this->resolveSkill($skill);
-
-        if (! $skill instanceof Skill) {
-            throw new InvalidArgumentException('The skill is not registered on the server.');
-        }
-
-        return $this->run('resources/read', new SkillResource($skill, $file, basename($file), ''));
-    }
-
-    /**
      * @param  class-string<Primitive>|Primitive  $primitive
      * @param  array<string, mixed>  $currentArgs
      */
@@ -238,20 +203,6 @@ class PendingTestResponse
                 'uri' => $primitive->uri(),
             ],
             default => throw new InvalidArgumentException('Unsupported primitive type for completion.'),
-        };
-    }
-
-    protected function skillUri(Skill|string $skill): string
-    {
-        return is_string($skill) && str_contains($skill, '://') ? $skill : $this->resolveSkill($skill)->uri();
-    }
-
-    protected function resolveSkill(Skill|string $skill): Skill
-    {
-        return match (true) {
-            $skill instanceof Skill => $skill,
-            is_subclass_of($skill, Skill::class) => Container::getInstance()->make($skill),
-            default => throw new InvalidArgumentException("The skill [{$skill}] must be a skill URI or a Skill class."),
         };
     }
 

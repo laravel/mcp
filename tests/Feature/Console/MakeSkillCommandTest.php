@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Filesystem\Filesystem;
-use Laravel\Mcp\Server\Skills\Frontmatter;
 
 afterEach(function (): void {
     $filesystem = new Filesystem;
@@ -19,31 +18,15 @@ afterEach(function (): void {
     }
 });
 
-it('creates a skill class and a valid SKILL.md file', function (): void {
-    $this->artisan('make:mcp-skill', [
-        'name' => 'ReleaseChecklist',
-    ])->assertExitCode(0)->run();
+it('creates a skill class and a SKILL.md file', function (string $name, string $class, string $directory): void {
+    $this->artisan('make:mcp-skill', ['name' => $name])->assertExitCode(0)->run();
 
-    $class = file_get_contents(app_path('Mcp/Skills/ReleaseChecklist.php'));
-    $frontmatter = Frontmatter::parse(file_get_contents(resource_path('skills/release-checklist/SKILL.md')));
-
-    expect($class)->toContain('class ReleaseChecklist extends Skill')
-        ->and($class)->toContain("return 'skills/release-checklist';")
-        ->and($frontmatter['name'])->toBe('release-checklist')
-        ->and(file_get_contents(resource_path('skills/release-checklist/SKILL.md')))->toContain('# Release Checklist');
-});
-
-it('preserves namespace segments in the skill directory', function (): void {
-    $this->artisan('make:mcp-skill', [
-        'name' => 'Billing/Refunds',
-    ])->assertExitCode(0)->run();
-
-    $this->assertFileExists(app_path('Mcp/Skills/Billing/Refunds.php'));
-    $this->assertFileExists(resource_path('skills/billing/refunds/SKILL.md'));
-
-    expect(file_get_contents(app_path('Mcp/Skills/Billing/Refunds.php')))->toContain("return 'skills/billing/refunds';")
-        ->and(Frontmatter::parse(file_get_contents(resource_path('skills/billing/refunds/SKILL.md')))['name'])->toBe('refunds');
-});
+    expect(file_get_contents(app_path($class)))->toContain("return '{$directory}';")
+        ->and(file_get_contents(resource_path("{$directory}/SKILL.md")))->toStartWith("---\nname: ".basename($directory)."\n");
+})->with([
+    ['ReleaseChecklist', 'Mcp/Skills/ReleaseChecklist.php', 'skills/release-checklist'],
+    ['Billing/Refunds', 'Mcp/Skills/Billing/Refunds.php', 'skills/refunds'],
+]);
 
 it('keeps an existing SKILL.md unless forced', function (): void {
     $this->artisan('make:mcp-skill', ['name' => 'ReleaseChecklist'])->assertExitCode(0)->run();

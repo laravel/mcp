@@ -22,20 +22,22 @@ class MakeSkillCommand extends GeneratorCommand
 
     public function handle(): ?bool
     {
-        $result = parent::handle();
-
-        if ($result === false) {
+        if (parent::handle() === false) {
             return false;
         }
 
-        $this->createSkillFile();
+        $path = resource_path("skills/{$this->skillName()}/SKILL.md");
 
-        return $result;
-    }
+        if (! $this->files->exists($path) || $this->option('force')) {
+            $this->files->ensureDirectoryExists(dirname($path));
+            $this->files->put($path, str_replace(
+                ['{{ name }}', '{{ title }}'],
+                [$this->skillName(), Str::headline(class_basename($this->getNameInput()))],
+                $this->files->get($this->resolveStub('mcp-skill.md.stub')),
+            ));
+        }
 
-    protected function buildClass($name): string
-    {
-        return str_replace('{{ path }}', $this->getSkillDirectory(), parent::buildClass($name));
+        return null;
     }
 
     protected function getStub(): string
@@ -43,44 +45,32 @@ class MakeSkillCommand extends GeneratorCommand
         return $this->resolveStub('mcp-skill.stub');
     }
 
+    /**
+     * @param  string  $rootNamespace
+     */
     protected function getDefaultNamespace($rootNamespace): string
     {
         return "{$rootNamespace}\\Mcp\\Skills";
     }
 
-    protected function createSkillFile(): void
+    /**
+     * @param  string  $name
+     */
+    protected function buildClass($name): string
     {
-        $skillPath = resource_path($this->getSkillDirectory().'/SKILL.md');
-
-        if ($this->files->exists($skillPath) && ! $this->option('force')) {
-            $this->components->warn("Skill file [{$skillPath}] already exists.");
-
-            return;
-        }
-
-        $this->files->ensureDirectoryExists(dirname($skillPath));
-
-        $this->files->put($skillPath, str_replace(
-            ['{{ name }}', '{{ title }}'],
-            [basename($this->getSkillDirectory()), Str::headline(class_basename($this->getNameInput()))],
-            $this->files->get($this->resolveStub('mcp-skill.md.stub')),
-        ));
-
-        $this->components->info("Skill file [{$skillPath}] created successfully.");
+        return str_replace('{{ path }}', "skills/{$this->skillName()}", parent::buildClass($name));
     }
 
-    protected function resolveStub(string $name): string
+    protected function skillName(): string
     {
-        return file_exists($customPath = $this->laravel->basePath("stubs/{$name}"))
+        return Str::kebab(class_basename($this->getNameInput()));
+    }
+
+    protected function resolveStub(string $stub): string
+    {
+        return file_exists($customPath = $this->laravel->basePath("stubs/{$stub}"))
             ? $customPath
-            : __DIR__."/../../../stubs/{$name}";
-    }
-
-    protected function getSkillDirectory(): string
-    {
-        return 'skills/'.collect(explode('/', str_replace('\\', '/', $this->getNameInput())))
-            ->map(fn (string $segment): string => Str::kebab($segment))
-            ->implode('/');
+            : __DIR__."/../../../stubs/{$stub}";
     }
 
     /**
@@ -89,7 +79,7 @@ class MakeSkillCommand extends GeneratorCommand
     protected function getOptions(): array
     {
         return [
-            ['force', 'f', InputOption::VALUE_NONE, 'Create the class even if the skill already exists'],
+            ['force', 'f', InputOption::VALUE_NONE, 'Create the class and SKILL.md even if the skill already exists'],
         ];
     }
 }

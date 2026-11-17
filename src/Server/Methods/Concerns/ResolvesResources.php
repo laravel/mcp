@@ -16,7 +16,7 @@ trait ResolvesResources
             throw new InvalidArgumentException('Missing [uri] parameter.');
         }
 
-        $resource = $context->resource($uri)
+        $resource = $context->resources()->first(fn ($resource): bool => $resource->uri() === $uri)
             ?? $context->resourceTemplates()->first(fn ($template): bool => (string) $template->uriTemplate() === $uri
                 || $template->uriTemplate()->match($uri) !== null);
 

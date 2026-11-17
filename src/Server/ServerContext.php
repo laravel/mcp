@@ -9,24 +9,11 @@ use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
-use Laravel\Mcp\Server\Skills\SkillCatalog;
 use Laravel\Mcp\Server\Tools\ToolSearch;
 use Symfony\Component\HttpFoundation\HeaderBag;
 
 class ServerContext
 {
-    /**
-     * @var Collection<int, Resource>|null
-     */
-    protected ?Collection $resolvedResources = null;
-
-    /**
-     * @var Collection<int, Resource>|null
-     */
-    protected ?Collection $registeredResources = null;
-
-    protected ?SkillCatalog $skillCatalog = null;
-
     /**
      * @param  array<int, string>  $supportedProtocolVersions
      * @param  array<string, mixed>  $serverCapabilities
@@ -45,8 +32,8 @@ class ServerContext
         protected array $tools,
         protected array $resources,
         protected array $prompts,
-        protected array $skills = [],
         public ?HeaderBag $headers = null,
+        protected array $skills = [],
     ) {
         //
     }
@@ -97,30 +84,12 @@ class ServerContext
      */
     public function resources(): Collection
     {
-        return $this->resolvedResources ??= $this->registeredResources()
-            ->concat($this->skillCatalog()->resources($this->registeredResources()));
-    }
-
-    public function resource(string $uri): ?Resource
-    {
-        return $this->registeredResources()->first(fn (Resource $resource): bool => $resource->uri() === $uri)
-            ?? $this->skillCatalog()->resource($uri);
-    }
-
-    /**
-     * @return Collection<int, Resource>
-     */
-    protected function registeredResources(): Collection
-    {
-        if ($this->registeredResources instanceof Collection) {
-            return $this->registeredResources;
-        }
-
-        /** @var Collection<int,Resource> $resources */
-        $resources = collect($this->resources)
+        /** @var Collection<int,Resource> $resourceTemplates */
+        $resourceTemplates = collect($this->resources)
             ->filter(fn (Resource|string $resource): bool => ! $this->isResourceTemplate($resource));
 
-        return $this->registeredResources = $this->resolvePrimitives($resources);
+        return $this->resolvePrimitives($resourceTemplates)
+            ->concat($this->skills()->flatMap(fn (Skill $skill): array => $skill->resources()));
     }
 
     /**
@@ -128,14 +97,10 @@ class ServerContext
      */
     public function skills(): Collection
     {
-        $this->resources();
-
-        return $this->skillCatalog()->skills();
-    }
-
-    public function skillCatalog(): SkillCatalog
-    {
-        return $this->skillCatalog ??= new SkillCatalog($this->skills);
+        return collect($this->skills)
+            ->map(fn (Skill|string $skill): Skill => is_string($skill) ? Container::getInstance()->make($skill) : $skill)
+            ->filter(fn (Skill $skill): bool => $skill->eligibleForRegistration())
+            ->values();
     }
 
     /**
