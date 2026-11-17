@@ -45,6 +45,15 @@ class Response
         return new static(new Notification($method, $params));
     }
 
+    public static function progress(int|float $progress, int|float|null $total = null, ?string $message = null): static
+    {
+        return static::notification('notifications/progress', array_filter([
+            'progress' => $progress,
+            'total' => $total,
+            'message' => $message,
+        ], fn (mixed $value): bool => $value !== null));
+    }
+
     public static function text(string $text): static
     {
         return new static(new Text($text));
