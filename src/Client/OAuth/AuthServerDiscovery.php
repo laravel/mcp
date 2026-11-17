@@ -50,11 +50,19 @@ class AuthServerDiscovery
 
     public function discover(string $resourceUrl, ?string $resourceMetadataUrl = null): DiscoveryResult
     {
-        $metadataUrl = $resourceMetadataUrl ?? $this->wellKnown($resourceUrl, 'oauth-protected-resource');
+        $metadataUrls = $resourceMetadataUrl === null
+            ? array_unique([$this->wellKnown($resourceUrl, 'oauth-protected-resource'), $this->origin($resourceUrl).'/.well-known/oauth-protected-resource'])
+            : [$resourceMetadataUrl];
 
-        $this->requireFetchable($metadataUrl, $resourceUrl);
+        $resourceMetadata = [];
 
-        $resourceMetadata = $this->fetchResourceMetadata($metadataUrl, explicit: $resourceMetadataUrl !== null);
+        foreach ($metadataUrls as $metadataUrl) {
+            $this->requireFetchable($metadataUrl, $resourceUrl);
+
+            if (($resourceMetadata = $this->fetchResourceMetadata($metadataUrl, explicit: $resourceMetadataUrl !== null)) !== []) {
+                break;
+            }
+        }
 
         $this->requireResourceMatches($resourceMetadata, $resourceUrl);
 
@@ -81,7 +89,9 @@ class AuthServerDiscovery
 
         $scopesSupported = array_values(array_map(strval(...), (array) ($resourceMetadata['scopes_supported'] ?? [])));
 
-        return new DiscoveryResult($serverMetadata, $scopesSupported);
+        $resource = Arr::get($resourceMetadata, 'resource');
+
+        return new DiscoveryResult($serverMetadata, $scopesSupported, is_string($resource) ? $resource : $resourceUrl);
     }
 
     /**
@@ -188,9 +198,20 @@ class AuthServerDiscovery
     {
         $resource = Arr::get($resourceMetadata, 'resource');
 
-        if (is_string($resource) && ! hash_equals($resourceUrl, $resource)) {
+        if (is_string($resource) && ! $this->resourceCovers($resource, $resourceUrl)) {
             throw new OAuthException("Protected resource metadata resource [{$resource}] did not match the expected resource [{$resourceUrl}].");
         }
+    }
+
+    protected function resourceCovers(string $resource, string $resourceUrl): bool
+    {
+        if (hash_equals($resourceUrl, $resource)) {
+            return true;
+        }
+
+        $origin = $this->origin($resourceUrl);
+
+        return $resource === $origin || $resource === $origin.'/';
     }
 
     /**

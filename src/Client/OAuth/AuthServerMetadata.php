@@ -11,6 +11,7 @@ class AuthServerMetadata
     /**
      * @param  array<int, string>  $codeChallengeMethodsSupported
      * @param  array<int, string>  $tokenEndpointAuthMethodsSupported
+     * @param  array<int, string>  $scopesSupported
      */
     public function __construct(
         public string $issuer,
@@ -21,6 +22,7 @@ class AuthServerMetadata
         public bool $authorizationResponseIssParameterSupported = false,
         public array $tokenEndpointAuthMethodsSupported = [],
         public bool $clientIdMetadataDocumentSupported = false,
+        public array $scopesSupported = [],
     ) {}
 
     /**
@@ -41,6 +43,7 @@ class AuthServerMetadata
             authorizationResponseIssParameterSupported: (bool) ($data['authorization_response_iss_parameter_supported'] ?? false),
             tokenEndpointAuthMethodsSupported: array_values(array_map(strval(...), (array) ($data['token_endpoint_auth_methods_supported'] ?? []))),
             clientIdMetadataDocumentSupported: (bool) ($data['client_id_metadata_document_supported'] ?? false),
+            scopesSupported: array_values(array_map(strval(...), (array) ($data['scopes_supported'] ?? []))),
         );
     }
 }

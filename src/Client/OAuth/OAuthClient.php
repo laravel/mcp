@@ -58,6 +58,8 @@ class OAuthClient
         $clientSecret = $this->config->clientSecret;
         $redirectUri = $this->config->redirectUri ?? throw new OAuthException('A redirect URI is required.');
 
+        $tokenAuthMethod = null;
+
         if ($clientId === null) {
             $registration = $this->usesClientIdMetadataDocument($metadata)
                 ? new ClientRegistration(clientId: (string) $this->clientIdMetadataUrl)
@@ -65,8 +67,10 @@ class OAuthClient
 
             $clientId = $registration->clientId;
             $clientSecret = $registration->clientSecret;
+            $tokenAuthMethod = $registration->tokenEndpointAuthMethod;
         }
 
+        $scope = $this->authorizationScope();
         $pkce = Pkce::generate();
         $state = Str::random(40);
 
@@ -76,9 +80,11 @@ class OAuthClient
             'client_id' => $clientId,
             'client_secret' => $clientSecret,
             'token_endpoint' => $metadata->tokenEndpoint,
-            'token_auth_method' => $this->resolveTokenAuthMethod($metadata, $clientSecret)->value,
+            'token_auth_method' => ($tokenAuthMethod ?? $this->resolveTokenAuthMethod($metadata, $clientSecret))->value,
             'redirect_uri' => $redirectUri,
             'return_to' => $returnTo,
+            'scope' => $scope,
+            'resource' => $discovered->resource,
             'issuer' => $metadata->issuer,
             'iss_supported' => $metadata->authorizationResponseIssParameterSupported,
         ]);
@@ -90,8 +96,8 @@ class OAuthClient
             'state' => $state,
             'code_challenge' => $pkce->challenge,
             'code_challenge_method' => 'S256',
-            'scope' => $this->resolveScope(),
-            'resource' => $this->resourceUrl,
+            'scope' => $scope,
+            'resource' => $discovered->resource,
         ], static fn (mixed $value): bool => $value !== null && $value !== ''));
 
         return new RedirectResponse((string) $authorizeUrl);
@@ -110,7 +116,7 @@ class OAuthClient
             [
                 'grant_type' => 'client_credentials',
                 'scope' => $this->resolveScope(),
-                'resource' => $this->resourceUrl,
+                'resource' => $discovered->resource,
             ],
             $this->config->clientId,
             $this->config->clientSecret,
@@ -160,8 +166,8 @@ class OAuthClient
             [
                 'grant_type' => 'refresh_token',
                 'refresh_token' => $refreshToken,
-                'scope' => $this->resolveScope(),
-                'resource' => $this->resourceUrl,
+                'scope' => $this->config->scope,
+                'resource' => $discovered->resource,
             ],
             $clientId,
             $clientSecret,
@@ -213,7 +219,7 @@ class OAuthClient
                 'code' => $code,
                 'redirect_uri' => (string) $stored['redirect_uri'],
                 'code_verifier' => (string) $stored['verifier'],
-                'resource' => $this->resourceUrl,
+                'resource' => is_string($stored['resource'] ?? null) ? $stored['resource'] : $this->resourceUrl,
             ],
             $clientId,
             $clientSecret,
@@ -222,6 +228,12 @@ class OAuthClient
 
         $token->clientId = $clientId;
         $token->clientSecret = $clientSecret;
+
+        $granted = $token->scope ?? (is_string($stored['scope'] ?? null) ? $stored['scope'] : null);
+
+        if (filled($granted)) {
+            Session::put($this->grantedScopeSessionKey(), $granted);
+        }
 
         return $token;
     }
@@ -340,11 +352,30 @@ class OAuthClient
 
     protected function resolveScope(): ?string
     {
+        $scope = match (true) {
+            filled($this->challengeScope) => $this->challengeScope,
+            filled($this->config->scope) => $this->config->scope,
+            default => implode(' ', $this->discover()->scopesSupported),
+        };
+
+        return $scope === '' ? null : $scope;
+    }
+
+    protected function authorizationScope(): ?string
+    {
+        $scopes = preg_split('/\s+/', (string) $this->resolveScope(), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
         if (filled($this->challengeScope)) {
-            return $this->challengeScope;
+            $granted = Session::get($this->grantedScopeSessionKey());
+
+            $scopes = [...preg_split('/\s+/', is_string($granted) ? $granted : '', -1, PREG_SPLIT_NO_EMPTY) ?: [], ...$scopes];
         }
 
-        return $this->config->scope ?? 'mcp:use';
+        if ($scopes !== [] && in_array('offline_access', $this->discover()->server->scopesSupported, true)) {
+            $scopes[] = 'offline_access';
+        }
+
+        return $scopes === [] ? null : implode(' ', array_unique($scopes));
     }
 
     protected function resolveTokenAuthMethod(
@@ -399,5 +430,10 @@ class OAuthClient
     protected function sessionKey(): string
     {
         return 'mcp.oauth.'.sha1($this->resourceUrl);
+    }
+
+    protected function grantedScopeSessionKey(): string
+    {
+        return 'mcp.oauth.granted-scope.'.sha1($this->resourceUrl);
     }
 }

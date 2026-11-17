@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\OAuth\Concerns;
 
+use GuzzleHttp\RequestOptions;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 
@@ -20,10 +21,17 @@ trait InteractsWithOAuthEndpoints
     }
 
     /**
-     * @return array<string, array<int, int>>
+     * @return array<string, mixed>
      */
     protected function oAuthCurlOptions(): array
     {
+        if (defined(RequestOptions::class.'::PROTOCOLS')) {
+            return [
+                'protocols' => ['http', 'https'],
+                'progress' => fn (int $total, int $downloaded): bool => $total > $this->maxOAuthResponseSize || $downloaded > $this->maxOAuthResponseSize,
+            ];
+        }
+
         if (! defined('CURLOPT_PROTOCOLS')) {
             return [];
         }

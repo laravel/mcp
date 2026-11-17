@@ -172,6 +172,39 @@ Any database column that stores `clientSecret` must be nullable. Code that passe
 
 This change also fixes a bug that caused every call to `redirect()` to perform a fresh dynamic registration, creating a new client record on the authorization server for each connection.
 
+## OAuth Scope Selection
+
+**Likelihood Of Impact: Medium**
+
+The OAuth client no longer requests the `mcp:use` scope by default. When you do not pass a `scope` to `withOAuth()` and the server's `WWW-Authenticate` challenge has none, the client requests every scope listed in the protected resource metadata's `scopes_supported`. When the metadata lists no scopes, the client omits the `scope` parameter:
+
+```php
+// Before... requests scope=mcp:use
+Mcp::client('github')->withOAuth()->oAuthClient()->redirect();
+
+// After... requests the scopes the server advertises, or no scope at all.
+```
+
+Laravel MCP servers advertise `mcp:use`, so they keep working without changes. To keep the old behavior with other servers, pass the scope explicitly:
+
+```php
+->withOAuth(scope: 'mcp:use')
+```
+
+When redirecting for authorization, the client also adds `offline_access` if the authorization server lists it in `scopes_supported`, so it receives a refresh token. The `client_credentials` grant never requests `offline_access`, and `refreshCredentials()` sends a `scope` only when you configured one, so a refresh keeps the scope that was originally granted.
+
+When a server answers with a `WWW-Authenticate` challenge for more scope, the client re-authorizes for the scope it was already granted plus the challenged scope. The granted scope is kept in the session per MCP server, so passing `$exception->query()` to the `connect` route is enough:
+
+```php
+try {
+    Mcp::client('github')->callTool('create_issue', $arguments);
+} catch (AuthorizationRequiredException $exception) {
+    return redirect()->route('mcp.oauth.github.connect', $exception->query());
+}
+```
+
+When the protected resource metadata identifies the resource by its origin, such as `https://mcp.example.com` for an endpoint at `https://mcp.example.com/mcp`, the client now accepts it and sends that identifier as the `resource` parameter. If the path-based metadata document is missing, the client looks for one at the origin, `/.well-known/oauth-protected-resource`, before falling back to the origin as the authorization server.
+
 ## The Client Metadata Route
 
 **Likelihood Of Impact: Low**
