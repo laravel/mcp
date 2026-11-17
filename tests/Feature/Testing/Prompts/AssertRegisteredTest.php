@@ -13,8 +13,11 @@ class GarageListPromptsServer extends Server
     protected array $prompts = [
         OilChangePrompt::class,
         TireRotationPrompt::class,
+        EngineDiagnosticPrompt::class,
     ];
 }
+
+class ServiceHistoryRepository {}
 
 class OilChangePrompt extends Prompt
 {
@@ -40,6 +43,18 @@ class TireRotationPrompt extends Prompt
     public function handle(): string
     {
         return 'Tires rotated.';
+    }
+}
+
+class EngineDiagnosticPrompt extends Prompt
+{
+    protected string $name = 'garage/engine-diagnostics';
+
+    public function __construct(protected ServiceHistoryRepository $history) {}
+
+    public function handle(): string
+    {
+        return 'Diagnostics complete.';
     }
 }
 
@@ -80,3 +95,7 @@ it('may fail to assert that prompts are not registered on a server', function ()
         OilChangePrompt::class,
     ]);
 })->throws(AssertionFailedError::class, 'The expected class ['.OilChangePrompt::class.'] was found in the response content.');
+
+it('resolves prompts with constructor dependencies when asserting they are registered', function (): void {
+    GarageListPromptsServer::prompts()->assertRegistered(EngineDiagnosticPrompt::class);
+});
