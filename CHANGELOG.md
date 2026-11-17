@@ -1,6 +1,25 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v1.2.0...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v1.2.1...main)
+
+## [v1.2.1](https://github.com/laravel/mcp/compare/v1.2.0...v1.2.1) - 2026-11-17
+
+### What's Changed
+
+* Add conformance fixtures and pin the conformance suite version by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/396
+* Fix quick server and client conformance failures by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/397
+* Resolve Tool classes in the Container in tests by [@EgoMaw](https://github.com/EgoMaw) in https://github.com/laravel/mcp/pull/399
+* Answer legacy requests without the modern result fields by [@123mousab](https://github.com/123mousab) in https://github.com/laravel/mcp/pull/398
+* Add progress notifications for streaming tools by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/403
+* Use Guzzle request options for OAuth requests on Guzzle 8 by [@lazerg](https://github.com/lazerg) in https://github.com/laravel/mcp/pull/405
+* Validate Mcp-Param headers against tool call arguments by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/406
+
+### New Contributors
+
+* [@EgoMaw](https://github.com/EgoMaw) made their first contribution in https://github.com/laravel/mcp/pull/399
+* [@123mousab](https://github.com/123mousab) made their first contribution in https://github.com/laravel/mcp/pull/398
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.2.0...v1.2.1
 
 ## [v1.2.0](https://github.com/laravel/mcp/compare/v1.1.2...v1.2.0) - 2026-11-10
 
@@ -210,6 +229,7 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
 
 
 
@@ -543,6 +563,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -553,6 +574,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
