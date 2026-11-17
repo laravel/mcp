@@ -22,7 +22,6 @@ server:
   - tools-call-mixed-content
   - prompts-get-embedded-resource
   - server-stateless
-  - http-custom-header-server-validation
   - input-required-result-missing-input-response
   - input-required-result-ignore-extra-params
 

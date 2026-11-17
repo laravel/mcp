@@ -334,6 +334,20 @@ function callToolMessage(): array
     ];
 }
 
+function mirroredHeaderToolMessage(array $arguments): array
+{
+    return [
+        'jsonrpc' => '2.0',
+        'id' => 7,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'mirrored-header-tool',
+            'arguments' => $arguments,
+            '_meta' => protocolMeta(),
+        ],
+    ];
+}
+
 function readResourceMessage(string $uri = 'file://resources/last-log-line-resource'): array
 {
     return [

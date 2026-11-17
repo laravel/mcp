@@ -11,6 +11,7 @@ use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Skills\SkillCatalog;
 use Laravel\Mcp\Server\Tools\ToolSearch;
+use Symfony\Component\HttpFoundation\HeaderBag;
 
 class ServerContext
 {
@@ -45,6 +46,7 @@ class ServerContext
         protected array $resources,
         protected array $prompts,
         protected array $skills = [],
+        public ?HeaderBag $headers = null,
     ) {
         //
     }

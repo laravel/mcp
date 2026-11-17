@@ -47,6 +47,7 @@ use Laravel\Mcp\Server\Testing\TestListResponse;
 use Laravel\Mcp\Server\Testing\TestResponse;
 use Laravel\Mcp\Server\Testing\TestSkillResponse;
 use Laravel\Mcp\Server\Tool;
+use Laravel\Mcp\Server\Transport\HttpTransport;
 use Laravel\Mcp\Transport\JsonRpcNotification;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -290,6 +291,7 @@ abstract class Server
             resources: $this->resources,
             prompts: $this->prompts,
             skills: $this->skills,
+            headers: $this->transport instanceof HttpTransport ? $this->transport->headers() : null,
         );
     }
 
