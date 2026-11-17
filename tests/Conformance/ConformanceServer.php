@@ -21,6 +21,7 @@ use Tests\Conformance\Tools\ImageContentTool;
 use Tests\Conformance\Tools\JsonSchema202012Tool;
 use Tests\Conformance\Tools\LoggingTool;
 use Tests\Conformance\Tools\MultipleContentTypesTool;
+use Tests\Conformance\Tools\ProgressTool;
 use Tests\Conformance\Tools\SimpleTextTool;
 use Tests\Conformance\Tools\StreamingElicitationTool;
 
@@ -47,6 +48,7 @@ class ConformanceServer extends Server
         CustomHeaderTool::class,
         LoggingTool::class,
         StreamingElicitationTool::class,
+        ProgressTool::class,
     ];
 
     public array $resources = [
