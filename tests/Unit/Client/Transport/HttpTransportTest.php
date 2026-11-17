@@ -6,6 +6,7 @@ use GuzzleHttp\Promise\PromiseInterface;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client;
+use Laravel\Mcp\Client\Exceptions\TransportException;
 use Laravel\Mcp\Client\Transport\HttpTransport;
 use Laravel\Mcp\Enums\ProtocolVersion;
 use Laravel\Mcp\Exceptions\ClientException;
@@ -287,6 +288,44 @@ it('throws a ClientException on an unexpected HTTP status', function (): void {
     expect(function () use ($transport): void {
         $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'ping', 'params' => []]));
     })->toThrow(ClientException::class, 'Unexpected HTTP status [500]');
+});
+
+it('does not follow a redirect from the MCP server', function (int $status): void {
+    Http::preventStrayRequests();
+
+    Http::fake([
+        'https://mcp.test/mcp' => Http::response('', $status, [
+            'Location' => 'http://169.254.169.254/latest/meta-data/iam/security-credentials/',
+        ]),
+        'http://169.254.169.254/*' => Http::response('{}', 200),
+    ]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->withHeaders(['X-Api-Key' => 'secret-gateway-key']);
+
+    expect(function () use ($transport): void {
+        $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'tools/call', 'params' => ['name' => 'run', 'arguments' => []]]));
+    })->toThrow(TransportException::class, "The endpoint [https://mcp.test/mcp] responded with a redirect [{$status}], which is not followed.");
+
+    Http::assertSentCount(1);
+    Http::assertNotSent(fn ($request): bool => str_starts_with((string) $request->url(), 'http://169.254.169.254'));
+})->with([301, 302, 303, 307, 308]);
+
+it('does not follow a redirect when terminating the session', function (): void {
+    Http::fakeSequence('https://mcp.test/mcp')
+        ->push(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'result' => []]), 200, ['Content-Type' => 'application/json', 'MCP-Session-Id' => 'session-del'])
+        ->push('', 307, ['Location' => 'http://127.0.0.1:6379/']);
+
+    Http::fake(['http://127.0.0.1:6379/*' => Http::response('', 200)]);
+
+    $transport = new HttpTransport('https://mcp.test/mcp');
+    $transport->useProtocol(ProtocolVersion::V2025_11_25);
+    $transport->send(json_encode(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => []]));
+    $transport->receive();
+    $transport->disconnect();
+
+    Http::assertSentCount(2);
+    Http::assertNotSent(fn ($request): bool => str_starts_with((string) $request->url(), 'http://127.0.0.1'));
 });
 
 it('sends a DELETE with the session id on disconnect', function (): void {

@@ -6,6 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Laravel\Mcp\Facades\Mcp;
 use Tests\Conformance\ConformanceServer;
 use Tests\Fixtures\ExampleServer;
+use Tests\Fixtures\MirroredHeaderServer;
 use Tests\Fixtures\ServerWithDynamicTools;
 
 class WorkbenchServiceProvider extends ServiceProvider
@@ -32,6 +33,7 @@ class WorkbenchServiceProvider extends ServiceProvider
         Mcp::local('test-mcp', ExampleServer::class);
         Mcp::web('test-mcp', ExampleServer::class);
         Mcp::web('test-mcp-dynamic-tools', ServerWithDynamicTools::class);
+        Mcp::web('test-mcp-mirrored-headers', MirroredHeaderServer::class);
 
         Mcp::web('conformance', ConformanceServer::class);
     }

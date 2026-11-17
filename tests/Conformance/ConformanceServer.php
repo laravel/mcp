@@ -14,11 +14,16 @@ use Tests\Conformance\Resources\StaticTextResource;
 use Tests\Conformance\Resources\TemplateResource;
 use Tests\Conformance\Resources\WatchedResource;
 use Tests\Conformance\Tools\AudioContentTool;
+use Tests\Conformance\Tools\CustomHeaderTool;
 use Tests\Conformance\Tools\EmbeddedResourceTool;
 use Tests\Conformance\Tools\ErrorHandlingTool;
 use Tests\Conformance\Tools\ImageContentTool;
+use Tests\Conformance\Tools\JsonSchema202012Tool;
+use Tests\Conformance\Tools\LoggingTool;
 use Tests\Conformance\Tools\MultipleContentTypesTool;
+use Tests\Conformance\Tools\ProgressTool;
 use Tests\Conformance\Tools\SimpleTextTool;
+use Tests\Conformance\Tools\StreamingElicitationTool;
 
 class ConformanceServer extends Server
 {
@@ -39,6 +44,11 @@ class ConformanceServer extends Server
         EmbeddedResourceTool::class,
         MultipleContentTypesTool::class,
         ErrorHandlingTool::class,
+        JsonSchema202012Tool::class,
+        CustomHeaderTool::class,
+        LoggingTool::class,
+        StreamingElicitationTool::class,
+        ProgressTool::class,
     ];
 
     public array $resources = [
@@ -54,4 +64,9 @@ class ConformanceServer extends Server
         PromptWithEmbeddedResource::class,
         PromptWithImage::class,
     ];
+
+    protected function boot(): void
+    {
+        $this->addCapability(self::CAPABILITY_COMPLETIONS);
+    }
 }

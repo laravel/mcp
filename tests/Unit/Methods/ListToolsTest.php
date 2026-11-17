@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Contracts\JsonSchema\JsonSchema;
+use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Methods\ListTools;
@@ -576,3 +577,26 @@ it('lists tools in a deterministic order matching declaration order', function (
 
     expect([...$pageOne, ...$pageTwo])->toEqual($declarationOrder);
 });
+
+it('rejects wrongly typed pagination params', function (array $params, string $message): void {
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        implementation: new Implementation('Test Server', '1.0.0'),
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [],
+        resources: [],
+        prompts: [],
+    );
+
+    expect(fn (): mixed => (new ListTools)->handle(new JsonRpcRequest(1, 'tools/list', $params), $context))
+        ->toThrow(JsonRpcException::class, $message);
+})->with([
+    'cursor as int' => [['cursor' => 1], 'The cursor field must be a string.'],
+    'cursor as array' => [['cursor' => ['x']], 'The cursor field must be a string.'],
+    'per_page as string' => [['per_page' => '10'], 'The per page field must be an integer.'],
+    'per_page as zero' => [['per_page' => 0], 'The per page field must be at least 1.'],
+    'per_page as negative' => [['per_page' => -1], 'The per page field must be at least 1.'],
+]);

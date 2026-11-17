@@ -1,6 +1,24 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v1.1.2...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v1.2.0...main)
+
+## [v1.2.0](https://github.com/laravel/mcp/compare/v1.1.2...v1.2.0) - 2026-11-10
+
+### What's Changed
+
+* Bump stefanzweifel/git-auto-commit-action from 7.2.0 to 7.2.1 in the github-actions group by [@dependabot](https://github.com/dependabot)[bot] in https://github.com/laravel/mcp/pull/383
+* Add more JSON assertions for structured content by [@JurianArie](https://github.com/JurianArie) in https://github.com/laravel/mcp/pull/384
+* Keep invalid UTF-8 header values out of the header mismatch message by [@lazerg](https://github.com/lazerg) in https://github.com/laravel/mcp/pull/391
+* Stop following redirects in the MCP HTTP client transport by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/392
+* Dependency floor bump by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/393
+* Return JSON-RPC errors instead of 500s for malformed requests and params by [@JurianArie](https://github.com/JurianArie) in https://github.com/laravel/mcp/pull/395
+* Validate the Origin header on MCP web routes by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/394
+
+### New Contributors
+
+* [@JurianArie](https://github.com/JurianArie) made their first contribution in https://github.com/laravel/mcp/pull/384
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.1.2...v1.2.0
 
 ## [v1.1.2](https://github.com/laravel/mcp/compare/v1.1.1...v1.1.2) - 2026-10-26
 
@@ -192,6 +210,7 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
 
 
 
@@ -523,6 +542,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -533,6 +553,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 

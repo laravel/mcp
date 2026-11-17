@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Server\Contracts\Transport;
+use Symfony\Component\HttpFoundation\HeaderBag;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HttpTransport implements Transport
@@ -23,6 +24,11 @@ class HttpTransport implements Transport
         protected ?Closure $stream = null,
     ) {
         //
+    }
+
+    public function headers(): HeaderBag
+    {
+        return $this->request->headers;
     }
 
     public function onReceive(Closure $handler): void

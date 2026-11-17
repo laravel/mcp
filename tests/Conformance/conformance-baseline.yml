@@ -18,26 +18,16 @@ server:
   - input-required-result-result-type
   - input-required-result-tampered-state
   - input-required-result-capability-check
-  - tools-call-with-progress
   - tools-call-embedded-resource
   - tools-call-mixed-content
   - prompts-get-embedded-resource
-  - completion-complete
   - server-stateless
-  - dns-rebinding-protection
-  - http-header-validation
-  - http-custom-header-server-validation
-  - json-schema-2020-12
-  - sep-2164-resource-not-found
   - input-required-result-missing-input-response
   - input-required-result-ignore-extra-params
 
 client:
-  - tools_call
   - request-metadata
   - sep-2322-client-request-state
-  - http-custom-headers
-  - json-schema-2020-12-preservation
   - auth/metadata-default
   - auth/metadata-var1
   - auth/metadata-var2
@@ -55,6 +45,7 @@ client:
   - auth/offline-access-scope
   - auth/offline-access-not-supported
   - auth/authorization-server-migration
+  - auth/resource-mismatch
   - auth/iss-supported
   - auth/iss-not-advertised
   - auth/iss-supported-missing

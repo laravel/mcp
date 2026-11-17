@@ -69,6 +69,17 @@ class ValidateMcpHeaders
             return null;
         }
 
+        if (in_array($version, ProtocolVersion::serverSupported(), true)) {
+            return response()->json([
+                'jsonrpc' => '2.0',
+                'id' => $id,
+                'error' => [
+                    'code' => ErrorCode::INVALID_PARAMS->value,
+                    'message' => 'Invalid params: The request [_meta] is missing the required [io.modelcontextprotocol/protocolVersion] member.',
+                ],
+            ], 400);
+        }
+
         return response()->json([
             'jsonrpc' => '2.0',
             'id' => $id,
@@ -77,7 +88,7 @@ class ValidateMcpHeaders
                 'message' => 'Unsupported protocol version',
                 'data' => [
                     'supported' => ProtocolVersion::initializeSupported(),
-                    'requested' => $version,
+                    'requested' => $this->printable(new HeaderValue($version)),
                 ],
             ],
         ], 400);
@@ -87,8 +98,16 @@ class ValidateMcpHeaders
     {
         $value = $request->header($header->value);
 
+        if (is_string($value)) {
+            $value = trim($value, " \t");
+        }
+
         if (! is_string($value) || $value === '') {
             return $required ? "Header mismatch: The [{$header->value}] header is required." : null;
+        }
+
+        if (! HeaderValue::isSafe($value)) {
+            return "Header mismatch: The [{$header->value}] header value contains invalid characters.";
         }
 
         $headerValue = $header === RequestHeader::NAME
@@ -99,6 +118,11 @@ class ValidateMcpHeaders
             return null;
         }
 
-        return "Header mismatch: The [{$header->value}] header value [{$headerValue->value}] does not match the request body value [{$expected}].";
+        return "Header mismatch: The [{$header->value}] header value [{$this->printable($headerValue)}] does not match the request body value [{$expected}].";
+    }
+
+    protected function printable(HeaderValue $value): string
+    {
+        return preg_match('/\A\P{Cc}*\z/u', $value->value) === 1 ? $value->value : (string) $value;
     }
 }

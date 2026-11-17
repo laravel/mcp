@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Transport;
 
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
+use JsonException;
+use Laravel\Mcp\Enums\ErrorCode;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Enums\RequestHeader;
 use Laravel\Mcp\Exceptions\JsonRpcException;
 use Laravel\Mcp\Request;
+use Laravel\Mcp\Support\ValidationMessages;
 
 class JsonRpcRequest
 {
@@ -67,6 +72,21 @@ class JsonRpcRequest
     public function get(string $key, mixed $default = null): mixed
     {
         return $this->params[$key] ?? $default;
+    }
+
+    /**
+     * @param  array<string, mixed>  $rules
+     * @return array<string, mixed>
+     *
+     * @throws JsonRpcException
+     */
+    public function validate(array $rules): array
+    {
+        try {
+            return Validator::make($this->params, $rules)->validate();
+        } catch (ValidationException $validationException) {
+            throw new JsonRpcException(ValidationMessages::from($validationException), ErrorCode::INVALID_PARAMS->value, $this->id);
+        }
     }
 
     /**
@@ -154,8 +174,11 @@ class JsonRpcRequest
         ];
     }
 
+    /**
+     * @throws JsonException
+     */
     public function toJson(int $options = 0): string
     {
-        return json_encode($this->toArray(), $options | JSON_UNESCAPED_UNICODE) ?: '';
+        return json_encode($this->toArray(), $options | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
     }
 }
