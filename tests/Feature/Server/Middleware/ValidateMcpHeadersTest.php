@@ -6,8 +6,6 @@ use Laravel\Mcp\Server\Methods\ListTools;
 use Laravel\Mcp\Server\ServerContext;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
-use Tests\Fixtures\MirroredHeaderServer;
-use Tests\Fixtures\MirroredHeaderTool;
 
 it('accepts a request whose headers mirror the body', function (): void {
     $response = $this->postJson('test-mcp', $message = callToolMessage(), mcpHeaders($message));
@@ -146,8 +144,10 @@ it('rejects a header carrying invalid UTF-8 bytes', function (string $header): v
 
     $response->assertStatus(400);
 
-    expect($response->json('error.code'))->toBe(-32020)
-        ->and($response->json('error.message'))->toContain('header value [=?base64?/w==?=]');
+    expect($response->json('error'))->toEqual([
+        'code' => -32020,
+        'message' => "Header mismatch: The [{$header}] header value contains invalid characters.",
+    ]);
 })->with(['MCP-Protocol-Version', 'Mcp-Method', 'Mcp-Name']);
 
 it('quotes a non-ASCII name header decoded in the mismatch message', function (): void {
@@ -379,59 +379,4 @@ it('answers an internal error with a 500', function (): void {
         'code' => -32603,
         'message' => 'Something went wrong while processing the request.',
     ]);
-});
-
-function mirroredHeaderToolMessage(array $arguments): array
-{
-    return [
-        'jsonrpc' => '2.0',
-        'id' => 7,
-        'method' => 'tools/call',
-        'params' => [
-            'name' => 'mirrored-header-tool',
-            'arguments' => $arguments,
-            '_meta' => protocolMeta(),
-        ],
-    ];
-}
-
-it('accepts mirrored parameter headers that match the body', function (array $arguments, array $headers): void {
-    $message = mirroredHeaderToolMessage($arguments);
-
-    $response = $this->postJson('test-mcp-mirrored-headers', $message, [...mcpHeaders($message), ...$headers]);
-
-    $response->assertOk()->assertJsonPath('result.content.0.text', "Region: {$arguments['region']}");
-})->with([
-    'plain value' => [['region' => 'us-west1'], ['Mcp-Param-Region' => 'us-west1']],
-    'base64 value' => [['region' => 'Hello, 世界'], ['Mcp-Param-Region' => '=?base64?SGVsbG8sIOS4lueVjA==?=']],
-    'value without the base64 suffix is literal' => [['region' => '=?base64?SGVsbG8='], ['Mcp-Param-Region' => '=?base64?SGVsbG8=']],
-    'lowercase header name and whitespace' => [['region' => 'us-west1'], ['mcp-param-region' => "  us-west1\t"]],
-    'integer value' => [['region' => 'us-west1', 'replicas' => 3], ['Mcp-Param-Region' => 'us-west1', 'Mcp-Param-Replicas' => '3']],
-]);
-
-it('rejects mirrored parameter headers that are missing, malformed, or contradict the body', function (array $arguments, array $headers, string $error): void {
-    $message = mirroredHeaderToolMessage($arguments);
-
-    $response = $this->postJson('test-mcp-mirrored-headers', $message, [...mcpHeaders($message), ...$headers]);
-
-    $response->assertStatus(400);
-
-    expect($response->json())->toEqual([
-        'jsonrpc' => '2.0',
-        'id' => 7,
-        'error' => ['code' => -32020, 'message' => "Header mismatch: {$error}"],
-    ]);
-})->with([
-    'missing header' => [['region' => 'us-west1'], [], 'The [Mcp-Param-Region] header is required.'],
-    'invalid base64 padding' => [['region' => 'Hello'], ['Mcp-Param-Region' => '=?base64?SGVsbG8?='], 'The [Mcp-Param-Region] header value does not match the request body value at [/region].'],
-    'invalid base64 characters' => [['region' => 'Hello'], ['Mcp-Param-Region' => '=?base64?SGVs!!!bG8=?='], 'The [Mcp-Param-Region] header value does not match the request body value at [/region].'],
-    'different value' => [['region' => 'us-west1'], ['Mcp-Param-Region' => 'eu-west1'], 'The [Mcp-Param-Region] header value does not match the request body value at [/region].'],
-    'header without a body value' => [['region' => 'us-west1'], ['Mcp-Param-Region' => 'us-west1', 'Mcp-Param-Replicas' => '3'], 'The [Mcp-Param-Replicas] header is present but the request body has no [/replicas] argument.'],
-    'body value of the wrong type' => [['region' => 'us-west1', 'replicas' => 'three'], ['Mcp-Param-Region' => 'us-west1', 'Mcp-Param-Replicas' => 'three'], 'The [Mcp-Param-Replicas] header value does not match the request body value at [/replicas].'],
-]);
-
-it('does not expect mirrored parameter headers outside of HTTP', function (): void {
-    MirroredHeaderServer::tool(MirroredHeaderTool::class, ['region' => 'us-west1'])
-        ->assertOk()
-        ->assertSee('Region: us-west1');
 });

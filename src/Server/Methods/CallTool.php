@@ -57,8 +57,6 @@ class CallTool implements Errable, Method
     }
 
     /**
-     * Ensure every argument the tool mirrors through [x-mcp-header] matches its [Mcp-Param-*] header.
-     *
      * @throws JsonRpcException
      */
     protected function validateMirroredHeaders(Tool $tool, JsonRpcRequest $request, HeaderBag $headers): void
@@ -69,13 +67,14 @@ class CallTool implements Errable, Method
         foreach (MirroredParameters::fromSchema($tool->toArray()['inputSchema'] ?? [])->all() as $parameter) {
             $header = trim((string) $headers->get($parameter->header()), " \t");
             $value = $parameter->raw($arguments);
-            $expected = $value === null ? null : $parameter->stringify($value);
 
             $mismatch = match (true) {
                 $value === null && $header === '' => null,
                 $value === null => "The [{$parameter->header()}] header is present but the request body has no [{$parameter->path}] argument.",
                 $header === '' => "The [{$parameter->header()}] header is required.",
-                $expected === null || ! HeaderValue::fromHeader($header)->matches($expected) => "The [{$parameter->header()}] header value does not match the request body value at [{$parameter->path}].",
+                ! HeaderValue::isSafe($header) => "The [{$parameter->header()}] header value contains invalid characters.",
+                $parameter->stringify($value) === null => "The [{$parameter->path}] argument is not a valid [{$parameter->type->value}].",
+                ! $parameter->matches($header, $value) => "The [{$parameter->header()}] header value does not match the request body value at [{$parameter->path}].",
                 default => null,
             };
 

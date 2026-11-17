@@ -20,7 +20,6 @@ class ServerContext
      * @param  array<int|string, Tool|string|array<int, Tool|string>>  $tools
      * @param  array<int, Resource|string>  $resources
      * @param  array<int, Prompt|string>  $prompts
-     * @param  HeaderBag|null  $headers  The HTTP request headers, or null when the transport is not HTTP.
      */
     public function __construct(
         public array $supportedProtocolVersions,
