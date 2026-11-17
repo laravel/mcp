@@ -17,7 +17,20 @@ class RestaurantT extends Server
     protected array $tools = [
         ReservationTool::class,
         SerializableNotificationTool::class,
+        ReservationProgressTool::class,
     ];
+}
+
+class ReservationProgressTool extends Tool
+{
+    public function handle(): Generator
+    {
+        yield Response::progress(1, total: 2, message: 'Checking tables');
+
+        yield Response::progress(2);
+
+        yield 'Your booking is confirmed!';
+    }
 }
 
 class SerializableNotificationTool extends Tool
@@ -101,3 +114,21 @@ it('may assert a notification that was sent with empty params', function (): voi
 
     $response->assertSentNotification('booking/empty', []);
 });
+
+it('may assert progress notifications got sent', function (): void {
+    $response = RestaurantT::tool(ReservationProgressTool::class);
+
+    $response->assertNotificationCount(2)
+        ->assertSentProgress(1, 2, 'Checking tables')
+        ->assertSentProgress(2);
+});
+
+it('may fail to assert progress that was not sent', function (array $expected): void {
+    $response = RestaurantT::tool(ReservationProgressTool::class);
+
+    $response->assertSentProgress(...$expected);
+})->with([
+    'wrong progress' => [[3]],
+    'missing total' => [[1]],
+    'wrong message' => [[1, 2, 'Seating guests']],
+])->throws(AssertionFailedError::class);

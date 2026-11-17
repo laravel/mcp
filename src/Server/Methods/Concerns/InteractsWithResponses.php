@@ -61,14 +61,14 @@ trait InteractsWithResponses
 
                     $notification = $content->toArray();
 
-                    if ($notification['method'] === 'notifications/progress' && ! isset($notification['params']['progressToken'])) {
+                    if ($notification['method'] === 'notifications/progress') {
                         $progressToken = $request->meta()['progressToken'] ?? null;
 
-                        if ($progressToken === null) {
+                        if (! is_string($progressToken) && ! is_int($progressToken)) {
                             continue;
                         }
 
-                        $notification['params'] = ['progressToken' => $progressToken, ...$notification['params']];
+                        $notification['params'] = ['progressToken' => $progressToken, ...Arr::except($notification['params'], 'progressToken')];
                     }
 
                     yield JsonRpcResponse::notification(...$notification);

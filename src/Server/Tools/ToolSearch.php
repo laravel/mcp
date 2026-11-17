@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Laravel\Mcp\Server\Tools;
 
 use Illuminate\Container\Container;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use JsonException;
@@ -166,8 +167,10 @@ class ToolSearch
     {
         $params = ['name' => $name, 'arguments' => $arguments];
 
-        if ($parentRequest->meta() !== null) {
-            $params['_meta'] = $parentRequest->meta();
+        $meta = Arr::except($parentRequest->meta() ?? [], 'progressToken');
+
+        if ($meta !== []) {
+            $params['_meta'] = $meta;
         }
 
         $request = new JsonRpcRequest(

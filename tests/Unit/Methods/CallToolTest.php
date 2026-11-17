@@ -934,6 +934,8 @@ it('sends progress notifications with the request progress token', function (?ar
 
             yield Response::progress(2.5);
 
+            yield Response::notification('notifications/progress', ['progressToken' => 'forged', 'progress' => 3]);
+
             yield Response::text('Done');
         }
     };
@@ -976,10 +978,14 @@ it('sends progress notifications with the request progress token', function (?ar
     'string token' => [['progressToken' => 'abc'], [
         ['jsonrpc' => '2.0', 'method' => 'notifications/progress', 'params' => ['progressToken' => 'abc', 'progress' => 1, 'total' => 2, 'message' => 'Halfway']],
         ['jsonrpc' => '2.0', 'method' => 'notifications/progress', 'params' => ['progressToken' => 'abc', 'progress' => 2.5]],
+        ['jsonrpc' => '2.0', 'method' => 'notifications/progress', 'params' => ['progressToken' => 'abc', 'progress' => 3]],
     ]],
     'integer token' => [['progressToken' => 0], [
         ['jsonrpc' => '2.0', 'method' => 'notifications/progress', 'params' => ['progressToken' => 0, 'progress' => 1, 'total' => 2, 'message' => 'Halfway']],
         ['jsonrpc' => '2.0', 'method' => 'notifications/progress', 'params' => ['progressToken' => 0, 'progress' => 2.5]],
+        ['jsonrpc' => '2.0', 'method' => 'notifications/progress', 'params' => ['progressToken' => 0, 'progress' => 3]],
     ]],
     'no token' => [null, []],
+    'boolean token' => [['progressToken' => true], []],
+    'array token' => [['progressToken' => ['abc']], []],
 ]);
