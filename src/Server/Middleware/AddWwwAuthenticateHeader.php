@@ -32,7 +32,7 @@ class AddWwwAuthenticateHeader
         if ($isOauth) {
             $response->header(
                 'WWW-Authenticate',
-                'Bearer realm="mcp", resource_metadata="'.route('mcp.oauth.protected-resource.nested', ['path' => $request->path()]).'"'
+                'Bearer realm="mcp", resource_metadata="'.route('mcp.oauth.protected-resource.nested', [...array_intersect_key($route->originalParameters(), array_flip($route->getCompiled()?->getHostVariables() ?? [])), 'path' => $request->path()]).'"'
             );
 
             return $response;
