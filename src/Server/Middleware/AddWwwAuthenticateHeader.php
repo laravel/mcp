@@ -11,6 +11,13 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AddWwwAuthenticateHeader
 {
+    protected static ?Closure $resourceMetadataUrlResolver = null;
+
+    public static function resolveResourceMetadataUrlUsing(?Closure $callback): void
+    {
+        static::$resourceMetadataUrlResolver = $callback;
+    }
+
     /**
      * Handle an incoming request.
      *
@@ -28,22 +35,34 @@ class AddWwwAuthenticateHeader
             return $response;
         }
 
-        $isOauth = app('router')->has('mcp.oauth.protected-resource.nested');
-        if ($isOauth) {
-            $response->header(
-                'WWW-Authenticate',
-                'Bearer realm="mcp", resource_metadata="'.route('mcp.oauth.protected-resource.nested', ['path' => $request->path()]).'"'
-            );
+        $url = $this->resourceMetadataUrl($request);
 
-            return $response;
-        }
-
-        // Sanctum, can't share discover URL
-        $response->header(
-            'WWW-Authenticate',
-            'Bearer realm="mcp", error="invalid_token"'
-        );
+        $response->header('WWW-Authenticate', $url === null
+            ? 'Bearer realm="mcp", error="invalid_token"'
+            : 'Bearer realm="mcp", resource_metadata="'.$url.'"');
 
         return $response;
+    }
+
+    protected function resourceMetadataUrl(Request $request): ?string
+    {
+        if (static::$resourceMetadataUrlResolver instanceof Closure) {
+            $url = (static::$resourceMetadataUrlResolver)($request);
+
+            if (is_string($url) && $url !== '') {
+                return $url;
+            }
+        }
+
+        $metadata = app('router')->getRoutes()->getByName('mcp.oauth.protected-resource.nested');
+
+        if (! $metadata instanceof Route) {
+            return null;
+        }
+
+        return route('mcp.oauth.protected-resource.nested', [
+            ...(clone $metadata)->bind($request)->parameters(),
+            'path' => $request->path(),
+        ]);
     }
 }

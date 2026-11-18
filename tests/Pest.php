@@ -4,6 +4,7 @@ use Illuminate\Filesystem\Filesystem;
 use Illuminate\Http\Client\ResponseSequence;
 use Illuminate\Support\Facades\Http;
 use Laravel\Mcp\Client\OAuth\AuthServerDiscovery;
+use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
@@ -24,6 +25,7 @@ uses(TestCase::class)
     })
     ->afterEach(function (): void {
         AuthServerDiscovery::resolveHostsUsing(null);
+        AddWwwAuthenticateHeader::resolveResourceMetadataUrlUsing(null);
     })->in('Unit', 'Feature');
 
 /*
