@@ -4,16 +4,18 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Server;
 
+use DateTimeInterface;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
+use InvalidArgumentException;
 use Laravel\Mcp\Server\Attributes\Uri;
 use Laravel\Mcp\Server\Concerns\ReadsAttributes;
 use Laravel\Mcp\Server\Skills\SkillResource;
 use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use RuntimeException;
 use SplFileInfo;
+use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -69,6 +71,10 @@ abstract class Skill implements Arrayable
     {
         $directory = $this->directory();
 
+        if (! is_dir($directory)) {
+            throw new InvalidArgumentException("The skill directory [{$directory}] does not exist.");
+        }
+
         $iterator = new RecursiveIteratorIterator(new RecursiveCallbackFilterIterator(
             new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS),
             fn (SplFileInfo $file): bool => ! str_starts_with($file->getFilename(), '.') && ! $file->isLink(),
@@ -78,14 +84,21 @@ abstract class Skill implements Arrayable
         $size = 0;
 
         foreach ($iterator as $file) {
-            if ($file instanceof SplFileInfo && $file->isFile()) {
-                $files[] = str_replace('\\', '/', substr($file->getPathname(), strlen($directory) + 1));
-                $size += $file->getSize();
+            if (! $file instanceof SplFileInfo || ! $file->isFile()) {
+                continue;
             }
-        }
 
-        if (count($files) > self::MAX_FILES || $size > self::MAX_SIZE) {
-            throw new RuntimeException("The skill [{$directory}] must not contain more than 512 files or 16 MiB.");
+            $files[] = str_replace('\\', '/', substr($file->getPathname(), strlen($directory) + 1));
+            $size += $file->getSize();
+
+            if (count($files) > self::MAX_FILES || $size > self::MAX_SIZE) {
+                throw new InvalidArgumentException(sprintf(
+                    'The skill [%s] must not contain more than %d files or %d MiB.',
+                    $directory,
+                    self::MAX_FILES,
+                    self::MAX_SIZE / 1_048_576,
+                ));
+            }
         }
 
         sort($files);
@@ -103,27 +116,30 @@ abstract class Skill implements Arrayable
             || ! str_starts_with($path, $directory.DIRECTORY_SEPARATOR)
             || ! is_file($path)
             || filesize($path) > self::MAX_SIZE) {
-            throw new RuntimeException("The skill file [{$file}] is not readable.");
+            throw new InvalidArgumentException("The skill file [{$file}] is not readable.");
         }
 
         return (string) file_get_contents($path);
     }
 
-    /**
-     * @return list<SkillResource>
-     */
-    public function resources(): array
+    public function resource(string $file): SkillResource
+    {
+        return $this->makeResource($this->frontmatter(), $file);
+    }
+
+    public function resourceFor(string $uri): ?SkillResource
     {
         $frontmatter = $this->frontmatter();
-        $uri = $this->uriFor($frontmatter);
+        $base = rawurldecode($this->fileUri($this->uriFor($frontmatter), ''));
+        $uri = rawurldecode($uri);
 
-        return array_map(fn (string $file): SkillResource => new SkillResource(
-            $this,
-            $file,
-            $this->fileUri($uri, $file),
-            $file === 'SKILL.md' ? $frontmatter['name'] : basename($file),
-            $file === 'SKILL.md' ? $frontmatter['description'] : '',
-        ), $this->files());
+        if (! str_starts_with($uri, $base)) {
+            return null;
+        }
+
+        $file = substr($uri, strlen($base));
+
+        return in_array($file, $this->files(), true) ? $this->makeResource($frontmatter, $file) : null;
     }
 
     /**
@@ -155,20 +171,45 @@ abstract class Skill implements Arrayable
      */
     protected function parse(string $contents): array
     {
-        $frontmatter = preg_match('/\A(?:\xEF\xBB\xBF)?---\R(.*?)\R---(?:\R|\z)/s', $contents, $matches) === 1
-            ? Yaml::parse($matches[1])
-            : null;
+        if (preg_match('/\A(?:\xEF\xBB\xBF)?---\R(.*?)\R---(?:\R|\z)/s', $contents, $matches) !== 1) {
+            throw $this->invalidFrontmatter();
+        }
+
+        try {
+            $frontmatter = Yaml::parse($matches[1], Yaml::PARSE_DATETIME | Yaml::PARSE_EXCEPTION_ON_INVALID_TYPE);
+        } catch (ParseException $parseException) {
+            throw $this->invalidFrontmatter($parseException);
+        }
 
         if (! is_array($frontmatter)
             || ! is_string($frontmatter['name'] ?? null)
             || ! is_string($frontmatter['description'] ?? null)
             || mb_strlen($frontmatter['name']) > 64
-            || preg_match('/\A[\p{Ll}\p{Lo}\p{N}]+(?:-[\p{Ll}\p{Lo}\p{N}]+)*\z/u', $frontmatter['name']) !== 1) {
-            throw new RuntimeException("The skill [{$this->directory()}] must have a SKILL.md with a valid [name] and a [description] in its frontmatter.");
+            || preg_match('/\A[\p{Ll}\p{Lo}\p{N}]+(?:-[\p{Ll}\p{Lo}\p{N}]+)*\z/u', $frontmatter['name']) !== 1
+            || $frontmatter['description'] === ''
+            || mb_strlen($frontmatter['description']) > 1024) {
+            throw $this->invalidFrontmatter();
+        }
+
+        if ($frontmatter['name'] !== basename($this->directory())) {
+            throw new InvalidArgumentException("The skill name [{$frontmatter['name']}] must match its directory [{$this->directory()}].");
         }
 
         /** @var array<string, mixed>&array{name: string, description: string} $frontmatter */
+        $frontmatter = $this->normalize($frontmatter);
+
         return $frontmatter;
+    }
+
+    protected function normalize(mixed $value): mixed
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('H:i:s') === '00:00:00' && $value->getOffset() === 0
+                ? $value->format('Y-m-d')
+                : $value->format(DateTimeInterface::ATOM);
+        }
+
+        return is_array($value) ? array_map($this->normalize(...), $value) : $value;
     }
 
     /**
@@ -176,11 +217,38 @@ abstract class Skill implements Arrayable
      */
     protected function uriFor(array $frontmatter): string
     {
-        return $this->resolveAttribute(Uri::class)->value ?? 'skill://'.rawurlencode($frontmatter['name']).'/SKILL.md';
+        $uri = $this->resolveAttribute(Uri::class)->value ?? 'skill://'.rawurlencode($frontmatter['name']).'/SKILL.md';
+
+        if (! str_ends_with($uri, '/SKILL.md') || rawurldecode(basename(substr($uri, 0, -strlen('/SKILL.md')))) !== $frontmatter['name']) {
+            throw new InvalidArgumentException("The skill URI [{$uri}] must end with [/{$frontmatter['name']}/SKILL.md].");
+        }
+
+        return $uri;
     }
 
     protected function fileUri(string $uri, string $file): string
     {
         return substr($uri, 0, -strlen('SKILL.md')).implode('/', array_map(rawurlencode(...), explode('/', $file)));
+    }
+
+    /**
+     * @param  array{name: string, description: string}  $frontmatter
+     */
+    protected function makeResource(array $frontmatter, string $file): SkillResource
+    {
+        $name = $frontmatter['name'];
+        $uri = $this->fileUri($this->uriFor($frontmatter), $file);
+
+        return $file === 'SKILL.md'
+            ? new SkillResource($this, $file, $uri, $name, $name, $frontmatter['description'])
+            : new SkillResource($this, $file, $uri, $file, $file, "The [{$file}] file of the [{$name}] skill.");
+    }
+
+    protected function invalidFrontmatter(?ParseException $previous = null): InvalidArgumentException
+    {
+        return new InvalidArgumentException(
+            "The skill [{$this->directory()}] must have a SKILL.md with a valid [name] and a [description] of 1 to 1024 characters in its frontmatter.",
+            previous: $previous,
+        );
     }
 }

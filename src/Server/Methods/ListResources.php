@@ -6,8 +6,8 @@ namespace Laravel\Mcp\Server\Methods;
 
 use Laravel\Mcp\Server\Contracts\Method;
 use Laravel\Mcp\Server\Pagination\CursorPaginator;
-use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\ServerContext;
+use Laravel\Mcp\Server\Skill;
 use Laravel\Mcp\Server\Skills\SkillResource;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
@@ -21,8 +21,8 @@ class ListResources implements Method
             'per_page' => ['nullable', 'integer:strict', 'min:1'],
         ]);
 
-        $resources = $context->resources()->reject(
-            fn (Resource $resource): bool => $resource instanceof SkillResource && $resource->file !== 'SKILL.md',
+        $resources = $context->resources()->concat(
+            $context->skills()->map(fn (Skill $skill): SkillResource => $skill->resource('SKILL.md')),
         );
 
         $paginator = new CursorPaginator(

@@ -22,23 +22,40 @@ class MakeSkillCommand extends GeneratorCommand
 
     public function handle(): ?bool
     {
-        if (parent::handle() === false) {
+        if (strlen($this->skillName()) > 64) {
+            $this->fail("The skill name [{$this->skillName()}] must not be longer than 64 characters.");
+        }
+
+        $result = parent::handle();
+
+        if ($result === false) {
             return false;
         }
 
+        $this->createSkillFile();
+
+        return $result;
+    }
+
+    protected function createSkillFile(): void
+    {
         $name = $this->skillName();
         $path = resource_path("skills/{$name}/SKILL.md");
 
-        if (! $this->files->exists($path) || $this->option('force')) {
-            $this->files->ensureDirectoryExists(dirname($path));
-            $this->files->put($path, str_replace(
-                ['{{ name }}', '{{ title }}'],
-                [$name, Str::headline(class_basename($this->getNameInput()))],
-                $this->files->get($this->resolveStub('mcp-skill.md.stub')),
-            ));
+        if ($this->files->exists($path) && ! $this->option('force')) {
+            $this->components->warn("Skill file [{$path}] already exists.");
+
+            return;
         }
 
-        return null;
+        $this->files->ensureDirectoryExists(dirname($path));
+        $this->files->put($path, str_replace(
+            ['{{ name }}', '{{ title }}'],
+            [$name, Str::headline(class_basename($this->getNameInput()))],
+            $this->files->get($this->resolveStub('mcp-skill.md.stub')),
+        ));
+
+        $this->components->info("Skill file [{$path}] created successfully.");
     }
 
     protected function getStub(): string
@@ -64,7 +81,7 @@ class MakeSkillCommand extends GeneratorCommand
 
     protected function skillName(): string
     {
-        return Str::kebab(class_basename($this->getNameInput()));
+        return Str::slug(Str::kebab(class_basename($this->getNameInput())));
     }
 
     protected function resolveStub(string $stub): string

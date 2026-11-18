@@ -16,6 +16,10 @@ class GetSkill implements Method
 {
     public function handle(JsonRpcRequest $request, ServerContext $context): JsonRpcResponse
     {
+        $request->validate([
+            'uri' => ['nullable', 'string'],
+        ]);
+
         $uri = $request->get('uri');
 
         $skill = $context->skills()->first(fn (Skill $skill): bool => $skill->uri() === $uri);
