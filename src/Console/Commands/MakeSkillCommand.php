@@ -26,13 +26,14 @@ class MakeSkillCommand extends GeneratorCommand
             return false;
         }
 
-        $path = resource_path("skills/{$this->skillName()}/SKILL.md");
+        $name = $this->skillName();
+        $path = resource_path("skills/{$name}/SKILL.md");
 
         if (! $this->files->exists($path) || $this->option('force')) {
             $this->files->ensureDirectoryExists(dirname($path));
             $this->files->put($path, str_replace(
                 ['{{ name }}', '{{ title }}'],
-                [$this->skillName(), Str::headline(class_basename($this->getNameInput()))],
+                [$name, Str::headline(class_basename($this->getNameInput()))],
                 $this->files->get($this->resolveStub('mcp-skill.md.stub')),
             ));
         }

@@ -33,7 +33,11 @@ abstract class Skill implements Arrayable
     {
         $path = rtrim($this->path(), '/\\');
 
-        return str_starts_with($path, '/') || preg_match('~\A[a-z]:[\\\\/]~i', $path) === 1 ? $path : resource_path($path);
+        if (str_starts_with($path, '/') || preg_match('~\A[a-z]:[\\\\/]~i', $path) === 1) {
+            return $path;
+        }
+
+        return resource_path($path);
     }
 
     public function uri(): string
@@ -43,7 +47,11 @@ abstract class Skill implements Arrayable
 
     public function eligibleForRegistration(): bool
     {
-        return ! method_exists($this, 'shouldRegister') || (bool) Container::getInstance()->call([$this, 'shouldRegister']);
+        if (method_exists($this, 'shouldRegister')) {
+            return (bool) Container::getInstance()->call([$this, 'shouldRegister']);
+        }
+
+        return true;
     }
 
     /**
@@ -90,7 +98,11 @@ abstract class Skill implements Arrayable
         $directory = realpath($this->directory());
         $path = realpath($this->directory().DIRECTORY_SEPARATOR.$file);
 
-        if ($directory === false || $path === false || ! str_starts_with($path, $directory.DIRECTORY_SEPARATOR) || ! is_file($path) || filesize($path) > self::MAX_SIZE) {
+        if ($directory === false
+            || $path === false
+            || ! str_starts_with($path, $directory.DIRECTORY_SEPARATOR)
+            || ! is_file($path)
+            || filesize($path) > self::MAX_SIZE) {
             throw new RuntimeException("The skill file [{$file}] is not readable.");
         }
 
@@ -129,7 +141,11 @@ abstract class Skill implements Arrayable
             'resources' => array_map(function (string $file) use ($contents, $uri): array {
                 $bytes = $file === 'SKILL.md' ? $contents : $this->read($file);
 
-                return ['uri' => $this->fileUri($uri, $file), 'digest' => 'sha256:'.hash('sha256', $bytes), 'size' => strlen($bytes)];
+                return [
+                    'uri' => $this->fileUri($uri, $file),
+                    'digest' => 'sha256:'.hash('sha256', $bytes),
+                    'size' => strlen($bytes),
+                ];
             }, $this->files()),
         ];
     }

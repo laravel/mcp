@@ -21,8 +21,12 @@ class ListResources implements Method
             'per_page' => ['nullable', 'integer:strict', 'min:1'],
         ]);
 
+        $resources = $context->resources()->reject(
+            fn (Resource $resource): bool => $resource instanceof SkillResource && $resource->file !== 'SKILL.md',
+        );
+
         $paginator = new CursorPaginator(
-            items: $context->resources()->reject(fn (Resource $resource): bool => $resource instanceof SkillResource && $resource->file !== 'SKILL.md'),
+            items: $resources,
             perPage: $context->perPage($request->get('per_page')),
             cursor: $request->cursor(),
         );
