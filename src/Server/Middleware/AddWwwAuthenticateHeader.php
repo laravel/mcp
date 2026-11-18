@@ -28,11 +28,11 @@ class AddWwwAuthenticateHeader
             return $response;
         }
 
-        $isOauth = app('router')->has('mcp.oauth.protected-resource.nested');
-        if ($isOauth) {
+        $metadataRoute = app('router')->getRoutes()->getByName('mcp.oauth.protected-resource.nested');
+        if ($metadataRoute instanceof Route) {
             $response->header(
                 'WWW-Authenticate',
-                'Bearer realm="mcp", resource_metadata="'.route('mcp.oauth.protected-resource.nested', [...array_intersect_key($route->originalParameters(), array_flip($route->getCompiled()?->getHostVariables() ?? [])), 'path' => $request->path()]).'"'
+                'Bearer realm="mcp", resource_metadata="'.$this->resourceMetadataUrl($request, $metadataRoute).'"'
             );
 
             return $response;
@@ -45,5 +45,13 @@ class AddWwwAuthenticateHeader
         );
 
         return $response;
+    }
+
+    protected function resourceMetadataUrl(Request $request, Route $metadataRoute): string
+    {
+        return route('mcp.oauth.protected-resource.nested', [
+            ...(clone $metadataRoute)->bind($request)->parameters(),
+            'path' => $request->path(),
+        ]);
     }
 }
