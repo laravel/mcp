@@ -20,7 +20,7 @@ class ServerContext
      * @param  array<int|string, Tool|string|array<int, Tool|string>>  $tools
      * @param  array<int, Resource|string>  $resources
      * @param  array<int, Prompt|string>  $prompts
-     * @param  array<int, Skill|class-string<Skill>>  $skills
+     * @param  array<int, Skill|class-string<Skill>|string>  $skills
      */
     public function __construct(
         public array $supportedProtocolVersions,
@@ -98,7 +98,22 @@ class ServerContext
     public function skills(): Collection
     {
         return collect($this->skills)
-            ->map(fn (Skill|string $skill): Skill => is_string($skill) ? Container::getInstance()->make($skill) : $skill)
+            ->map(fn (Skill|string $skill): Skill => match (true) {
+                $skill instanceof Skill => $skill,
+                is_subclass_of($skill, Skill::class) => Container::getInstance()->make($skill),
+                default => new class($skill) extends Skill
+                {
+                    public function __construct(protected string $directory)
+                    {
+                        //
+                    }
+
+                    public function path(): string
+                    {
+                        return $this->directory;
+                    }
+                },
+            })
             ->filter(fn (Skill $skill): bool => $skill->eligibleForRegistration())
             ->values();
     }

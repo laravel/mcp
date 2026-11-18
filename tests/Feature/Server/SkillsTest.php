@@ -143,6 +143,20 @@ it('hides skills that should not register', function (): void {
         ->toHaveKey('error');
 });
 
+it('registers a skill folder by its path', function (): void {
+    $server = new class($this->transport) extends ExampleServer
+    {
+        protected array $skills = [__DIR__.'/../../Fixtures/Skills/house-style', ReleaseChecklistSkill::class];
+    };
+    $server->start();
+
+    expect(array_column(skillRequest($server, $this->transport, 'skills/list')['result']['skills'], 'uri'))->toBe([
+        'skill://house-style/SKILL.md',
+        'skill://release-checklist/SKILL.md',
+    ])->and(skillRequest($server, $this->transport, 'resources/read', ['uri' => 'skill://house-style/SKILL.md'])['result']['contents'][0]['text'])
+        ->toContain('Be brief.');
+});
+
 it('uses the uri attribute as the skill uri', function (): void {
     $skill = new TeamReleaseChecklistSkill;
 

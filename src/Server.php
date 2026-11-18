@@ -129,7 +129,7 @@ abstract class Server
     protected array $prompts = [];
 
     /**
-     * @var array<int, Skill|class-string<Skill>>
+     * @var array<int, Skill|class-string<Skill>|string>
      */
     protected array $skills = [];
 
