@@ -9,17 +9,24 @@ use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
+use Laravel\Mcp\Server\Skills\SkillResource;
 use Laravel\Mcp\Server\Tools\ToolSearch;
 use Symfony\Component\HttpFoundation\HeaderBag;
 
 class ServerContext
 {
     /**
+     * @var Collection<int, Skill>|null
+     */
+    private ?Collection $resolvedSkills = null;
+
+    /**
      * @param  array<int, string>  $supportedProtocolVersions
      * @param  array<string, mixed>  $serverCapabilities
      * @param  array<int|string, Tool|string|array<int, Tool|string>>  $tools
      * @param  array<int, Resource|string>  $resources
      * @param  array<int, Prompt|string>  $prompts
+     * @param  array<int, Skill|class-string<Skill>|string>  $skills
      */
     public function __construct(
         public array $supportedProtocolVersions,
@@ -32,6 +39,7 @@ class ServerContext
         protected array $resources,
         protected array $prompts,
         public ?HeaderBag $headers = null,
+        protected array $skills = [],
     ) {
         //
     }
@@ -87,6 +95,69 @@ class ServerContext
             ->filter(fn (Resource|string $resource): bool => ! $this->isResourceTemplate($resource));
 
         return $this->resolvePrimitives($resourceTemplates);
+    }
+
+    /**
+     * @return Collection<int, Skill>
+     */
+    public function skills(): Collection
+    {
+        return $this->resolvedSkills ??= $this->resolveSkills();
+    }
+
+    public function skillResource(string $uri): ?SkillResource
+    {
+        foreach ($this->skills() as $skill) {
+            if (($resource = $skill->resourceFor($uri)) instanceof SkillResource) {
+                return $resource;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return Collection<int, Skill>
+     */
+    private function resolveSkills(): Collection
+    {
+        $skills = collect($this->skills)
+            ->map(fn (Skill|string $skill): Skill => match (true) {
+                $skill instanceof Skill => $skill,
+                is_subclass_of($skill, Skill::class) => Container::getInstance()->make($skill),
+                default => new class($skill) extends Skill
+                {
+                    public function __construct(protected string $directory)
+                    {
+                        //
+                    }
+
+                    public function path(): string
+                    {
+                        return $this->directory;
+                    }
+                },
+            })
+            ->filter(fn (Skill $skill): bool => $skill->eligibleForRegistration());
+
+        $resolved = [];
+
+        foreach ($skills as $skill) {
+            try {
+                $skill->files();
+                $uri = $skill->uri();
+
+                if (array_key_exists($uri, $resolved)) {
+                    throw new InvalidArgumentException("The skill URI [{$uri}] is already registered.");
+                }
+
+                $resolved[$uri] = $skill;
+            } catch (InvalidArgumentException $invalidArgumentException) {
+                report($invalidArgumentException);
+            }
+        }
+
+        return collect(array_values($resolved));
     }
 
     /**
