@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Exceptions;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Attributes\Uri;
 use Laravel\Mcp\Server\Skill;
+use Laravel\Mcp\Server\Skills\DirectorySkill;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\ExampleServer;
 use Tests\Fixtures\HouseStyleSkill;
@@ -32,18 +33,7 @@ function temporarySkill(string $directory, string $frontmatter = "name: demo\nde
     (new Filesystem)->ensureDirectoryExists($directory);
     file_put_contents($directory.'/SKILL.md', "---\n{$frontmatter}\n---\n\n# Demo\n");
 
-    return new class($directory) extends Skill
-    {
-        public function __construct(protected string $directory)
-        {
-            //
-        }
-
-        public function path(): string
-        {
-            return $this->directory;
-        }
-    };
+    return new DirectorySkill($directory);
 }
 
 beforeEach(function (): void {
@@ -181,13 +171,7 @@ it('resolves relative paths from the resources path and skips dotfiles', functio
     $files->put(resource_path('skills/release-checklist/.env'), 'SECRET=1');
 
     try {
-        $skill = new class extends Skill
-        {
-            public function path(): string
-            {
-                return 'skills/release-checklist';
-            }
-        };
+        $skill = new DirectorySkill('skills/release-checklist');
 
         expect($skill->directory())->toBe(resource_path('skills/release-checklist'))
             ->and($skill->files())->toBe(['SKILL.md', 'references/checklist.md']);
@@ -201,14 +185,17 @@ it('requires a valid name and a description in the frontmatter', function (strin
 
     expect(fn (): array => $skill->frontmatter())->toThrow(InvalidArgumentException::class, $message);
 })->with([
-    'missing description' => ['name: demo', 'must have a SKILL.md with a valid [name] and a [description]'],
-    'empty description' => ["name: demo\ndescription: ''", 'must have a SKILL.md with a valid [name] and a [description]'],
-    'long description' => ["name: demo\ndescription: ".str_repeat('a', 1025), 'must have a SKILL.md with a valid [name] and a [description]'],
-    'uppercase name' => ["name: Demo\ndescription: A demo skill.", 'must have a SKILL.md with a valid [name] and a [description]'],
-    'path in name' => ["name: ../demo\ndescription: A demo skill.", 'must have a SKILL.md with a valid [name] and a [description]'],
-    'long name' => ['name: '.str_repeat('a', 65)."\ndescription: A demo skill.", 'must have a SKILL.md with a valid [name] and a [description]'],
-    'invalid yaml' => ["name: [demo\ndescription: A demo skill.", 'must have a SKILL.md with a valid [name] and a [description]'],
-    'php object tag' => ["name: demo\ndescription: A demo skill.\nobject: !php/object 'O:8:\"stdClass\":0:{}'", 'must have a SKILL.md with a valid [name] and a [description]'],
+    'missing description' => ['name: demo', 'The description field is required.'],
+    'empty description' => ["name: demo\ndescription: ''", 'The description field is required.'],
+    'long description' => ["name: demo\ndescription: ".str_repeat('a', 1025), 'The description field must not be greater than 1024 characters.'],
+    'uppercase name' => ["name: Demo\ndescription: A demo skill.", 'The name field format is invalid.'],
+    'path in name' => ["name: ../demo\ndescription: A demo skill.", 'The name field format is invalid.'],
+    'long name' => ['name: '.str_repeat('a', 65)."\ndescription: A demo skill.", 'The name field must not be greater than 64 characters.'],
+    'long compatibility' => ["name: demo\ndescription: A demo skill.\ncompatibility: ".str_repeat('a', 501), 'The compatibility field must not be greater than 500 characters.'],
+    'nested metadata' => ["name: demo\ndescription: A demo skill.\nmetadata:\n  owner:\n    team: core", 'The metadata.owner field must be a string.'],
+    'scalar frontmatter' => ['demo', 'The frontmatter must be a YAML mapping.'],
+    'invalid yaml' => ["name: [demo\ndescription: A demo skill.", 'has an invalid SKILL.md frontmatter'],
+    'php object tag' => ["name: demo\ndescription: A demo skill.\nobject: !php/object 'O:8:\"stdClass\":0:{}'", 'has an invalid SKILL.md frontmatter'],
     'name not matching the directory' => ["name: other\ndescription: A demo skill.", 'must match its directory'],
 ]);
 
@@ -217,7 +204,7 @@ it('requires a SKILL.md with a frontmatter block', function (): void {
     file_put_contents($this->temporary.'/demo/SKILL.md', "# Demo\n");
 
     $skill->frontmatter();
-})->throws(InvalidArgumentException::class, 'must have a SKILL.md with a valid [name] and a [description]');
+})->throws(InvalidArgumentException::class, 'The SKILL.md file must start with a YAML frontmatter block.');
 
 it('keeps frontmatter dates as written', function (): void {
     $skill = temporarySkill($this->temporary.'/demo', "name: demo\ndescription: A demo skill.\nupdated: 2024-01-01\nreleased: 2024-01-01T10:30:00+02:00");
@@ -231,30 +218,14 @@ it('keeps frontmatter dates as written', function (): void {
 it('requires the uri attribute to end with the skill name and SKILL.md', function (): void {
     temporarySkill($this->temporary.'/demo');
 
-    $missingFile = new #[Uri('skill://team/demo')] class($this->temporary.'/demo') extends Skill
+    $missingFile = new #[Uri('skill://team/demo')] class($this->temporary.'/demo') extends DirectorySkill
     {
-        public function __construct(protected string $directory)
-        {
-            //
-        }
-
-        public function path(): string
-        {
-            return $this->directory;
-        }
+        //
     };
 
-    $otherName = new #[Uri('skill://team/other/SKILL.md')] class($this->temporary.'/demo') extends Skill
+    $otherName = new #[Uri('skill://team/other/SKILL.md')] class($this->temporary.'/demo') extends DirectorySkill
     {
-        public function __construct(protected string $directory)
-        {
-            //
-        }
-
-        public function path(): string
-        {
-            return $this->directory;
-        }
+        //
     };
 
     expect(fn (): string => $missingFile->uri())->toThrow(InvalidArgumentException::class, 'must end with [/demo/SKILL.md]')
@@ -292,7 +263,7 @@ it('reports and skips invalid skills without affecting other resources', functio
         ->and(skillRequest($server, $this->transport, 'resources/read', ['uri' => 'skill://demo/SKILL.md'])['result']['contents'][0]['text'])
         ->toContain('# Demo');
 
-    Exceptions::assertReported(fn (InvalidArgumentException $e): bool => str_contains($e->getMessage(), 'must have a SKILL.md'));
+    Exceptions::assertReported(fn (InvalidArgumentException $e): bool => str_contains($e->getMessage(), 'The name field format is invalid.'));
     Exceptions::assertReported(fn (InvalidArgumentException $e): bool => str_contains($e->getMessage(), 'does not exist'));
     Exceptions::assertReported(fn (InvalidArgumentException $e): bool => str_contains($e->getMessage(), 'is already registered'));
 });

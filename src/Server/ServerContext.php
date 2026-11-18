@@ -9,6 +9,7 @@ use Illuminate\Support\Collection;
 use InvalidArgumentException;
 use Laravel\Mcp\Schema\Implementation;
 use Laravel\Mcp\Server\Contracts\HasUriTemplate;
+use Laravel\Mcp\Server\Skills\DirectorySkill;
 use Laravel\Mcp\Server\Skills\SkillResource;
 use Laravel\Mcp\Server\Tools\ToolSearch;
 use Symfony\Component\HttpFoundation\HeaderBag;
@@ -125,18 +126,7 @@ class ServerContext
             ->map(fn (Skill|string $skill): Skill => match (true) {
                 $skill instanceof Skill => $skill,
                 is_subclass_of($skill, Skill::class) => Container::getInstance()->make($skill),
-                default => new class($skill) extends Skill
-                {
-                    public function __construct(protected string $directory)
-                    {
-                        //
-                    }
-
-                    public function path(): string
-                    {
-                        return $this->directory;
-                    }
-                },
+                default => new DirectorySkill($skill),
             })
             ->filter(fn (Skill $skill): bool => $skill->eligibleForRegistration());
 
@@ -157,7 +147,7 @@ class ServerContext
             }
         }
 
-        return collect(array_values($resolved));
+        return collect($resolved)->values();
     }
 
     /**

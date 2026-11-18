@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server\Skills;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\Server\Resource;
 use Laravel\Mcp\Server\Skill;
+use Symfony\Component\Mime\MimeTypes;
 
 class SkillResource extends Resource
 {
@@ -26,15 +27,7 @@ class SkillResource extends Resource
 
     public function mimeType(): string
     {
-        if (str_ends_with($this->file, '.md')) {
-            return 'text/markdown';
-        }
-
-        $mimeType = function_exists('mime_content_type')
-            ? mime_content_type($this->skill->directory().DIRECTORY_SEPARATOR.$this->file)
-            : false;
-
-        return $mimeType ?: 'application/octet-stream';
+        return MimeTypes::getDefault()->getMimeTypes(pathinfo($this->file, PATHINFO_EXTENSION))[0] ?? 'application/octet-stream';
     }
 
     public function handle(): Response

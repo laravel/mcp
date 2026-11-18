@@ -7,6 +7,7 @@ namespace Laravel\Mcp\Server;
 use DateTimeInterface;
 use Illuminate\Container\Container;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Support\Facades\Validator;
 use InvalidArgumentException;
 use Laravel\Mcp\Server\Attributes\Uri;
 use Laravel\Mcp\Server\Concerns\ReadsAttributes;
@@ -17,6 +18,7 @@ use RecursiveIteratorIterator;
 use SplFileInfo;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Yaml\Yaml;
+use Throwable;
 
 /**
  * @implements Arrayable<string, mixed>
@@ -172,23 +174,31 @@ abstract class Skill implements Arrayable
     protected function parse(string $contents): array
     {
         if (preg_match('/\A(?:\xEF\xBB\xBF)?---\R(.*?)\R---(?:\R|\z)/s', $contents, $matches) !== 1) {
-            throw $this->invalidFrontmatter();
+            throw $this->invalidFrontmatter('The SKILL.md file must start with a YAML frontmatter block.');
         }
 
         try {
             $frontmatter = Yaml::parse($matches[1], Yaml::PARSE_DATETIME | Yaml::PARSE_EXCEPTION_ON_INVALID_TYPE);
         } catch (ParseException $parseException) {
-            throw $this->invalidFrontmatter($parseException);
+            throw $this->invalidFrontmatter($parseException->getMessage(), $parseException);
         }
 
-        if (! is_array($frontmatter)
-            || ! is_string($frontmatter['name'] ?? null)
-            || ! is_string($frontmatter['description'] ?? null)
-            || mb_strlen($frontmatter['name']) > 64
-            || preg_match('/\A[\p{Ll}\p{Lo}\p{N}]+(?:-[\p{Ll}\p{Lo}\p{N}]+)*\z/u', $frontmatter['name']) !== 1
-            || $frontmatter['description'] === ''
-            || mb_strlen($frontmatter['description']) > 1024) {
-            throw $this->invalidFrontmatter();
+        if (! is_array($frontmatter)) {
+            throw $this->invalidFrontmatter('The frontmatter must be a YAML mapping.');
+        }
+
+        $frontmatter = $this->normalize($frontmatter);
+
+        $validator = Validator::make($frontmatter, [
+            'name' => ['required', 'string', 'max:64', 'regex:/\A[\p{Ll}\p{Lo}\p{N}]+(?:-[\p{Ll}\p{Lo}\p{N}]+)*\z/u'],
+            'description' => ['required', 'string', 'max:1024'],
+            'compatibility' => ['sometimes', 'string', 'max:500'],
+            'metadata' => ['sometimes', 'array'],
+            'metadata.*' => ['string'],
+        ]);
+
+        if ($validator->fails()) {
+            throw $this->invalidFrontmatter(implode(' ', $validator->errors()->all()));
         }
 
         if ($frontmatter['name'] !== basename($this->directory())) {
@@ -196,8 +206,6 @@ abstract class Skill implements Arrayable
         }
 
         /** @var array<string, mixed>&array{name: string, description: string} $frontmatter */
-        $frontmatter = $this->normalize($frontmatter);
-
         return $frontmatter;
     }
 
@@ -244,10 +252,10 @@ abstract class Skill implements Arrayable
             : new SkillResource($this, $file, $uri, $file, $file, "The [{$file}] file of the [{$name}] skill.");
     }
 
-    protected function invalidFrontmatter(?ParseException $previous = null): InvalidArgumentException
+    protected function invalidFrontmatter(string $reason, ?Throwable $previous = null): InvalidArgumentException
     {
         return new InvalidArgumentException(
-            "The skill [{$this->directory()}] must have a SKILL.md with a valid [name] and a [description] of 1 to 1024 characters in its frontmatter.",
+            "The skill [{$this->directory()}] has an invalid SKILL.md frontmatter: {$reason}",
             previous: $previous,
         );
     }
