@@ -7,7 +7,6 @@ namespace Laravel\Mcp\Server\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Route;
-use Illuminate\Support\Arr;
 use Symfony\Component\HttpFoundation\Response;
 
 class AddWwwAuthenticateHeader
@@ -36,7 +35,7 @@ class AddWwwAuthenticateHeader
             return $response;
         }
 
-        $url = $this->resourceMetadataUrl($request, $route);
+        $url = $this->resourceMetadataUrl($request);
 
         $response->header('WWW-Authenticate', $url === null
             ? 'Bearer realm="mcp", error="invalid_token"'
@@ -45,7 +44,7 @@ class AddWwwAuthenticateHeader
         return $response;
     }
 
-    protected function resourceMetadataUrl(Request $request, Route $route): ?string
+    protected function resourceMetadataUrl(Request $request): ?string
     {
         if (static::$resourceMetadataUrlResolver instanceof Closure) {
             $url = (static::$resourceMetadataUrlResolver)($request);
@@ -62,7 +61,7 @@ class AddWwwAuthenticateHeader
         }
 
         return route('mcp.oauth.protected-resource.nested', [
-            ...Arr::only($route->originalParameters(), array_diff($metadata->parameterNames(), ['path'])),
+            ...(clone $metadata)->bind($request)->parameters(),
             'path' => $request->path(),
         ]);
     }

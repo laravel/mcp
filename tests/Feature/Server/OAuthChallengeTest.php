@@ -108,6 +108,38 @@ it('does not leak host parameters the metadata route does not declare', function
         ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="http://example.com/.well-known/oauth-protected-resource/tenant-mcp"');
 });
 
+it('does not leak host parameters when the metadata route has no domain', function (): void {
+    Route::domain('{tenant}.example.com')->group(function (): void {
+        Mcp::web('tenant-mcp', ExampleServer::class)->middleware(Authenticate::class);
+    });
+
+    $this->postJson('http://acme.example.com/tenant-mcp', [])
+        ->assertStatus(401)
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="http://acme.example.com/.well-known/oauth-protected-resource/tenant-mcp"');
+});
+
+it('challenges with the host parameters of the metadata route when the mcp route has no domain', function (): void {
+    Route::domain('{tenant}.example.com')->group(fn () => app(Registrar::class)->oauthRoutes());
+
+    Mcp::web('shared-mcp', ExampleServer::class)->middleware(Authenticate::class);
+
+    $this->postJson('http://acme.example.com/shared-mcp', [])
+        ->assertStatus(401)
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="http://acme.example.com/.well-known/oauth-protected-resource/shared-mcp"');
+});
+
+it('challenges with the host parameters of the metadata route when the routes name them differently', function (): void {
+    Route::domain('{account}.example.com')->group(fn () => app(Registrar::class)->oauthRoutes());
+
+    Route::domain('{tenant}.example.com')->group(function (): void {
+        Mcp::web('tenant-mcp', ExampleServer::class)->middleware(Authenticate::class);
+    });
+
+    $this->postJson('http://acme.example.com/tenant-mcp', [])
+        ->assertStatus(401)
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="http://acme.example.com/.well-known/oauth-protected-resource/tenant-mcp"');
+});
+
 it('does not challenge on routes that are not mcp servers', function (): void {
     Route::middleware(Authenticate::class)->post('not-mcp', fn () => response()->json([]));
 
