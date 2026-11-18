@@ -60,32 +60,23 @@ it('executes stream callback', function (): void {
     expect($streamExecuted)->toBeTrue();
 });
 
-it('handles run method with handler', function (): void {
-    $transport = new StdioTransport;
-
-    $messages = [];
-    $handler = function (string $message) use (&$messages): void {
-        $messages[] = $message;
-    };
-
-    $transport->onReceive($handler);
-
-    // Create a mock STDIN stream
-    $stdin = fopen('php://memory', 'r+');
-    fwrite($stdin, "Test message\n");
-    fwrite($stdin, "Another message\n");
-    rewind($stdin);
-
-    // We can't actually test the run() method directly because it uses STDIN
-    // and has an infinite loop, but we've tested all its components
-    expect($transport)->toBeInstanceOf(StdioTransport::class);
-});
-
 it('implements transport interface', function (): void {
     $transport = new StdioTransport;
 
     expect($transport)->toBeInstanceOf(Transport::class);
 });
+
+it('reads stdin through a blocking pipe on Windows', function (): void {
+    $transport = new class extends StdioTransport
+    {
+        public function input()
+        {
+            return $this->inputStream();
+        }
+    };
+
+    expect($transport->input())->not->toBe(STDIN);
+})->onlyOnWindows();
 
 it('reads every message from stdin until the client closes it', function (): void {
     $received = tempnam(sys_get_temp_dir(), 'mcp');
@@ -110,22 +101,26 @@ it('reads every message from stdin until the client closes it', function (): voi
         return true;
     };
 
-    $first = '{"jsonrpc":"2.0","id":1,"method":"ping"}'."\n";
-    $second = '{"jsonrpc":"2.0","id":2,"method":"ping"}'."\n";
+    try {
+        $first = '{"jsonrpc":"2.0","id":1,"method":"ping"}'."\n";
+        $second = '{"jsonrpc":"2.0","id":2,"method":"ping"}'."\n";
 
-    fwrite($pipes[0], $first);
-    fwrite($pipes[0], $second);
+        fwrite($pipes[0], $first);
+        fwrite($pipes[0], $second);
 
-    expect($waitUntil(fn (): bool => file_get_contents($received) === $first.$second))->toBeTrue()
-        ->and(proc_get_status($process)['running'])->toBeTrue();
+        expect($waitUntil(fn (): bool => file_get_contents($received) === $first.$second))->toBeTrue()
+            ->and(proc_get_status($process)['running'])->toBeTrue();
 
-    fclose($pipes[0]);
+        fclose($pipes[0]);
 
-    expect($waitUntil(fn (): bool => ! proc_get_status($process)['running']))->toBeTrue()
-        ->and(file_get_contents($received))->toBe($first.$second."stdin closed\n");
+        expect($waitUntil(fn (): bool => ! proc_get_status($process)['running']))->toBeTrue()
+            ->and(file_get_contents($received))->toBe($first.$second."stdin closed\n");
+    } finally {
+        foreach (array_filter($pipes, is_resource(...)) as $pipe) {
+            fclose($pipe);
+        }
 
-    fclose($pipes[1]);
-    fclose($pipes[2]);
-    proc_close($process);
-    unlink($received);
+        proc_close($process);
+        @unlink($received);
+    }
 });

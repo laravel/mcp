@@ -51,13 +51,7 @@ class StdioTransport implements Transport
     }
 
     /**
-     * Get the stream to read messages from.
-     *
-     * On Windows, PHP reads a pipe opened without the "blocking" pipe option by polling it
-     * up to 3,200,000 times, sleeping one timer tick between polls, and then reports the end
-     * of input although the client still holds the pipe open, so an idle server would stop
-     * after some hours. A blocking pipe waits for the next message instead, and still ends
-     * as soon as the client closes it.
+     * Get the stream to read messages from, using a blocking pipe on Windows so idle reads never report a false end of input.
      *
      * @return resource
      */
