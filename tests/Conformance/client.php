@@ -51,8 +51,6 @@ $client = Client::web($url)
     });
 
 $authorize = function (AuthorizationRequiredException $exception) use ($url, $scenario, $context, $log): TokenSet {
-    // The suite advertises a client ID metadata document on a host that the
-    // authorization server never fetches, so skip the public host check.
     $oauth = new class(new OAuthConfig(clientId: $context['client_id'] ?? null, clientSecret: $context['client_secret'] ?? null, redirectUri: 'http://localhost/callback'), $url, $exception->resourceMetadataUrl(), $exception->scope(), clientIdMetadataUrl: 'https://conformance-test.local/client-metadata.json') extends OAuthClient
     {
         protected function isPubliclyResolvable(string $host): bool

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\OAuth;
 
+use Laravel\Mcp\Client\OAuth\Enums\TokenEndpointAuthMethod;
 use SensitiveParameter;
 
 class TokenSet
@@ -19,6 +20,7 @@ class TokenSet
         public ?string $clientId = null,
         #[SensitiveParameter]
         public ?string $clientSecret = null,
+        public ?TokenEndpointAuthMethod $tokenEndpointAuthMethod = null,
     ) {}
 
     /**
