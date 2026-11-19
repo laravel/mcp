@@ -20,9 +20,9 @@ class RejectsEveryone
     }
 }
 
-beforeEach(fn () => app(Registrar::class)->oauthRoutes());
-
 it('challenges when authentication is sorted ahead of the route middleware', function (): void {
+    app(Registrar::class)->oauthRoutes();
+
     Route::middleware(SubstituteBindings::class)->group(function (): void {
         Mcp::web('protected-mcp', ExampleServer::class)->middleware(Authenticate::class);
     });
@@ -33,6 +33,8 @@ it('challenges when authentication is sorted ahead of the route middleware', fun
 });
 
 it('challenges when authentication is not part of the middleware priority list', function (): void {
+    app(Registrar::class)->oauthRoutes();
+
     Route::middleware(RejectsEveryone::class)->group(function (): void {
         Mcp::web('custom-auth-mcp', ExampleServer::class);
     });
@@ -43,6 +45,8 @@ it('challenges when authentication is not part of the middleware priority list',
 });
 
 it('challenges when authentication is applied through the auth alias', function (): void {
+    app(Registrar::class)->oauthRoutes();
+
     config()->set('auth.guards.api', ['driver' => 'session', 'provider' => 'users']);
 
     Route::middleware(SubstituteBindings::class)->group(function (): void {
@@ -55,6 +59,8 @@ it('challenges when authentication is applied through the auth alias', function 
 });
 
 it('challenges with the resource metadata url of the resolver', function (): void {
+    app(Registrar::class)->oauthRoutes();
+
     AddWwwAuthenticateHeader::resolveResourceMetadataUrlUsing(
         fn (Request $request): string => 'https://acme.example.com/.well-known/oauth-protected-resource/'.$request->path()
     );
@@ -69,6 +75,8 @@ it('challenges with the resource metadata url of the resolver', function (): voi
 });
 
 it('challenges with the resource metadata url of the named route when the resolver returns null', function (): void {
+    app(Registrar::class)->oauthRoutes();
+
     AddWwwAuthenticateHeader::resolveResourceMetadataUrlUsing(fn (): ?string => null);
 
     Route::middleware(SubstituteBindings::class)->group(function (): void {
@@ -109,6 +117,8 @@ it('does not leak host parameters the metadata route does not declare', function
 });
 
 it('does not leak host parameters when the metadata route has no domain', function (): void {
+    app(Registrar::class)->oauthRoutes();
+
     Route::domain('{tenant}.example.com')->group(function (): void {
         Mcp::web('tenant-mcp', ExampleServer::class)->middleware(Authenticate::class);
     });
