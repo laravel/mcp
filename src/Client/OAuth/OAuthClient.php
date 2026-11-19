@@ -350,7 +350,7 @@ class OAuthClient
         return $this->discovered ??= $this->discovery->discover($this->resourceUrl, $this->resourceMetadataUrl);
     }
 
-    protected function resolveScope(): string
+    protected function resolveScope(): ?string
     {
         $supported = trim(implode(' ', $this->discover()->scopesSupported));
 
@@ -364,7 +364,7 @@ class OAuthClient
 
     protected function authorizationScope(): ?string
     {
-        $scopes = preg_split('/\s+/', $this->resolveScope(), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $scopes = preg_split('/\s+/', $this->resolveScope() ?? '', -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
         if (filled($this->challengeScope)) {
             $granted = Session::get($this->grantedScopeSessionKey());
@@ -372,7 +372,7 @@ class OAuthClient
             $scopes = [...preg_split('/\s+/', is_string($granted) ? $granted : '', -1, PREG_SPLIT_NO_EMPTY) ?: [], ...$scopes];
         }
 
-        if ($scopes !== [] && in_array('offline_access', $this->discover()->server->scopesSupported, true)) {
+        if ($scopes !== [] && blank($this->config->scope) && in_array('offline_access', $this->discover()->server->scopesSupported, true)) {
             $scopes[] = 'offline_access';
         }
 

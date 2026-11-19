@@ -172,30 +172,6 @@ Any database column that stores `clientSecret` must be nullable. Code that passe
 
 This change also fixes a bug that caused every call to `redirect()` to perform a fresh dynamic registration, creating a new client record on the authorization server for each connection.
 
-## OAuth Scope Selection
-
-**Likelihood Of Impact: Low**
-
-When you do not pass a `scope` to `withOAuth()` and the server's `WWW-Authenticate` challenge has none, the OAuth client now requests every scope listed in the protected resource metadata's `scopes_supported`. When the metadata lists no scopes, the client still requests `mcp:use`. Laravel MCP servers advertise only `mcp:use`, so they receive the same request as before. To request a fixed scope from other servers, pass it explicitly:
-
-```php
-->withOAuth(scope: 'mcp:use')
-```
-
-When redirecting for authorization, the client also adds `offline_access` if the authorization server lists it in `scopes_supported`, so it receives a refresh token. The `client_credentials` grant never requests `offline_access`, and `refreshCredentials()` sends a `scope` only when you configured one, so a refresh keeps the scope that was originally granted.
-
-When a server answers with a `WWW-Authenticate` challenge for more scope, the client re-authorizes for the scope it was already granted plus the challenged scope. The granted scope is kept in the session per MCP server, so passing `$exception->query()` to the `connect` route is enough:
-
-```php
-try {
-    Mcp::client('github')->callTool('create_issue', $arguments);
-} catch (AuthorizationRequiredException $exception) {
-    return redirect()->route('mcp.oauth.github.connect', $exception->query());
-}
-```
-
-If the path-based metadata document is missing, the client looks for one at the origin, `/.well-known/oauth-protected-resource`, before falling back to the origin as the authorization server. Only that origin-level document may identify the resource by its origin, such as `https://mcp.example.com` for an endpoint at `https://mcp.example.com/mcp`, and the client then sends that identifier as the `resource` parameter. Every other metadata document must name the exact endpoint URL, as before.
-
 ## The Client Metadata Route
 
 **Likelihood Of Impact: Low**

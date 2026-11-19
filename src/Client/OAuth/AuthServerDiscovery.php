@@ -50,20 +50,16 @@ class AuthServerDiscovery
 
     public function discover(string $resourceUrl, ?string $resourceMetadataUrl = null): DiscoveryResult
     {
-        $metadataUrls = $resourceMetadataUrl === null
-            ? array_unique([$this->wellKnown($resourceUrl, 'oauth-protected-resource'), $this->origin($resourceUrl).'/.well-known/oauth-protected-resource'])
-            : [$resourceMetadataUrl];
+        $metadataUrl = $resourceMetadataUrl ?? $this->wellKnown($resourceUrl, 'oauth-protected-resource');
 
-        $resourceMetadata = [];
+        $this->requireFetchable($metadataUrl, $resourceUrl);
 
-        foreach ($metadataUrls as $metadataUrl) {
-            $this->requireFetchable($metadataUrl, $resourceUrl);
+        $resourceMetadata = $this->fetchResourceMetadata($metadataUrl, explicit: $resourceMetadataUrl !== null);
 
-            if (($resourceMetadata = $this->fetchResourceMetadata($metadataUrl, explicit: $resourceMetadataUrl !== null)) !== []) {
-                $this->requireResourceMatches($resourceMetadata, $resourceUrl, $metadataUrl);
+        $this->requireResourceMatches($resourceMetadata, $resourceUrl);
 
-                break;
-            }
+        if ($resourceMetadata === [] && $resourceMetadataUrl === null) {
+            $resourceMetadata = $this->fetchRootResourceMetadata($resourceUrl);
         }
 
         $issuer = $this->issuerFrom($resourceMetadata) ?? $this->origin($resourceUrl);
@@ -194,25 +190,35 @@ class AuthServerDiscovery
     /**
      * @param  array<string, mixed>  $resourceMetadata
      */
-    protected function requireResourceMatches(array $resourceMetadata, string $resourceUrl, string $metadataUrl): void
+    protected function requireResourceMatches(array $resourceMetadata, string $resourceUrl): void
     {
         $resource = Arr::get($resourceMetadata, 'resource');
 
-        if (is_string($resource) && ! $this->resourceCovers($resource, $resourceUrl, $metadataUrl)) {
+        if (is_string($resource) && ! hash_equals($resourceUrl, $resource)) {
             throw new OAuthException("Protected resource metadata resource [{$resource}] did not match the expected resource [{$resourceUrl}].");
         }
     }
 
-    protected function resourceCovers(string $resource, string $resourceUrl, string $metadataUrl): bool
+    /**
+     * @return array<string, mixed>
+     */
+    protected function fetchRootResourceMetadata(string $resourceUrl): array
     {
-        if (hash_equals($resourceUrl, $resource)) {
-            return true;
+        $origin = $this->origin($resourceUrl);
+        $metadataUrl = $origin.'/.well-known/oauth-protected-resource';
+
+        if ($metadataUrl === $this->wellKnown($resourceUrl, 'oauth-protected-resource')) {
+            return [];
         }
 
-        $origin = $this->origin($resourceUrl);
+        $this->requireFetchable($metadataUrl, $resourceUrl);
 
-        return $metadataUrl === $origin.'/.well-known/oauth-protected-resource'
-            && in_array($resource, [$origin, $origin.'/'], true);
+        $resourceMetadata = $this->fetchResourceMetadata($metadataUrl);
+        $resource = Arr::get($resourceMetadata, 'resource');
+
+        return ! is_string($resource) || in_array($resource, [$resourceUrl, $origin, $origin.'/'], true)
+            ? $resourceMetadata
+            : [];
     }
 
     /**

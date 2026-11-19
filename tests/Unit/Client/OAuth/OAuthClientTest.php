@@ -837,6 +837,20 @@ it('adds offline_access when the authorization server supports it', function ():
     expect($query['scope'])->toBe('mcp:read offline_access');
 });
 
+it('does not add offline_access to a configured scope', function (): void {
+    fakeScopedDiscovery();
+
+    $target = Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', scope: 'mcp:read', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect()
+        ->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($query['scope'])->toBe('mcp:read');
+});
+
 it('discovers root protected resource metadata and sends its resource identifier', function (): void {
     Http::fake([
         'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response('', 404),
@@ -899,20 +913,33 @@ it('rejects an origin resource from server advertised protected resource metadat
         ->toThrow(OAuthException::class, 'did not match the expected resource [https://mcp.test/mcp]');
 });
 
-it('rejects a sibling path resource from root protected resource metadata', function (): void {
+it('ignores root protected resource metadata for a sibling path resource', function (): void {
     Http::fake([
         'https://mcp.test/.well-known/oauth-protected-resource/tenant-a/mcp' => Http::response('', 404),
         'https://mcp.test/.well-known/oauth-protected-resource' => Http::response([
             'resource' => 'https://mcp.test/tenant-b/mcp',
             'authorization_servers' => ['https://auth.test'],
         ]),
+        'https://mcp.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://mcp.test',
+            'authorization_endpoint' => 'https://mcp.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
+            'token_endpoint' => 'https://mcp.test/token',
+        ]),
     ]);
 
-    expect(fn (): RedirectResponse => Client::web('https://mcp.test/tenant-a/mcp')
+    $target = Client::web('https://mcp.test/tenant-a/mcp')
         ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
         ->oAuthClient()
-        ->redirect())
-        ->toThrow(OAuthException::class, 'did not match the expected resource [https://mcp.test/tenant-a/mcp]');
+        ->redirect()
+        ->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($target)->toStartWith('https://mcp.test/authorize')
+        ->and($query['resource'])->toBe('https://mcp.test/tenant-a/mcp');
+
+    Http::assertNotSent(fn ($request): bool => str_starts_with($request->url(), 'https://auth.test'));
 });
 
 function fakeScopedDiscovery(): void
