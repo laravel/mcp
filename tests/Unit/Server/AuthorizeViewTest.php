@@ -3,7 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-function renderAuthorize(Request $request, array $client = []): string
+function renderAuthorize(Request $request, array $client = [], array $scopes = []): string
 {
     Route::delete('/oauth/authorize', fn (): null => null)->name('passport.authorizations.deny');
     Route::post('/oauth/authorize', fn (): null => null)->name('passport.authorizations.approve');
@@ -13,7 +13,7 @@ function renderAuthorize(Request $request, array $client = []): string
     return view('mcp::authorize', [
         'client' => (object) ['id' => 'client-1', 'name' => 'Example', ...$client],
         'user' => (object) ['email' => 'user@example.com'],
-        'scopes' => [],
+        'scopes' => $scopes,
         'authToken' => 'token',
         'request' => $request,
     ])->render();
@@ -35,6 +35,29 @@ it('falls back to the registered redirect uri', function (): void {
     $html = renderAuthorize(Request::create('/oauth/authorize'), ['redirect_uris' => ['https://registered.example.com/cb']]);
 
     expect($html)->toContain('registered.example.com');
+});
+
+it('translates the page into the application locale', function (): void {
+    $this->withoutVite();
+
+    app('translator')->addJsonPath(__DIR__.'/../../Fixtures/lang');
+    app()->setLocale('pl');
+
+    $html = renderAuthorize(
+        Request::create('/oauth/authorize', 'GET', ['redirect_uri' => 'https://app.example.com/callback']),
+        scopes: [(object) ['description' => 'Use MCP']],
+    );
+
+    expect($html)->toContain('<title>Autoryzacja aplikacji - ')
+        ->and($html)->toContain('content="Autoryzacja MCP"')
+        ->and($html)->toContain('Autoryzuj Example')
+        ->and($html)->toContain('Ta aplikacja będzie mogła:<br/>Korzystać z dostępnych funkcji MCP.')
+        ->and($html)->toContain('Nastąpi przekierowanie do https://app.example.com/callback')
+        ->and($html)->toContain('Zalogowano jako:')
+        ->and($html)->toContain('Uprawnienia:')
+        ->and($html)->toContain('Anuluj')
+        ->and($html)->toContain('<span id="authorizeText">Autoryzuj</span>')
+        ->and($html)->toContain('authorizeText.textContent = "Autoryzowanie...";');
 });
 
 it('escapes the redirect uri', function (): void {
