@@ -203,7 +203,7 @@ try {
 }
 ```
 
-When the protected resource metadata identifies the resource by its origin, such as `https://mcp.example.com` for an endpoint at `https://mcp.example.com/mcp`, the client now accepts it and sends that identifier as the `resource` parameter. If the path-based metadata document is missing, the client looks for one at the origin, `/.well-known/oauth-protected-resource`, before falling back to the origin as the authorization server.
+If the path-based metadata document is missing, the client looks for one at the origin, `/.well-known/oauth-protected-resource`, before falling back to the origin as the authorization server. Only that origin-level document may identify the resource by its origin, such as `https://mcp.example.com` for an endpoint at `https://mcp.example.com/mcp`, and the client then sends that identifier as the `resource` parameter. Every other metadata document must name the exact endpoint URL, as before.
 
 ## The Client Metadata Route
 

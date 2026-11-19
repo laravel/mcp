@@ -864,6 +864,57 @@ it('discovers root protected resource metadata and sends its resource identifier
         ->and(Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'))['resource'])->toBe('https://mcp.test');
 });
 
+it('rejects an origin resource from path based protected resource metadata', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'resource' => 'https://mcp.test',
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+    ]);
+
+    expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect())
+        ->toThrow(OAuthException::class, 'did not match the expected resource [https://mcp.test/mcp]');
+
+    Http::assertNotSent(fn ($request): bool => $request->url() === 'https://mcp.test/.well-known/oauth-protected-resource');
+});
+
+it('rejects an origin resource from server advertised protected resource metadata', function (): void {
+    Http::fake([
+        'https://mcp.test/mcp' => Http::response('', 401, [
+            'WWW-Authenticate' => 'Bearer resource_metadata="https://mcp.test/.well-known/custom-resource"',
+        ]),
+        'https://mcp.test/.well-known/custom-resource' => Http::response([
+            'resource' => 'https://mcp.test/',
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+    ]);
+
+    expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient('https://mcp.test/.well-known/custom-resource')
+        ->redirect())
+        ->toThrow(OAuthException::class, 'did not match the expected resource [https://mcp.test/mcp]');
+});
+
+it('rejects a sibling path resource from root protected resource metadata', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/tenant-a/mcp' => Http::response('', 404),
+        'https://mcp.test/.well-known/oauth-protected-resource' => Http::response([
+            'resource' => 'https://mcp.test/tenant-b/mcp',
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+    ]);
+
+    expect(fn (): RedirectResponse => Client::web('https://mcp.test/tenant-a/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect())
+        ->toThrow(OAuthException::class, 'did not match the expected resource [https://mcp.test/tenant-a/mcp]');
+});
+
 function fakeScopedDiscovery(): void
 {
     Http::fake([
