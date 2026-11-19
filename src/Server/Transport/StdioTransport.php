@@ -30,10 +30,10 @@ class StdioTransport implements Transport
 
     public function run(): void
     {
-        stream_set_blocking(STDIN, false);
+        $input = $this->inputStream();
 
-        while (! feof(STDIN)) {
-            if (($line = fgets(STDIN)) === false) {
+        while (! feof($input)) {
+            if (($line = fgets($input)) === false) {
                 usleep(10000);
 
                 continue;
@@ -48,5 +48,27 @@ class StdioTransport implements Transport
     public function stream(Closure $stream): void
     {
         $stream();
+    }
+
+    /**
+     * Get the stream to read messages from, using a blocking pipe on Windows so idle reads never report a false end of input.
+     *
+     * @return resource
+     */
+    protected function inputStream()
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            $stream = fopen('php://stdin', 'rb', false, stream_context_create([
+                'pipe' => ['blocking' => true],
+            ]));
+
+            if ($stream !== false) {
+                return $stream;
+            }
+        }
+
+        stream_set_blocking(STDIN, false);
+
+        return STDIN;
     }
 }

@@ -35,6 +35,11 @@ class MirroredParameter
         return $this->type->stringify($value);
     }
 
+    public function matches(string $header, mixed $value): bool
+    {
+        return $this->type->matches($header, $value);
+    }
+
     /**
      * @param  array<string, mixed>  $arguments
      *

@@ -18,12 +18,10 @@ server:
   - input-required-result-result-type
   - input-required-result-tampered-state
   - input-required-result-capability-check
-  - tools-call-with-progress
   - tools-call-embedded-resource
   - tools-call-mixed-content
   - prompts-get-embedded-resource
   - server-stateless
-  - http-custom-header-server-validation
   - input-required-result-missing-input-response
   - input-required-result-ignore-extra-params
 

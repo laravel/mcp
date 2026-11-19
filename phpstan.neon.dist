@@ -7,6 +7,9 @@ parameters:
 
   treatPhpDocTypesAsCertain: false
 
+  dynamicConstantNames:
+    - GuzzleHttp\ClientInterface::MAJOR_VERSION
+
   ignoreErrors:
     - "#Unsafe usage of new static\\(\\)#"
     - "#Call to an undefined method Illuminate\\\\Contracts\\\\Foundation\\\\Application::routesAreCached#"

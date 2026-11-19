@@ -267,7 +267,9 @@ class PendingTestResponse
             $params['uri'] = $this->expandUriTemplate($primitive->uriTemplate(), $arguments);
         }
 
-        $request = new JsonRpcRequest(uniqid(), $method, $params);
+        $id = uniqid();
+
+        $request = new JsonRpcRequest($id, $method, [...$params, '_meta' => ['progressToken' => $id]]);
 
         $response = $this->executeRequest($server, $request);
 

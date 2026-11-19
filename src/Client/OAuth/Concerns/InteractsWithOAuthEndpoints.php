@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Laravel\Mcp\Client\OAuth\Concerns;
 
-use GuzzleHttp\RequestOptions;
+use GuzzleHttp\ClientInterface;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 
@@ -17,23 +17,23 @@ trait InteractsWithOAuthEndpoints
         return Http::acceptJson()
             ->timeout(5)
             ->connectTimeout(2)
-            ->withOptions(['allow_redirects' => false, ...$this->oAuthCurlOptions()]);
+            ->withOptions(['allow_redirects' => false, ...$this->oAuthTransportOptions()]);
     }
 
     /**
      * @return array<string, mixed>
      */
-    protected function oAuthCurlOptions(): array
+    protected function oAuthTransportOptions(): array
     {
-        if (defined(RequestOptions::class.'::PROTOCOLS')) {
-            return [
-                'protocols' => ['http', 'https'],
-                'progress' => fn (int $total, int $downloaded): bool => $total > $this->maxOAuthResponseSize || $downloaded > $this->maxOAuthResponseSize,
-            ];
-        }
-
         if (! defined('CURLOPT_PROTOCOLS')) {
             return [];
+        }
+
+        if (ClientInterface::MAJOR_VERSION >= 8) {
+            return [
+                'protocols' => ['http', 'https'],
+                'progress' => fn (int $downloadTotal, int $downloaded): bool => max($downloadTotal, $downloaded) > $this->maxOAuthResponseSize,
+            ];
         }
 
         return ['curl' => [
