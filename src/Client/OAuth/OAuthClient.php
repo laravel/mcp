@@ -350,20 +350,21 @@ class OAuthClient
         return $this->discovered ??= $this->discovery->discover($this->resourceUrl, $this->resourceMetadataUrl);
     }
 
-    protected function resolveScope(): ?string
+    protected function resolveScope(): string
     {
-        $scope = match (true) {
+        $supported = trim(implode(' ', $this->discover()->scopesSupported));
+
+        return match (true) {
             filled($this->challengeScope) => $this->challengeScope,
             filled($this->config->scope) => $this->config->scope,
-            default => implode(' ', $this->discover()->scopesSupported),
+            $supported !== '' => $supported,
+            default => 'mcp:use',
         };
-
-        return $scope === '' ? null : $scope;
     }
 
     protected function authorizationScope(): ?string
     {
-        $scopes = preg_split('/\s+/', (string) $this->resolveScope(), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $scopes = preg_split('/\s+/', $this->resolveScope(), -1, PREG_SPLIT_NO_EMPTY) ?: [];
 
         if (filled($this->challengeScope)) {
             $granted = Session::get($this->grantedScopeSessionKey());

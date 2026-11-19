@@ -174,18 +174,9 @@ This change also fixes a bug that caused every call to `redirect()` to perform a
 
 ## OAuth Scope Selection
 
-**Likelihood Of Impact: Medium**
+**Likelihood Of Impact: Low**
 
-The OAuth client no longer requests the `mcp:use` scope by default. When you do not pass a `scope` to `withOAuth()` and the server's `WWW-Authenticate` challenge has none, the client requests every scope listed in the protected resource metadata's `scopes_supported`. When the metadata lists no scopes, the client omits the `scope` parameter:
-
-```php
-// Before... requests scope=mcp:use
-Mcp::client('github')->withOAuth()->oAuthClient()->redirect();
-
-// After... requests the scopes the server advertises, or no scope at all.
-```
-
-Laravel MCP servers advertise `mcp:use`, so they keep working without changes. To keep the old behavior with other servers, pass the scope explicitly:
+When you do not pass a `scope` to `withOAuth()` and the server's `WWW-Authenticate` challenge has none, the OAuth client now requests every scope listed in the protected resource metadata's `scopes_supported`. When the metadata lists no scopes, the client still requests `mcp:use`. Laravel MCP servers advertise only `mcp:use`, so they receive the same request as before. To request a fixed scope from other servers, pass it explicitly:
 
 ```php
 ->withOAuth(scope: 'mcp:use')

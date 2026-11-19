@@ -772,7 +772,7 @@ it('records the issuer in the session for callback validation', function (): voi
         ->and($stored['iss_supported'])->toBeTrue();
 });
 
-it('omits the scope when none is configured, challenged, or advertised', function (): void {
+it('defaults the scope to mcp:use when the server advertises none', function (): void {
     fakeDiscovery();
 
     $target = Client::web('https://mcp.test/mcp')
@@ -783,7 +783,7 @@ it('omits the scope when none is configured, challenged, or advertised', functio
 
     parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
 
-    expect($query)->not->toHaveKey('scope');
+    expect($query['scope'])->toBe('mcp:use');
 });
 
 it('requests every supported scope from protected resource metadata', function (): void {

@@ -30,6 +30,7 @@ server:
 client:
   - request-metadata
   - sep-2322-client-request-state
+  - auth/scope-omitted-when-undefined
   - auth/client-credentials-jwt
   - auth/enterprise-managed-authorization
   - auth/dpop
