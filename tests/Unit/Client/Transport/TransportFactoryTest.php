@@ -9,7 +9,7 @@ use Laravel\Mcp\Client\Transport\TransportFactory;
 use Laravel\Mcp\Exceptions\ClientException;
 
 it('rebuilds a stdio transport from its recipe', function (): void {
-    $recipe = (new StdioTransport('node', ['server.js']))->recipe();
+    $recipe = (new StdioTransport('node', ['server.js'], ['API_KEY' => 'secret']))->recipe();
     $recipe['timeoutSeconds'] = 12.0;
 
     $transport = TransportFactory::fromRecipe($recipe);
@@ -20,6 +20,7 @@ it('rebuilds a stdio transport from its recipe', function (): void {
             'driver' => 'stdio',
             'command' => 'node',
             'args' => ['server.js'],
+            'env' => ['API_KEY' => 'secret'],
             'timeoutSeconds' => 12.0,
         ]);
 });

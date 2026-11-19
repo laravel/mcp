@@ -1,6 +1,109 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v1.0.1...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v1.2.1...main)
+
+## [v1.2.1](https://github.com/laravel/mcp/compare/v1.2.0...v1.2.1) - 2026-11-17
+
+### What's Changed
+
+* Add conformance fixtures and pin the conformance suite version by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/396
+* Fix quick server and client conformance failures by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/397
+* Resolve Tool classes in the Container in tests by [@EgoMaw](https://github.com/EgoMaw) in https://github.com/laravel/mcp/pull/399
+* Answer legacy requests without the modern result fields by [@123mousab](https://github.com/123mousab) in https://github.com/laravel/mcp/pull/398
+* Add progress notifications for streaming tools by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/403
+* Use Guzzle request options for OAuth requests on Guzzle 8 by [@lazerg](https://github.com/lazerg) in https://github.com/laravel/mcp/pull/405
+* Validate Mcp-Param headers against tool call arguments by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/406
+
+### New Contributors
+
+* [@EgoMaw](https://github.com/EgoMaw) made their first contribution in https://github.com/laravel/mcp/pull/399
+* [@123mousab](https://github.com/123mousab) made their first contribution in https://github.com/laravel/mcp/pull/398
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.2.0...v1.2.1
+
+## [v1.2.0](https://github.com/laravel/mcp/compare/v1.1.2...v1.2.0) - 2026-11-10
+
+### What's Changed
+
+* Bump stefanzweifel/git-auto-commit-action from 7.2.0 to 7.2.1 in the github-actions group by [@dependabot](https://github.com/dependabot)[bot] in https://github.com/laravel/mcp/pull/383
+* Add more JSON assertions for structured content by [@JurianArie](https://github.com/JurianArie) in https://github.com/laravel/mcp/pull/384
+* Keep invalid UTF-8 header values out of the header mismatch message by [@lazerg](https://github.com/lazerg) in https://github.com/laravel/mcp/pull/391
+* Stop following redirects in the MCP HTTP client transport by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/392
+* Dependency floor bump by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/393
+* Return JSON-RPC errors instead of 500s for malformed requests and params by [@JurianArie](https://github.com/JurianArie) in https://github.com/laravel/mcp/pull/395
+* Validate the Origin header on MCP web routes by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/394
+
+### New Contributors
+
+* [@JurianArie](https://github.com/JurianArie) made their first contribution in https://github.com/laravel/mcp/pull/384
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.1.2...v1.2.0
+
+## [v1.1.2](https://github.com/laravel/mcp/compare/v1.1.1...v1.1.2) - 2026-10-26
+
+### What's Changed
+
+* Limit OAuth requests to HTTP and HTTPS and cap response size by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/380
+* Show the redirect URI on the OAuth authorize page by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/377
+* Prevent the OAuth authorize page from being framed by default by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/376
+* Allow MCP Apps without a ui.domain by [@nbullorini](https://github.com/nbullorini) in https://github.com/laravel/mcp/pull/381
+* Check resolved addresses of OAuth discovery hosts by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/378
+
+### New Contributors
+
+* [@nbullorini](https://github.com/nbullorini) made their first contribution in https://github.com/laravel/mcp/pull/381
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.1.1...v1.1.2
+
+## [v1.1.1](https://github.com/laravel/mcp/compare/v1.1.0...v1.1.1) - 2026-10-21
+
+### What's Changed
+
+* Limit redirect URIs in dynamic client registration by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/373
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.1.0...v1.1.1
+
+## [v1.1.0](https://github.com/laravel/mcp/compare/v1.0.2...v1.1.0) - 2026-10-20
+
+### What's Changed
+
+* Remove security policy in favor of the org-wide default by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/369
+* Bump shivammathur/setup-php from 2.37.2 to 2.40.0 in the github-actions group by [@dependabot](https://github.com/dependabot)[bot] in https://github.com/laravel/mcp/pull/370
+* Fix initialization compatibility with MCP 2025-03-26 clients by [@MohannadElemary](https://github.com/MohannadElemary) in https://github.com/laravel/mcp/pull/372
+* Verify the resource advertises caller supplied OAuth metadata by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/371
+
+### New Contributors
+
+* [@MohannadElemary](https://github.com/MohannadElemary) made their first contribution in https://github.com/laravel/mcp/pull/372
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.0.2...v1.1.0
+
+## [v1.0.2](https://github.com/laravel/mcp/compare/v1.0.1...v1.0.2) - 2026-10-11
+
+### What's Changed
+
+* Migration from Mockery to Double by [@jasonmccreary](https://github.com/jasonmccreary) in https://github.com/laravel/mcp/pull/350
+* Allow oauthRoutes() to skip dynamic client registration by [@ngunyimacharia](https://github.com/ngunyimacharia) in https://github.com/laravel/mcp/pull/352
+* Bump to Double v1 by [@jasonmccreary](https://github.com/jasonmccreary) in https://github.com/laravel/mcp/pull/353
+* Fix handling of trailing slash in discovery urls by [@jimbojsb](https://github.com/jimbojsb) in https://github.com/laravel/mcp/pull/354
+* Stop sending structured content twice in execute_tools results by [@smotim](https://github.com/smotim) in https://github.com/laravel/mcp/pull/358
+* Check isError before reading tool results in MCP app examples by [@lazerg](https://github.com/lazerg) in https://github.com/laravel/mcp/pull/362
+* Add config-driven MCP clients with GitHub, Linear and Playwright presets by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/357
+* Include the tool title in annotations.title by [@Bjornftw](https://github.com/Bjornftw) in https://github.com/laravel/mcp/pull/364
+* Reject requests with a null id by [@ggrigon](https://github.com/ggrigon) in https://github.com/laravel/mcp/pull/365
+* Advertise token endpoint auth methods in OAuth metadata by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/366
+* Reject legacy requests with an unsupported protocol version header by [@ggrigon](https://github.com/ggrigon) in https://github.com/laravel/mcp/pull/367
+
+### New Contributors
+
+* [@jasonmccreary](https://github.com/jasonmccreary) made their first contribution in https://github.com/laravel/mcp/pull/350
+* [@ngunyimacharia](https://github.com/ngunyimacharia) made their first contribution in https://github.com/laravel/mcp/pull/352
+* [@jimbojsb](https://github.com/jimbojsb) made their first contribution in https://github.com/laravel/mcp/pull/354
+* [@smotim](https://github.com/smotim) made their first contribution in https://github.com/laravel/mcp/pull/358
+* [@Bjornftw](https://github.com/Bjornftw) made their first contribution in https://github.com/laravel/mcp/pull/364
+* [@ggrigon](https://github.com/ggrigon) made their first contribution in https://github.com/laravel/mcp/pull/365
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.0.1...v1.0.2
 
 ## [v1.0.1](https://github.com/laravel/mcp/compare/v1.0.0...v1.0.1) - 2026-09-24
 
@@ -126,6 +229,12 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
+
+
+
+
+
 
 
 
@@ -449,6 +558,12 @@ public function schema(JsonSchema $schema): array
 
 
 
+
+
+
+
+
+
 ```
 **After**
 
@@ -459,6 +574,12 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
+
+
+
+
+
 
 
 

@@ -18,6 +18,7 @@ use Laravel\Mcp\Server\Tools\ToolSearch;
 use Laravel\Mcp\Server\Transport\FakeTransporter;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
+use Tests\Conformance\Tools\ProgressTool;
 use Tests\Fixtures\SayHiTool;
 use Tests\Fixtures\StreamingTool;
 use Tests\Fixtures\StructuredContentTool;
@@ -286,6 +287,34 @@ it('forwards nested tool notifications', function (): void {
         ->and($responses[0]['method'])->toBe('stream/progress')
         ->and($responses[1]['method'])->toBe('stream/progress')
         ->and(json_decode($responses[2]['result']['content'][0]['text'], true)['ok'])->toBeTrue();
+});
+
+it('does not forward nested progress notifications', function (): void {
+    $context = toolSearchContext([ProgressTool::class]);
+    $executeTools = toolFromContext($context, 'execute_tools');
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => $executeTools->name(),
+            'arguments' => ['calls' => [
+                ['name' => 'test_tool_with_progress'],
+                ['name' => 'test_tool_with_progress'],
+            ]],
+            '_meta' => ['progressToken' => 'abc'],
+        ],
+    ]);
+
+    app()->instance('mcp.request', $request->toRequest());
+
+    $responses = array_map(
+        fn (JsonRpcResponse $response): array => $response->toArray(),
+        iterator_to_array((new CallTool)->handle($request, $context)),
+    );
+
+    expect($responses)->toHaveCount(1)
+        ->and(json_decode($responses[0]['result']['content'][0]['text'], true)['ok'])->toBeTrue();
 });
 
 it('enforces the configured call and output limits', function (): void {

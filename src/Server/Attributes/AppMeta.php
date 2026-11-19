@@ -20,6 +20,7 @@ class AppMeta
      * @param  array<int, string>|null  $frameDomains  Domains the app may embed as nested iframes (CSP frame-src).
      * @param  array<int, string>|null  $baseUriDomains  Allowed URLs for the document's base element (CSP base-uri).
      * @param  array<int, Permission>|null  $permissions
+     * @param  string|false|null  $domain  Dedicated sandbox domain, or false to leave ui.domain out entirely.
      * @param  array<int, Library>  $libraries
      */
     public function __construct(
@@ -29,7 +30,7 @@ class AppMeta
         public readonly ?array $baseUriDomains = null,
         public readonly ?array $permissions = null,
         public readonly ?bool $prefersBorder = null,
-        public readonly ?string $domain = null,
+        public readonly string|false|null $domain = null,
         public readonly array $libraries = [],
     ) {
         //
@@ -51,7 +52,9 @@ class AppMeta
             $meta->prefersBorder($this->prefersBorder);
         }
 
-        if ($this->domain !== null) {
+        if ($this->domain === false) {
+            $meta->withoutDomain();
+        } elseif ($this->domain !== null) {
             $meta->domain($this->domain);
         }
 

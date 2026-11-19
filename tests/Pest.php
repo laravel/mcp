@@ -3,6 +3,8 @@
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Http\Client\ResponseSequence;
 use Illuminate\Support\Facades\Http;
+use Laravel\Mcp\Client\OAuth\AuthServerDiscovery;
+use Laravel\Mcp\Server\Middleware\AddWwwAuthenticateHeader;
 use Tests\Fixtures\ArrayTransport;
 use Tests\Fixtures\ExampleServer;
 use Tests\TestCase;
@@ -18,6 +20,12 @@ uses(TestCase::class)
 
         config()->set('app.debug', true);
         config()->set('cache.default', 'array');
+
+        AuthServerDiscovery::resolveHostsUsing(fn (string $host): array => ['93.184.216.34']);
+    })
+    ->afterEach(function (): void {
+        AuthServerDiscovery::resolveHostsUsing(null);
+        AddWwwAuthenticateHeader::resolveResourceMetadataUrlUsing(null);
     })->in('Unit', 'Feature');
 
 /*
@@ -224,7 +232,7 @@ function expectedListToolsResponse(): array
                         ],
                         'required' => ['name'],
                     ],
-                    'annotations' => [],
+                    'annotations' => ['title' => 'Say Hi Tool'],
                     'title' => 'Say Hi Tool',
                 ],
                 [
@@ -240,7 +248,7 @@ function expectedListToolsResponse(): array
                         ],
                         'required' => ['count'],
                     ],
-                    'annotations' => [],
+                    'annotations' => ['title' => 'Streaming Tool'],
                     'title' => 'Streaming Tool',
                 ],
             ],
@@ -319,6 +327,20 @@ function callToolMessage(): array
             'arguments' => [
                 'name' => 'John Doe',
             ],
+            '_meta' => protocolMeta(),
+        ],
+    ];
+}
+
+function mirroredHeaderToolMessage(array $arguments): array
+{
+    return [
+        'jsonrpc' => '2.0',
+        'id' => 7,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'mirrored-header-tool',
+            'arguments' => $arguments,
             '_meta' => protocolMeta(),
         ],
     ];

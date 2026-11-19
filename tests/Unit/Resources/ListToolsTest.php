@@ -66,7 +66,7 @@ it('returns a valid list tools response', function (): void {
                         ],
                         'required' => ['name'],
                     ],
-                    'annotations' => (object) [],
+                    'annotations' => ['title' => 'Say Hi Tool'],
                     'title' => 'Say Hi Tool',
                 ],
             ],

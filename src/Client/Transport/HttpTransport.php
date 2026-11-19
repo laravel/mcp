@@ -6,6 +6,7 @@ namespace Laravel\Mcp\Client\Transport;
 
 use Closure;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response as ClientResponse;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
@@ -26,7 +27,7 @@ use Throwable;
 
 class HttpTransport implements Transport, UsesProtocol
 {
-    /** @var string|(Closure(): string)|null */
+    /** @var string|(Closure(): ?string)|null */
     protected string|Closure|null $token = null;
 
     protected ?ProtocolVersion $protocolVersion = null;
@@ -66,7 +67,7 @@ class HttpTransport implements Transport, UsesProtocol
     }
 
     /**
-     * @param  string|Closure(): string  $token
+     * @param  string|Closure(): ?string  $token
      */
     public function withToken(#[SensitiveParameter] string|Closure $token): void
     {
@@ -79,6 +80,14 @@ class HttpTransport implements Transport, UsesProtocol
     public function withHeaders(array $headers): void
     {
         $this->customHeaders = array_merge($this->customHeaders, $headers);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function customHeaders(): array
+    {
+        return $this->customHeaders;
     }
 
     public function url(): string
@@ -108,13 +117,18 @@ class HttpTransport implements Transport, UsesProtocol
         $hadSession = $this->sessionId !== null;
 
         try {
-            $response = Http::withHeaders($this->headers($headers))
+            $response = $this->request($headers)
                 ->withBody($message, 'application/json')
-                ->timeout($this->timeoutSeconds)
                 ->withOptions(['stream' => true])
                 ->post($this->url);
         } catch (ConnectionException $connectionException) {
             $this->failWith("HTTP request to [{$this->url}] failed: {$connectionException->getMessage()}");
+        }
+
+        if ($response->redirect()) {
+            $this->reset();
+
+            throw new TransportException("The endpoint [{$this->url}] responded with a redirect [{$response->status()}], which is not followed.");
         }
 
         $this->captureSessionId($response);
@@ -341,12 +355,20 @@ class HttpTransport implements Transport, UsesProtocol
         }
 
         try {
-            Http::withHeaders($this->headers())
-                ->timeout($this->timeoutSeconds)
-                ->delete($this->url);
+            $this->request()->delete($this->url);
         } catch (Throwable) {
             //
         }
+    }
+
+    /**
+     * @param  array<string, string>  $headers
+     */
+    protected function request(array $headers = []): PendingRequest
+    {
+        return Http::withHeaders($this->headers($headers))
+            ->timeout($this->timeoutSeconds)
+            ->withOptions(['allow_redirects' => false]);
     }
 
     protected function reset(): void

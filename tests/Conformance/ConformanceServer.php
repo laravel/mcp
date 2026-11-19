@@ -16,17 +16,22 @@ use Tests\Conformance\Resources\TemplateResource;
 use Tests\Conformance\Resources\WatchedResource;
 use Tests\Conformance\Tools\AudioContentTool;
 use Tests\Conformance\Tools\CapabilityCheckElicitationTool;
+use Tests\Conformance\Tools\CustomHeaderTool;
 use Tests\Conformance\Tools\EmbeddedResourceTool;
 use Tests\Conformance\Tools\ErrorHandlingTool;
 use Tests\Conformance\Tools\ImageContentTool;
 use Tests\Conformance\Tools\InputRequiredElicitationTool;
+use Tests\Conformance\Tools\JsonSchema202012Tool;
 use Tests\Conformance\Tools\ListRootsInputRequiredTool;
+use Tests\Conformance\Tools\LoggingTool;
 use Tests\Conformance\Tools\MultipleContentTypesTool;
 use Tests\Conformance\Tools\MultipleInputsRequiredTool;
 use Tests\Conformance\Tools\MultiRoundInputRequiredTool;
+use Tests\Conformance\Tools\ProgressTool;
 use Tests\Conformance\Tools\RequestStateInputRequiredTool;
 use Tests\Conformance\Tools\SamplingInputRequiredTool;
 use Tests\Conformance\Tools\SimpleTextTool;
+use Tests\Conformance\Tools\StreamingElicitationTool;
 use Tests\Conformance\Tools\TamperedStateInputRequiredTool;
 
 class ConformanceServer extends Server
@@ -48,6 +53,11 @@ class ConformanceServer extends Server
         EmbeddedResourceTool::class,
         MultipleContentTypesTool::class,
         ErrorHandlingTool::class,
+        JsonSchema202012Tool::class,
+        CustomHeaderTool::class,
+        LoggingTool::class,
+        StreamingElicitationTool::class,
+        ProgressTool::class,
         InputRequiredElicitationTool::class,
         MultiRoundInputRequiredTool::class,
         RequestStateInputRequiredTool::class,
@@ -72,4 +82,9 @@ class ConformanceServer extends Server
         PromptWithImage::class,
         InputRequiredElicitationPrompt::class,
     ];
+
+    protected function boot(): void
+    {
+        $this->addCapability(self::CAPABILITY_COMPLETIONS);
+    }
 }

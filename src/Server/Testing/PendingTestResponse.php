@@ -285,17 +285,19 @@ class PendingTestResponse
         $primitive = $this->resolvePrimitive($primitive);
         $server = $this->initializeServer();
 
+        $id = uniqid();
+
         $params = [
             ...$primitive->toMethodCall(),
             'arguments' => $arguments,
-            '_meta' => $this->meta(),
+            '_meta' => [...$this->meta(), 'progressToken' => $id],
         ];
 
         if ($method === 'resources/read' && $primitive instanceof HasUriTemplate) {
             $params['uri'] = $this->expandUriTemplate($primitive->uriTemplate(), $arguments);
         }
 
-        $request = new JsonRpcRequest(uniqid(), $method, $params);
+        $request = new JsonRpcRequest($id, $method, $params);
 
         $response = $this->executeRequest($server, $request);
 
