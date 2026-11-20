@@ -616,11 +616,11 @@ class TestResponse
         return (match (true) {
             // @phpstan-ignore-next-line
             $this->primitive instanceof Tool => collect($this->response->toArray()['result']['content'] ?? [])
-                ->map(fn (array $message): string => $message['text'] ?? $message['data'] ?? ''),
+                ->map(fn (array $message): string => $message['text'] ?? $message['data'] ?? $message['resource']['text'] ?? $message['resource']['blob'] ?? ''),
             // @phpstan-ignore-next-line
             $this->primitive instanceof Prompt => collect($this->response->toArray()['result']['messages'] ?? [])
                 ->map(fn (array $message): array => $message['content'])
-                ->map(fn (array $content): string => $content['text'] ?? $content['data'] ?? ''),
+                ->map(fn (array $content): string => $content['text'] ?? $content['data'] ?? $content['resource']['text'] ?? $content['resource']['blob'] ?? ''),
             // @phpstan-ignore-next-line
             $this->primitive instanceof Resource => collect($this->response->toArray()['result']['contents'] ?? [])
                 ->map(fn (array $item): string => $item['text'] ?? $item['blob'] ?? ''),

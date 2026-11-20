@@ -3,12 +3,14 @@
 declare(strict_types=1);
 
 use Laravel\Mcp\Enums\Role;
+use Laravel\Mcp\Request;
 use Laravel\Mcp\Response;
 use Laravel\Mcp\ResponseFactory;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server\Attributes\Icon as IconAttribute;
 use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Blob;
+use Laravel\Mcp\Server\Content\EmbeddedResource;
 use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\ResourceLink;
@@ -16,6 +18,7 @@ use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Resource;
 use Tests\Fixtures\AnnotatedResource;
 use Tests\Fixtures\DailyPlanResource;
+use Tests\Fixtures\UriTemplateUserFileResource;
 
 it('creates a notification response', function (): void {
     $response = Response::notification('test.method', ['key' => 'value']);
@@ -439,6 +442,187 @@ it('attaches icons to a resource link built from a URI string', function (): voi
     expect($response->content()->toArray()['icons'])->toBe([
         ['src' => 'https://example.com/data.png', 'mimeType' => 'image/png'],
     ]);
+});
+
+it('creates an embedded resource from a Resource class-string', function (): void {
+    $response = Response::embeddedResource(DailyPlanResource::class);
+
+    expect($response->content())->toBeInstanceOf(EmbeddedResource::class)
+        ->and($response->content()->toArray())->toEqual([
+            'type' => 'resource',
+            'resource' => [
+                'uri' => 'file://resources/daily-plan.md',
+                'mimeType' => 'text/markdown',
+                'text' => "# Daily Plan\n\n- [ ] Task 1\n- [ ] Task 2\n- [ ] Task 3",
+            ],
+        ]);
+});
+
+it('creates an embedded resource from a Resource instance', function (): void {
+    $response = Response::embeddedResource(new DailyPlanResource);
+
+    expect($response->content()->toArray()['resource']['uri'])->toBe('file://resources/daily-plan.md');
+});
+
+it('embeds binary resource contents as a base64 blob', function (): void {
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://images/logo.png';
+
+        protected string $mimeType = 'image/png';
+
+        public function handle(): Response
+        {
+            return Response::blob("\x89PNG\0bytes");
+        }
+    };
+
+    expect(Response::embeddedResource($resource)->content()->toArray()['resource'])->toEqual([
+        'blob' => base64_encode("\x89PNG\0bytes"),
+        'uri' => 'file://images/logo.png',
+        'mimeType' => 'image/png',
+    ]);
+});
+
+it('merges Resource annotations into an embedded resource', function (): void {
+    $response = Response::embeddedResource(AnnotatedResource::class, annotations: ['priority' => 0.2]);
+
+    expect($response->content()->toArray()['annotations'])->toEqual([
+        'audience' => ['user'],
+        'priority' => 0.2,
+        'lastModified' => '2026-05-01T00:00:00Z',
+    ]);
+});
+
+it('expands resource template arguments into the embedded uri', function (): void {
+    $response = Response::embeddedResource(UriTemplateUserFileResource::class, ['userId' => 42, 'fileId' => 'notes.md']);
+
+    expect($response->content()->toArray()['resource'])->toEqual([
+        'uri' => 'file://users/42/files/notes.md',
+        'mimeType' => 'text/plain',
+        'text' => '{"userId":"42","fileId":"notes.md","uri":"file://users/42/files/notes.md"}',
+    ]);
+});
+
+it('requires every resource template argument', function (): void {
+    expect(fn (): Response => Response::embeddedResource(UriTemplateUserFileResource::class, ['userId' => 42]))
+        ->toThrow(InvalidArgumentException::class, 'Missing a value for the [fileId] variable of URI template [file://users/{userId}/files/{fileId}].');
+});
+
+it('rejects arguments for resources that are not templates', function (): void {
+    expect(fn (): Response => Response::embeddedResource(DailyPlanResource::class, ['day' => 'monday']))
+        ->toThrow(InvalidArgumentException::class, 'Only resource templates accept arguments when embedded.');
+});
+
+it('requires a Resource class or instance to embed', function (): void {
+    expect(fn (): Response => Response::embeddedResource('file:///notes/standup.md'))
+        ->toThrow(InvalidArgumentException::class, 'Embedded resources require a Resource class or instance, [file:///notes/standup.md] given.');
+});
+
+it('requires a resource to return exactly one content item to be embedded', function (): void {
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://resources/pair';
+
+        public function handle(): array
+        {
+            return [Response::text('one'), Response::text('two')];
+        }
+    };
+
+    expect(fn (): Response => Response::embeddedResource($resource))
+        ->toThrow(InvalidArgumentException::class, 'Resource [file://resources/pair] must return exactly one content item to be embedded, but returned 2.');
+});
+
+it('returns the error when an embedded resource responds with one', function (): void {
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://resources/missing';
+
+        public function handle(): Response
+        {
+            return Response::error('The plan is not ready yet.');
+        }
+    };
+
+    $response = Response::embeddedResource($resource);
+
+    expect($response->isError())->toBeTrue()
+        ->and($response->content()->toArray())->toEqual(['type' => 'text', 'text' => 'The plan is not ready yet.']);
+});
+
+it('reads an embedded resource without the arguments of the calling request', function (): void {
+    $resource = new class extends Resource
+    {
+        protected string $uri = 'file://resources/echo';
+
+        public function handle(Request $request): string
+        {
+            return json_encode(['arguments' => $request->all(), 'meta' => $request->meta(), 'uri' => $request->uri()]);
+        }
+    };
+
+    app()->instance('mcp.request', new Request(['name' => 'Taylor'], ['trace' => 'abc']));
+
+    $response = Response::embeddedResource($resource);
+
+    expect(json_decode((string) $response->content(), true))->toEqual([
+        'arguments' => [],
+        'meta' => ['trace' => 'abc'],
+        'uri' => 'file://resources/echo',
+    ])->and(app('mcp.request')->all())->toBe(['name' => 'Taylor'])
+        ->and(app(Request::class)->all())->toBe(['name' => 'Taylor']);
+});
+
+it('embeds text contents under a uri', function (): void {
+    $response = Response::text('# Standup')->asResource('file:///notes/standup.md', 'text/markdown', ['audience' => ['assistant']]);
+
+    expect($response->content()->toArray())->toEqual([
+        'type' => 'resource',
+        'resource' => [
+            'uri' => 'file:///notes/standup.md',
+            'mimeType' => 'text/markdown',
+            'text' => '# Standup',
+        ],
+        'annotations' => ['audience' => ['assistant']],
+    ]);
+});
+
+it('embeds blob contents under a uri as base64', function (): void {
+    $response = Response::blob('raw-bytes')->asResource('file:///images/logo.png', 'image/png');
+
+    expect($response->content()->toArray()['resource'])->toEqual([
+        'uri' => 'file:///images/logo.png',
+        'mimeType' => 'image/png',
+        'blob' => base64_encode('raw-bytes'),
+    ]);
+});
+
+it('keeps empty contents and the role when embedding under a uri', function (): void {
+    $response = Response::text('')->asAssistant()->asResource('file:///notes/empty.txt');
+
+    expect($response->role())->toBe(Role::Assistant)
+        ->and($response->content()->toArray()['resource'])->toEqual(['uri' => 'file:///notes/empty.txt', 'text' => '']);
+});
+
+it('keeps content meta on the embedded resource contents', function (): void {
+    $response = Response::text('# Standup')->withMeta('source', 'notes')->asResource('file:///notes/standup.md');
+
+    expect($response->content()->toArray()['resource'])->toEqual([
+        'uri' => 'file:///notes/standup.md',
+        'text' => '# Standup',
+        '_meta' => ['source' => 'notes'],
+    ]);
+});
+
+it('may only embed text or blob contents under a uri', function (): void {
+    expect(fn (): Response => Response::image('png-bytes')->asResource('file:///images/logo.png'))
+        ->toThrow(InvalidArgumentException::class, 'Image content may not be embedded as a resource.');
+});
+
+it('requires a concrete uri when linking a resource template', function (): void {
+    expect(fn (): Response => Response::resourceLink(UriTemplateUserFileResource::class))
+        ->toThrow(InvalidArgumentException::class, 'Resource links require a concrete URI. Pass the resolved URI string for resource templates.');
 });
 
 #[IconAttribute('https://example.com/attribute-resource.png', mimeType: 'image/png')]

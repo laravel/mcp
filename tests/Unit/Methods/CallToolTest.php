@@ -13,6 +13,7 @@ use Laravel\Mcp\Server\Tool;
 use Laravel\Mcp\Transport\JsonRpcRequest;
 use Laravel\Mcp\Transport\JsonRpcResponse;
 use Tests\Fixtures\CurrentTimeTool;
+use Tests\Fixtures\EmbeddedResourceTool;
 use Tests\Fixtures\ResourceLinkTool;
 use Tests\Fixtures\ResponseFactoryWithStructuredContentTool;
 use Tests\Fixtures\SayHiTool;
@@ -897,6 +898,62 @@ it('returns a resource link content block in the wire payload', function (): voi
                         'priority' => 0.9,
                         'lastModified' => '2026-05-07T12:00:00Z',
                     ],
+                ],
+            ],
+            'isError' => false,
+        ]);
+});
+
+it('returns an embedded resource content block in the wire payload', function (): void {
+    $request = JsonRpcRequest::from([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'tools/call',
+        'params' => [
+            'name' => 'embedded-resource-tool',
+            'arguments' => [],
+        ],
+    ]);
+
+    $context = new ServerContext(
+        supportedProtocolVersions: ['2025-03-26'],
+        serverCapabilities: [],
+        implementation: new Implementation('Test Server', '1.0.0'),
+        instructions: 'Test instructions',
+        maxPaginationLength: 50,
+        defaultPaginationLength: 10,
+        tools: [EmbeddedResourceTool::class],
+        resources: [],
+        prompts: [],
+    );
+
+    $this->instance('mcp.request', $request->toRequest());
+
+    $payload = (new CallTool)->handle($request, $context)->toArray();
+
+    expect($payload['id'])->toEqual(1)
+        ->and($payload['result'])->toEqual([
+            'content' => [
+                [
+                    'type' => 'text',
+                    'text' => 'Here are the notes.',
+                ],
+                [
+                    'type' => 'resource',
+                    'resource' => [
+                        'uri' => 'file://resources/daily-plan.md',
+                        'mimeType' => 'text/markdown',
+                        'text' => "# Daily Plan\n\n- [ ] Task 1\n- [ ] Task 2\n- [ ] Task 3",
+                    ],
+                ],
+                [
+                    'type' => 'resource',
+                    'resource' => [
+                        'uri' => 'file:///notes/standup.md',
+                        'mimeType' => 'text/markdown',
+                        'text' => '# Standup',
+                    ],
+                    'annotations' => ['audience' => ['assistant']],
                 ],
             ],
             'isError' => false,

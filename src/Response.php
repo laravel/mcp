@@ -16,13 +16,16 @@ use Laravel\Mcp\Enums\Role;
 use Laravel\Mcp\Schema\Icon;
 use Laravel\Mcp\Server\Content\Audio;
 use Laravel\Mcp\Server\Content\Blob;
+use Laravel\Mcp\Server\Content\EmbeddedResource;
 use Laravel\Mcp\Server\Content\Image;
 use Laravel\Mcp\Server\Content\Notification;
 use Laravel\Mcp\Server\Content\ResourceLink;
 use Laravel\Mcp\Server\Content\StructuredContentText;
 use Laravel\Mcp\Server\Content\Text;
 use Laravel\Mcp\Server\Contracts\Content;
+use Laravel\Mcp\Server\Contracts\HasUriTemplate;
 use Laravel\Mcp\Server\Resource;
+use Laravel\Mcp\Server\ResourceInvoker;
 use League\Flysystem\UnableToReadFile;
 
 class Response
@@ -172,6 +175,10 @@ class Response
             $uri = Container::getInstance()->make($uri);
         }
 
+        if ($uri instanceof HasUriTemplate) {
+            throw new InvalidArgumentException('Resource links require a concrete URI. Pass the resolved URI string for resource templates.');
+        }
+
         $link = match (true) {
             $uri instanceof ResourceLink => $uri,
             $uri instanceof Resource => (new ResourceLink(
@@ -197,6 +204,62 @@ class Response
         };
 
         return new static($link);
+    }
+
+    /**
+     * @param  class-string<Resource>|Resource  $resource
+     * @param  array<string, mixed>  $arguments
+     * @param  array<string, mixed>  $annotations
+     */
+    public static function embeddedResource(string|Resource $resource, array $arguments = [], array $annotations = []): static
+    {
+        if (is_string($resource)) {
+            $resource = is_subclass_of($resource, Resource::class)
+                ? Container::getInstance()->make($resource)
+                : throw new InvalidArgumentException("Embedded resources require a Resource class or instance, [{$resource}] given. Use Response::text(...)->asResource(\$uri) to embed contents under a URI.");
+        }
+
+        if ($resource instanceof HasUriTemplate) {
+            $uri = $resource->uriTemplate()->expand($arguments);
+        } elseif ($arguments !== []) {
+            throw new InvalidArgumentException('Only resource templates accept arguments when embedded.');
+        } else {
+            $uri = $resource->uri();
+        }
+
+        $invoker = new ResourceInvoker;
+
+        $response = $invoker->read($resource, $uri);
+
+        if ($response->isError()) {
+            return static::error((string) $response->content());
+        }
+
+        return new static(new EmbeddedResource(
+            $invoker->contents($resource, $uri, $response),
+            array_merge($resource->annotations(), $annotations),
+        ));
+    }
+
+    /**
+     * @param  array<string, mixed>  $annotations
+     */
+    public function asResource(string $uri, ?string $mimeType = null, array $annotations = []): static
+    {
+        $contents = match (true) {
+            $this->content instanceof Text => ['text' => (string) $this->content],
+            $this->content instanceof Blob => ['blob' => base64_encode((string) $this->content)],
+            default => throw new InvalidArgumentException(class_basename($this->content).' content may not be embedded as a resource.'),
+        };
+
+        return new static(new EmbeddedResource(
+            $this->content->mergeMeta(array_filter([
+                'uri' => $uri,
+                'mimeType' => $mimeType,
+                ...$contents,
+            ], fn (mixed $value): bool => $value !== null)),
+            $annotations,
+        ), $this->role);
     }
 
     public static function fromStorage(string $path, ?string $disk = null, ?string $mimeType = null): static

@@ -10,7 +10,19 @@ class HotelP extends Server
 {
     protected array $prompts = [
         BookingPrompt::class,
+        BookingTermsPrompt::class,
     ];
+}
+
+class BookingTermsPrompt extends Prompt
+{
+    public function handle(): array
+    {
+        return [
+            Response::text('Answer using the booking terms.'),
+            Response::text('Cancellations are free until 48 hours before arrival.')->asResource('file:///hotel/terms.md', 'text/markdown'),
+        ];
+    }
 }
 
 class BookingPrompt extends Prompt
@@ -107,4 +119,9 @@ it('fails if the prompt is not registered due the should register method', funct
     $response->assertHasErrors([
         'Prompt [booking-prompt] not found',
     ]);
+});
+
+it('may assert that embedded resource contents are seen', function (): void {
+    HotelP::prompt(BookingTermsPrompt::class)
+        ->assertSee(['Answer using the booking terms.', 'Cancellations are free until 48 hours before arrival.']);
 });

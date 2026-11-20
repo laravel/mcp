@@ -5,11 +5,13 @@ use Laravel\Mcp\Response;
 use Laravel\Mcp\Server;
 use Laravel\Mcp\Server\Tool;
 use PHPUnit\Framework\ExpectationFailedException;
+use Tests\Fixtures\EmbeddedResourceTool;
 
 class HotelT extends Server
 {
     protected array $tools = [
         BookingTool::class,
+        EmbeddedResourceTool::class,
     ];
 }
 
@@ -106,4 +108,10 @@ it('fails if the tool is not registered due the should register method', functio
     $response->assertHasErrors([
         'Tool [booking-tool] not found.',
     ]);
+});
+
+it('may assert that embedded resource contents are seen', function (): void {
+    HotelT::tool(EmbeddedResourceTool::class)
+        ->assertSee(['Here are the notes.', '# Daily Plan', '# Standup'])
+        ->assertDontSee('file:///notes/standup.md');
 });
