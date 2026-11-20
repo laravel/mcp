@@ -269,7 +269,9 @@ class PendingTestResponse
 
         $id = uniqid();
 
-        $request = new JsonRpcRequest($id, $method, [...$params, '_meta' => ['progressToken' => $id]]);
+        $params['_meta']['progressToken'] = $id;
+
+        $request = new JsonRpcRequest($id, $method, $params);
 
         $response = $this->executeRequest($server, $request);
 
