@@ -12,5 +12,6 @@ class DiscoveryResult
     public function __construct(
         public AuthServerMetadata $server,
         public array $scopesSupported = [],
+        public ?string $resource = null,
     ) {}
 }

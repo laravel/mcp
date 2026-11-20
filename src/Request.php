@@ -12,6 +12,7 @@ use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\InteractsWithData;
 use Illuminate\Support\Traits\Macroable;
 use Illuminate\Validation\ValidationException;
+use Laravel\Mcp\Enums\MetaKey;
 
 /**
  * @implements Arrayable<string, mixed>
@@ -106,6 +107,13 @@ class Request implements Arrayable
     public function uri(): ?string
     {
         return $this->uri;
+    }
+
+    public function clientSupports(string $capability): bool
+    {
+        $declared = data_get($this->meta[MetaKey::CLIENT_CAPABILITIES->value] ?? [], $capability);
+
+        return is_bool($declared) ? $declared : is_array($declared);
     }
 
     /**

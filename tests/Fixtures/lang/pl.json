@@ -1,0 +1,13 @@
+{
+    "Authorize Application": "Autoryzacja aplikacji",
+    "Authorize MCP": "Autoryzacja MCP",
+    "Authorize :name": "Autoryzuj :name",
+    "This application will be able to:": "Ta aplikacja będzie mogła:",
+    "Use available MCP functionality.": "Korzystać z dostępnych funkcji MCP.",
+    "You will be redirected to :uri": "Nastąpi przekierowanie do :uri",
+    "Logged in as:": "Zalogowano jako:",
+    "Permissions:": "Uprawnienia:",
+    "Cancel": "Anuluj",
+    "Authorize": "Autoryzuj",
+    "Authorizing...": "Autoryzowanie..."
+}
