@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Session;
 use Laravel\Mcp\Client;
 use Laravel\Mcp\Client\Exceptions\OAuthException;
 use Laravel\Mcp\Client\OAuth\AuthServerDiscovery;
+use Laravel\Mcp\Client\OAuth\Enums\TokenEndpointAuthMethod;
 use Laravel\Mcp\Client\OAuth\OAuthClient;
 use Laravel\Mcp\Client\OAuth\OAuthConfig;
 use Laravel\Mcp\Client\OAuth\TokenSet;
@@ -342,6 +343,7 @@ it('refreshes a token using the refresh grant', function (): void {
 it('falls back to the resource origin when protected resource metadata is unavailable', function (): void {
     Http::fake([
         'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response('', 404),
+        'https://mcp.test/.well-known/oauth-protected-resource' => Http::response('', 404),
         'https://mcp.test/.well-known/oauth-authorization-server' => Http::response([
             'issuer' => 'https://mcp.test',
             'authorization_endpoint' => 'https://mcp.test/authorize',
@@ -771,7 +773,7 @@ it('records the issuer in the session for callback validation', function (): voi
         ->and($stored['iss_supported'])->toBeTrue();
 });
 
-it('defaults the scope to mcp:use', function (): void {
+it('defaults the scope to mcp:use when the server advertises none', function (): void {
     fakeDiscovery();
 
     $target = Client::web('https://mcp.test/mcp')
@@ -785,7 +787,7 @@ it('defaults the scope to mcp:use', function (): void {
     expect($query['scope'])->toBe('mcp:use');
 });
 
-it('does not request every supported scope from protected resource metadata', function (): void {
+it('requests every supported scope from protected resource metadata', function (): void {
     Http::fake([
         'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
             'authorization_servers' => ['https://auth.test'],
@@ -807,7 +809,380 @@ it('does not request every supported scope from protected resource metadata', fu
 
     parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
 
-    expect($query['scope'])->toBe('mcp:use');
+    expect($query['scope'])->toBe('mcp:read mcp:write');
+});
+
+it('adds offline_access when the authorization server supports it', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'authorization_servers' => ['https://auth.test'],
+            'scopes_supported' => ['mcp:read'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
+            'token_endpoint' => 'https://auth.test/token',
+            'scopes_supported' => ['mcp:read', 'offline_access'],
+        ]),
+    ]);
+
+    $target = Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect()
+        ->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($query['scope'])->toBe('mcp:read offline_access');
+});
+
+it('does not add offline_access to a configured scope', function (): void {
+    fakeScopedDiscovery();
+
+    $target = Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', scope: 'mcp:read', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect()
+        ->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($query['scope'])->toBe('mcp:read');
+});
+
+it('discovers root protected resource metadata and sends its resource identifier', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response('', 404),
+        'https://mcp.test/.well-known/oauth-protected-resource' => Http::response([
+            'resource' => 'https://mcp.test',
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
+            'token_endpoint' => 'https://auth.test/token',
+        ]),
+    ]);
+
+    $target = Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect()
+        ->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($query['resource'])->toBe('https://mcp.test')
+        ->and(Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'))['resource'])->toBe('https://mcp.test');
+});
+
+it('rejects an origin resource from path based protected resource metadata', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'resource' => 'https://mcp.test',
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+    ]);
+
+    expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect())
+        ->toThrow(OAuthException::class, 'did not match the expected resource [https://mcp.test/mcp]');
+
+    Http::assertNotSent(fn ($request): bool => $request->url() === 'https://mcp.test/.well-known/oauth-protected-resource');
+});
+
+it('rejects an origin resource from server advertised protected resource metadata', function (): void {
+    Http::fake([
+        'https://mcp.test/mcp' => Http::response('', 401, [
+            'WWW-Authenticate' => 'Bearer resource_metadata="https://mcp.test/.well-known/custom-resource"',
+        ]),
+        'https://mcp.test/.well-known/custom-resource' => Http::response([
+            'resource' => 'https://mcp.test/',
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+    ]);
+
+    expect(fn (): RedirectResponse => Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient('https://mcp.test/.well-known/custom-resource')
+        ->redirect())
+        ->toThrow(OAuthException::class, 'did not match the expected resource [https://mcp.test/mcp]');
+});
+
+it('ignores root protected resource metadata for a sibling path resource', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/tenant-a/mcp' => Http::response('', 404),
+        'https://mcp.test/.well-known/oauth-protected-resource' => Http::response([
+            'resource' => 'https://mcp.test/tenant-b/mcp',
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+        'https://mcp.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://mcp.test',
+            'authorization_endpoint' => 'https://mcp.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
+            'token_endpoint' => 'https://mcp.test/token',
+        ]),
+    ]);
+
+    $target = Client::web('https://mcp.test/tenant-a/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect()
+        ->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($target)->toStartWith('https://mcp.test/authorize')
+        ->and($query['resource'])->toBe('https://mcp.test/tenant-a/mcp');
+
+    Http::assertNotSent(fn ($request): bool => str_starts_with($request->url(), 'https://auth.test'));
+});
+
+function fakeScopedDiscovery(): void
+{
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'authorization_servers' => ['https://auth.test'],
+            'scopes_supported' => ['mcp:read', 'mcp:write'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
+            'token_endpoint' => 'https://auth.test/token',
+            'scopes_supported' => ['mcp:read', 'mcp:write', 'offline_access'],
+        ]),
+        'https://auth.test/token' => Http::response(['access_token' => 'token', 'scope' => 'mcp:read']),
+    ]);
+}
+
+it('omits the scope on a refresh request unless one is configured', function (): void {
+    fakeScopedDiscovery();
+
+    Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123')
+        ->oAuthClient()
+        ->refreshCredentials('old-refresh');
+
+    Http::assertSent(fn ($request): bool => $request->url() === 'https://auth.test/token'
+        && ($request['grant_type'] ?? null) === 'refresh_token'
+        && ! isset($request['scope']));
+});
+
+it('does not request offline_access for the client credentials grant', function (): void {
+    fakeScopedDiscovery();
+
+    Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'svc', clientSecret: 'secret')
+        ->oAuthClient()
+        ->clientCredentials();
+
+    Http::assertSent(fn ($request): bool => $request->url() === 'https://auth.test/token'
+        && ($request['scope'] ?? null) === 'mcp:read mcp:write');
+});
+
+it('keeps the previously requested scope when stepping up to a challenged scope', function (): void {
+    fakeScopedDiscovery();
+
+    $client = Client::web('https://mcp.test/mcp')->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback');
+
+    $client->oAuthClient(challengeScope: 'mcp:read')->redirect();
+
+    $state = Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'))['state'];
+
+    app()->instance('request', Request::create('https://app.test/callback', 'GET', ['code' => 'auth-code', 'state' => $state]));
+
+    $client->oAuthClient()->exchangeCallback();
+
+    $target = $client->oAuthClient(challengeScope: 'mcp:write')->redirect()->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($query['scope'])->toBe('mcp:read offline_access mcp:write');
+});
+
+it('keeps the previously requested scope when the server granted less', function (): void {
+    fakeScopedDiscovery();
+
+    $client = Client::web('https://mcp.test/mcp')->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback');
+
+    $client->oAuthClient(challengeScope: 'mcp:read mcp:admin')->redirect();
+
+    $state = Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'))['state'];
+
+    app()->instance('request', Request::create('https://app.test/callback', 'GET', ['code' => 'auth-code', 'state' => $state]));
+
+    $client->oAuthClient()->exchangeCallback();
+
+    $target = $client->oAuthClient(challengeScope: 'mcp:write')->redirect()->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($query['scope'])->toBe('mcp:read mcp:admin offline_access mcp:write');
+});
+
+it('registers a dynamic client with the scope it then requests', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'authorization_servers' => ['https://auth.test'],
+            'scopes_supported' => ['mcp:read', 'mcp:write'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
+            'token_endpoint' => 'https://auth.test/token',
+            'registration_endpoint' => 'https://auth.test/register',
+            'scopes_supported' => ['mcp:read', 'mcp:write', 'offline_access'],
+        ]),
+        'https://auth.test/register' => Http::response(['client_id' => 'dcr-999']),
+    ]);
+
+    $target = Client::web('https://mcp.test/mcp')
+        ->withOAuth(redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect()
+        ->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($query['scope'])->toBe('mcp:read mcp:write offline_access');
+
+    Http::assertSent(fn ($request): bool => $request->url() === 'https://auth.test/register'
+        && ($request['scope'] ?? null) === 'mcp:read mcp:write offline_access');
+});
+
+it('uses the token endpoint auth method returned by dynamic registration', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response([
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
+            'token_endpoint' => 'https://auth.test/token',
+            'registration_endpoint' => 'https://auth.test/register',
+            'token_endpoint_auth_methods_supported' => ['client_secret_post', 'client_secret_basic'],
+        ]),
+        'https://auth.test/register' => Http::response([
+            'client_id' => 'dcr-999',
+            'client_secret' => 'shh',
+            'token_endpoint_auth_method' => 'client_secret_basic',
+        ], 201),
+        'https://auth.test/token' => Http::response(['access_token' => 'access-token', 'refresh_token' => 'refresh-token']),
+    ]);
+
+    $client = Client::web('https://mcp.test/mcp')->withOAuth(redirectUri: 'https://app.test/callback');
+
+    $client->oAuthClient()->redirect();
+
+    $state = Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'))['state'];
+
+    app()->instance('request', Request::create('https://app.test/callback', 'GET', ['code' => 'auth-code', 'state' => $state]));
+
+    $token = $client->oAuthClient()->exchangeCallback();
+
+    expect($token->tokenEndpointAuthMethod)->toBe(TokenEndpointAuthMethod::ClientSecretBasic);
+
+    $client->oAuthClient()->refreshCredentials(
+        (string) $token->refreshToken,
+        $token->clientId,
+        $token->clientSecret,
+        $token->tokenEndpointAuthMethod,
+    );
+
+    foreach (['authorization_code', 'refresh_token'] as $grant) {
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://auth.test/token'
+            && ($request['grant_type'] ?? null) === $grant
+            && $request->hasHeader('Authorization', 'Basic '.base64_encode('dcr-999:shh'))
+            && ! array_key_exists('client_secret', $request->data()));
+    }
+});
+
+it('sends the root protected resource identifier on every token request', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response('', 404),
+        'https://mcp.test/.well-known/oauth-protected-resource' => Http::response([
+            'resource' => 'https://mcp.test',
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
+            'token_endpoint' => 'https://auth.test/token',
+        ]),
+        'https://auth.test/token' => Http::response(['access_token' => 'access-token']),
+    ]);
+
+    $client = Client::web('https://mcp.test/mcp')->withOAuth(clientId: 'client-123', clientSecret: 'secret', redirectUri: 'https://app.test/callback');
+
+    $client->oAuthClient()->redirect();
+
+    $state = Session::get('mcp.oauth.'.sha1('https://mcp.test/mcp'))['state'];
+
+    app()->instance('request', Request::create('https://app.test/callback', 'GET', ['code' => 'auth-code', 'state' => $state]));
+
+    $client->oAuthClient()->exchangeCallback();
+    $client->oAuthClient()->refreshCredentials('old-refresh');
+    $client->oAuthClient()->clientCredentials();
+
+    foreach (['authorization_code', 'refresh_token', 'client_credentials'] as $grant) {
+        Http::assertSent(fn ($request): bool => $request->url() === 'https://auth.test/token'
+            && ($request['grant_type'] ?? null) === $grant
+            && ($request['resource'] ?? null) === 'https://mcp.test');
+    }
+});
+
+it('accepts root protected resource metadata without a resource identifier', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource/mcp' => Http::response('', 404),
+        'https://mcp.test/.well-known/oauth-protected-resource' => Http::response([
+            'authorization_servers' => ['https://auth.test'],
+        ]),
+        'https://auth.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://auth.test',
+            'authorization_endpoint' => 'https://auth.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
+            'token_endpoint' => 'https://auth.test/token',
+        ]),
+    ]);
+
+    $target = Client::web('https://mcp.test/mcp')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect()
+        ->getTargetUrl();
+
+    parse_str((string) parse_url($target, PHP_URL_QUERY), $query);
+
+    expect($target)->toStartWith('https://auth.test/authorize')
+        ->and($query['resource'])->toBe('https://mcp.test/mcp');
+});
+
+it('does not fetch root protected resource metadata twice for a resource at the root', function (): void {
+    Http::fake([
+        'https://mcp.test/.well-known/oauth-protected-resource' => Http::response('', 404),
+        'https://mcp.test/.well-known/oauth-authorization-server' => Http::response([
+            'issuer' => 'https://mcp.test',
+            'authorization_endpoint' => 'https://mcp.test/authorize',
+            'code_challenge_methods_supported' => ['S256'],
+            'token_endpoint' => 'https://mcp.test/token',
+        ]),
+    ]);
+
+    Client::web('https://mcp.test')
+        ->withOAuth(clientId: 'client-123', redirectUri: 'https://app.test/callback')
+        ->oAuthClient()
+        ->redirect();
+
+    Http::assertSentCount(2);
 });
 
 it('prefers the challenge scope over the configured scope', function (): void {

@@ -58,6 +58,10 @@ class AuthServerDiscovery
 
         $this->requireResourceMatches($resourceMetadata, $resourceUrl);
 
+        if ($resourceMetadata === [] && $resourceMetadataUrl === null) {
+            $resourceMetadata = $this->fetchRootResourceMetadata($resourceUrl);
+        }
+
         $issuer = $this->issuerFrom($resourceMetadata) ?? $this->origin($resourceUrl);
 
         $this->requireSecure($issuer);
@@ -81,7 +85,9 @@ class AuthServerDiscovery
 
         $scopesSupported = array_values(array_map(strval(...), (array) ($resourceMetadata['scopes_supported'] ?? [])));
 
-        return new DiscoveryResult($serverMetadata, $scopesSupported);
+        $resource = Arr::get($resourceMetadata, 'resource');
+
+        return new DiscoveryResult($serverMetadata, $scopesSupported, is_string($resource) ? $resource : $resourceUrl);
     }
 
     /**
@@ -191,6 +197,28 @@ class AuthServerDiscovery
         if (is_string($resource) && ! hash_equals($resourceUrl, $resource)) {
             throw new OAuthException("Protected resource metadata resource [{$resource}] did not match the expected resource [{$resourceUrl}].");
         }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function fetchRootResourceMetadata(string $resourceUrl): array
+    {
+        $origin = $this->origin($resourceUrl);
+        $metadataUrl = $origin.'/.well-known/oauth-protected-resource';
+
+        if ($metadataUrl === $this->wellKnown($resourceUrl, 'oauth-protected-resource')) {
+            return [];
+        }
+
+        $this->requireFetchable($metadataUrl, $resourceUrl);
+
+        $resourceMetadata = $this->fetchResourceMetadata($metadataUrl);
+        $resource = Arr::get($resourceMetadata, 'resource');
+
+        return ! is_string($resource) || in_array($resource, [$resourceUrl, $origin, $origin.'/'], true)
+            ? $resourceMetadata
+            : [];
     }
 
     /**
