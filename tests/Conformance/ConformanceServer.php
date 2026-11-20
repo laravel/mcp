@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Conformance;
 
 use Laravel\Mcp\Server;
+use Tests\Conformance\Prompts\InputRequiredElicitationPrompt;
 use Tests\Conformance\Prompts\PromptWithArguments;
 use Tests\Conformance\Prompts\PromptWithEmbeddedResource;
 use Tests\Conformance\Prompts\PromptWithImage;
@@ -14,16 +15,24 @@ use Tests\Conformance\Resources\StaticTextResource;
 use Tests\Conformance\Resources\TemplateResource;
 use Tests\Conformance\Resources\WatchedResource;
 use Tests\Conformance\Tools\AudioContentTool;
+use Tests\Conformance\Tools\CapabilityCheckElicitationTool;
 use Tests\Conformance\Tools\CustomHeaderTool;
 use Tests\Conformance\Tools\EmbeddedResourceTool;
 use Tests\Conformance\Tools\ErrorHandlingTool;
 use Tests\Conformance\Tools\ImageContentTool;
+use Tests\Conformance\Tools\InputRequiredElicitationTool;
 use Tests\Conformance\Tools\JsonSchema202012Tool;
+use Tests\Conformance\Tools\ListRootsInputRequiredTool;
 use Tests\Conformance\Tools\LoggingTool;
 use Tests\Conformance\Tools\MultipleContentTypesTool;
+use Tests\Conformance\Tools\MultipleInputsRequiredTool;
+use Tests\Conformance\Tools\MultiRoundInputRequiredTool;
 use Tests\Conformance\Tools\ProgressTool;
+use Tests\Conformance\Tools\RequestStateInputRequiredTool;
+use Tests\Conformance\Tools\SamplingInputRequiredTool;
 use Tests\Conformance\Tools\SimpleTextTool;
 use Tests\Conformance\Tools\StreamingElicitationTool;
+use Tests\Conformance\Tools\TamperedStateInputRequiredTool;
 
 class ConformanceServer extends Server
 {
@@ -49,6 +58,14 @@ class ConformanceServer extends Server
         LoggingTool::class,
         StreamingElicitationTool::class,
         ProgressTool::class,
+        InputRequiredElicitationTool::class,
+        MultiRoundInputRequiredTool::class,
+        RequestStateInputRequiredTool::class,
+        TamperedStateInputRequiredTool::class,
+        CapabilityCheckElicitationTool::class,
+        MultipleInputsRequiredTool::class,
+        SamplingInputRequiredTool::class,
+        ListRootsInputRequiredTool::class,
     ];
 
     public array $resources = [
@@ -63,6 +80,7 @@ class ConformanceServer extends Server
         PromptWithArguments::class,
         PromptWithEmbeddedResource::class,
         PromptWithImage::class,
+        InputRequiredElicitationPrompt::class,
     ];
 
     protected function boot(): void
