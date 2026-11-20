@@ -26,7 +26,13 @@ class PendingTestResponse
     /**
      * @var array<string, mixed>
      */
-    protected array $clientCapabilities = [];
+    protected array $clientCapabilities = [
+        'elicitation' => [
+            'form' => [],
+        ],
+        'sampling' => [],
+        'roots' => [],
+    ];
 
     /**
      * @param  class-string<Server>  $serverClass
@@ -102,16 +108,6 @@ class PendingTestResponse
         return new TestListResponse($resources);
     }
 
-    /**
-     * @param  array<string, mixed>  $capabilities
-     */
-    public function withClientCapabilities(array $capabilities): static
-    {
-        $this->clientCapabilities = $capabilities;
-
-        return $this;
-    }
-
     public function prompts(): TestListResponse
     {
         $server = $this->initializeServer();
@@ -142,6 +138,16 @@ class PendingTestResponse
         } while ($cursor !== null);
 
         return new TestListResponse($prompts);
+    }
+
+    /**
+     * @param  array<string, mixed>  $capabilities
+     */
+    public function withClientCapabilities(array $capabilities): static
+    {
+        $this->clientCapabilities = $capabilities;
+
+        return $this;
     }
 
     /**
@@ -202,7 +208,7 @@ class PendingTestResponse
 
         $response = $this->executeRequest($server, $request);
 
-        return new TestResponse($primitive, $response);
+        return new TestResponse($primitive, $response, $server, $request);
     }
 
     /**
@@ -252,11 +258,7 @@ class PendingTestResponse
 
     protected function executeRequest(Server $server, JsonRpcRequest $request): mixed
     {
-        try {
-            return (fn (): iterable|JsonRpcResponse => $this->runMethodHandle($request, $this->createContext()))->call($server);
-        } catch (JsonRpcException $jsonRpcException) {
-            return $jsonRpcException->toJsonRpcResponse();
-        }
+        return TestResponse::execute($server, $request);
     }
 
     public function actingAs(Authenticatable $user, ?string $guard = null): static
@@ -300,7 +302,7 @@ class PendingTestResponse
 
         $response = $this->executeRequest($server, $request);
 
-        return new TestResponse($primitive, $response);
+        return new TestResponse($primitive, $response, $server, $request);
     }
 
     /**

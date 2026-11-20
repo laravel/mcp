@@ -55,10 +55,10 @@ it('keeps the meta from the method call alongside the progress token', function 
         ]);
 });
 
-it('declares no client capabilities by default', function (): void {
+it('declares form elicitation, sampling and roots by default', function (): void {
     RequestMetaServer::tool(CapabilityAwareTool::class)
         ->assertStructuredContent([
-            'capabilities' => [],
+            'capabilities' => ['elicitation' => ['form' => []], 'sampling' => [], 'roots' => []],
             'hasProgressToken' => true,
         ]);
 });
