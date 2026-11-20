@@ -57,6 +57,27 @@ class TestResponse
     }
 
     /**
+     * @param  array<string, mixed>|null  $data
+     */
+    public function assertErrorCode(int $code, ?array $data = null): static
+    {
+        $error = $this->response->toArray()['error'] ?? null;
+
+        Assert::assertIsArray($error, 'The response is not a JSON-RPC error.');
+        Assert::assertSame($code, $error['code'] ?? null, 'The response does not carry the expected error code.');
+
+        if (! is_null($data)) {
+            Assert::assertSame(
+                $data,
+                json_decode((string) json_encode($error['data'] ?? null), true),
+                'The response does not carry the expected error data.',
+            );
+        }
+
+        return $this;
+    }
+
+    /**
      * @param  array<string>|string  $text
      */
     public function assertSee(array|string $text): static
