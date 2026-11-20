@@ -1,0 +1,8 @@
+---
+name: {{ name }}
+description: Describe what this skill does and when an agent should use it.
+---
+
+# {{ title }}
+
+Write the instructions an agent should follow when using this skill.
