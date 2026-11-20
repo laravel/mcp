@@ -54,3 +54,29 @@ it('keeps the meta from the method call alongside the progress token', function 
             'hasProgressToken' => true,
         ]);
 });
+
+it('declares no client capabilities by default', function (): void {
+    RequestMetaServer::tool(CapabilityAwareTool::class)
+        ->assertStructuredContent([
+            'capabilities' => [],
+            'hasProgressToken' => true,
+        ]);
+});
+
+it('sends the client capabilities the test declares', function (): void {
+    RequestMetaServer::withClientCapabilities(['sampling' => ['tools' => []]])
+        ->tool(CapabilityAwareTool::class)
+        ->assertStructuredContent([
+            'capabilities' => ['sampling' => ['tools' => []]],
+            'hasProgressToken' => true,
+        ]);
+});
+
+it('prefers the method call meta over the declared client capabilities', function (): void {
+    RequestMetaServer::withClientCapabilities(['sampling' => []])
+        ->tool(new CapabilityAwareCall(new CapabilityAwareTool))
+        ->assertStructuredContent([
+            'capabilities' => ['extensions' => ['io.modelcontextprotocol/ui' => []]],
+            'hasProgressToken' => true,
+        ]);
+});

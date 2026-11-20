@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Request;
 
 it('may return all data', function (): void {
@@ -214,4 +215,16 @@ it('supports method chaining with merge and setUri', function (): void {
     expect($request->uri())->toBe('file://resources/test')
         ->and($request->get('name'))->toBe('Alice')
         ->and($request->get('age'))->toBe(30);
+});
+
+it('reports boolean client capabilities as declared', function (): void {
+    $request = new Request(meta: [
+        MetaKey::CLIENT_CAPABILITIES->value => ['roots' => ['listChanged' => true], 'sampling' => ['enabled' => false]],
+    ]);
+
+    expect($request->clientSupports('roots.listChanged'))->toBeTrue()
+        ->and($request->clientSupports('sampling.enabled'))->toBeFalse()
+        ->and($request->clientSupports('roots'))->toBeTrue()
+        ->and($request->clientSupports('elicitation'))->toBeFalse()
+        ->and((new Request)->clientSupports('roots'))->toBeFalse();
 });
