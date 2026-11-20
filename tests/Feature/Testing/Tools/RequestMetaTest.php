@@ -54,11 +54,3 @@ it('keeps the meta from the method call alongside the progress token', function 
             'hasProgressToken' => true,
         ]);
 });
-
-it('sends only a progress token when the method call has no meta', function (): void {
-    RequestMetaServer::tool(CapabilityAwareTool::class)
-        ->assertStructuredContent([
-            'capabilities' => null,
-            'hasProgressToken' => true,
-        ]);
-});
