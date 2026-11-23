@@ -124,7 +124,7 @@ class ServerContext
     {
         $skills = collect($this->skills)
             ->map(fn (Skill|string $skill): Skill => match (true) {
-                $skill instanceof Skill => $skill,
+                $skill instanceof Skill => clone $skill,
                 is_subclass_of($skill, Skill::class) => Container::getInstance()->make($skill),
                 default => new DirectorySkill($skill),
             })

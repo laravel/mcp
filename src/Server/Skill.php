@@ -63,7 +63,7 @@ abstract class Skill implements Arrayable
      */
     public function frontmatter(): array
     {
-        return $this->parse($this->read('SKILL.md'));
+        return once(fn (): array => $this->parse($this->read('SKILL.md')));
     }
 
     /**
@@ -150,7 +150,7 @@ abstract class Skill implements Arrayable
     public function toArray(): array
     {
         $contents = $this->read('SKILL.md');
-        $frontmatter = $this->parse($contents);
+        $frontmatter = $this->frontmatter();
         $uri = $this->uriFor($frontmatter);
 
         return [
