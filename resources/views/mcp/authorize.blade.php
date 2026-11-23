@@ -29,13 +29,13 @@
         }
     </style>
 
-    <title>Authorize Application - {{ config('app.name', 'MCP Server') }}</title>
+    <title>{{ __('Authorize Application') }} - {{ config('app.name', 'MCP Server') }}</title>
 
     <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-title" content="Authorize MCP" />
+    <meta name="apple-mobile-web-app-title" content="{{ __('Authorize MCP') }}" />
     <link rel="manifest" href="/site.webmanifest" />
 
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -62,17 +62,17 @@
                 </div>
 
                 <h3 class="text-2xl font-semibold leading-none tracking-tight text-center">
-                    Authorize {{ $client->name }}
+                    {{ __('Authorize :name', ['name' => $client->name]) }}
                 </h3>
 
                 <p class="text-sm text-muted-foreground text-center">
-                    This application will be able to:<br/>Use available MCP functionality.
+                    {{ __('This application will be able to:') }}<br/>{{ __('Use available MCP functionality.') }}
                 </p>
 
                 @php($redirectUri = request()->query('redirect_uri', $client->redirect_uris[0] ?? null))
                 @if ($redirectUri)
                 <p class="text-xs text-muted-foreground text-center break-all">
-                    You will be redirected to {{ $redirectUri }}
+                    {{ __('You will be redirected to :uri', ['uri' => $redirectUri]) }}
                 </p>
                 @endif
 
@@ -87,14 +87,14 @@
             <div class="p-6 pt-0 space-y-4">
                 <!-- User Info -->
                 <div class="rounded-lg border p-4 bg-muted/50">
-                    <p class="text-sm text-muted-foreground mb-2">Logged in as:</p>
+                    <p class="text-sm text-muted-foreground mb-2">{{ __('Logged in as:') }}</p>
                     <p class="font-medium">{{ $user->email }}</p>
                 </div>
 
                 <!-- Scopes / Permissions -->
                 @if(count($scopes) > 0)
                     <div class="space-y-2">
-                        <p class="text-sm font-medium">Permissions:</p>
+                        <p class="text-sm font-medium">{{ __('Permissions:') }}</p>
 
                         <ul class="space-y-2">
                             @foreach($scopes as $scope)
@@ -125,7 +125,7 @@
                         <svg class="mr-2 h-4 w-4" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
-                        Cancel
+                        {{ __('Cancel') }}
                     </button>
                 </form>
 
@@ -136,7 +136,7 @@
                     <input type="hidden" name="client_id" value="{{ $client->id }}">
                     <input type="hidden" name="auth_token" value="{{ $authToken }}">
                     <button type="submit" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full" id="authorizeButton">
-                        <span id="authorizeText">Authorize</span>
+                        <span id="authorizeText">{{ __('Authorize') }}</span>
 
                         <svg id="loadingSpinner" class="animate-spin -ml-1 mr-3 h-4 w-4 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -159,7 +159,7 @@
         form.addEventListener('submit', function(e) {
             // Show loading state...
             button.disabled = true;
-            authorizeText.textContent = 'Authorizing...';
+            authorizeText.textContent = @json(__('Authorizing...'));
             loadingSpinner.classList.remove('hidden');
 
             // After form submission, watch for redirect and close window...

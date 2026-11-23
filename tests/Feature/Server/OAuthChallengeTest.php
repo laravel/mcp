@@ -20,9 +20,9 @@ class RejectsEveryone
     }
 }
 
-beforeEach(fn () => app(Registrar::class)->oauthRoutes());
-
 it('challenges when authentication is sorted ahead of the route middleware', function (): void {
+    app(Registrar::class)->oauthRoutes();
+
     Route::middleware(SubstituteBindings::class)->group(function (): void {
         Mcp::web('protected-mcp', ExampleServer::class)->middleware(Authenticate::class);
     });
@@ -33,6 +33,8 @@ it('challenges when authentication is sorted ahead of the route middleware', fun
 });
 
 it('challenges when authentication is not part of the middleware priority list', function (): void {
+    app(Registrar::class)->oauthRoutes();
+
     Route::middleware(RejectsEveryone::class)->group(function (): void {
         Mcp::web('custom-auth-mcp', ExampleServer::class);
     });
@@ -43,6 +45,8 @@ it('challenges when authentication is not part of the middleware priority list',
 });
 
 it('challenges when authentication is applied through the auth alias', function (): void {
+    app(Registrar::class)->oauthRoutes();
+
     config()->set('auth.guards.api', ['driver' => 'session', 'provider' => 'users']);
 
     Route::middleware(SubstituteBindings::class)->group(function (): void {
@@ -54,7 +58,109 @@ it('challenges when authentication is applied through the auth alias', function 
         ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="'.url('/.well-known/oauth-protected-resource/aliased-mcp').'"');
 });
 
+it('challenges with the resource metadata url of the resolver', function (): void {
+    app(Registrar::class)->oauthRoutes();
+
+    AddWwwAuthenticateHeader::resolveResourceMetadataUrlUsing(
+        fn (Request $request): string => 'https://acme.example.com/.well-known/oauth-protected-resource/'.$request->path()
+    );
+
+    Route::middleware(SubstituteBindings::class)->group(function (): void {
+        Mcp::web('tenant-mcp', ExampleServer::class)->middleware(Authenticate::class);
+    });
+
+    $this->postJson('tenant-mcp', [])
+        ->assertStatus(401)
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="https://acme.example.com/.well-known/oauth-protected-resource/tenant-mcp"');
+});
+
+it('challenges with the resource metadata url of the named route when the resolver returns null', function (): void {
+    app(Registrar::class)->oauthRoutes();
+
+    AddWwwAuthenticateHeader::resolveResourceMetadataUrlUsing(fn (): ?string => null);
+
+    Route::middleware(SubstituteBindings::class)->group(function (): void {
+        Mcp::web('central-mcp', ExampleServer::class)->middleware(Authenticate::class);
+    });
+
+    $this->postJson('central-mcp', [])
+        ->assertStatus(401)
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="'.url('/.well-known/oauth-protected-resource/central-mcp').'"');
+});
+
+it('challenges with the host parameters of the route', function (): void {
+    Route::domain('{tenant}.example.com')->group(function (): void {
+        app(Registrar::class)->oauthRoutes();
+
+        Mcp::web('tenant-mcp', ExampleServer::class)->middleware(Authenticate::class);
+    });
+
+    $this->postJson('http://acme.example.com/tenant-mcp', [])
+        ->assertStatus(401)
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="http://acme.example.com/.well-known/oauth-protected-resource/tenant-mcp"');
+
+    $this->postJson('http://globex.example.com/tenant-mcp', [])
+        ->assertStatus(401)
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="http://globex.example.com/.well-known/oauth-protected-resource/tenant-mcp"');
+});
+
+it('does not leak host parameters the metadata route does not declare', function (): void {
+    Route::domain('example.com')->group(fn () => app(Registrar::class)->oauthRoutes());
+
+    Route::domain('{tenant}.example.com')->group(function (): void {
+        Mcp::web('tenant-mcp', ExampleServer::class)->middleware(Authenticate::class);
+    });
+
+    $this->postJson('http://acme.example.com/tenant-mcp', [])
+        ->assertStatus(401)
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="http://example.com/.well-known/oauth-protected-resource/tenant-mcp"');
+});
+
+it('does not leak host parameters when the metadata route has no domain', function (): void {
+    app(Registrar::class)->oauthRoutes();
+
+    Route::domain('{tenant}.example.com')->group(function (): void {
+        Mcp::web('tenant-mcp', ExampleServer::class)->middleware(Authenticate::class);
+    });
+
+    $this->postJson('http://acme.example.com/tenant-mcp', [])
+        ->assertStatus(401)
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="http://acme.example.com/.well-known/oauth-protected-resource/tenant-mcp"');
+});
+
+it('challenges with the host parameters of the metadata route when the mcp route has no domain', function (): void {
+    Route::domain('{tenant}.example.com')->group(fn () => app(Registrar::class)->oauthRoutes());
+
+    Mcp::web('shared-mcp', ExampleServer::class)->middleware(Authenticate::class);
+
+    $this->postJson('http://acme.example.com/shared-mcp', [])
+        ->assertStatus(401)
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="http://acme.example.com/.well-known/oauth-protected-resource/shared-mcp"');
+});
+
+it('challenges with the host parameters of the metadata route when the routes name them differently', function (): void {
+    Route::domain('{account}.example.com')->group(fn () => app(Registrar::class)->oauthRoutes());
+
+    Route::domain('{tenant}.example.com')->group(function (): void {
+        Mcp::web('tenant-mcp', ExampleServer::class)->middleware(Authenticate::class);
+    });
+
+    $this->postJson('http://acme.example.com/tenant-mcp', [])
+        ->assertStatus(401)
+        ->assertHeader('WWW-Authenticate', 'Bearer realm="mcp", resource_metadata="http://acme.example.com/.well-known/oauth-protected-resource/tenant-mcp"');
+});
+
 it('does not challenge on routes that are not mcp servers', function (): void {
+    Route::middleware(Authenticate::class)->post('not-mcp', fn () => response()->json([]));
+
+    $this->postJson('not-mcp', [])
+        ->assertStatus(401)
+        ->assertHeaderMissing('WWW-Authenticate');
+});
+
+it('does not resolve the resource metadata url on routes that are not mcp servers', function (): void {
+    AddWwwAuthenticateHeader::resolveResourceMetadataUrlUsing(fn (): string => throw new RuntimeException('The resolver should not be called.'));
+
     Route::middleware(Authenticate::class)->post('not-mcp', fn () => response()->json([]));
 
     $this->postJson('not-mcp', [])
