@@ -11,10 +11,10 @@ return [
     | for redirect URIs. Each domain should be specified with its scheme
     | and host. Domains not in this list will raise validation errors.
     |
-    | Use "*" to allow all domains, or in a URL pattern, such as
-    | "https://*.example.com/*" or "https://example.com/callback-*".
-    | Patterns match the entire URL. Each "*" matches any characters,
-    | including URL separators.
+    | Use "*" to allow all domains, or use wildcards in the host or path,
+    | such as "https://*.example.com/*" or "https://example.com/callback-*".
+    | Wildcards match within their component. The scheme, port, query,
+    | and fragment of a wildcard pattern must match exactly.
     |
     */
 

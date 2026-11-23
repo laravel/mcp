@@ -47,7 +47,7 @@ class OAuthRegisterController
                     return;
                 }
 
-                if (! Str::is($this->allowedDomains(), $value)) {
+                if (! $this->matchesRedirectDomain($value)) {
                     $fail($attribute.' is not a permitted redirect domain.');
                 }
             }],
@@ -202,11 +202,29 @@ class OAuthRegisterController
         $allowedDomains = config('mcp.redirect_domains', []);
 
         return collect($allowedDomains)
-            ->map(fn (string $domain): string => Str::contains($domain, '*')
+            ->map(fn (string $domain): string => Str::contains($domain, '*') || Str::endsWith($domain, '/')
                 ? $domain
-                : Str::finish($domain, '/').'*'
+                : "{$domain}/"
             )
             ->all();
+    }
+
+    private function matchesRedirectDomain(string $value): bool
+    {
+        $redirect = parse_url($value);
+
+        return collect($this->allowedDomains())->contains(function (string $domain) use ($value, $redirect): bool {
+            if (! Str::contains($domain, '*')) {
+                return Str::startsWith($value, $domain);
+            }
+
+            $pattern = parse_url($domain);
+
+            return isset($pattern['host'], $redirect['host'])
+                && Str::is($pattern['host'], $redirect['host'])
+                && Str::is($pattern['path'] ?? '', $redirect['path'] ?? '')
+                && Arr::except($pattern, ['host', 'path']) === Arr::except($redirect, ['host', 'path']);
+        });
     }
 
     private function hasLocalhostDomain(): bool

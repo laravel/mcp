@@ -786,19 +786,30 @@ it('registers concrete redirect URIs matching wildcard patterns', function (stri
     ],
 ]);
 
-it('rejects redirect URIs outside permitted wildcard patterns', function (): void {
+it('rejects redirect URIs outside permitted wildcard patterns', function (string $domain, string $redirect): void {
     prepareOauthRegistration(metadataColumns: []);
 
-    config()->set('mcp.redirect_domains', ['https://oauth-redirect.googleusercontent.com/r/user_bound_custom-mcp-*']);
+    config()->set('mcp.redirect_domains', [$domain]);
 
-    $this->postJson('/oauth/register', [
-        'redirect_uris' => ['https://oauth-redirect.googleusercontent.com/r/another-project'],
-    ])
+    $this->postJson('/oauth/register', ['redirect_uris' => [$redirect]])
         ->assertBadRequest()
         ->assertJsonPath('error', 'invalid_redirect_uri');
 
     expect(Client::count())->toBe(0);
-});
+})->with([
+    'different path' => [
+        'https://oauth-redirect.googleusercontent.com/r/user_bound_custom-mcp-*',
+        'https://oauth-redirect.googleusercontent.com/r/another-project',
+    ],
+    'configured host suffix appears only in the path' => [
+        'https://*.example.com/*',
+        'https://outside.example/callback.example.com/oauth',
+    ],
+    'configured path suffix appears only in the query' => [
+        'https://example.com/callback-*/finish',
+        'https://example.com/callback-123?next=/finish',
+    ],
+]);
 
 it('allows localhost with dynamic port when localhost is in redirect_domains', function (string $uri): void {
     ensureMockClientRepository();
