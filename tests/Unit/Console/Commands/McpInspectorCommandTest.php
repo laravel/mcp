@@ -106,7 +106,7 @@ it('asks for route parameter values when building the server url', function (): 
 
     $serverUrl = (new ReflectionMethod($command, 'serverUrl'))->invoke($command, $route);
 
-    expect($serverUrl)->toBe('http://localhost/mcp/4f8a1c2e');
+    expect($serverUrl)->toBe(url('mcp/4f8a1c2e'));
 });
 
 it('fails when a route parameter is left blank', function (): void {

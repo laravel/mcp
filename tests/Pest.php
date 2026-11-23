@@ -11,13 +11,6 @@ use Tests\TestCase;
 
 uses(TestCase::class)
     ->beforeEach(function (): void {
-        $directory = app_path('Mcp');
-        $filesystem = new Filesystem;
-
-        if ($filesystem->isDirectory($directory)) {
-            $filesystem->deleteDirectory($directory);
-        }
-
         config()->set('app.debug', true);
         config()->set('cache.default', 'array');
 
@@ -27,6 +20,17 @@ uses(TestCase::class)
         AuthServerDiscovery::resolveHostsUsing(null);
         AddWwwAuthenticateHeader::resolveResourceMetadataUrlUsing(null);
     })->in('Unit', 'Feature');
+
+uses()->beforeEach(function (): void {
+    $this->beforeApplicationDestroyed(lockSharedFilesystem());
+
+    $directory = app_path('Mcp');
+    $filesystem = new Filesystem;
+
+    if ($filesystem->isDirectory($directory)) {
+        $filesystem->deleteDirectory($directory);
+    }
+})->in('Feature/Console');
 
 /*
 |--------------------------------------------------------------------------
@@ -491,4 +495,16 @@ function parseJsonRpcMessagesFromStdout(string $output): array
     }
 
     return $messages;
+}
+
+function lockSharedFilesystem(): Closure
+{
+    $lock = fopen(sys_get_temp_dir().'/laravel-mcp-shared-filesystem.lock', 'c');
+
+    flock($lock, LOCK_EX);
+
+    return function () use ($lock): void {
+        flock($lock, LOCK_UN);
+        fclose($lock);
+    };
 }
