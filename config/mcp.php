@@ -11,10 +11,13 @@ return [
     | for redirect URIs. Each domain should be specified with its scheme
     | and host. Domains not in this list will raise validation errors.
     |
-    | Use "*" to allow all domains, or use wildcards in the host or path,
-    | such as "https://*.example.com/*" or "https://example.com/callback-*".
-    | Wildcards match within their component. The scheme, port, query,
-    | and fragment of a wildcard pattern must match exactly.
+    | Use "*" on its own to allow all redirect domains, or place "*" in the
+    | host or path of a URL. For example, both "https://*.example.com/*"
+    | and "https://example.com/callback-*" are valid wildcard entries.
+    |
+    | Wildcards in a URL are evaluated separately against the host and path
+    | components. For any wildcard pattern, the scheme, port, query, and
+    | fragment must all match the OAuth client's redirect URI exactly.
     |
     */
 
