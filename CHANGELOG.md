@@ -1,6 +1,29 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/mcp/compare/v1.2.1...main)
+## [Unreleased](https://github.com/laravel/mcp/compare/v1.3.0...main)
+
+## [v1.3.0](https://github.com/laravel/mcp/compare/v1.2.1...v1.3.0) - 2026-11-23
+
+### What's Changed
+
+* Allow resolving the resource metadata URL of the OAuth challenge by [@talaridisTh](https://github.com/talaridisTh) in https://github.com/laravel/mcp/pull/382
+* feat(oauth): make the authorize view translatable by [@fkrzski](https://github.com/fkrzski) in https://github.com/laravel/mcp/pull/411
+* Fix stdio server ending by itself on Windows after a long idle period by [@GTCrais](https://github.com/GTCrais) in https://github.com/laravel/mcp/pull/408
+* Fix OAuth challenge test on Laravel 12 by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/412
+* Keep the method call meta when the test client adds a progress token by [@michaeldyrynda](https://github.com/michaeldyrynda) in https://github.com/laravel/mcp/pull/413
+* Run client OAuth conformance scenarios and fix the gaps they expose by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/404
+* Expose client capabilities to handlers and tests by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/414
+* Add PHP 8.6 to the test matrix by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/418
+* Add support for the MCP Skills extension by [@pushpak1300](https://github.com/pushpak1300) in https://github.com/laravel/mcp/pull/410
+
+### New Contributors
+
+* [@talaridisTh](https://github.com/talaridisTh) made their first contribution in https://github.com/laravel/mcp/pull/382
+* [@fkrzski](https://github.com/fkrzski) made their first contribution in https://github.com/laravel/mcp/pull/411
+* [@GTCrais](https://github.com/GTCrais) made their first contribution in https://github.com/laravel/mcp/pull/408
+* [@michaeldyrynda](https://github.com/michaeldyrynda) made their first contribution in https://github.com/laravel/mcp/pull/413
+
+**Full Changelog**: https://github.com/laravel/mcp/compare/v1.2.1...v1.3.0
 
 ## [v1.2.1](https://github.com/laravel/mcp/compare/v1.2.0...v1.2.1) - 2026-11-17
 
@@ -229,6 +252,7 @@ public function setProtocolVersion(string $version): void
 {
     $this->protocolVersion = $version;
 }
+
 
 
 
@@ -564,6 +588,7 @@ public function schema(JsonSchema $schema): array
 
 
 
+
 ```
 **After**
 
@@ -574,6 +599,7 @@ public function schema(JsonSchema $schema): array
 {
     //
 }
+
 
 
 
