@@ -761,6 +761,56 @@ it('handles oauth registration with allowed domains', function (): void {
     ]);
 });
 
+it('registers concrete redirect URIs matching wildcard patterns', function (string $domain, string $redirect): void {
+    $repository = prepareOauthRegistration(metadataColumns: []);
+
+    config()->set('mcp.redirect_domains', [$domain]);
+
+    $this->postJson('/oauth/register', ['redirect_uris' => [$redirect]])
+        ->assertCreated()
+        ->assertJsonPath('redirect_uris', [$redirect]);
+
+    expect($repository->client->fresh()->redirect_uris)->toBe([$redirect]);
+})->with([
+    'wildcard path' => [
+        'https://oauth-redirect.googleusercontent.com/r/user_bound_custom-mcp-*',
+        'https://oauth-redirect.googleusercontent.com/r/user_bound_custom-mcp-123-app_example_com',
+    ],
+    'wildcard host' => [
+        'https://*.example.com/*',
+        'https://tenant.example.com/oauth/callback',
+    ],
+    'wildcard host and path' => [
+        'https://*.example.com/callback-*',
+        'https://tenant.example.com/callback-123',
+    ],
+]);
+
+it('rejects redirect URIs outside permitted wildcard patterns', function (string $domain, string $redirect): void {
+    prepareOauthRegistration(metadataColumns: []);
+
+    config()->set('mcp.redirect_domains', [$domain]);
+
+    $this->postJson('/oauth/register', ['redirect_uris' => [$redirect]])
+        ->assertBadRequest()
+        ->assertJsonPath('error', 'invalid_redirect_uri');
+
+    expect(Client::count())->toBe(0);
+})->with([
+    'different path' => [
+        'https://oauth-redirect.googleusercontent.com/r/user_bound_custom-mcp-*',
+        'https://oauth-redirect.googleusercontent.com/r/another-project',
+    ],
+    'configured host suffix appears only in the path' => [
+        'https://*.example.com/*',
+        'https://outside.example/callback.example.com/oauth',
+    ],
+    'configured path suffix appears only in the query' => [
+        'https://example.com/callback-*/finish',
+        'https://example.com/callback-123?next=/finish',
+    ],
+]);
+
 it('allows localhost with dynamic port when localhost is in redirect_domains', function (string $uri): void {
     ensureMockClientRepository();
 
