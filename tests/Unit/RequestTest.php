@@ -3,6 +3,7 @@
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Laravel\Mcp\Enums\Extension;
 use Laravel\Mcp\Enums\MetaKey;
 use Laravel\Mcp\Request;
 
@@ -227,4 +228,15 @@ it('reports boolean client capabilities as declared', function (): void {
         ->and($request->clientSupports('roots'))->toBeTrue()
         ->and($request->clientSupports('elicitation'))->toBeFalse()
         ->and((new Request)->clientSupports('roots'))->toBeFalse();
+});
+
+it('reports client extensions by id', function (): void {
+    $request = new Request(meta: [
+        MetaKey::CLIENT_CAPABILITIES->value => ['extensions' => ['io.modelcontextprotocol/ui' => [], 'io.modelcontextprotocol/tasks' => []]],
+    ]);
+
+    expect($request->clientSupportsExtension(Extension::Ui))->toBeTrue()
+        ->and($request->clientSupportsExtension('io.modelcontextprotocol/tasks'))->toBeTrue()
+        ->and($request->clientSupportsExtension(Extension::Skills))->toBeFalse()
+        ->and((new Request)->clientSupportsExtension(Extension::Ui))->toBeFalse();
 });

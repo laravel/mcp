@@ -12,6 +12,7 @@ use Illuminate\Support\Traits\Conditionable;
 use Illuminate\Support\Traits\InteractsWithData;
 use Illuminate\Support\Traits\Macroable;
 use Illuminate\Validation\ValidationException;
+use Laravel\Mcp\Enums\Extension;
 use Laravel\Mcp\Enums\MetaKey;
 
 /**
@@ -114,6 +115,13 @@ class Request implements Arrayable
         $declared = data_get($this->meta[MetaKey::CLIENT_CAPABILITIES->value] ?? [], $capability);
 
         return is_bool($declared) ? $declared : is_array($declared);
+    }
+
+    public function clientSupportsExtension(Extension|string $extension): bool
+    {
+        $extension = $extension instanceof Extension ? $extension->value : $extension;
+
+        return is_array(data_get($this->meta[MetaKey::CLIENT_CAPABILITIES->value] ?? [], ['extensions', $extension]));
     }
 
     /**
