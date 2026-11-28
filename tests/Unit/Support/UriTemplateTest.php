@@ -133,3 +133,28 @@ it('casts to string', function (): void {
 
     expect((string) $template)->toBe('file://users/{id}');
 });
+
+it('expands variables into a uri', function (): void {
+    $template = new UriTemplate('file://users/{userId}/files/{fileId}');
+
+    expect($template->expand(['userId' => 42, 'fileId' => 'notes.md']))->toBe('file://users/42/files/notes.md');
+});
+
+it('percent encodes expanded values so they stay in one segment', function (): void {
+    $template = new UriTemplate('file://files/{filename}');
+
+    $uri = $template->expand(['filename' => 'folder/my notes.md']);
+
+    expect($uri)->toBe('file://files/folder%2Fmy%20notes.md')
+        ->and($template->match($uri))->toBe(['filename' => 'folder%2Fmy%20notes.md']);
+});
+
+it('requires a string or integer value for every variable when expanding', function (array $variables): void {
+    expect(fn (): string => (new UriTemplate('file://users/{userId}'))->expand($variables))
+        ->toThrow(InvalidArgumentException::class, 'Missing a value for the [userId] variable of URI template [file://users/{userId}].');
+})->with([
+    'missing' => [[]],
+    'empty' => [['userId' => '']],
+    'array' => [['userId' => [1]]],
+    'null' => [['userId' => null]],
+]);

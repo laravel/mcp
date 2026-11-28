@@ -59,6 +59,22 @@ class UriTemplate implements Stringable
     }
 
     /**
+     * @param  array<string, mixed>  $variables
+     */
+    public function expand(array $variables): string
+    {
+        return (string) preg_replace_callback('/\{(\w+)}/', function (array $matches) use ($variables): string {
+            $value = $variables[$matches[1]] ?? null;
+
+            if ((! is_string($value) && ! is_int($value)) || $value === '') {
+                throw new InvalidArgumentException("Missing a value for the [{$matches[1]}] variable of URI template [{$this->template}].");
+            }
+
+            return rawurlencode((string) $value);
+        }, $this->template);
+    }
+
+    /**
      * @return list<string>
      */
     public function variableNames(): array
